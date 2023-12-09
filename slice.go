@@ -189,7 +189,7 @@ func (sl Slice[T]) Chunks(size int) []Slice[T] {
 			end = sl.Len()
 		}
 
-		result = append(result, sl.Range(i, end))
+		result = append(result, sl.SubSlice(i, end))
 	}
 
 	return result
@@ -486,6 +486,37 @@ func (sl Slice[T]) ForEach(fn func(T)) {
 	}
 }
 
+// Range applies a given function to each element in the slice until the function returns false.
+//
+// The function takes one parameter of type T (the same type as the elements of the slice).
+// The function is applied to each element in the order they appear in the slice until the provided function
+// returns false. Once the function returns false for an element, the iteration stops.
+//
+// Parameters:
+//
+// - fn (func(T) bool): The function to be applied to each element of the slice.
+// It should return a boolean value. If it returns false, the iteration will stop.
+//
+// Example usage:
+//
+//   slice := g.Slice[int]{1, 2, 3, 4, 5}
+//   slice.Range(func(val int) bool {
+//       fmt.Println(val)
+//       return val != 3
+//   })
+//   // Output:
+//   // 1
+//   // 2
+//   // 3
+
+func (sl Slice[T]) Range(fn func(T) bool) {
+	for _, val := range sl {
+		if !fn(val) {
+			break
+		}
+	}
+}
+
 // Map returns a new slice by applying a given function to each element in the current slice.
 //
 // The function takes one parameter of type T (the same type as the elements of the slice)
@@ -679,8 +710,8 @@ func (sl Slice[T]) MapParallel(fn func(T) T) Slice[T] {
 	}
 
 	half := sl.Len() / 2
-	left := sl.Range(0, half)
-	right := sl.Range(half)
+	left := sl.SubSlice(0, half)
+	right := sl.SubSlice(half)
 
 	var wg sync.WaitGroup
 
@@ -735,8 +766,8 @@ func (sl Slice[T]) FilterParallel(fn func(T) bool) Slice[T] {
 	}
 
 	half := sl.Len() / 2
-	left := sl.Range(0, half)
-	right := sl.Range(half)
+	left := sl.SubSlice(0, half)
+	right := sl.SubSlice(half)
 
 	var wg sync.WaitGroup
 
@@ -794,8 +825,8 @@ func (sl Slice[T]) ReduceParallel(fn func(T, T) T, initial T) T {
 	}
 
 	half := sl.Len() / 2
-	left := sl.Range(0, half)
-	right := sl.Range(half)
+	left := sl.SubSlice(0, half)
+	right := sl.SubSlice(half)
 
 	result := NewSlice[T](2)
 
@@ -1097,7 +1128,7 @@ func (sl Slice[T]) Join(sep ...T) String {
 	return String(strings.Join(sl.ToStringSlice(), separator))
 }
 
-// Range returns a new slice containing elements from the current slice between the specified start
+// SubSlice returns a new slice containing elements from the current slice between the specified start
 // and end indices. The function checks if the start and end indices are within the bounds of the
 // original slice. If the end index is negative, it represents the position from the end of the slice.
 // If the start index is negative, it represents the position from the end of the slice counted
@@ -1120,11 +1151,11 @@ func (sl Slice[T]) Join(sep ...T) String {
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	subSlice := slice.Range(1, 4)
+//	subSlice := slice.SubSlice(1, 4)
 //	fmt.Println(subSlice)
 //
 // Output: [2 3 4].
-func (sl Slice[T]) Range(start int, end ...int) Slice[T] {
+func (sl Slice[T]) SubSlice(start int, end ...int) Slice[T] {
 	_len := sl.Len()
 	_end := _len
 
@@ -1179,7 +1210,7 @@ func (sl Slice[T]) Range(start int, end ...int) Slice[T] {
 //	newSlice := slice.Cut(1, 3)
 //	// newSlice is [1 4 5]
 func (sl Slice[T]) Cut(start, end int) Slice[T] {
-	return sl.Range(0, start).Append(sl.Range(end)...)
+	return sl.SubSlice(0, start).Append(sl.SubSlice(end)...)
 }
 
 // Random returns a random element from the slice.
@@ -1456,7 +1487,7 @@ func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
 func (sl Slice[T]) NotEmpty() bool { return sl.Len() != 0 }
 
 // Pop returns the last element of the slice and a new slice without the last element.
-func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.Range(0, -1) }
+func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 
 // Set sets the value at the specified index in the slice and returns the modified slice.
 // This method can be used in place, as it modifies the original slice.

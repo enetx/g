@@ -8,7 +8,14 @@ import (
 )
 
 func main() {
-	slice := g.Slice[int]{1, 2, 3, 1, 2, 1}
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
+
+	slice.Range(func(val int) bool {
+		fmt.Println(val)
+		return val != 3
+	})
+
+	slice = g.Slice[int]{1, 2, 3, 1, 2, 1}
 	slice.Counter().Print()
 
 	result := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
@@ -16,9 +23,9 @@ func main() {
 	result.Delete(1).Print()  // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 	result.Delete(-9).Print() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 
-	result.Range(1, -3).Print()  // Slice[2, 3, 4, 5, 6, 7]
-	result.Range(-3).Print()     // Slice[8, 9, 10]
-	result.Range(-3, -1).Print() // Slice[8, 9]
+	result.SubSlice(1, -3).Print()  // Slice[2, 3, 4, 5, 6, 7]
+	result.SubSlice(-3).Print()     // Slice[8, 9, 10]
+	result.SubSlice(-3, -1).Print() // Slice[8, 9]
 
 	result = result.RandomSample(5)
 

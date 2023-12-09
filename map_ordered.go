@@ -342,6 +342,7 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) *MapOrd[K, V] {
 }
 
 // ForEach executes a provided function for each key-value pair in the ordered Map.
+//
 // This function is useful when you want to perform an operation or side effect for each key-value
 // pair in the ordered Map.
 //
@@ -358,6 +359,30 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) *MapOrd[K, V] {
 func (mo *MapOrd[K, V]) ForEach(fn func(K, V)) {
 	for _, mp := range *mo {
 		fn(mp.Key, mp.Value)
+	}
+}
+
+// Range applies a given function to each key-value pair in the ordered Map until the function returns false.
+//
+// The provided function 'fn' should take a key and a value as input parameters and return a boolean.
+// If the function returns false for any key-value pair, the iteration stops.
+//
+// Parameters:
+//
+// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a boolean.
+// If it returns false, the iteration will stop.
+//
+// Example usage:
+//
+//	hmapo.Range(func(key K, value V) bool {
+//	    fmt.Printf("Key: %v, Value: %v\n", key, value)
+//	    return key != stopKey // Stop iteration condition
+//	})
+func (mo *MapOrd[K, V]) Range(fn func(K, V) bool) {
+	for _, mp := range *mo {
+		if !fn(mp.Key, mp.Value) {
+			break
+		}
 	}
 }
 

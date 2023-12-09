@@ -249,6 +249,30 @@ func (m Map[K, V]) ForEach(fn func(K, V)) {
 	}
 }
 
+// Range applies a given function to each key-value pair in the Map until the function returns false.
+//
+// The provided function 'fn' should take a key and a value as input parameters and return a boolean.
+// If the function returns false for any key-value pair, the iteration stops.
+//
+// Parameters:
+//
+// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a boolean.
+// If it returns false, the iteration will stop.
+//
+// Example usage:
+//
+//	originalMap.Range(func(key K, value V) bool {
+//	    fmt.Printf("Key: %v, Value: %v\n", key, value)
+//	    return key != stopKey // Stop iteration condition
+//	})
+func (m Map[K, V]) Range(fn func(K, V) bool) {
+	for key, val := range m {
+		if !fn(key, val) {
+			break
+		}
+	}
+}
+
 // MapParallel applies a function to each key-value pair in the Map in parallel and returns a new
 // Map with the results.
 // The provided function 'fn' should take a key and a value as input parameters and return a new

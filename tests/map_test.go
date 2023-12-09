@@ -513,3 +513,41 @@ func TestRandomRangeMapInvalidRange(t *testing.T) {
 		t.Errorf("Expected an empty map, but got length %d", subrangeMap.Len())
 	}
 }
+
+func TestMapRange(t *testing.T) {
+	// Test scenario: Function always returns true
+	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
+		m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+		expected := map[string]int{"a": 1, "b": 2, "c": 3}
+
+		result := make(map[string]int)
+		alwaysTrue := func(key string, val int) bool {
+			result[key] = val
+			return true
+		}
+
+		m.Range(alwaysTrue)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
+
+	// Test scenario: Empty map
+	t.Run("EmptyMap", func(t *testing.T) {
+		emptyMap := g.Map[string, int]{}
+		expected := make(map[string]int)
+
+		result := make(map[string]int)
+		anyFunc := func(key string, val int) bool {
+			result[key] = val
+			return true
+		}
+
+		emptyMap.Range(anyFunc)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
+}

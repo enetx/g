@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"reflect"
 	"testing"
 
 	"gitlab.com/x0xO/g"
@@ -214,4 +215,43 @@ func TestSetEq(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetRange(t *testing.T) {
+	// Test scenario: Function always returns true
+	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
+		set := g.SetOf(1, 2, 3, 4, 5)
+
+		expected := g.SetOf(1, 2, 3, 4, 5)
+
+		result := g.NewSet[int]()
+		alwaysTrue := func(val int) bool {
+			result.Add(val)
+			return true
+		}
+
+		set.Range(alwaysTrue)
+
+		if !result.Eq(expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
+
+	// Test scenario: Empty set
+	t.Run("EmptySet", func(t *testing.T) {
+		emptySet := g.NewSet[int]()
+		expected := []int{}
+
+		result := []int{}
+		anyFunc := func(val int) bool {
+			result = append(result, val)
+			return true
+		}
+
+		emptySet.Range(anyFunc)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
 }

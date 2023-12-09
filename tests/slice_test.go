@@ -1064,10 +1064,10 @@ func TestSliceUnique(t *testing.T) {
 	}
 }
 
-func TestSliceRange(t *testing.T) {
+func TestSliceSubSlice(t *testing.T) {
 	// Test with an empty slice
 	emptySlice := g.Slice[int]{}
-	emptySubSlice := emptySlice.Range(0)
+	emptySubSlice := emptySlice.SubSlice(0)
 	if !emptySubSlice.Empty() {
 		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
@@ -1076,54 +1076,110 @@ func TestSliceRange(t *testing.T) {
 	slice := g.Slice[int]{1, 2, 3, 4, 5}
 
 	// Test a valid range within bounds
-	subSlice := slice.Range(1, 4)
+	subSlice := slice.SubSlice(1, 4)
 	expected := g.Slice[int]{2, 3, 4}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with a single negative index
-	subSlice = slice.Range(-2)
+	subSlice = slice.SubSlice(-2)
 	expected = g.Slice[int]{4, 5}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with a negative start and end index
-	subSlice = slice.Range(-3, -1)
+	subSlice = slice.SubSlice(-3, -1)
 	expected = g.Slice[int]{3, 4}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with a negative start index beyond slice length
-	subSlice = slice.Range(-6)
+	subSlice = slice.SubSlice(-6)
 	if !subSlice.Eq(slice) {
 		t.Errorf("Expected empty slice for negative start index beyond slice length, but got: %v", subSlice)
 	}
 
 	// Test with a negative end index beyond slice length
-	subSlice = slice.Range(0, -6)
+	subSlice = slice.SubSlice(0, -6)
 	if !subSlice.Empty() {
 		t.Errorf("Expected empty slice for negative end index beyond slice length, but got: %v", subSlice)
 	}
 
 	// Test with a start index beyond slice length
-	subSlice = slice.Range(6)
+	subSlice = slice.SubSlice(6)
 	if !subSlice.Empty() {
 		t.Errorf("Expected empty slice for start index beyond slice length, but got: %v", subSlice)
 	}
 
 	// Test with an end index beyond slice length
-	subSlice = slice.Range(0, 6)
+	subSlice = slice.SubSlice(0, 6)
 	expected = slice
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with start index greater than end index
-	subSlice = slice.Range(3, 2)
+	subSlice = slice.SubSlice(3, 2)
 	if !subSlice.Empty() {
 		t.Errorf("Expected empty slice for start index greater than end index, but got: %v", subSlice)
 	}
+}
+
+func TestSliceRange(t *testing.T) {
+	// Test scenario: Function stops at a specific value
+	t.Run("FunctionStopsAtThree", func(t *testing.T) {
+		slice := g.Slice[int]{1, 2, 3, 4, 5}
+		expected := []int{1, 2, 3}
+
+		var result []int
+		stopAtThree := func(val int) bool {
+			result = append(result, val)
+			return val != 3
+		}
+
+		slice.Range(stopAtThree)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
+
+	// Test scenario: Function always returns true
+	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
+		slice := g.Slice[int]{1, 2, 3, 4, 5}
+		expected := []int{1, 2, 3, 4, 5}
+
+		var result []int
+		alwaysTrue := func(val int) bool {
+			result = append(result, val)
+			return true
+		}
+
+		slice.Range(alwaysTrue)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
+
+	// Test scenario: Empty slice
+	t.Run("EmptySlice", func(t *testing.T) {
+		emptySlice := g.Slice[int]{}
+		expected := []int{}
+
+		result := []int{}
+		anyFunc := func(val int) bool {
+			result = append(result, val)
+			return true
+		}
+
+		emptySlice.Range(anyFunc)
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("Expected: %v, Got: %v", expected, result)
+		}
+	})
 }

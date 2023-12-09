@@ -106,6 +106,30 @@ func (s Set[T]) ForEach(fn func(T)) {
 	}
 }
 
+// Range applies a given function to each value in the Set until the function returns false.
+//
+// The provided function 'fn' should take a value as input parameter and return a boolean.
+// If the function returns false for any value, the iteration stops.
+//
+// Parameters:
+//
+// - fn func(T) bool: A function that takes a value as input parameter and returns a boolean.
+// If it returns false, the iteration will stop.
+//
+// Example usage:
+//
+//	originalSet.Range(func(value T) bool {
+//	    fmt.Printf("Value: %v\n", value)
+//	    return value != stopValue // Stop iteration condition
+//	})
+func (s Set[T]) Range(fn func(T) bool) {
+	for value := range s {
+		if !fn(value) {
+			break
+		}
+	}
+}
+
 // Map returns a new set by applying a given function to each element in the current set.
 //
 // The function takes one parameter of type T (the same type as the elements of the set)
