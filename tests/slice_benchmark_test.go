@@ -18,6 +18,30 @@ func genSlice() g.Slice[g.String] {
 	return slice
 }
 
+func BenchmarkForEach(b *testing.B) {
+	slice := genSlice()
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		slice.ForEach(func(s g.String) {
+			s.Comp().Flate()
+		})
+	}
+}
+
+func BenchmarkForEachParallel(b *testing.B) {
+	slice := genSlice()
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		slice.ForEachParallel(func(s g.String) {
+			s.Comp().Flate()
+		})
+	}
+}
+
 func BenchmarkMap(b *testing.B) {
 	slice := genSlice()
 

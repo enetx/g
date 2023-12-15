@@ -249,6 +249,61 @@ func (m Map[K, V]) ForEach(fn func(K, V)) {
 	}
 }
 
+// ForEachParallel applies a given function to each key-value pair in the Map concurrently.
+//
+// If the length of the Map is below a certain threshold (max), it performs the operation sequentially.
+// Otherwise, it divides the Map into halves and processes each half concurrently using goroutines.
+//
+// Parameters:
+//
+// - fn func(K, V): A function that takes a key and a value as input parameters and performs an
+// operation.
+//
+// Note:
+// The provided function 'fn' should be safe for concurrent execution to prevent race conditions.
+//
+// Example usage:
+//
+//	originalMap.ForEachParallel(func(key K, value V) {
+//		fmt.Printf("Key: %v, Value: %v\n", key, value)
+//	})
+func (m Map[K, V]) ForEachParallel(fn func(K, V)) {
+	const max = 1 << 11
+	if m.Len() < max {
+		m.ForEach(fn)
+		return
+	}
+
+	half := m.Len() / 2
+
+	left := NewMap[K, V](0)
+	right := NewMap[K, V](0)
+
+	i := 0
+	for k, v := range m {
+		if i < half {
+			left.Set(k, v)
+		} else {
+			right.Set(k, v)
+		}
+		i++
+	}
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func() {
+		left.ForEachParallel(fn)
+
+		wg.Done()
+	}()
+
+	right.ForEachParallel(fn)
+
+	wg.Wait()
+}
+
 // Range applies a given function to each key-value pair in the Map until the function returns false.
 //
 // The provided function 'fn' should take a key and a value as input parameters and return a boolean.

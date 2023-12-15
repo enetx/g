@@ -486,6 +486,51 @@ func (sl Slice[T]) ForEach(fn func(T)) {
 	}
 }
 
+// ForEachParallel applies a given function to each element in the slice concurrently.
+//
+// If the length of the slice is below a certain threshold (max), it performs the operation sequentially.
+// Otherwise, it divides the slice into halves and processes each half concurrently using goroutines.
+//
+// Parameters:
+// - fn (func(T)): The function to be applied to each element of the slice.
+//
+// Note:
+// The provided function 'fn' should be safe for concurrent execution to prevent race conditions.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, ...}
+//	slice.ForEachParallel(func(val int) {
+//	    fmt.Println(val * 2)
+//	})
+//	// Output (order may vary due to concurrent execution):
+//	// ...
+func (sl Slice[T]) ForEachParallel(fn func(T)) {
+	const max = 1 << 11
+	if sl.Len() < max {
+		sl.ForEach(fn)
+		return
+	}
+
+	half := sl.Len() / 2
+	left := sl.SubSlice(0, half)
+	right := sl.SubSlice(half)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
+	go func() {
+		left.ForEachParallel(fn)
+
+		wg.Done()
+	}()
+
+	right.ForEachParallel(fn)
+
+	wg.Wait()
+}
+
 // Range applies a given function to each element in the slice until the function returns false.
 //
 // The function takes one parameter of type T (the same type as the elements of the slice).
