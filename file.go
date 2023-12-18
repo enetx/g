@@ -258,7 +258,7 @@ func (f *File) ReadLines() Result[Slice[String]] {
 		return Err[Slice[String]](read.Err())
 	}
 
-	return Ok(read.Ok().Split("\n"))
+	return Ok(read.Ok().SplitLines())
 }
 
 // Remove removes the file.

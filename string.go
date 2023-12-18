@@ -354,7 +354,7 @@ func (s String) Split(sep ...String) Slice[String] {
 }
 
 // SplitLines splits the String by lines.
-func (s String) SplitLines() Slice[String] { return s.Split("\n") }
+func (s String) SplitLines() Slice[String] { return s.TrimSpace().Split("\n") }
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
 // The n parameter controls the number of substrings to return:

@@ -1,5 +1,7 @@
 package g
 
+import "fmt"
+
 // SliceMap applies the given function to each element of a Slice and returns a new Slice
 // containing the transformed values.
 //
@@ -31,3 +33,6 @@ func SetMap[T, E comparable](s Set[T], fn func(T) E) Set[E] {
 
 	return result
 }
+
+// Sprintf formats according to a format specifier and returns the resulting String.
+func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
