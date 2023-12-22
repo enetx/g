@@ -325,61 +325,71 @@ func TestStringCut(t *testing.T) {
 	}
 }
 
-func TestStringEscape(t *testing.T) {
-	tests := []struct {
+func TestURLEncode(t *testing.T) {
+	testCases := []struct {
 		input    g.String
+		safe     g.String
 		expected g.String
 	}{
 		{
-			input:    g.String("hello world"),
-			expected: g.String("hello+world"),
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     "",
+			expected: "https%3A%2F%2Fwww.test.com%2F%3Fquery%3Dtest%26param%3Dvalue",
 		},
 		{
-			input:    g.String("a+b=c/d"),
-			expected: g.String("a%2Bb%3Dc%2Fd"),
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":",
+			expected: "https:%2F%2Fwww.test.com%2F%3Fquery%3Dtest%26param%3Dvalue",
 		},
 		{
-			input:    g.String("foo?bar=baz&abc=123"),
-			expected: g.String("foo%3Fbar%3Dbaz%26abc%3D123"),
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&",
+			expected: "https://www.test.com/%3Fquery%3Dtest&param%3Dvalue",
 		},
 		{
-			input:    g.String(""),
-			expected: g.String(""),
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&?",
+			expected: "https://www.test.com/?query%3Dtest&param%3Dvalue",
+		},
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&?=",
+			expected: "https://www.test.com/?query=test&param=value",
 		},
 	}
 
-	for _, test := range tests {
-		actual := test.input.Enc().URL()
-		if actual != test.expected {
-			t.Errorf("Escape(%s): expected %s, but got %s", test.input, test.expected, actual)
+	for _, tc := range testCases {
+		encoded := tc.input.Enc().URL(tc.safe)
+		if encoded != tc.expected {
+			t.Errorf("For input: %s and safe: %s, expected: %s, but got: %s", tc.input, tc.safe, tc.expected, encoded.Std())
 		}
 	}
 }
 
-func TestStringUnEscape(t *testing.T) {
+func TestURLDecode(t *testing.T) {
 	tests := []struct {
 		input    g.String
 		expected g.String
 	}{
 		{
-			input:    g.String("hello+world"),
-			expected: g.String("hello world"),
+			input:    "hello+world",
+			expected: "hello world",
 		},
 		{
-			input:    g.String("hello%20world"),
-			expected: g.String("hello world"),
+			input:    "hello%20world",
+			expected: "hello world",
 		},
 		{
-			input:    g.String("a%2Bb%3Dc%2Fd"),
-			expected: g.String("a+b=c/d"),
+			input:    "a%2Bb%3Dc%2Fd",
+			expected: "a+b=c/d",
 		},
 		{
-			input:    g.String("foo%3Fbar%3Dbaz%26abc%3D123"),
-			expected: g.String("foo?bar=baz&abc=123"),
+			input:    "foo%3Fbar%3Dbaz%26abc%3D123",
+			expected: "foo?bar=baz&abc=123",
 		},
 		{
-			input:    g.String(""),
-			expected: g.String(""),
+			input:    "",
+			expected: "",
 		},
 	}
 

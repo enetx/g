@@ -20,7 +20,7 @@ import (
 //
 // Returns:
 //
-// - *hMapOrd[K, V]: A pointer to a new ordered Map with the specified initial size (or default
+// - *MapOrd[K, V]: A pointer to a new ordered Map with the specified initial size (or default
 // size if not provided).
 //
 // Example usage:

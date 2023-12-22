@@ -38,4 +38,8 @@ func main() {
 	g.NewString("").Random(10, g.PUNCTUATION).Print()
 
 	g.NewString("some text").Comp().Brotli().Decomp().Brotli().Unwrap().Print()
+
+	myString := "https://www.test.com/?query=test&param=value"
+
+	g.NewString(myString).Enc().URL().Print()
 }

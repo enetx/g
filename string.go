@@ -716,7 +716,7 @@ func (s String) Repeat(count int) String { return String(strings.Repeat(s.Std(),
 func (s String) Reverse() String { return s.ToBytes().Reverse().ToString() }
 
 // ToRunes returns the String as a slice of runes.
-func (s String) ToRunes() []rune { return []rune(s) }
+func (s String) ToRunes() Slice[rune] { return []rune(s) }
 
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }

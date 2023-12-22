@@ -93,7 +93,26 @@ func (d dec) XML(data any) Result[String] {
 }
 
 // URL URL-encodes the wrapped String and returns the encoded result as an String.
-func (e enc) URL() String { return String(url.QueryEscape(e.str.Std())) }
+func (e enc) URL(safe ...String) String {
+	// https://www.ietf.org/rfc/rfc2396.txt#2.2
+	reserved := String(";/?:@&=+$,")
+	if len(safe) != 0 {
+		reserved = safe[0]
+	}
+
+	var enc strings.Builder
+
+	e.str.ToRunes().ForEach(func(r rune) {
+		if reserved.ContainsRune(r) {
+			enc.WriteRune(r)
+			return
+		}
+
+		enc.WriteString(url.QueryEscape(string(r)))
+	})
+
+	return String(enc.String())
+}
 
 // URL URL-decodes the wrapped String and returns the decoded result as an String.
 func (d dec) URL() Result[String] {
