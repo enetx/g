@@ -92,10 +92,19 @@ func (d dec) XML(data any) Result[String] {
 	return Ok(d.str)
 }
 
-// URL URL-encodes the wrapped String and returns the encoded result as an String.
+// URL encodes the input string, escaping reserved characters as per RFC 2396.
+// If safe characters are provided, they will not be encoded.
+//
+// Parameters:
+//
+// - safe (String): Optional. Characters to exclude from encoding.
+// If provided, the function will not encode these characters.
+//
+// Returns:
+//
+// - String: Encoded URL string.
 func (e enc) URL(safe ...String) String {
-	// https://www.ietf.org/rfc/rfc2396.txt#2.2
-	reserved := String(";/?:@&=+$,")
+	reserved := String(";/?:@&=+$,") // Reserved characters as per RFC 2396
 	if len(safe) != 0 {
 		reserved = safe[0]
 	}
