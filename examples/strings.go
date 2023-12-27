@@ -39,7 +39,6 @@ func main() {
 
 	g.NewString("some text").Comp().Brotli().Decomp().Brotli().Unwrap().Print()
 
-	myString := "https://www.test.com/?query=test&param=value"
-
-	g.NewString(myString).Enc().URL().Print()
+	g.String("https://www.test.com/?query=Hellö Wörld&param=value").Enc().URL().Print()
+	g.String("Hellö Wörld@Golang").Enc().URL("").Print()
 }

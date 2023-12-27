@@ -135,13 +135,13 @@ func (s String) TrimRight(cutset String) String {
 }
 
 // TrimPrefix trims the specified prefix from the String.
-func (s String) TrimPrefix(cutset String) String {
-	return String(strings.TrimPrefix(s.Std(), cutset.Std()))
+func (s String) TrimPrefix(prefix String) String {
+	return String(strings.TrimPrefix(s.Std(), prefix.Std()))
 }
 
 // TrimSuffix trims the specified suffix from the String.
-func (s String) TrimSuffix(cutset String) String {
-	return String(strings.TrimSuffix(s.Std(), cutset.Std()))
+func (s String) TrimSuffix(suffix String) String {
+	return String(strings.TrimSuffix(s.Std(), suffix.Std()))
 }
 
 // Replace replaces the 'oldS' String with the 'newS' String for the specified number of

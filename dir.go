@@ -2,6 +2,7 @@ package g
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -9,6 +10,8 @@ import (
 // NewDir returns a new Dir instance with the given path.
 func NewDir(path String) *Dir { return &Dir{path: path} }
 
+// Chown changes the ownership of the directory to the specified UID and GID.
+// It uses os.Chown to modify ownership and returns a Result[*Dir] indicating success or failure.
 func (d *Dir) Chown(uid, gid int) Result[*Dir] {
 	err := os.Chown(d.path.Std(), uid, gid)
 	if err != nil {
@@ -16,6 +19,16 @@ func (d *Dir) Chown(uid, gid int) Result[*Dir] {
 	}
 
 	return Ok(d)
+}
+
+// Stat retrieves information about the directory represented by the Dir instance.
+// It returns a Result[fs.FileInfo] containing details about the directory's metadata.
+func (d *Dir) Stat() Result[fs.FileInfo] {
+	if d.Path().IsErr() {
+		return Err[fs.FileInfo](d.Path().Err())
+	}
+
+	return ToResult(os.Stat(d.Path().Ok().Std()))
 }
 
 // CreateTemp creates a new temporary directory in the specified directory with the
