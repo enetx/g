@@ -323,7 +323,7 @@ func (sl Slice[T]) RandomRange(from, to int) Slice[T] {
 		return NewSlice[T]()
 	}
 
-	sequence := Int(0).RandomRange(Int(from), Int(to)).Std()
+	sequence := Int(from).RandomRange(Int(to)).Std()
 
 	return sl.RandomSample(sequence)
 }
@@ -1065,7 +1065,7 @@ func (sl Slice[T]) Shuffle() Slice[T] {
 	n := sl.Len()
 
 	for i := n - 1; i > 0; i-- {
-		j := rand.Intn(i + 1)
+		j := rand.N(i + 1)
 		sl.Swap(i, j)
 	}
 
@@ -1279,7 +1279,7 @@ func (sl Slice[T]) Random() T {
 		return *new(T)
 	}
 
-	return sl.Get(rand.Intn(sl.Len()))
+	return sl.Get(rand.N(sl.Len()))
 }
 
 // Clone returns a copy of the slice.

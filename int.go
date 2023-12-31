@@ -21,9 +21,7 @@ func (i Int) Min(b ...Int) Int { return minmax.Min(i, b...) }
 func (i Int) Max(b ...Int) Int { return minmax.Max(i, b...) }
 
 // RandomRange returns a random Int in the range [from, to].
-func (Int) RandomRange(from, to Int) Int {
-	return Int(rand.Intn(to.Sub(from).Add(1).Std())).Add(from)
-}
+func (i Int) RandomRange(to Int) Int { return rand.N(to.Sub(i).Add(1)).Add(i) }
 
 // Bytes returns the Int as a byte slice.
 func (i Int) Bytes() Bytes {
@@ -94,7 +92,7 @@ func (i Int) Mul(b Int) Int { return i * b }
 func (i Int) Ne(b Int) bool { return i != b }
 
 // Random returns a random Int in the range [0, hi].
-func (i Int) Random() Int { return i.RandomRange(0, i) }
+func (i Int) Random() Int { return Int(0).RandomRange(i) }
 
 // Rem returns the remainder of the division between the receiver and the input value.
 func (i Int) Rem(b Int) Int { return i % b }

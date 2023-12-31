@@ -50,7 +50,7 @@ func TestIntRandomRange(t *testing.T) {
 		min := g.NewInt(100).Random()
 		max := g.NewInt(100).Random().Add(min)
 
-		r := g.NewInt(0).RandomRange(min, max)
+		r := min.RandomRange(max)
 		if r.Lt(min) || r.Gt(max) {
 			t.Errorf("RandomRange(%d, %d) = %d, want in range [%d, %d]", min, max, r, min, max)
 		}

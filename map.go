@@ -112,7 +112,7 @@ func (m Map[K, V]) RandomRange(from, to int) Map[K, V] {
 		return NewMap[K, V]()
 	}
 
-	sequence := Int(0).RandomRange(Int(from), Int(to)).Std()
+	sequence := Int(from).RandomRange(Int(to)).Std()
 
 	return m.RandomSample(sequence)
 }
