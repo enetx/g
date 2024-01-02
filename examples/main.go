@@ -62,7 +62,7 @@ func main() {
 	rn := g.NewInt(10).Random()
 	fmt.Println("random number: ", rn)
 
-	rrn := g.NewInt(0).RandomRange(10, 100)
+	rrn := g.NewInt(10).RandomRange(100)
 	fmt.Println("random range number: ", rrn)
 
 	var n2 g.Int = 321

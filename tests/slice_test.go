@@ -1096,36 +1096,60 @@ func TestSliceSubSlice(t *testing.T) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
-	// Test with a negative start index beyond slice length
-	subSlice = slice.SubSlice(-6)
-	if !subSlice.Eq(slice) {
-		t.Errorf("Expected empty slice for negative start index beyond slice length, but got: %v", subSlice)
+	// Test with an empty source slice
+	emptySlice = g.Slice[int]{}
+	emptySubSlice = emptySlice.SubSlice(0)
+	if !emptySubSlice.Empty() {
+		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
+}
 
-	// Test with a negative end index beyond slice length
-	subSlice = slice.SubSlice(0, -6)
-	if !subSlice.Empty() {
-		t.Errorf("Expected empty slice for negative end index beyond slice length, but got: %v", subSlice)
-	}
+func TestSubSliceOutOfBoundsStartIndex(t *testing.T) {
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
 
-	// Test with a start index beyond slice length
-	subSlice = slice.SubSlice(6)
-	if !subSlice.Empty() {
-		t.Errorf("Expected empty slice for start index beyond slice length, but got: %v", subSlice)
-	}
+	// Test with start index beyond slice length (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for start index beyond slice length, but no panic occurred")
+		}
+	}()
+	_ = slice.SubSlice(10)
+}
 
-	// Test with an end index beyond slice length
-	subSlice = slice.SubSlice(0, 6)
-	expected = slice
-	if !subSlice.Eq(expected) {
-		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
-	}
+func TestSubSliceOutOfBoundsNegativeStartIndex(t *testing.T) {
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
 
-	// Test with start index greater than end index
-	subSlice = slice.SubSlice(3, 2)
-	if !subSlice.Empty() {
-		t.Errorf("Expected empty slice for start index greater than end index, but got: %v", subSlice)
-	}
+	// Test with a negative start index beyond slice length (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for negative start index beyond slice length, but no panic occurred")
+		}
+	}()
+	_ = slice.SubSlice(-10)
+}
+
+func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
+
+	// Test with an end index beyond slice length (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for end index beyond slice length, but no panic occurred")
+		}
+	}()
+	_ = slice.SubSlice(2, 10)
+}
+
+func TestSubSliceOutOfBoundsNegativeIndices(t *testing.T) {
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
+
+	// Test with negative start and end indices beyond slice length (should panic)
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for negative start and end indices beyond slice length, but no panic occurred")
+		}
+	}()
+	_ = slice.SubSlice(-10, -1)
 }
 
 func TestSliceRange(t *testing.T) {

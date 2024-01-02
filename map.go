@@ -41,7 +41,8 @@ func (m Map[K, V]) Random() Map[K, V] {
 		return m
 	}
 
-	key := m.Keys().Get(0)
+	key := m.Keys()[0]
+
 	return NewMap[K, V]().Set(key, m.Get(key))
 }
 
