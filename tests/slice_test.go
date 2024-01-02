@@ -9,6 +9,28 @@ import (
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
+func TestCompact(t *testing.T) {
+	testCases := []struct {
+		input    []int
+		expected []int
+	}{
+		{[]int{2, 2, 3, 4, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8}, []int{2, 3, 4, 5, 6, 7, 8}},
+		{[]int{1, 1, 1, 1}, []int{1}},
+		{[]int{1, 2, 3, 4, 5}, []int{1, 2, 3, 4, 5}},
+		{[]int{7, 7, 7, 7, 7, 7}, []int{7}},
+		{[]int{}, []int{}},
+	}
+
+	for _, tc := range testCases {
+		slice := g.Slice[int](tc.input)
+		slice.Compact()
+
+		if !reflect.DeepEqual([]int(slice), tc.expected) {
+			t.Errorf("Compact(%v): expected %v, got %v", tc.input, tc.expected, []int(slice))
+		}
+	}
+}
+
 func TestPermutations(t *testing.T) {
 	empty := g.NewSlice[int]()
 	permsEmpty := empty.Permutations()
