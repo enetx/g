@@ -55,36 +55,86 @@ func TestPermutations(t *testing.T) {
 }
 
 func TestSliceInsert(t *testing.T) {
-	empty := g.NewSlice[int]()
-	empty = empty.Insert(0, 1, 2)
-
-	expectedEmpty := g.NewSlice[int]().Append(1, 2)
-	if !reflect.DeepEqual(empty, expectedEmpty) {
-		t.Errorf("expected %v, but got %v", expectedEmpty, empty)
+	// Test insertion in the middle
+	slice := g.Slice[string]{"a", "b", "c", "d"}
+	newSlice := slice.Insert(2, "e", "f")
+	expected := g.Slice[string]{"a", "b", "e", "f", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Insert(2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
-	slice1 := g.NewSlice[int]().Append(3, 4)
-	slice1 = slice1.Insert(0, 1, 2)
-
-	expected1 := g.NewSlice[int]().Append(1, 2, 3, 4)
-	if !reflect.DeepEqual(slice1, expected1) {
-		t.Errorf("expected %v, but got %v", expected1, slice1)
+	// Test insertion at the start
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Insert(0, "x", "y")
+	expected = g.Slice[string]{"x", "y", "a", "b", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Insert(0) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
-	slice2 := g.NewSlice[string]().Append("foo", "bar", "baz")
-	slice2 = slice2.Insert(1, "qux", "quux")
-
-	expected2 := g.NewSlice[string]().Append("foo", "qux", "quux", "bar", "baz")
-	if !reflect.DeepEqual(slice2, expected2) {
-		t.Errorf("expected %v, but got %v", expected2, slice2)
+	// Test insertion at the end
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Insert(slice.Len(), "x", "y")
+	expected = g.Slice[string]{"a", "b", "c", "d", "x", "y"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Insert(end) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
-	slice3 := g.NewSlice[float64]().Append(1.23, 4.56)
-	slice3 = slice3.Insert(slice3.Len(), 7.89)
+	// Test insertion with negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Insert(-2, "x", "y")
+	expected = g.Slice[string]{"a", "b", "x", "y", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Insert(-2) failed. Expected %v, but got %v", expected, newSlice)
+	}
 
-	expected3 := g.NewSlice[float64]().Append(1.23, 4.56, 7.89)
-	if !reflect.DeepEqual(slice3, expected3) {
-		t.Errorf("expected %v, but got %v", expected3, slice3)
+	// Test insertion at index 0 with an empty slice
+	slice = g.Slice[string]{}
+	newSlice = slice.Insert(0, "x", "y")
+	expected = g.Slice[string]{"x", "y"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Insert(0) with empty slice failed. Expected %v, but got %v", expected, newSlice)
+	}
+}
+
+func TestSliceInsertInPlace(t *testing.T) {
+	// Test insertion in the middle
+	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice.InsertInPlace(2, "e", "f")
+	expected := g.Slice[string]{"a", "b", "e", "f", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("InsertInPlace(2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test insertion at the start
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.InsertInPlace(0, "x", "y")
+	expected = g.Slice[string]{"x", "y", "a", "b", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("InsertInPlace(0) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test insertion at the end
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.InsertInPlace(slice.Len(), "x", "y")
+	expected = g.Slice[string]{"a", "b", "c", "d", "x", "y"}
+	if !slice.Eq(expected) {
+		t.Errorf("InsertInPlace(end) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test insertion with negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.InsertInPlace(-2, "x", "y")
+	expected = g.Slice[string]{"a", "b", "x", "y", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("InsertInPlace(-2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test insertion at index 0 with an empty slice
+	slice = g.Slice[string]{}
+	slice.InsertInPlace(0, "x", "y")
+	expected = g.Slice[string]{"x", "y"}
+	if !slice.Eq(expected) {
+		t.Errorf("InsertInPlace(0) with empty slice failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
@@ -509,6 +559,33 @@ func TestSliceCut(t *testing.T) {
 	}
 }
 
+func TestSliceCutInPlace(t *testing.T) {
+	slice := g.Slice[int]{1, 2, 3, 4, 5}
+
+	// Test normal range
+	slice.CutInPlace(1, 3)
+	expected := g.Slice[int]{1, 4, 5}
+	if !slice.Eq(expected) {
+		t.Errorf("CutInPlace(1, 3) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test range with negative indices
+	slice = g.Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
+	slice.CutInPlace(-3, -2)
+	expected = g.Slice[int]{1, 2, 4, 5}
+	if !slice.Eq(expected) {
+		t.Errorf("CutInPlace(-3, -2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test empty range
+	slice = g.Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
+	slice.CutInPlace(0, 5)
+	expected = g.Slice[int]{}
+	if !slice.Eq(expected) {
+		t.Errorf("CutInPlace(0, 5) failed. Expected %v, but got %v", expected, slice)
+	}
+}
+
 func TestSliceLast(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5}
 	if sl.Last() != 5 {
@@ -918,6 +995,88 @@ func TestSliceReplace(t *testing.T) {
 	}
 }
 
+func TestSliceReplaceM(t *testing.T) {
+	// Test replacement in the middle
+	slice := g.Slice[string]{"a", "b", "c", "d"}
+	newSlice := slice.Replace(1, 1, "zz", "xx")
+	expected := g.Slice[string]{"a", "zz", "xx", "b", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(1, 1) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement with same start and end indices
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(2, 2, "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(2, 2) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from i to the end
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(2, slice.Len(), "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(2, end) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from the start to j
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(0, 2, "zz", "xx")
+	expected = g.Slice[string]{"zz", "xx", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(start, 2) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test empty replacement
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(2, 2) // No replacement, should remain unchanged
+	expected = g.Slice[string]{"a", "b", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(2, 2) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from negative index to positive index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(-2, 2, "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(-2, 2) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from positive index to negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(1, -1, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(1, -1) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from negative index to negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(-3, -2, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "c", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(-3, -2) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement from negative index to positive index including negative values
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(-3, 3, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(-3, 3) failed. Expected %v, but got %v", expected, newSlice)
+	}
+
+	// Test replacement with empty slice
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	newSlice = slice.Replace(1, 3)
+	expected = g.Slice[string]{"a", "d"}
+	if !newSlice.Eq(expected) {
+		t.Errorf("Replace(1, 3) with empty slice failed. Expected %v, but got %v", expected, newSlice)
+	}
+}
+
 func TestSliceReplaceInPlace(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -984,6 +1143,88 @@ func TestSliceReplaceInPlace(t *testing.T) {
 				t.Errorf("expected %v, got %v", tt.expected, *sl)
 			}
 		})
+	}
+}
+
+func TestSliceReplaceInPlaceM(t *testing.T) {
+	// Test replacement in the middle
+	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(1, 1, "zz", "xx")
+	expected := g.Slice[string]{"a", "zz", "xx", "b", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(1, 1) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement with same start and end indices
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(2, 2, "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from i to the end
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(2, slice.Len(), "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(2, end) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from the start to j
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(0, 2, "zz", "xx")
+	expected = g.Slice[string]{"zz", "xx", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(start, 2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test empty replacement
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(2, 2) // No replacement, should remain unchanged
+	expected = g.Slice[string]{"a", "b", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from negative index to positive index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(-2, 2, "zz", "xx")
+	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(-2, 2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from positive index to negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(1, -1, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(1, -1) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from negative index to negative index
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(-3, -2, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "c", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(-3, -2) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement from negative index to positive index including negative values
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(-3, 3, "zz", "xx")
+	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(-3, 3) failed. Expected %v, but got %v", expected, slice)
+	}
+
+	// Test replacement with empty slice
+	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice.ReplaceInPlace(1, 3)
+	expected = g.Slice[string]{"a", "d"}
+	if !slice.Eq(expected) {
+		t.Errorf("ReplaceInPlace(1, 3) with empty slice failed. Expected %v, but got %v", expected, slice)
 	}
 }
 

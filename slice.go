@@ -345,7 +345,7 @@ func (sl Slice[T]) Insert(i int, values ...T) Slice[T] { return sl.Replace(i, i,
 //	slice.InsertInPlace(2, "e", "f")
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl *Slice[T]) InsertInPlace(i int, values ...T) { *sl = sl.Replace(i, i, values...) }
+func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, values...) }
 
 // Replace replaces the elements of sl[i:j] with the given values, and returns
 // a new slice with the modifications. The original slice remains unchanged.
@@ -372,6 +372,10 @@ func (sl *Slice[T]) InsertInPlace(i int, values ...T) { *sl = sl.Replace(i, i, v
 func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 	i = sl.normalizeIndex(i)
 	j = sl.normalizeIndex(j)
+
+	if i > j {
+		return NewSlice[T]()
+	}
 
 	total := sl[:i].Len() + len(values) + sl[j:].Len()
 	slice := NewSlice[T](total)
@@ -401,7 +405,36 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 //	slice.ReplaceInPlace(1, 3, "e", "f")
 //
 // After the ReplaceInPlace operation, the resulting slice will be: ["a", "e", "f", "d"].
-func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) { *sl = sl.Replace(i, j, values...) }
+func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
+	i = sl.normalizeIndex(i)
+	j = sl.normalizeIndex(j)
+
+	if i > j {
+		*sl = (*sl)[:0]
+		return
+	}
+
+	if i == j {
+		if len(values) > 0 {
+			*sl = (*sl)[:i].Append(append(values, (*sl)[i:]...)...)
+		}
+
+		return
+	}
+
+	diff := len(values) - (j - i)
+
+	if diff > 0 {
+		*sl = (*sl).Append(NewSlice[T](diff)...)
+	}
+
+	copy((*sl)[i+len(values):], (*sl)[j:])
+	copy((*sl)[i:], values)
+
+	if diff < 0 {
+		*sl = (*sl)[:sl.Len()+diff]
+	}
+}
 
 // Unique returns a new slice containing unique elements from the current slice.
 //
@@ -1177,7 +1210,7 @@ func (sl Slice[T]) SubSlice(start int, end ...int) Slice[T] {
 	_end = sl.normalizeIndex(_end)
 
 	if start >= _end {
-		return nil
+		return NewSlice[T]()
 	}
 
 	slice := NewSlice[T](_end - start)
@@ -1214,9 +1247,27 @@ func (sl Slice[T]) SubSlice(start int, end ...int) Slice[T] {
 //	slice := g.Slice[int]{1, 2, 3, 4, 5}
 //	newSlice := slice.Cut(1, 3)
 //	// newSlice is [1 4 5]
-func (sl Slice[T]) Cut(start, end int) Slice[T] {
-	return sl.SubSlice(0, start).Append(sl.SubSlice(end)...)
-}
+func (sl Slice[T]) Cut(start, end int) Slice[T] { return sl.Replace(start, end) }
+
+// CutInPlace removes a range of elements from the Slice in-place.
+// It modifies the original slice by creating two slices: one from the
+// beginning of the original slice up to the specified start index
+// (exclusive), and another from the specified end index (inclusive)
+// to the end of the original slice. These two slices are then
+// concatenated to form the modified original Slice.
+//
+// Parameters:
+//
+// - start (int): The start index of the range to be removed.
+//
+// - end (int): The end index of the range to be removed.
+//
+// Note:
+//
+// The function also supports negative indices. Negative indices are counted
+// from the end of the slice. For example, -1 means the last element, -2
+// means the second-to-last element, and so on.
+func (sl *Slice[T]) CutInPlace(start, end int) { sl.ReplaceInPlace(start, end) }
 
 // Random returns a random element from the slice.
 //
