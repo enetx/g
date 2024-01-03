@@ -9,6 +9,7 @@ import (
 
 func main() {
 	s := g.Slice[g.String]{"zzz", "xxxx", "aaaa", "bbb", "cccc"}
+
 	s.Sort().Print()
 
 	s.Cut(-3, -1).Print()

@@ -222,7 +222,7 @@ func (sl Slice[T]) Chunks(size int) []Slice[T] {
 			end = sl.Len()
 		}
 
-		result = append(result, sl.SubSlice(i, end))
+		result = append(result, sl.extract(i, end))
 	}
 
 	return result
@@ -578,8 +578,8 @@ func (sl Slice[T]) ForEachParallel(fn func(T)) {
 	}
 
 	half := sl.Len() / 2
-	left := sl.SubSlice(0, half)
-	right := sl.SubSlice(half)
+	left := sl.extract(0, half)
+	right := sl.extract(half, sl.Len())
 
 	var wg sync.WaitGroup
 
@@ -854,8 +854,8 @@ func (sl Slice[T]) MapParallel(fn func(T) T) Slice[T] {
 	}
 
 	half := sl.Len() / 2
-	left := sl.SubSlice(0, half)
-	right := sl.SubSlice(half)
+	left := sl.extract(0, half)
+	right := sl.extract(half, sl.Len())
 
 	var wg sync.WaitGroup
 
@@ -910,8 +910,8 @@ func (sl Slice[T]) FilterParallel(fn func(T) bool) Slice[T] {
 	}
 
 	half := sl.Len() / 2
-	left := sl.SubSlice(0, half)
-	right := sl.SubSlice(half)
+	left := sl.extract(0, half)
+	right := sl.extract(half, sl.Len())
 
 	var wg sync.WaitGroup
 
@@ -969,8 +969,8 @@ func (sl Slice[T]) ReduceParallel(fn func(T, T) T, initial T) T {
 	}
 
 	half := sl.Len() / 2
-	left := sl.SubSlice(0, half)
-	right := sl.SubSlice(half)
+	left := sl.extract(0, half)
+	right := sl.extract(half, sl.Len())
 
 	result := NewSlice[T](2)
 
@@ -1284,47 +1284,59 @@ func (sl Slice[T]) Join(sep ...T) String {
 }
 
 // SubSlice returns a new slice containing elements from the current slice between the specified start
-// and end indices. The function checks if the start and end indices are within the bounds of the
-// original slice. If the end index is negative, it represents the position from the end of the slice.
+// and end indices, with an optional step parameter to define the increment between elements.
+// The function checks if the start and end indices are within the bounds of the original slice.
+// If the end index is negative, it represents the position from the end of the slice.
 // If the start index is negative, it represents the position from the end of the slice counted
 // from the start index.
-// If the start index is greater than or equal to the end index, an empty slice is returned.
 //
 // Parameters:
 //
 // - start (int): The start index of the range.
 //
-// - end (int, optional): The end index of the range. If not provided, the end index will be the length
-// of the slice.
+// - end (int): The end index of the range.
+//
+// - step (int, optional): The increment between elements. Defaults to 1 if not provided.
+// If negative, the slice is traversed in reverse order.
 //
 // Returns:
 //
 // - Slice[T]: A new slice containing elements from the current slice between the start and end
-// indices.
+// indices, with the specified step.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	subSlice := slice.SubSlice(1, 4)
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
+//	subSlice := slice.SubSlice(1, 7, 2) // Extracts elements 2, 4, 6
 //	fmt.Println(subSlice)
 //
-// Output: [2 3 4].
-func (sl Slice[T]) SubSlice(start int, end ...int) Slice[T] {
-	_end := sl.Len()
+// Output: [2 4 6].
+func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
+	_step := 1
 
-	if len(end) != 0 {
-		_end = end[0]
+	if len(step) != 0 {
+		_step = step[0]
 	}
 
-	start = sl.normalizeIndex(start)
-	_end = sl.normalizeIndex(_end)
+	start = sl.normalizeIndex(start, struct{}{})
+	end = sl.normalizeIndex(end, struct{}{})
 
-	if start >= _end {
+	if (start >= end && _step > 0) || (start <= end && _step < 0) || _step == 0 {
 		return NewSlice[T]()
 	}
 
-	slice := NewSlice[T](_end - start)
-	copy(slice, sl[start:_end])
+	var loopCondition func(int) bool
+	if _step > 0 {
+		loopCondition = func(i int) bool { return i < end }
+	} else {
+		loopCondition = func(i int) bool { return i > end }
+	}
+
+	var slice Slice[T]
+
+	for i := start; loopCondition(i); i += _step {
+		slice = slice.Append(sl[i])
+	}
 
 	return slice
 }
@@ -1783,15 +1795,27 @@ func (sl Slice[T]) Clear() Slice[T] { clear(sl); return sl }
 // and returns the Slice unchanged.
 func (sl Slice[T]) Print() Slice[T] { fmt.Println(sl); return sl }
 
-func (sl Slice[T]) normalizeIndex(i int) int {
+func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
 	ii := i
 	if ii < 0 {
 		ii += sl.Len()
 	}
 
-	if ii > sl.Len() || ii < 0 {
+	negative := 0
+	if len(subslice) != 0 {
+		negative = -1
+	}
+
+	if ii > sl.Len() || ii < negative {
 		panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", i, sl.Len()))
 	}
 
 	return ii
+}
+
+func (sl Slice[T]) extract(start, end int) Slice[T] {
+	slice := NewSlice[T](end - start)
+	copy(slice, sl[start:end])
+
+	return slice
 }

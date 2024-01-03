@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -8,6 +9,45 @@ import (
 	"gitlab.com/x0xO/g"
 	"gitlab.com/x0xO/g/pkg/iter"
 )
+
+func TestSubSliceWithStep(t *testing.T) {
+	slice := g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
+
+	testCases := []struct {
+		start    int
+		end      int
+		step     int
+		expected g.Slice[int]
+	}{
+		{1, 7, 2, g.SliceOf(2, 4, 6)},
+		{0, 9, 3, g.SliceOf(1, 4, 7)},
+		{2, 6, 1, g.SliceOf(3, 4, 5, 6)},
+		{0, 9, 2, g.SliceOf(1, 3, 5, 7, 9)},
+		{0, 9, 4, g.SliceOf(1, 5, 9)},
+		{6, 1, -2, g.SliceOf(7, 5, 3)},
+		{8, 1, -3, g.SliceOf(9, 6, 3)},
+		{8, 0, -2, g.SliceOf(9, 7, 5, 3)},
+		{8, 0, -1, g.SliceOf(9, 8, 7, 6, 5, 4, 3, 2)},
+		{8, 0, -4, g.SliceOf(9, 5)},
+		{-1, -6, -2, g.SliceOf(9, 7, 5)},
+		{-2, -9, -3, g.SliceOf(8, 5, 2)},
+		{-1, -8, -2, g.SliceOf(9, 7, 5, 3)},
+		{-3, -10, -2, g.SliceOf(7, 5, 3, 1)},
+		{-1, -10, -1, g.SliceOf(9, 8, 7, 6, 5, 4, 3, 2, 1)},
+		{-5, -1, -1, g.Slice[int]{}},
+		{-1, -5, -1, g.SliceOf(9, 8, 7, 6)},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("start:%d_end:%d_step:%d", tc.start, tc.end, tc.step), func(t *testing.T) {
+			result := slice.SubSlice(tc.start, tc.end, tc.step)
+
+			if !result.Eq(tc.expected) {
+				t.Errorf("Expected %v, but got %v", tc.expected, result)
+			}
+		})
+	}
+}
 
 func TestSortInts(t *testing.T) {
 	slice := g.Slice[int]{5, 2, 8, 1, 6}
@@ -1363,7 +1403,7 @@ func TestSliceUnique(t *testing.T) {
 func TestSliceSubSlice(t *testing.T) {
 	// Test with an empty slice
 	emptySlice := g.Slice[int]{}
-	emptySubSlice := emptySlice.SubSlice(0)
+	emptySubSlice := emptySlice.SubSlice(0, 0)
 	if !emptySubSlice.Empty() {
 		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
@@ -1379,7 +1419,7 @@ func TestSliceSubSlice(t *testing.T) {
 	}
 
 	// Test with a single negative index
-	subSlice = slice.SubSlice(-2)
+	subSlice = slice.SubSlice(-2, slice.Len())
 	expected = g.Slice[int]{4, 5}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
@@ -1390,13 +1430,6 @@ func TestSliceSubSlice(t *testing.T) {
 	expected = g.Slice[int]{3, 4}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
-	}
-
-	// Test with an empty source slice
-	emptySlice = g.Slice[int]{}
-	emptySubSlice = emptySlice.SubSlice(0)
-	if !emptySubSlice.Empty() {
-		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
 }
 
@@ -1409,7 +1442,7 @@ func TestSubSliceOutOfBoundsStartIndex(t *testing.T) {
 			t.Errorf("Expected panic for start index beyond slice length, but no panic occurred")
 		}
 	}()
-	_ = slice.SubSlice(10)
+	_ = slice.SubSlice(10, slice.Len())
 }
 
 func TestSubSliceOutOfBoundsNegativeStartIndex(t *testing.T) {
@@ -1421,7 +1454,7 @@ func TestSubSliceOutOfBoundsNegativeStartIndex(t *testing.T) {
 			t.Errorf("Expected panic for negative start index beyond slice length, but no panic occurred")
 		}
 	}()
-	_ = slice.SubSlice(-10)
+	_ = slice.SubSlice(-10, slice.Len())
 }
 
 func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
@@ -1434,18 +1467,6 @@ func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
 		}
 	}()
 	_ = slice.SubSlice(2, 10)
-}
-
-func TestSubSliceOutOfBoundsNegativeIndices(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
-
-	// Test with negative start and end indices beyond slice length (should panic)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("Expected panic for negative start and end indices beyond slice length, but no panic occurred")
-		}
-	}()
-	_ = slice.SubSlice(-10, -1)
 }
 
 func TestSliceRange(t *testing.T) {
