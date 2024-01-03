@@ -526,7 +526,7 @@ func (sl Slice[T]) ForEach(fn func(T)) {
 	}
 }
 
-// ForEachRight applies a given function to each element in the slice in reverse order.
+// ForEachBack applies a given function to each element in the slice in reverse order.
 //
 // The function takes one parameter of type T (the same type as the elements of the slice).
 // The function is applied to each element in the reverse order they appear in the slice, starting from the last element.
@@ -538,14 +538,14 @@ func (sl Slice[T]) ForEach(fn func(T)) {
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 3}
-//	slice.ForEachRight(func(val int) {
+//	slice.ForEachBack(func(val int) {
 //	    fmt.Println(val * 2)
 //	})
 //	// Output:
 //	// 6
 //	// 4
 //	// 2
-func (sl Slice[T]) ForEachRight(fn func(T)) {
+func (sl Slice[T]) ForEachBack(fn func(T)) {
 	for i := sl.LastIndex(); i >= 0; i-- {
 		fn(sl[i])
 	}
@@ -627,7 +627,7 @@ func (sl Slice[T]) Range(fn func(T) bool) {
 	}
 }
 
-// RangeRight applies a given function to each element in the slice in reverse order until the function returns false.
+// RangeBack applies a given function to each element in the slice in reverse order until the function returns false.
 //
 // The function takes one parameter of type T (the same type as the elements of the slice).
 // The function is applied to each element in reverse order they appear in the slice until the provided function
@@ -641,7 +641,7 @@ func (sl Slice[T]) Range(fn func(T) bool) {
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	slice.RangeRight(func(val int) bool {
+//	slice.RangeBack(func(val int) bool {
 //	    fmt.Println(val)
 //	    return val != 3
 //	})
@@ -649,7 +649,7 @@ func (sl Slice[T]) Range(fn func(T) bool) {
 //	// 5
 //	// 4
 //	// 3
-func (sl Slice[T]) RangeRight(fn func(T) bool) {
+func (sl Slice[T]) RangeBack(fn func(T) bool) {
 	for i := sl.LastIndex(); i >= 0; i-- {
 		if !fn(sl[i]) {
 			break

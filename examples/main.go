@@ -93,7 +93,10 @@ func main() {
 	fmt.Println(sl.Permutations())
 
 	counter := sl.Append(sl...).Append("ddd").Counter()
-	counter.Print() // Output: HMapOrd[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
+	counter.Print() // Output: Map[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
+	mo := g.MapOrdFromMap(counter).Print()
+
+	mo.SortBy(func(i, j int) bool { return (*mo)[i].Value < (*mo)[j].Value }).Print()
 
 	counter.ForEach(func(k any, v int) { fmt.Println(k.(g.String).Title(), ":", v) })
 
