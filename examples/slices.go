@@ -8,6 +8,18 @@ import (
 )
 
 func main() {
+	s := g.Slice[g.String]{"zzz", "xxxx", "aaaa", "bbb", "cccc"}
+	s.Sort().Print()
+
+	s.Cut(-3, -1).Print()
+	s.CutInPlace(-3, -1).Print()
+
+	s.Replace(1, 2).Print()
+	s.ReplaceInPlace(1, 2).Print()
+
+	s.Insert(1, "zz", "xx").Print()
+	s.InsertInPlace(1, "zz", "xx").Print()
+
 	slice := g.Slice[int]{1, 2, 3, 4}
 
 	slice.Range(func(val int) bool {

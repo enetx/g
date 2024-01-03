@@ -9,6 +9,39 @@ import (
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
+func TestSortInts(t *testing.T) {
+	slice := g.Slice[int]{5, 2, 8, 1, 6}
+	sorted := slice.Sort()
+
+	expected := g.Slice[int]{1, 2, 5, 6, 8}
+
+	if !reflect.DeepEqual(sorted, expected) {
+		t.Errorf("Expected %v but got %v", expected, sorted)
+	}
+}
+
+func TestSortStrings(t *testing.T) {
+	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
+	sorted := slice.Sort()
+
+	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
+
+	if !reflect.DeepEqual(sorted, expected) {
+		t.Errorf("Expected %v but got %v", expected, sorted)
+	}
+}
+
+func TestSortFloats(t *testing.T) {
+	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
+	sorted := slice.Sort()
+
+	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
+
+	if !reflect.DeepEqual(sorted, expected) {
+		t.Errorf("Expected %v but got %v", expected, sorted)
+	}
+}
+
 func TestCompact(t *testing.T) {
 	testCases := []struct {
 		input    []int

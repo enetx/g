@@ -379,7 +379,10 @@ func (sl Slice[T]) Insert(i int, values ...T) Slice[T] { return sl.Replace(i, i,
 //	slice.InsertInPlace(2, "e", "f")
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, values...) }
+func (sl *Slice[T]) InsertInPlace(i int, values ...T) Slice[T] {
+	sl.ReplaceInPlace(i, i, values...)
+	return *sl
+}
 
 // Replace replaces the elements of sl[i:j] with the given values, and returns
 // a new slice with the modifications. The original slice remains unchanged.
@@ -439,13 +442,13 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 //	slice.ReplaceInPlace(1, 3, "e", "f")
 //
 // After the ReplaceInPlace operation, the resulting slice will be: ["a", "e", "f", "d"].
-func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
+func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 	i = sl.normalizeIndex(i)
 	j = sl.normalizeIndex(j)
 
 	if i > j {
 		*sl = (*sl)[:0]
-		return
+		return *sl
 	}
 
 	if i == j {
@@ -453,7 +456,7 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 			*sl = (*sl)[:i].Append(append(values, (*sl)[i:]...)...)
 		}
 
-		return
+		return *sl
 	}
 
 	diff := len(values) - (j - i)
@@ -468,6 +471,8 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 	if diff < 0 {
 		*sl = (*sl)[:sl.Len()+diff]
 	}
+
+	return *sl
 }
 
 // Unique returns a new slice containing unique elements from the current slice.
@@ -518,6 +523,31 @@ func (sl Slice[T]) Unique() Slice[T] {
 func (sl Slice[T]) ForEach(fn func(T)) {
 	for _, val := range sl {
 		fn(val)
+	}
+}
+
+// ForEachRight applies a given function to each element in the slice in reverse order.
+//
+// The function takes one parameter of type T (the same type as the elements of the slice).
+// The function is applied to each element in the reverse order they appear in the slice, starting from the last element.
+//
+// Parameters:
+//
+// - fn (func(T)): The function to be applied to each element of the slice in reverse order.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3}
+//	slice.ForEachRight(func(val int) {
+//	    fmt.Println(val * 2)
+//	})
+//	// Output:
+//	// 6
+//	// 4
+//	// 2
+func (sl Slice[T]) ForEachRight(fn func(T)) {
+	for i := sl.LastIndex(); i >= 0; i-- {
+		fn(sl[i])
 	}
 }
 
@@ -597,6 +627,36 @@ func (sl Slice[T]) Range(fn func(T) bool) {
 	}
 }
 
+// RangeRight applies a given function to each element in the slice in reverse order until the function returns false.
+//
+// The function takes one parameter of type T (the same type as the elements of the slice).
+// The function is applied to each element in reverse order they appear in the slice until the provided function
+// returns false. Once the function returns false for an element, the iteration stops.
+//
+// Parameters:
+//
+// - fn (func(T) bool): The function to be applied to each element of the slice.
+// It should return a boolean value. If it returns false, the iteration will stop.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	slice.RangeRight(func(val int) bool {
+//	    fmt.Println(val)
+//	    return val != 3
+//	})
+//	// Output:
+//	// 5
+//	// 4
+//	// 3
+func (sl Slice[T]) RangeRight(fn func(T) bool) {
+	for i := sl.LastIndex(); i >= 0; i-- {
+		if !fn(sl[i]) {
+			break
+		}
+	}
+}
+
 // Map returns a new slice by applying a given function to each element in the current slice.
 //
 // The function takes one parameter of type T (the same type as the elements of the slice)
@@ -642,10 +702,12 @@ func (sl Slice[T]) Map(fn func(T) T) Slice[T] { return SliceMap(sl, fn) }
 //	fmt.Println(slice)
 //
 // Output: [2 4 6].
-func (sl *Slice[T]) MapInPlace(fn func(T) T) {
+func (sl *Slice[T]) MapInPlace(fn func(T) T) Slice[T] {
 	for i := range iter.N(sl.Len()) {
 		sl.Set(i, fn(sl.Get(i)))
 	}
+
+	return *sl
 }
 
 // Filter returns a new slice containing elements that satisfy a given condition.
@@ -704,7 +766,7 @@ func (sl Slice[T]) Filter(fn func(T) bool) Slice[T] {
 //	fmt.Println(slice)
 //
 // Output: [2 4].
-func (sl *Slice[T]) FilterInPlace(fn func(T) bool) {
+func (sl *Slice[T]) FilterInPlace(fn func(T) bool) Slice[T] {
 	j := 0
 
 	for i := range iter.N(sl.Len()) {
@@ -715,6 +777,8 @@ func (sl *Slice[T]) FilterInPlace(fn func(T) bool) {
 	}
 
 	*sl = (*sl)[:j]
+
+	return *sl
 }
 
 // Reduce reduces the slice to a single value using a given function and an initial value.
@@ -976,12 +1040,14 @@ func (sl Slice[T]) AddUnique(elems ...T) Slice[T] {
 //	fmt.Println(slice)
 //
 // Output: [1 2 3 4 5 6 7].
-func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
+func (sl *Slice[T]) AddUniqueInPlace(elems ...T) Slice[T] {
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
 			*sl = sl.Append(elem)
 		}
 	}
+
+	return *sl
 }
 
 // Get returns the element at the given index, handling negative indices as counting from the end
@@ -1125,8 +1191,17 @@ func (sl Slice[T]) Reverse() Slice[T] {
 	return sl
 }
 
+// Sort sorts the elements in the slice in increasing order. It modifies the original
+// slice in place. For proper functionality, the type T used in the slice must support
+// comparison via the Less method.
+func (sl Slice[T]) Sort() Slice[T] {
+	sort.Sort(sl)
+	return sl
+}
+
 // SortBy sorts the elements in the slice using the provided comparison function. This method can
-// be used in place, as it modifies the original slice.
+// be used in place, as it modifies the original slice. It requires the elements to be of a type
+// that is comparable.
 //
 // The function takes a custom comparison function as an argument and sorts the elements
 // of the slice using the provided logic. The comparison function should return true if
@@ -1134,7 +1209,7 @@ func (sl Slice[T]) Reverse() Slice[T] {
 //
 // Parameters:
 //
-// - f func(i, j int) bool: A comparison function that takes two indices i and j.
+// - f func(i, j int) bool: A comparison function that takes two indices i and j and returns a bool.
 //
 // Returns:
 //
@@ -1184,8 +1259,9 @@ func (sl Slice[T]) FilterZeroValues() Slice[T] {
 //	fmt.Println(slice)
 //
 // Output: [1 2 4].
-func (sl *Slice[T]) FilterZeroValuesInPlace() {
+func (sl *Slice[T]) FilterZeroValuesInPlace() Slice[T] {
 	sl.FilterInPlace(func(v T) bool { return !reflect.DeepEqual(v, *new(T)) })
+	return *sl
 }
 
 // ToStringSlice converts the slice into a slice of strings.
@@ -1301,7 +1377,7 @@ func (sl Slice[T]) Cut(start, end int) Slice[T] { return sl.Replace(start, end) 
 // The function also supports negative indices. Negative indices are counted
 // from the end of the slice. For example, -1 means the last element, -2
 // means the second-to-last element, and so on.
-func (sl *Slice[T]) CutInPlace(start, end int) { sl.ReplaceInPlace(start, end) }
+func (sl *Slice[T]) CutInPlace(start, end int) Slice[T] { return sl.ReplaceInPlace(start, end) }
 
 // Random returns a random element from the slice.
 //
@@ -1517,7 +1593,10 @@ func (sl Slice[T]) String() string {
 func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 
 // AppendInPlace appends the provided elements to the slice and modifies the original slice.
-func (sl *Slice[T]) AppendInPlace(elems ...T) { *sl = sl.Append(elems...) }
+func (sl *Slice[T]) AppendInPlace(elems ...T) Slice[T] {
+	*sl = sl.Append(elems...)
+	return *sl
+}
 
 // Cap returns the capacity of the Slice.
 func (sl Slice[T]) Cap() int { return cap(sl) }
@@ -1557,10 +1636,12 @@ func (sl Slice[T]) Delete(i int) Slice[T] {
 
 // DeleteInPlace removes the element at the specified index from the slice and modifies the
 // original slice.
-func (sl *Slice[T]) DeleteInPlace(i int) {
+func (sl *Slice[T]) DeleteInPlace(i int) Slice[T] {
 	i = sl.normalizeIndex(i)
 	copy((*sl)[i:], (*sl)[i+1:])
 	*sl = (*sl)[:sl.Len()-1]
+
+	return *sl
 }
 
 // Empty returns true if the slice is empty.
@@ -1568,9 +1649,6 @@ func (sl Slice[T]) Empty() bool { return sl.Len() == 0 }
 
 // Last returns the last element of the slice.
 func (sl Slice[T]) Last() T { return sl.Get(-1) }
-
-// Len returns the length of the slice.
-func (sl Slice[T]) Len() int { return len(sl) }
 
 // Ne returns true if the slice is not equal to the provided other slice.
 func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
@@ -1608,8 +1686,49 @@ func (sl Slice[T]) Set(index int, val T) Slice[T] {
 	return sl
 }
 
-// Swap swaps the elements at the specified indices in the slice and returns the modified slice.
-// This method can be used in place, as it modifies the original slice.
+// Len returns the length of the slice.
+func (sl Slice[T]) Len() int { return len(sl) }
+
+// Less defines the comparison logic between two elements at indices i and j within the slice.
+// It utilizes type-based comparisons for elements of various types like Int, int, String, string,
+// Float, and float64. The comparison is performed according to the types and their respective
+// comparison methods. If the types are not directly comparable, it returns false.
+func (sl Slice[T]) Less(i, j int) bool {
+	elemI := any(sl.Get(i))
+	elemJ := any(sl.Get(j))
+
+	switch elemI := elemI.(type) {
+	case Int:
+		if elemJ, ok := elemJ.(Int); ok {
+			return elemI.Lt(elemJ)
+		}
+	case String:
+		if elemJ, ok := elemJ.(String); ok {
+			return elemI.Lt(elemJ)
+		}
+	case Float:
+		if elemJ, ok := elemJ.(Float); ok {
+			return elemI.Lt(elemJ)
+		}
+	case int:
+		if elemJ, ok := elemJ.(int); ok {
+			return elemI < elemJ
+		}
+	case string:
+		if elemJ, ok := elemJ.(string); ok {
+			return elemI < elemJ
+		}
+	case float64:
+		if elemJ, ok := elemJ.(float64); ok {
+			return Float(elemI).Lt(Float(elemJ))
+		}
+	}
+
+	return false
+}
+
+// Swap swaps the elements at the specified indices in the slice.
+// This method used in place, as it modifies the original slice.
 //
 // Parameters:
 //
@@ -1628,13 +1747,11 @@ func (sl Slice[T]) Set(index int, val T) Slice[T] {
 // fmt.Println(slice)
 //
 // Output: [1 4 3 2 5].
-func (sl Slice[T]) Swap(i, j int) Slice[T] {
+func (sl Slice[T]) Swap(i, j int) {
 	i = sl.normalizeIndex(i)
 	j = sl.normalizeIndex(j)
 
 	sl[i], sl[j] = sl[j], sl[i]
-
-	return sl
 }
 
 // Grow increases the slice's capacity, if necessary, to guarantee space for
