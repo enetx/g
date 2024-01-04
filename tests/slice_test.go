@@ -1340,7 +1340,7 @@ func TestSliceContainsAny(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		if result := tc.sl.ContainsAny(tc.other); result != tc.expect {
+		if result := tc.sl.ContainsAny(tc.other...); result != tc.expect {
 			t.Errorf("ContainsAny(%v, %v) = %v; want %v", tc.sl, tc.other, result, tc.expect)
 		}
 	}
@@ -1355,7 +1355,7 @@ func TestSliceContainsAll(t *testing.T) {
 		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3}, true},
 		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 6}, false},
 		{g.Slice[int]{}, g.Slice[int]{1, 2, 3, 4, 5}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{}, true},
+		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{}, false},
 		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 4, 5}, true},
 		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{6}, false},
 		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1}, true},
@@ -1363,7 +1363,7 @@ func TestSliceContainsAll(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		if result := tc.sl.ContainsAll(tc.other); result != tc.expect {
+		if result := tc.sl.ContainsAll(tc.other...); result != tc.expect {
 			t.Errorf("ContainsAll(%v, %v) = %v; want %v", tc.sl, tc.other, result, tc.expect)
 		}
 	}
@@ -1393,8 +1393,8 @@ func TestSliceUnique(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.Unique()
-		if !reflect.DeepEqual(actual, tc.output) {
+		actual := tc.input.Unique().Sort()
+		if !reflect.DeepEqual(actual, tc.output.Sort()) {
 			t.Errorf("Unique(%v) returned %v, expected %v", tc.input, actual, tc.output)
 		}
 	}

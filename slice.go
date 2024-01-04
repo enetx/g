@@ -476,11 +476,9 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 }
 
 // Unique returns a new slice containing unique elements from the current slice.
-//
-// The order of elements in the returned slice is the same as the order in the original slice.
+// The order of elements in the returned slice is not guaranteed to be the same as in the original slice.
 //
 // Returns:
-//
 // - Slice[T]: A new Slice containing unique elements from the current slice.
 //
 // Example usage:
@@ -490,15 +488,13 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 //
 // The resulting unique slice will be: [1, 2, 3, 4, 5].
 func (sl Slice[T]) Unique() Slice[T] {
-	result := NewSlice[T](0, sl.Len())
+	seen := NewMap[any, struct{}](sl.Len())
+	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
 
-	sl.ForEach(func(t T) {
-		if !result.Contains(t) {
-			result = result.Append(t)
-		}
-	})
+	unique := NewSlice[T](0, seen.Len())
+	seen.ForEach(func(k any, _ struct{}) { unique = unique.Append(k.(T)) })
 
-	return result.Clip()
+	return unique
 }
 
 // ForEach applies a given function to each element in the slice.
@@ -1617,9 +1613,16 @@ func (sl Slice[T]) Cap() int { return cap(sl) }
 func (sl Slice[T]) Contains(val T) bool { return sl.Index(val) >= 0 }
 
 // ContainsAny checks if the Slice contains any element from another Slice.
-func (sl Slice[T]) ContainsAny(other Slice[T]) bool {
-	for _, val := range other {
-		if sl.Contains(val) {
+func (sl Slice[T]) ContainsAny(values ...T) bool {
+	if sl.Empty() || len(values) == 0 {
+		return false
+	}
+
+	seen := NewMap[any, struct{}](sl.Len())
+	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
+
+	for _, v := range values {
+		if seen.Contains(v) {
 			return true
 		}
 	}
@@ -1628,9 +1631,16 @@ func (sl Slice[T]) ContainsAny(other Slice[T]) bool {
 }
 
 // ContainsAll checks if the Slice contains all elements from another Slice.
-func (sl Slice[T]) ContainsAll(other Slice[T]) bool {
-	for _, val := range other {
-		if !sl.Contains(val) {
+func (sl Slice[T]) ContainsAll(values ...T) bool {
+	if sl.Empty() || len(values) == 0 {
+		return false
+	}
+
+	seen := NewMap[any, struct{}](sl.Len())
+	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
+
+	for _, v := range values {
+		if !seen.Contains(v) {
 			return false
 		}
 	}

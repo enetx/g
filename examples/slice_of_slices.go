@@ -14,10 +14,18 @@ func main() {
 
 	nx := g.SliceOf(ns3, ns2, ns1, ns2)
 
+	nx.SortBy(func(i int, j int) bool {
+		if nx[i].Eq(nx[j]) {
+			return false
+		}
+
+		return true
+	})
+
+	nx.Compact().Print()
+
 	nx.Flatten().Print()
 	nx.Flatten().Last().(g.String).Upper().Print()
-
-	nx = nx.Unique()
 
 	nx.SortBy(func(i, j int) bool { return nx[i].Get(0).Lt(nx[j].Get(0)) }).Print()
 	nx.SortBy(func(i, j int) bool { return nx[i].Len() < nx[j].Len() }).Print()
@@ -28,7 +36,7 @@ func main() {
 	nx.RandomSample(2).Print()
 
 	ch := nx.Chunks(2)         // return []Slice[T]
-	chunks := g.SliceOf(ch...) // make slice batches
+	chunks := g.SliceOf(ch...) // make slice chunks
 	chunks.Print()
 
 	pr := nx.Permutations()          // return []Slice[T]

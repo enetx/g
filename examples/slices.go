@@ -8,19 +8,6 @@ import (
 )
 
 func main() {
-	s := g.Slice[g.String]{"zzz", "xxxx", "aaaa", "bbb", "cccc"}
-
-	s.Sort().Print()
-
-	s.Cut(-3, -1).Print()
-	s.CutInPlace(-3, -1).Print()
-
-	s.Replace(1, 2).Print()
-	s.ReplaceInPlace(1, 2).Print()
-
-	s.Insert(1, "zz", "xx").Print()
-	s.InsertInPlace(1, "zz", "xx").Print()
-
 	slice := g.Slice[int]{1, 2, 3, 4}
 
 	slice.Range(func(val int) bool {
@@ -36,10 +23,10 @@ func main() {
 	result.Delete(1).Print()  // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 	result.Delete(-9).Print() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 
-	result.SubSlice(1, -3).Print()  // Slice[2, 3, 4, 5, 6, 7]
-	result.SubSlice(-3).Print()     // Slice[8, 9, 10]
-	result.SubSlice(-3, -1).Print() // Slice[8, 9]
-	result.SubSlice(-1).Print()     // Slice[10]
+	result.SubSlice(1, -3).Print()            // Slice[2, 3, 4, 5, 6, 7]
+	result.SubSlice(-3, result.Len()).Print() // Slice[8, 9, 10]
+	result.SubSlice(-3, -1).Print()           // Slice[8, 9]
+	result.SubSlice(-1, result.Len()).Print() // Slice[10]
 
 	result = result.RandomSample(5)
 
