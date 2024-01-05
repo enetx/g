@@ -1,6 +1,8 @@
 package g
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // SliceMap applies the given function to each element of a Slice and returns a new Slice
 // containing the transformed values.
@@ -13,7 +15,7 @@ import "fmt"
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func SliceMap[T, E any](sl Slice[T], fn func(T) E) Slice[E] {
 	result := NewSlice[E](0, sl.Len())
-	sl.ForEach(func(t T) { result = result.Append(fn(t)) })
+	sl.Iter().ForEach(func(t T) { result = result.Append(fn(t)) })
 
 	return result
 }

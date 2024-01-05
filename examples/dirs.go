@@ -7,17 +7,17 @@ import (
 )
 
 func main() {
-	g.NewDir(".").Read().Ok().ForEach(func(f *g.File) { f.Name().Print() })
-	g.NewDir(".").Read(true).Ok().ForEach(func(f *g.File) { f.Name().Print() })
-	g.NewDir(".").Read().Ok().ForEach(func(f *g.File) { f.Path().Ok().Print() })
+	g.NewDir(".").Read().Ok().Iter().ForEach(func(f *g.File) { f.Name().Print() })
+	g.NewDir(".").Read(true).Ok().Iter().ForEach(func(f *g.File) { f.Name().Print() })
+	g.NewDir(".").Read().Ok().Iter().ForEach(func(f *g.File) { f.Path().Ok().Print() })
 
-	g.NewDir("*.go").Glob().Unwrap().ForEach(func(f *g.File) { f.Name().Print() })
-	g.NewDir("*.go").Glob(true).Unwrap().ForEach(func(f *g.File) { f.Name().Print() })
-	g.NewDir("*.go").Glob().Unwrap().ForEach(func(f *g.File) { f.Path().Ok().Print() })
+	g.NewDir("*.go").Glob().Unwrap().Iter().ForEach(func(f *g.File) { f.Name().Print() })
+	g.NewDir("*.go").Glob(true).Unwrap().Iter().ForEach(func(f *g.File) { f.Name().Print() })
+	g.NewDir("*.go").Glob().Unwrap().Iter().ForEach(func(f *g.File) { f.Path().Ok().Print() })
 
 	fmt.Println("++++++++++++++")
 
-	g.NewDir(".").Read(true).Unwrap().ForEach(func(f *g.File) {
+	g.NewDir(".").Read(true).Unwrap().Iter().ForEach(func(f *g.File) {
 		if !f.Stat().Unwrap().IsDir() {
 			f.Path().Unwrap().Print()
 		}

@@ -28,7 +28,7 @@ func main() {
 	////////////////////////////////////////////////////////////////////////////
 
 	ss1 := g.SliceOf[g.String]("1", "22", "3a", "44")
-	is1 := g.SliceMap(ss1, g.String.ToInt).Filter(g.Result[g.Int].IsOk)
+	is1 := g.SliceMap(ss1, g.String.ToInt).Iter().Filter(g.Result[g.Int].IsOk).Collect()
 
 	g.SliceMap(is1, g.Result[g.Int].Ok).Print() // Slice[1, 22, 44]
 }

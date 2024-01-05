@@ -88,7 +88,7 @@ func main() {
 	fmt.Println(sl.Get(1) == "bbb")
 	fmt.Println(sl.Get(-2) == "ddd")
 
-	sl.Map(g.String.Upper).Print()
+	sl.Iter().Map(g.String.Upper).Collect().Print()
 
 	fmt.Println(sl.Permutations())
 
@@ -98,17 +98,17 @@ func main() {
 
 	mo.SortBy(func(i, j int) bool { return (*mo)[i].Value < (*mo)[j].Value }).Print()
 
-	counter.ForEach(func(k any, v int) { fmt.Println(k.(g.String).Title(), ":", v) })
+	counter.ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
 
-	sl.ForEach(func(v g.String) { v.Print() })
+	sl.Iter().ForEach(func(v g.String) { v.Print() })
 
-	sl = sl.Unique().Reverse().Filter(func(s g.String) bool { return s != "bbb" })
+	sl = sl.Unique().Reverse().Iter().Filter(func(s g.String) bool { return s != "bbb" }).Collect()
 
 	fmt.Println(sl.Random())
 
 	sl1 := g.SliceOf(1, 2, 3, 4, 5) // declaration and assignation
 
-	fmt.Println(sl1.Reduce(func(index, value int) int { return index + value }, 0)) // 15
+	fmt.Println(sl1.Iter().Fold(0, func(index, value int) int { return index + value })) // 15
 
 	sl3 := g.Slice[g.String]{} // declaration and assignation
 	sl3 = sl3.Append("aaaaa", "bbbbb")
@@ -120,11 +120,9 @@ func main() {
 	sl4 := g.SliceOf([]string{"root", "toor"}...).Random()
 	g.NewString(sl4).Upper().Print()
 
-	sl3.Map(func(s g.String) g.String { return s + "MAPMAPMAP" }).Print()
-	sl3.MapParallel(func(s g.String) g.String { return s + "MAPMAPMAP" }).Print()
+	sl3.Iter().Map(func(s g.String) g.String { return s + "MAPMAPMAP" }).Collect().Print()
 
 	empsl := g.NewSlice[g.String]()
-
 	fmt.Println(empsl.Empty())
 
 	// maps
@@ -149,14 +147,6 @@ func main() {
 
 	m3 := g.Map[string, string]{"test": "rest"} // declaration and assignation
 	fmt.Println(m3.Contains("test"))
-
-	slp := g.NewSlice[int](2049 * 51).Fill(22)
-	random := g.NewInt(99).Random().Std()
-
-	slp = slp.MapParallel(func(i int) int { return i * random })
-
-	slp = slp.FilterParallel(func(i int) bool { return i%2 == 0 })
-	fmt.Println(slp.ReduceParallel(func(index, value int) int { return index + value }, 0))
 
 	ub := g.NewBytes("abcdef\u0301\u031dg")
 	ub.NormalizeNFC().Reverse().Print()

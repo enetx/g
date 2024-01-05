@@ -291,35 +291,6 @@ func TestMapFilter(t *testing.T) {
 	}
 }
 
-func TestMapMapParallel(t *testing.T) {
-	m1 := g.NewMap[string, int](0)
-	fn1 := func(k string, v int) (string, int) { return k, v * 2 }
-	expected1 := g.NewMap[string, int](0)
-	actual1 := m1.MapParallel(fn1)
-
-	if !actual1.Eq(expected1) {
-		t.Errorf("Test case 1 failed: expected %v but got %v", expected1, actual1)
-	}
-
-	m2 := g.NewMap[string, int](4)
-	m2.Set("a", 1)
-	m2.Set("b", 2)
-	m2.Set("c", 3)
-	m2.Set("d", 4)
-
-	fn2 := func(k string, v int) (string, int) { return k, v * 2 }
-
-	expected2 := g.NewMap[string, int](4)
-	expected2.Set("a", 2)
-	expected2.Set("b", 4)
-	expected2.Set("c", 6)
-	expected2.Set("d", 8)
-
-	actual2 := m2.MapParallel(fn2)
-	if !actual2.Eq(expected2) {
-		t.Errorf("Test case 2 failed: expected %v but got %v", expected2, actual2)
-	}
-}
 
 func TestMapInvertValues(t *testing.T) {
 	m := g.NewMap[int, string](0)

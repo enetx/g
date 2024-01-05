@@ -1,2 +1,3 @@
 string_crypt.go
+archive/
 tests/string_crypt_test.go

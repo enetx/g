@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync"
 
 	"gitlab.com/x0xO/g/pkg/iter"
 	"gitlab.com/x0xO/g/pkg/rand"
@@ -47,6 +46,8 @@ func NewSlice[T any](size ...int) Slice[T] {
 
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
+
+func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 
 // Compact removes consecutive duplicate elements from a sorted slice efficiently.
 // It assumes the slice is already sorted. The function operates faster than the Unique method.
@@ -99,35 +100,9 @@ func (sl *Slice[T]) Compact() Slice[T] {
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (sl Slice[T]) Counter() Map[any, int] {
-	result := NewMap[any, int](sl.Len())
-	sl.ForEach(func(t T) { result[t]++ })
-
-	return result
-}
-
-// Enumerate returns a map with the index of each element as the key.
-// This function is useful when you want to create an Map where the keys are the indices of the
-// elements in an Slice, and the values are the corresponding elements.
-//
-// Returns:
-//
-// - Map[int, T]: An Map with keys representing the indices of the elements in the Slice and
-// values representing the corresponding elements.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{10, 20, 30}
-//	indexedMap := slice.Enumerate()
-//	// The indexedMap Map will contain:
-//	// 0 -> 10 (since 10 is at index 0)
-//	// 1 -> 20 (since 20 is at index 1)
-//	// 2 -> 30 (since 30 is at index 2)
-func (sl Slice[T]) Enumerate() Map[int, T] {
-	result := NewMap[int, T](sl.Len())
-	for k, v := range sl {
-		result.Set(k, v)
-	}
+func (sl Slice[T]) Counter() Map[any, uint] {
+	result := NewMap[any, uint](sl.Len())
+	sl.Iter().ForEach(func(t T) { result[t]++ })
 
 	return result
 }
@@ -163,7 +138,7 @@ func (sl Slice[T]) Fill(val T) Slice[T] {
 func (sl Slice[T]) ToMapHashed() Map[String, T] {
 	result := NewMap[String, T](sl.Len())
 
-	sl.ForEach(func(t T) {
+	sl.Iter().ForEach(func(t T) {
 		switch val := any(t).(type) {
 		case Int:
 			result.Set(val.Hash().MD5(), t)
@@ -226,66 +201,6 @@ func (sl Slice[T]) Chunks(size int) []Slice[T] {
 	}
 
 	return result
-}
-
-// All returns true if all elements in the slice satisfy the provided condition.
-// This function is useful when you want to check if all elements in an Slice meet a certain
-// criteria.
-//
-// Parameters:
-//
-// - fn func(T) bool: A function that returns a boolean indicating whether the element satisfies
-// the condition.
-//
-// Returns:
-//
-// - bool: True if all elements in the Slice satisfy the condition, false otherwise.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{2, 4, 6, 8, 10}
-//	isEven := func(num int) bool { return num%2 == 0 }
-//	allEven := slice.All(isEven)
-//
-// The resulting allEven will be true since all elements in the slice are even.
-func (sl Slice[T]) All(fn func(T) bool) bool {
-	for _, val := range sl {
-		if !fn(val) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// Any returns true if any element in the slice satisfies the provided condition.
-// This function is useful when you want to check if at least one element in an Slice meets a
-// certain criteria.
-//
-// Parameters:
-//
-// - fn func(T) bool: A function that returns a boolean indicating whether the element satisfies
-// the condition.
-//
-// Returns:
-//
-// - bool: True if at least one element in the Slice satisfies the condition, false otherwise.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 3, 5, 7, 9}
-//	isEven := func(num int) bool { return num%2 == 0 }
-//	anyEven := slice.Any(isEven)
-//
-// The resulting anyEven will be false since none of the elements in the slice are even.
-func (sl Slice[T]) Any(fn func(T) bool) bool {
-	for _, val := range sl {
-		if fn(val) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
@@ -489,502 +404,12 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 // The resulting unique slice will be: [1, 2, 3, 4, 5].
 func (sl Slice[T]) Unique() Slice[T] {
 	seen := NewMap[any, struct{}](sl.Len())
-	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
 
 	unique := NewSlice[T](0, seen.Len())
 	seen.ForEach(func(k any, _ struct{}) { unique = unique.Append(k.(T)) })
 
 	return unique
-}
-
-// ForEach applies a given function to each element in the slice.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice).
-// The function is applied to each element in the order they appear in the slice.
-//
-// Parameters:
-//
-// - fn (func(T)): The function to be applied to each element of the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3}
-//	slice.ForEach(func(val int) {
-//	    fmt.Println(val * 2)
-//	})
-//	// Output:
-//	// 2
-//	// 4
-//	// 6
-func (sl Slice[T]) ForEach(fn func(T)) {
-	for _, val := range sl {
-		fn(val)
-	}
-}
-
-// ForEachBack applies a given function to each element in the slice in reverse order.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice).
-// The function is applied to each element in the reverse order they appear in the slice, starting from the last element.
-//
-// Parameters:
-//
-// - fn (func(T)): The function to be applied to each element of the slice in reverse order.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3}
-//	slice.ForEachBack(func(val int) {
-//	    fmt.Println(val * 2)
-//	})
-//	// Output:
-//	// 6
-//	// 4
-//	// 2
-func (sl Slice[T]) ForEachBack(fn func(T)) {
-	for i := sl.LastIndex(); i >= 0; i-- {
-		fn(sl[i])
-	}
-}
-
-// ForEachParallel applies a given function to each element in the slice concurrently.
-//
-// If the length of the slice is below a certain threshold (max), it performs the operation sequentially.
-// Otherwise, it divides the slice into halves and processes each half concurrently using goroutines.
-//
-// Parameters:
-// - fn (func(T)): The function to be applied to each element of the slice.
-//
-// Note:
-// The provided function 'fn' should be safe for concurrent execution to prevent race conditions.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, ...}
-//	slice.ForEachParallel(func(val int) {
-//	    fmt.Println(val * 2)
-//	})
-//	// Output (order may vary due to concurrent execution):
-//	// ...
-func (sl Slice[T]) ForEachParallel(fn func(T)) {
-	const max = 1 << 11
-	if sl.Len() < max {
-		sl.ForEach(fn)
-		return
-	}
-
-	half := sl.Len() / 2
-	left := sl.extract(0, half)
-	right := sl.extract(half, sl.Len())
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left.ForEachParallel(fn)
-
-		wg.Done()
-	}()
-
-	right.ForEachParallel(fn)
-
-	wg.Wait()
-}
-
-// Range applies a given function to each element in the slice until the function returns false.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice).
-// The function is applied to each element in the order they appear in the slice until the provided function
-// returns false. Once the function returns false for an element, the iteration stops.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The function to be applied to each element of the slice.
-// It should return a boolean value. If it returns false, the iteration will stop.
-//
-// Example usage:
-//
-//   slice := g.Slice[int]{1, 2, 3, 4, 5}
-//   slice.Range(func(val int) bool {
-//       fmt.Println(val)
-//       return val != 3
-//   })
-//   // Output:
-//   // 1
-//   // 2
-//   // 3
-
-func (sl Slice[T]) Range(fn func(T) bool) {
-	for _, val := range sl {
-		if !fn(val) {
-			break
-		}
-	}
-}
-
-// RangeBack applies a given function to each element in the slice in reverse order until the function returns false.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice).
-// The function is applied to each element in reverse order they appear in the slice until the provided function
-// returns false. Once the function returns false for an element, the iteration stops.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The function to be applied to each element of the slice.
-// It should return a boolean value. If it returns false, the iteration will stop.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	slice.RangeBack(func(val int) bool {
-//	    fmt.Println(val)
-//	    return val != 3
-//	})
-//	// Output:
-//	// 5
-//	// 4
-//	// 3
-func (sl Slice[T]) RangeBack(fn func(T) bool) {
-	for i := sl.LastIndex(); i >= 0; i-- {
-		if !fn(sl[i]) {
-			break
-		}
-	}
-}
-
-// Map returns a new slice by applying a given function to each element in the current slice.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice)
-// and returns a value of type T. The returned value is added to a new slice,
-// which is then returned as the result.
-//
-// Parameters:
-//
-// - fn (func(T) T): The function to be applied to each element of the slice.
-//
-// Returns:
-//
-// - Slice[T]: A new slice containing the results of applying the function to each element
-// of the current slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3}
-//	doubled := slice.Map(func(val int) int {
-//	    return val * 2
-//	})
-//	fmt.Println(doubled)
-//
-// Output: [2 4 6].
-func (sl Slice[T]) Map(fn func(T) T) Slice[T] { return SliceMap(sl, fn) }
-
-// MapInPlace applies a given function to each element in the current slice,
-// modifying the elements in place.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice)
-// and returns a value of type T. The returned value replaces the original element in the slice.
-//
-// Parameters:
-//
-// - fn (func(T) T): The function to be applied to each element of the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3}
-//	slice.MapInPlace(func(val int) int {
-//	    return val * 2
-//	})
-//	fmt.Println(slice)
-//
-// Output: [2 4 6].
-func (sl *Slice[T]) MapInPlace(fn func(T) T) Slice[T] {
-	for i := range iter.N(sl.Len()) {
-		sl.Set(i, fn(sl.Get(i)))
-	}
-
-	return *sl
-}
-
-// Filter returns a new slice containing elements that satisfy a given condition.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice)
-// and returns a boolean value. If the returned value is true, the element is added
-// to a new slice, which is then returned as the result.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The function to be applied to each element of the slice
-// to determine if it should be included in the result.
-//
-// Returns:
-//
-// - Slice[T]: A new slice containing the elements that satisfy the given condition.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	even := slice.Filter(func(val int) bool {
-//	    return val%2 == 0
-//	})
-//	fmt.Println(even)
-//
-// Output: [2 4].
-func (sl Slice[T]) Filter(fn func(T) bool) Slice[T] {
-	result := NewSlice[T](0, sl.Len())
-
-	sl.ForEach(func(t T) {
-		if fn(t) {
-			result = result.Append(t)
-		}
-	})
-
-	return result.Clip()
-}
-
-// FilterInPlace removes elements from the current slice that do not satisfy a given condition.
-//
-// The function takes one parameter of type T (the same type as the elements of the slice)
-// and returns a boolean value. If the returned value is false, the element is removed
-// from the slice.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The function to be applied to each element of the slice
-// to determine if it should be kept in the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	slice.FilterInPlace(func(val int) bool {
-//	    return val%2 == 0
-//	})
-//	fmt.Println(slice)
-//
-// Output: [2 4].
-func (sl *Slice[T]) FilterInPlace(fn func(T) bool) Slice[T] {
-	j := 0
-
-	for i := range iter.N(sl.Len()) {
-		if fn(sl.Get(i)) {
-			sl.Set(j, sl.Get(i))
-			j++
-		}
-	}
-
-	*sl = (*sl)[:j]
-
-	return *sl
-}
-
-// Reduce reduces the slice to a single value using a given function and an initial value.
-//
-// The function takes two parameters of type T (the same type as the elements of the slice):
-// an accumulator and a value from the slice. The accumulator is initialized with the provided
-// initial value, and the function is called for each element in the slice. The returned value
-// from the function becomes the new accumulator value for the next iteration. After processing
-// all the elements in the slice, the final accumulator value is returned as the result.
-//
-// Parameters:
-//
-// - fn (func(acc, val T) T): The function to be applied to each element of the slice
-// and the accumulator. This function should return a new value for the accumulator.
-//
-// - initial (T): The initial value for the accumulator.
-//
-// Returns:
-//
-// - T: The final accumulator value after processing all the elements in the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	sum := slice.Reduce(func(acc, val int) int {
-//	    return acc + val
-//	}, 0)
-//	fmt.Println(sum)
-//
-// Output: 15.
-func (sl Slice[T]) Reduce(fn func(acc, val T) T, initial T) T {
-	acc := initial
-
-	sl.ForEach(func(t T) { acc = fn(acc, t) })
-
-	return acc
-}
-
-// MapParallel applies a given function to each element in the slice in parallel and returns a new
-// slice.
-//
-// The function iterates over the elements of the slice and applies the provided function
-// to each element. If the length of the slice is less than a predefined threshold (max),
-// it falls back to the sequential Map function. Otherwise, the slice is divided into two
-// halves and the function is applied to each half in parallel using goroutines. The
-// resulting slices are then combined to form the final output slice.
-//
-// Note: The order of the elements in the output slice may not be the same as the input
-// slice due to parallel processing.
-//
-// Parameters:
-//
-// - fn (func(T) T): The function to be applied to each element of the slice.
-//
-// Returns:
-//
-// - Slice[T]: A new slice with the results of applying the given function to each element
-// of the original slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	squared := slice.MapParallel(func(val int) int {
-//	    return val * val
-//	})
-//	fmt.Println(squared)
-//
-// Output: {1 4 9 16 25}.
-func (sl Slice[T]) MapParallel(fn func(T) T) Slice[T] {
-	const max = 1 << 11
-	if sl.Len() < max {
-		return sl.Map(fn)
-	}
-
-	half := sl.Len() / 2
-	left := sl.extract(0, half)
-	right := sl.extract(half, sl.Len())
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left = left.MapParallel(fn)
-
-		wg.Done()
-	}()
-
-	right = right.MapParallel(fn)
-
-	wg.Wait()
-
-	return NewSlice[T](0, sl.Len()).Append(left...).Append(right...)
-}
-
-// FilterParallel returns a new slice containing elements that satisfy a given condition, computed
-// in parallel.
-//
-// The function iterates over the elements of the slice and applies the provided predicate
-// function to each element. If the length of the slice is less than a predefined threshold (max),
-// it falls back to the sequential Filter function. Otherwise, the slice is divided into two
-// halves and the predicate function is applied to each half in parallel using goroutines. The
-// resulting slices are then combined to form the final output slice.
-//
-// Note: The order of the elements in the output slice may not be the same as the input
-// slice due to parallel processing.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The predicate function to be applied to each element of the slice.
-//
-// Returns:
-//
-// - Slice[T]: A new slice containing the elements that satisfy the given condition.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	even := slice.FilterParallel(func(val int) bool {
-//	    return val % 2 == 0
-//	})
-//	fmt.Println(even)
-//
-// Output: {2 4}.
-func (sl Slice[T]) FilterParallel(fn func(T) bool) Slice[T] {
-	const max = 1 << 11
-	if sl.Len() < max {
-		return sl.Filter(fn)
-	}
-
-	half := sl.Len() / 2
-	left := sl.extract(0, half)
-	right := sl.extract(half, sl.Len())
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left = left.FilterParallel(fn)
-
-		wg.Done()
-	}()
-
-	right = right.FilterParallel(fn)
-
-	wg.Wait()
-
-	return NewSlice[T](0, left.Len()+right.Len()).Append(left...).Append(right...)
-}
-
-// ReduceParallel reduces the slice to a single value using a given function and an initial value,
-// computed in parallel.
-//
-// The function iterates over the elements of the slice and applies the provided reducer function
-// to each element in a pairwise manner. If the length of the slice is less than a predefined
-// threshold (max),
-// it falls back to the sequential Reduce function. Otherwise, the slice is divided into two
-// halves and the reducer function is applied to each half in parallel using goroutines. The
-// resulting values are combined using the reducer function to produce the final output value.
-//
-// Note: Due to parallel processing, the order in which the reducer function is applied to the
-// elements may not be the same as the input slice.
-//
-// Parameters:
-//
-// - fn (func(T, T) T): The reducer function to be applied to each element of the slice.
-//
-// - initial (T): The initial value to be used as the starting point for the reduction.
-//
-// Returns:
-//
-// - T: A single value obtained by applying the reducer function to the elements of the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	sum := slice.ReduceParallel(func(acc, val int) int {
-//	    return acc + val
-//	}, 0)
-//	fmt.Println(sum)
-//
-// Output: 15.
-func (sl Slice[T]) ReduceParallel(fn func(T, T) T, initial T) T {
-	const max = 1 << 11
-	if sl.Len() < max {
-		return sl.Reduce(fn, initial)
-	}
-
-	half := sl.Len() / 2
-	left := sl.extract(0, half)
-	right := sl.extract(half, sl.Len())
-
-	result := NewSlice[T](2)
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		result.Set(0, left.ReduceParallel(fn, initial))
-
-		wg.Done()
-	}()
-
-	result.Set(1, right.ReduceParallel(fn, initial))
-
-	wg.Wait()
-
-	return result.Reduce(fn, initial)
 }
 
 // AddUnique appends unique elements from the provided arguments to the current slice.
@@ -1061,7 +486,7 @@ func (sl Slice[T]) Count(elem T) int {
 
 	var counter int
 
-	sl.ForEach(func(t T) {
+	sl.Iter().ForEach(func(t T) {
 		if reflect.DeepEqual(t, elem) {
 			counter++
 		}
@@ -1095,7 +520,7 @@ func (sl Slice[T]) Max() T {
 		greater = func(a, b any) bool { return Float(a.(float64)).Gt(Float(b.(float64))) }
 	}
 
-	sl.ForEach(func(t T) {
+	sl.Iter().ForEach(func(t T) {
 		if greater(t, max) {
 			max = t
 		}
@@ -1129,7 +554,7 @@ func (sl Slice[T]) Min() T {
 		less = func(a, b any) bool { return Float(a.(float64)).Lt(Float(b.(float64))) }
 	}
 
-	sl.ForEach(func(t T) {
+	sl.Iter().ForEach(func(t T) {
 		if less(t, min) {
 			min = t
 		}
@@ -1220,7 +645,7 @@ func (sl Slice[T]) SortBy(f func(i, j int) bool) Slice[T] {
 	return sl
 }
 
-// FilterZeroValues returns a new slice with all zero values removed.
+// ExcludeZeroValues returns a new slice with all zero values removed.
 //
 // The function iterates over the elements in the slice and checks if they are
 // zero values using the reflect.DeepEqual function. If an element is not a zero value,
@@ -1234,15 +659,15 @@ func (sl Slice[T]) SortBy(f func(i, j int) bool) Slice[T] {
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 0, 4, 0}
-//	nonZeroSlice := slice.FilterZeroValues()
+//	nonZeroSlice := slice.ExcludeZeroValues()
 //	fmt.Println(nonZeroSlice)
 //
 // Output: [1 2 4].
-func (sl Slice[T]) FilterZeroValues() Slice[T] {
-	return sl.Filter(func(v T) bool { return !reflect.DeepEqual(v, *new(T)) })
+func (sl Slice[T]) ExcludeZeroValues() Slice[T] {
+	return sl.Iter().Exclude(func(v T) bool { return reflect.DeepEqual(v, *new(T)) }).Collect()
 }
 
-// FilterZeroValuesInPlace removes all zero values from the current slice.
+// ExcludeZeroValuesInPlace removes all zero values from the current slice.
 //
 // The function iterates over the elements in the slice and checks if they are
 // zero values using the reflect.DeepEqual function. If an element is a zero value,
@@ -1251,19 +676,19 @@ func (sl Slice[T]) FilterZeroValues() Slice[T] {
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 0, 4, 0}
-//	slice.FilterZeroValuesInPlace()
+//	slice.ExcludeZeroValuesInPlace()
 //	fmt.Println(slice)
 //
 // Output: [1 2 4].
-func (sl *Slice[T]) FilterZeroValuesInPlace() Slice[T] {
-	sl.FilterInPlace(func(v T) bool { return !reflect.DeepEqual(v, *new(T)) })
+func (sl *Slice[T]) ExcludeZeroValuesInPlace() Slice[T] {
+	*sl = sl.ExcludeZeroValues()
 	return *sl
 }
 
 // ToStringSlice converts the slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
 	result := NewSlice[string](0, sl.Len())
-	sl.ForEach(func(t T) { result = result.Append(fmt.Sprint(t)) })
+	sl.Iter().ForEach(func(t T) { result = result.Append(fmt.Sprint(t)) })
 
 	return result
 }
@@ -1534,45 +959,6 @@ func (sl Slice[T]) Zip(ss ...Slice[T]) []Slice[T] {
 	return result
 }
 
-// Flatten flattens the nested slice structure into a single-level Slice[any].
-//
-// It recursively traverses the nested slice structure and appends all non-slice elements to a new
-// Slice[any].
-//
-// Returns:
-//
-// - Slice[any]: A new Slice[any] containing the flattened elements.
-//
-// Example usage:
-//
-//	nested := g.Slice[any]{1, 2, g.Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
-//	flattened := nested.Flatten()
-//	fmt.Println(flattened)
-//
-// Output: [1 2 3 4 5 6 7 8 9].
-func (sl Slice[T]) Flatten() Slice[any] {
-	flattened := NewSlice[any]()
-	flattenRecursive(reflect.ValueOf(sl), &flattened)
-
-	return flattened
-}
-
-// flattenRecursive a helper function for recursively flattening nested slices.
-func flattenRecursive(val reflect.Value, flattened *Slice[any]) {
-	for i := range iter.N(val.Len()) {
-		elem := val.Index(i)
-		if elem.Kind() == reflect.Interface {
-			elem = elem.Elem()
-		}
-
-		if elem.Kind() == reflect.Slice {
-			flattenRecursive(elem, flattened)
-		} else {
-			*flattened = append(*flattened, elem.Interface())
-		}
-	}
-}
-
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
 	if sl.Len() != other.Len() {
@@ -1592,7 +978,7 @@ func (sl Slice[T]) Eq(other Slice[T]) bool {
 func (sl Slice[T]) String() string {
 	var builder strings.Builder
 
-	sl.ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
+	sl.Iter().ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
 
 	return String(builder.String()).TrimRight(", ").Format("Slice[%s]").Std()
 }
@@ -1619,7 +1005,7 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 	}
 
 	seen := NewMap[any, struct{}](sl.Len())
-	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
 
 	for _, v := range values {
 		if seen.Contains(v) {
@@ -1637,7 +1023,7 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 	}
 
 	seen := NewMap[any, struct{}](sl.Len())
-	sl.ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
 
 	for _, v := range values {
 		if !seen.Contains(v) {

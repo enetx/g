@@ -10,7 +10,7 @@ import (
 func main() {
 	slice := g.Slice[int]{1, 2, 3, 4}
 
-	slice.Range(func(val int) bool {
+	slice.Iter().Range(func(val int) bool {
 		fmt.Println(val)
 		return val != 3
 	})
@@ -58,25 +58,12 @@ func main() {
 
 	sipl.Print()
 
-	slice = g.Slice[int]{1, 2, 3}
-	slice.MapInPlace(func(val int) int { return val * 2 })
-
-	slice.Print()
-
-	slice = g.Slice[int]{1, 2, 3, 4, 5}
-
-	slice.FilterInPlace(func(val int) bool {
-		return val%2 == 0
-	})
-
-	slice.Print()
-
 	slicea := g.Slice[string]{"a", "b", "c", "d"}
 	slicea.InsertInPlace(2, "e", "f")
 	slicea.Print()
 
 	slice = g.Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
-	slice.FilterZeroValuesInPlace()
+	slice.ExcludeZeroValuesInPlace()
 	slice.DeleteInPlace(0)
 	slice.Print()
 
@@ -85,10 +72,10 @@ func main() {
 
 	fmt.Println(sll.Cap())
 
-	g.SliceMap([]string{"AAA", "BBB"}, g.NewString).Map(g.String.Lower).Print()
-	g.SliceOf([]string{"AAA", "BBB"}...).Map(strings.ToLower).Print()
+	g.SliceMap([]string{"AAA", "BBB"}, g.NewString).Iter().Map(g.String.Lower).Collect().Print()
+	g.SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Print()
 
-	g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).
+	g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).Iter().
 		Filter(isPrime).
 		ForEach(func(n int) { fmt.Printf("%d is a prime number\n", n) })
 }

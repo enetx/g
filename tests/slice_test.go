@@ -394,7 +394,7 @@ func TestSliceAll(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := tc.sl.All(tc.f)
+			got := tc.sl.Iter().All(tc.f)
 			if got != tc.want {
 				t.Errorf("got %v, want %v", got, tc.want)
 			}
@@ -406,35 +406,35 @@ func TestSliceAny(t *testing.T) {
 	sl1 := g.NewSlice[int]()
 	f1 := func(x int) bool { return x > 0 }
 
-	if sl1.Any(f1) {
+	if sl1.Iter().Any(f1) {
 		t.Errorf("Expected false for empty slice, got true")
 	}
 
 	sl2 := g.NewSlice[int]().Append(1, 2, 3)
 	f2 := func(x int) bool { return x < 1 }
 
-	if sl2.Any(f2) {
+	if sl2.Iter().Any(f2) {
 		t.Errorf("Expected false for slice with no matching elements, got true")
 	}
 
 	sl3 := g.NewSlice[string]().Append("foo", "bar")
 	f3 := func(x string) bool { return x == "bar" }
 
-	if !sl3.Any(f3) {
+	if !sl3.Iter().Any(f3) {
 		t.Errorf("Expected true for slice with one matching element, got false")
 	}
 
 	sl4 := g.NewSlice[int]().Append(1, 2, 3, 4, 5)
 	f4 := func(x int) bool { return x%2 == 0 }
 
-	if !sl4.Any(f4) {
+	if !sl4.Iter().Any(f4) {
 		t.Errorf("Expected true for slice with multiple matching elements, got false")
 	}
 }
 
-func TestSliceReduce(t *testing.T) {
+func TestSliceFold(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5}
-	sum := sl.Reduce(func(index, value int) int { return index + value }, 0)
+	sum := sl.Iter().Fold(0, func(index, value int) int { return index + value })
 
 	if sum != 15 {
 		t.Errorf("Expected %d, got %d", 15, sum)
@@ -445,7 +445,7 @@ func TestSliceFilter(t *testing.T) {
 	var sl g.Slice[int]
 
 	sl = sl.Append(1, 2, 3, 4, 5)
-	result := sl.Filter(func(v int) bool { return v%2 == 0 })
+	result := sl.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect()
 
 	if result.Len() != 2 {
 		t.Errorf("Expected 2, got %d", result.Len())
@@ -505,7 +505,7 @@ func TestSliceRandomSample(t *testing.T) {
 
 func TestSliceMap(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5}
-	result := sl.Map(func(i int) int { return i * 2 })
+	result := sl.Iter().Map(func(i int) int { return i * 2 }).Collect()
 
 	if result.Len() != sl.Len() {
 		t.Errorf("Expected %d, got %d", sl.Len(), result.Len())
@@ -752,9 +752,9 @@ func TestSliceMinInt(t *testing.T) {
 	}
 }
 
-func TestSliceFilterZeroValues(t *testing.T) {
+func TestSliceExcludeZeroValues(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10}
-	sl = sl.FilterZeroValues()
+	sl = sl.ExcludeZeroValues()
 
 	if sl.Len() != 10 {
 		t.Errorf("Expected 10, got %d", sl.Len())
@@ -790,7 +790,7 @@ func TestSliceForEach(t *testing.T) {
 
 	var result1 []int
 
-	sl1.ForEach(func(i int) { result1 = append(result1, i) })
+	sl1.Iter().ForEach(func(i int) { result1 = append(result1, i) })
 
 	if !reflect.DeepEqual(result1, []int{1, 2, 3, 4, 5}) {
 		t.Errorf(
@@ -803,7 +803,7 @@ func TestSliceForEach(t *testing.T) {
 
 	var result2 []string
 
-	sl2.ForEach(func(s string) { result2 = append(result2, s) })
+	sl2.Iter().ForEach(func(s string) { result2 = append(result2, s) })
 
 	if !reflect.DeepEqual(result2, []string{"foo", "bar", "baz"}) {
 		t.Errorf(
@@ -816,7 +816,7 @@ func TestSliceForEach(t *testing.T) {
 
 	var result3 []float64
 
-	sl3.ForEach(func(f float64) { result3 = append(result3, f) })
+	sl3.Iter().ForEach(func(f float64) { result3 = append(result3, f) })
 
 	if !reflect.DeepEqual(result3, []float64{1.1, 2.2, 3.3, 4.4}) {
 		t.Errorf(
@@ -849,68 +849,6 @@ func TestSliceSet(t *testing.T) {
 
 	if !reflect.DeepEqual(sl, g.Slice[int]{1, 0, 2, 0, 3}) {
 		t.Errorf("Set() = %v, want %v", sl, g.Slice[int]{1, 0, 2, 0, 3})
-	}
-}
-
-func TestSliceMapParallel(t *testing.T) {
-	sl := g.NewSlice[int](10).Fill(1)
-	result := sl.MapParallel(func(x int) int { return x * 2 })
-	expected := g.NewSlice[int](10).Fill(2)
-
-	if !result.Eq(expected) {
-		t.Errorf("Unexpected result: got %v, expected %v", result, expected)
-	}
-
-	sl = g.NewSlice[int](10000).Fill(1)
-	result = sl.MapParallel(func(x int) int { return x * 2 })
-	expected = g.NewSlice[int](10000).Fill(2)
-
-	if !result.Eq(expected) {
-		t.Errorf("Unexpected result: got %v, expected %v", result, expected)
-	}
-}
-
-func TestSliceFilterParallel(t *testing.T) {
-	sl := g.SliceOf(1, 2, 3, 4, 5)
-	expected := g.SliceOf(2, 4)
-	actual := sl.FilterParallel(func(x int) bool { return x%2 == 0 })
-
-	if !actual.Eq(expected) {
-		t.Errorf("FilterParallel failed. Expected %v, but got %v", expected, actual)
-	}
-
-	sl = g.SliceOf(2, 4, 6, 8, 10)
-	expected = sl.Clone()
-	actual = sl.FilterParallel(func(x int) bool { return x%2 == 0 })
-
-	if !actual.Eq(expected) {
-		t.Errorf("FilterParallel failed. Expected %v, but got %v", expected, actual)
-	}
-
-	sl = g.SliceOf(1, 3, 5, 7, 9)
-	expected = g.NewSlice[int]()
-	actual = sl.FilterParallel(func(x int) bool { return x%2 == 0 })
-
-	if !actual.Eq(expected) {
-		t.Errorf("FilterParallel failed. Expected %v, but got %v", expected, actual)
-	}
-}
-
-func TestSliceReduceParallel(t *testing.T) {
-	sl := g.NewSlice[int](10).Fill(1)
-	result := sl.ReduceParallel(func(a, b int) int { return a + b }, 0)
-	expected := sl.Reduce(func(a, b int) int { return a + b }, 0)
-
-	if result != expected {
-		t.Errorf("Unexpected result: got %d, expected %d", result, expected)
-	}
-
-	sl = g.NewSlice[int](10000).Fill(1)
-	result = sl.ReduceParallel(func(a, b int) int { return a + b }, 0)
-	expected = sl.Reduce(func(a, b int) int { return a + b }, 0)
-
-	if result != expected {
-		t.Errorf("Unexpected result: got %d, expected %d", result, expected)
 	}
 }
 
@@ -974,10 +912,10 @@ func TestSliceFlatten(t *testing.T) {
 			name: "Nested slice",
 			input: g.Slice[any]{
 				1,
-				g.Slice[int]{2, 3},
+				g.Slice[any]{2, 3},
 				"abc",
-				g.Slice[string]{"def", "ghi"},
-				g.Slice[float64]{4.5, 6.7},
+				g.Slice[any]{"def", "ghi"},
+				g.Slice[any]{4.5, 6.7},
 			},
 			expected: g.Slice[any]{1, 2, 3, "abc", "def", "ghi", 4.5, 6.7},
 		},
@@ -985,7 +923,7 @@ func TestSliceFlatten(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Flatten()
+			result := tt.input.Iter().Flatten().Collect()
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Flatten() = %v, want %v", result, tt.expected)
 			}
@@ -997,12 +935,12 @@ func TestSliceCounter(t *testing.T) {
 	sl1 := g.Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
 	sl2 := g.Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
-	expected1 := g.NewMap[any, int]()
-	expected1.Set(3, 1)
-	expected1.Set(5, 1)
-	expected1.Set(1, 2)
-	expected1.Set(2, 2)
-	expected1.Set(4, 3)
+	expected1 := g.NewMap[any, uint]().
+		Set(3, 1).
+		Set(5, 1).
+		Set(1, 2).
+		Set(2, 2).
+		Set(4, 3)
 
 	result1 := sl1.Counter()
 	if !result1.Eq(expected1) {
@@ -1010,11 +948,11 @@ func TestSliceCounter(t *testing.T) {
 	}
 
 	// Test with string values
-	expected2 := g.NewMap[any, int]()
-	expected2.Set("banana", 1)
-	expected2.Set("grape", 1)
-	expected2.Set("orange", 2)
-	expected2.Set("apple", 3)
+	expected2 := g.NewMap[any, uint]().
+		Set("banana", 1).
+		Set("grape", 1).
+		Set("orange", 2).
+		Set("apple", 3)
 
 	result2 := sl2.Counter()
 	if !result2.Eq(expected2) {
@@ -1481,7 +1419,7 @@ func TestSliceRange(t *testing.T) {
 			return val != 3
 		}
 
-		slice.Range(stopAtThree)
+		slice.Iter().Range(stopAtThree)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)
@@ -1499,7 +1437,7 @@ func TestSliceRange(t *testing.T) {
 			return true
 		}
 
-		slice.Range(alwaysTrue)
+		slice.Iter().Range(alwaysTrue)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)
@@ -1517,7 +1455,7 @@ func TestSliceRange(t *testing.T) {
 			return true
 		}
 
-		emptySlice.Range(anyFunc)
+		emptySlice.Iter().Range(anyFunc)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)

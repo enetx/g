@@ -111,7 +111,7 @@ func (e enc) URL(safe ...String) String {
 
 	var enc strings.Builder
 
-	e.str.ToRunes().ForEach(func(r rune) {
+	e.str.ToRunes().Iter().ForEach(func(r rune) {
 		if reserved.ContainsRune(r) {
 			enc.WriteRune(r)
 			return
@@ -216,7 +216,7 @@ func (d dec) Octal() Result[String] {
 
 	var result strings.Builder
 
-	d.str.Split(" ").ForEach(func(oct String) {
+	d.str.Split(" ").Iter().ForEach(func(oct String) {
 		n, err := strconv.ParseUint(oct.Std(), 8, 32)
 		if err != nil {
 			r = Err[String](err)

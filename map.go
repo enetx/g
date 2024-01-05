@@ -5,7 +5,6 @@ import (
 	"maps"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
@@ -74,7 +73,7 @@ func (m Map[K, V]) RandomSample(sequence int) Map[K, V] {
 	}
 
 	nmap := NewMap[K, V](sequence)
-	keys[0:sequence].ForEach(func(key K) { nmap.Set(key, m.Get(key)) })
+	keys[0:sequence].Iter().ForEach(func(key K) { nmap.Set(key, m.Get(key)) })
 
 	return nmap
 }
@@ -250,61 +249,6 @@ func (m Map[K, V]) ForEach(fn func(K, V)) {
 	}
 }
 
-// ForEachParallel applies a given function to each key-value pair in the Map concurrently.
-//
-// If the length of the Map is below a certain threshold (max), it performs the operation sequentially.
-// Otherwise, it divides the Map into halves and processes each half concurrently using goroutines.
-//
-// Parameters:
-//
-// - fn func(K, V): A function that takes a key and a value as input parameters and performs an
-// operation.
-//
-// Note:
-// The provided function 'fn' should be safe for concurrent execution to prevent race conditions.
-//
-// Example usage:
-//
-//	originalMap.ForEachParallel(func(key K, value V) {
-//		fmt.Printf("Key: %v, Value: %v\n", key, value)
-//	})
-func (m Map[K, V]) ForEachParallel(fn func(K, V)) {
-	const max = 1 << 11
-	if m.Len() < max {
-		m.ForEach(fn)
-		return
-	}
-
-	half := m.Len() / 2
-
-	left := NewMap[K, V](0)
-	right := NewMap[K, V](0)
-
-	i := 0
-	for k, v := range m {
-		if i < half {
-			left.Set(k, v)
-		} else {
-			right.Set(k, v)
-		}
-		i++
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left.ForEachParallel(fn)
-
-		wg.Done()
-	}()
-
-	right.ForEachParallel(fn)
-
-	wg.Wait()
-}
-
 // Range applies a given function to each key-value pair in the Map until the function returns false.
 //
 // The provided function 'fn' should take a key and a value as input parameters and return a boolean.
@@ -327,128 +271,6 @@ func (m Map[K, V]) Range(fn func(K, V) bool) {
 			break
 		}
 	}
-}
-
-// MapParallel applies a function to each key-value pair in the Map in parallel and returns a new
-// Map with the results.
-// The provided function 'fn' should take a key and a value as input parameters and return a new
-// key-value pair.
-// This function is designed for better performance on large Maps by utilizing
-// parallel processing.
-//
-// Parameters:
-//
-// - fn func(K, V) (K, V): A function that takes a key and a value as input parameters and returns
-// a new key-value pair.
-//
-// Returns:
-//
-// - Map[K, V]: A new Map containing the key-value pairs resulting from applying the provided
-// function to each key-value pair in the original Map.
-//
-// Example usage:
-//
-//	mappedMap := originalMap.MapParallel(func(key K, value V) (K, V) {
-//		return key, value * 2
-//	})
-func (m Map[K, V]) MapParallel(fn func(K, V) (K, V)) Map[K, V] {
-	const max = 1 << 11
-	if m.Len() < max {
-		return m.Map(fn)
-	}
-
-	half := m.Len() / 2
-
-	left := NewMap[K, V](half)
-	right := NewMap[K, V](half - left.Len())
-
-	i := 0
-	for k, v := range m {
-		if i < half {
-			left.Set(k, v)
-		} else {
-			right.Set(k, v)
-		}
-		i++
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left = left.MapParallel(fn)
-
-		wg.Done()
-	}()
-
-	right = right.MapParallel(fn)
-
-	wg.Wait()
-
-	return m.Clear().Copy(left).Copy(right)
-}
-
-// FilterParallel filters the Map based on a given function in parallel and returns a new Map
-// containing the matching key-value pairs. The provided function 'fn' should take a key and a
-// value as input parameters and return a boolean value.
-// If the function returns true, the key-value pair will be included in the resulting Map.
-// This function is designed for better performance on large Maps by utilizing parallel
-// processing.
-//
-// Parameters:
-//
-// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a
-// boolean value.
-//
-// Returns:
-//
-// - Map[K, V]: A new Map containing the key-value pairs for which the provided function returned
-// true.
-//
-// Example usage:
-//
-//	filteredMap := originalMap.FilterParallel(func(key K, value V) bool {
-//		return value >= 10
-//	})
-//
-// TODO: написать тесты.
-func (m Map[K, V]) FilterParallel(fn func(K, V) bool) Map[K, V] {
-	const max = 1 << 11
-	if m.Len() < max {
-		return m.Filter(fn)
-	}
-
-	half := m.Len() / 2
-
-	left := NewMap[K, V](half)
-	right := NewMap[K, V](half - left.Len())
-
-	i := 0
-	for k, v := range m {
-		if i < half {
-			left.Set(k, v)
-		} else {
-			right.Set(k, v)
-		}
-		i++
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-
-	go func() {
-		left = left.FilterParallel(fn)
-
-		wg.Done()
-	}()
-
-	right = right.FilterParallel(fn)
-
-	wg.Wait()
-
-	return NewMap[K, V](left.Len() + right.Len()).Copy(left).Copy(right)
 }
 
 // Eq checks if two Maps are equal.
