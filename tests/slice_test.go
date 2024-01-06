@@ -1331,8 +1331,8 @@ func TestSliceUnique(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.Unique().Sort()
-		if !reflect.DeepEqual(actual, tc.output.Sort()) {
+		actual := tc.input.Unique()
+		if !reflect.DeepEqual(actual, tc.output) {
 			t.Errorf("Unique(%v) returned %v, expected %v", tc.input, actual, tc.output)
 		}
 	}

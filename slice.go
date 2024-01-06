@@ -391,9 +391,11 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 }
 
 // Unique returns a new slice containing unique elements from the current slice.
-// The order of elements in the returned slice is not guaranteed to be the same as in the original slice.
+//
+// The order of elements in the returned slice is the same as the order in the original slice.
 //
 // Returns:
+//
 // - Slice[T]: A new Slice containing unique elements from the current slice.
 //
 // Example usage:
@@ -404,12 +406,16 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 // The resulting unique slice will be: [1, 2, 3, 4, 5].
 func (sl Slice[T]) Unique() Slice[T] {
 	seen := NewMap[any, struct{}](sl.Len())
-	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	unique := NewSlice[T](0, sl.Len())
 
-	unique := NewSlice[T](0, seen.Len())
-	seen.Iter().ForEach(func(k any, _ struct{}) { unique = unique.Append(k.(T)) })
+	sl.Iter().ForEach(func(t T) {
+		if !seen.Contains(t) {
+			seen.Set(t, struct{}{})
+			unique = unique.Append(t)
+		}
+	})
 
-	return unique
+	return unique.Clip()
 }
 
 // AddUnique appends unique elements from the provided arguments to the current slice.
