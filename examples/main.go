@@ -98,7 +98,7 @@ func main() {
 
 	mo.SortBy(func(i, j int) bool { return (*mo)[i].Value < (*mo)[j].Value }).Print()
 
-	counter.ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
+	counter.Iter().ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
 
 	sl.Iter().ForEach(func(v g.String) { v.Print() })
 

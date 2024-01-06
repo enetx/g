@@ -2,49 +2,8 @@ package g
 
 import "context"
 
-func collect[T any](iter iterator[T]) []T {
-	values := make([]T, 0)
-
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		values = append(values, next.Some())
-	}
-
-	return values
-}
-
-func fold[T, U any](iter iterator[T], init U, fn func(U, T) U) U {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		init = fn(init, next.Some())
-	}
-
-	return init
-}
-
-func find[T any](iter iterator[T], fn func(v T) bool) Option[T] {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		if fn(next.Some()) {
-			return next
-		}
-	}
-
-	return None[T]()
-}
-
-func foreach[T any](iter iterator[T], fn func(T)) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		fn(next.Some())
-	}
-}
-
-func rangeb[T any](iter iterator[T], fn func(T) bool) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		if !fn(next.Some()) {
-			break
-		}
-	}
-}
-
-func all[T any](iter iterator[T], fn func(T) bool) bool {
+// All checks if all elements in the iterator satisfy the given predicate.
+func (iter *baseIter[T]) All(fn func(T) bool) bool {
 	for next := iter.Next(); next.IsSome(); next = iter.Next() {
 		if !fn(next.Some()) {
 			return false
@@ -54,7 +13,8 @@ func all[T any](iter iterator[T], fn func(T) bool) bool {
 	return true
 }
 
-func anyb[T any](iter iterator[T], fn func(T) bool) bool {
+// Any checks if any element in the iterator satisfies the given predicate.
+func (iter *baseIter[T]) Any(fn func(T) bool) bool {
 	for next := iter.Next(); next.IsSome(); next = iter.Next() {
 		if fn(next.Some()) {
 			return true
@@ -64,7 +24,100 @@ func anyb[T any](iter iterator[T], fn func(T) bool) bool {
 	return false
 }
 
-func tochannel[T any](iter iterator[T], ctxs ...context.Context) chan T {
+// Chain concatenates the current iterator with other iterators, returning a new iterator.
+func (iter *baseIter[T]) Chain(iterators ...iterator[T]) *chainIter[T] {
+	return chain[T](append([]iterator[T]{iter}, iterators...)...)
+}
+
+// Collect gathers all elements from the iterator into a Slice.
+func (iter *baseIter[T]) Collect() Slice[T] {
+	values := make([]T, 0)
+
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		values = append(values, next.Some())
+	}
+
+	return values
+}
+
+// Cycle returns an iterator that endlessly repeats the elements of the current iterator.
+func (iter *baseIter[T]) Cycle() *cycleIter[T] {
+	return cycle[T](iter)
+}
+
+// Drop returns a new iterator skipping the first n elements.
+func (iter *baseIter[T]) Drop(n uint) *dropIter[T] {
+	return drop[T](iter, n)
+}
+
+// Enumerate adds an index to each element in the iterator.
+func (iter *baseIter[T]) Enumerate() *enumerateIter[T] {
+	return enumerate[T](iter)
+}
+
+// Exclude returns a new iterator excluding elements that satisfy the provided function.
+func (iter *baseIter[T]) Exclude(fn func(T) bool) *filterIter[T] {
+	return exclude[T](iter, fn)
+}
+
+// Filter returns a new iterator containing only the elements that satisfy the provided function.
+func (iter *baseIter[T]) Filter(fn func(T) bool) *filterIter[T] {
+	return filter[T](iter, fn)
+}
+
+// Find searches for an element in the iterator that satisfies the provided function.
+func (iter *baseIter[T]) Find(fn func(T) bool) Option[T] {
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		if fn(next.Some()) {
+			return next
+		}
+	}
+
+	return None[T]()
+}
+
+// Flatten flattens an iterator of iterators into a single iterator.
+func (iter *baseIter[T]) Flatten() *flattenIter[T] {
+	return flatten[T](iter)
+}
+
+// Fold accumulates values in the iterator using a function.
+func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T {
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		init = fn(init, next.Some())
+	}
+
+	return init
+}
+
+// ForEach iterates through all elements and applies the given function to each.
+func (iter *baseIter[T]) ForEach(fn func(T)) {
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		fn(next.Some())
+	}
+}
+
+// Map transforms each element in the iterator using the given function.
+func (iter *baseIter[T]) Map(fn func(T) T) *mapIter[T, T] {
+	return transform[T](iter, fn)
+}
+
+// Range iterates through elements until the given function returns false.
+func (iter *baseIter[T]) Range(fn func(T) bool) {
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		if !fn(next.Some()) {
+			break
+		}
+	}
+}
+
+// Take returns a new iterator with the first n elements.
+func (iter *baseIter[T]) Take(n uint) *takeIter[T] {
+	return take[T](iter, n)
+}
+
+// ToChannel converts the iterator into a channel, optionally with context(s).
+func (iter *baseIter[T]) ToChannel(ctxs ...context.Context) chan T {
 	ch := make(chan T)
 
 	ctx := context.Background()
@@ -86,58 +139,6 @@ func tochannel[T any](iter iterator[T], ctxs ...context.Context) chan T {
 	}()
 
 	return ch
-}
-
-// All checks if all elements in the iterator satisfy the given predicate.
-func (iter *baseIter[T]) All(fn func(T) bool) bool { return all[T](iter, fn) }
-
-// Any checks if any element in the iterator satisfies the given predicate.
-func (iter *baseIter[T]) Any(fn func(T) bool) bool { return anyb[T](iter, fn) }
-
-// Collect gathers all elements from the iterator into a Slice.
-func (iter *baseIter[T]) Collect() Slice[T] { return collect[T](iter.iterator) }
-
-// Cycle returns an iterator that endlessly repeats the elements of the current iterator.
-func (iter *baseIter[T]) Cycle() *cycleIter[T] { return cycle[T](iter) }
-
-// Drop returns a new iterator skipping the first n elements.
-func (iter *baseIter[T]) Drop(n uint) *dropIter[T] { return drop[T](iter, n) }
-
-// Enumerate adds an index to each element in the iterator.
-func (iter *baseIter[T]) Enumerate() *enumerateIter[T] { return enumerate[T](iter) }
-
-// Exclude returns a new iterator excluding elements that satisfy the provided function.
-func (iter *baseIter[T]) Exclude(fn func(T) bool) *filterIter[T] { return exclude[T](iter, fn) }
-
-// Filter returns a new iterator containing only the elements that satisfy the provided function.
-func (iter *baseIter[T]) Filter(fn func(T) bool) *filterIter[T] { return filter[T](iter, fn) }
-
-// Flatten flattens an iterator of iterators into a single iterator.
-func (iter *baseIter[T]) Flatten() *flattenIter[T] { return flatten[T](iter) }
-
-// Fold accumulates values in the iterator using a function.
-func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T { return fold[T, T](iter, init, fn) }
-
-// ForEach iterates through all elements and applies the given function to each.
-func (iter *baseIter[T]) ForEach(fn func(T)) { foreach[T](iter, fn) }
-
-// Map transforms each element in the iterator using the given function.
-func (iter *baseIter[T]) Map(fn func(T) T) *mapIter[T, T] { return transform[T](iter, fn) }
-
-// Range iterates through elements until the given function returns false.
-func (iter *baseIter[T]) Range(fn func(T) bool) { rangeb[T](iter, fn) }
-
-// Take returns a new iterator with the first n elements.
-func (iter *baseIter[T]) Take(n uint) *takeIter[T] { return take[T](iter, n) }
-
-// ToChannel converts the iterator into a channel, optionally with context(s).
-func (iter *baseIter[T]) ToChannel(ctxs ...context.Context) chan T {
-	return tochannel[T](iter, ctxs...)
-}
-
-// Chain concatenates the current iterator with other iterators, returning a new iterator.
-func (iter *baseIter[T]) Chain(iterators ...iterator[T]) *chainIter[T] {
-	return chain[T](append([]iterator[T]{iter}, iterators...)...)
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

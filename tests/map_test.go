@@ -212,7 +212,7 @@ func TestMapMap(t *testing.T) {
 	expected.Set(4, "two")
 	expected.Set(6, "three")
 
-	mapped := m.Map(func(k int, v string) (int, string) { return k * 2, v })
+	mapped := m.Iter().Map(func(k int, v string) (int, string) { return k * 2, v }).Collect()
 
 	if !reflect.DeepEqual(mapped, expected) {
 		t.Errorf("Map failed: expected %v, but got %v", expected, mapped)
@@ -223,7 +223,7 @@ func TestMapMap(t *testing.T) {
 	expected.Set(2, "two_suffix")
 	expected.Set(3, "three_suffix")
 
-	mapped = m.Map(func(k int, v string) (int, string) { return k, v + "_suffix" })
+	mapped = m.Iter().Map(func(k int, v string) (int, string) { return k, v + "_suffix" }).Collect()
 
 	if !reflect.DeepEqual(mapped, expected) {
 		t.Errorf("Map failed: expected %v, but got %v", expected, mapped)
@@ -234,12 +234,12 @@ func TestMapMap(t *testing.T) {
 	expected.Set(1, "one")
 	expected.Set(3, "three")
 
-	mapped = m.Map(func(k int, v string) (int, string) {
+	mapped = m.Iter().Map(func(k int, v string) (int, string) {
 		if k == 2 {
 			return 0, ""
 		}
 		return k, v
-	})
+	}).Collect()
 
 	if !reflect.DeepEqual(mapped, expected) {
 		t.Errorf("Map failed: expected %v, but got %v", expected, mapped)
@@ -255,7 +255,7 @@ func TestMapFilter(t *testing.T) {
 	expected := g.NewMap[string, int](1)
 	expected.Set("two", 2)
 
-	filtered := m.Filter(func(k string, v int) bool { return v%2 == 0 })
+	filtered := m.Iter().Filter(func(k string, v int) bool { return v%2 == 0 }).Collect()
 
 	if !reflect.DeepEqual(filtered, expected) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
@@ -265,7 +265,7 @@ func TestMapFilter(t *testing.T) {
 	expected.Set("one", 1)
 	expected.Set("three", 3)
 
-	filtered = m.Filter(func(k string, v int) bool { return strings.Contains(k, "e") })
+	filtered = m.Iter().Filter(func(k string, v int) bool { return strings.Contains(k, "e") }).Collect()
 
 	if !reflect.DeepEqual(filtered, expected) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
@@ -276,7 +276,7 @@ func TestMapFilter(t *testing.T) {
 	expected.Set("two", 2)
 	expected.Set("three", 3)
 
-	filtered = m.Filter(func(k string, v int) bool { return true })
+	filtered = m.Iter().Filter(func(k string, v int) bool { return true }).Collect()
 
 	if !reflect.DeepEqual(filtered, expected) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
@@ -284,13 +284,12 @@ func TestMapFilter(t *testing.T) {
 
 	expected = g.NewMap[string, int](0)
 
-	filtered = m.Filter(func(k string, v int) bool { return false })
+	filtered = m.Iter().Filter(func(k string, v int) bool { return false }).Collect()
 
 	if !reflect.DeepEqual(filtered, expected) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
 	}
 }
-
 
 func TestMapInvertValues(t *testing.T) {
 	m := g.NewMap[int, string](0)
@@ -483,42 +482,4 @@ func TestRandomRangeMapInvalidRange(t *testing.T) {
 	if subrangeMap.Len() != 0 {
 		t.Errorf("Expected an empty map, but got length %d", subrangeMap.Len())
 	}
-}
-
-func TestMapRange(t *testing.T) {
-	// Test scenario: Function always returns true
-	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
-		m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
-		expected := map[string]int{"a": 1, "b": 2, "c": 3}
-
-		result := make(map[string]int)
-		alwaysTrue := func(key string, val int) bool {
-			result[key] = val
-			return true
-		}
-
-		m.Range(alwaysTrue)
-
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("Expected: %v, Got: %v", expected, result)
-		}
-	})
-
-	// Test scenario: Empty map
-	t.Run("EmptyMap", func(t *testing.T) {
-		emptyMap := g.Map[string, int]{}
-		expected := make(map[string]int)
-
-		result := make(map[string]int)
-		anyFunc := func(key string, val int) bool {
-			result[key] = val
-			return true
-		}
-
-		emptyMap.Range(anyFunc)
-
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("Expected: %v, Got: %v", expected, result)
-		}
-	})
 }

@@ -407,7 +407,7 @@ func (sl Slice[T]) Unique() Slice[T] {
 	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
 
 	unique := NewSlice[T](0, seen.Len())
-	seen.ForEach(func(k any, _ struct{}) { unique = unique.Append(k.(T)) })
+	seen.Iter().ForEach(func(k any, _ struct{}) { unique = unique.Append(k.(T)) })
 
 	return unique
 }

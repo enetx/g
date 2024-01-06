@@ -59,7 +59,7 @@ func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
 // Converts the standard Map 'hmap' to an ordered Map.
 func MapOrdFromMap[K comparable, V any](m Map[K, V]) *MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
-	m.ForEach(func(k K, v V) { mo.Set(k, v) })
+	m.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
 
 	return mo
 }

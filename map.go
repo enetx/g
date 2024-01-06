@@ -19,6 +19,8 @@ func NewMap[K comparable, V any](size ...int) Map[K, V] {
 // MapFromStd creates an Map from a given Go map.
 func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 
+func (m Map[K, V]) Iter() *liftIterM[K, V] { return liftM[K, V](m) }
+
 // Random returns a new map containing a single randomly selected key-value pair from the original map.
 //
 // Parameters:
@@ -122,7 +124,7 @@ func (m Map[K, V]) RandomRange(from, to int) Map[K, V] {
 // types are guaranteed to be comparable.
 func (m Map[K, V]) Invert() Map[any, K] {
 	result := NewMap[any, K](m.Len())
-	m.ForEach(func(k K, v V) { result.Set(v, k) })
+	m.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
 }
@@ -130,7 +132,7 @@ func (m Map[K, V]) Invert() Map[any, K] {
 // Keys returns a slice of the Map's keys.
 func (m Map[K, V]) Keys() Slice[K] {
 	keys := NewSlice[K](0, m.Len())
-	m.ForEach(func(k K, _ V) { keys = keys.Append(k) })
+	m.Iter().ForEach(func(k K, _ V) { keys = keys.Append(k) })
 
 	return keys
 }
@@ -138,7 +140,7 @@ func (m Map[K, V]) Keys() Slice[K] {
 // Values returns a slice of the Map's values.
 func (m Map[K, V]) Values() Slice[V] {
 	values := NewSlice[V](0, m.Len())
-	m.ForEach(func(_ K, v V) { values = values.Append(v) })
+	m.Iter().ForEach(func(_ K, v V) { values = values.Append(v) })
 
 	return values
 }
@@ -170,109 +172,6 @@ func (m Map[K, V]) Delete(keys ...K) Map[K, V] {
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
 
-// Map applies a function to each key-value pair in the Map and returns a new Map with the
-// results. The provided function 'fn' should take a key and a value as input parameters and return
-// a new key-value pair.
-//
-// Parameters:
-//
-// - fn func(K, V) (K, V): A function that takes a key and a value as input parameters and returns
-// a new key-value pair.
-//
-// Returns:
-//
-// - Map[K, V]: A new Map containing the key-value pairs resulting from applying the provided
-// function to each key-value pair in the original Map.
-//
-// Example usage:
-//
-//	mappedMap := originalMap.Map(func(key K, value V) (K, V) {
-//		return key, value * 2
-//	})
-func (m Map[K, V]) Map(fn func(K, V) (K, V)) Map[K, V] {
-	result := NewMap[K, V](m.Len())
-	m.ForEach(func(k K, v V) { result.Set(fn(k, v)) })
-
-	return result
-}
-
-// Filter filters the Map based on a given function and returns a new Map containing the matching
-// key-value pairs. The provided function 'fn' should take a key and a value as input parameters
-// and return a boolean value.
-// If the function returns true, the key-value pair will be included in the resulting Map.
-//
-// Parameters:
-//
-// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a
-// boolean value.
-//
-// Returns:
-//
-// - Map[K, V]: A new Map containing the key-value pairs for which the provided function returned
-// true.
-//
-// Example usage:
-//
-//	filteredMap := originalMap.Filter(func(key K, value V) bool {
-//		return value >= 10
-//	})
-func (m Map[K, V]) Filter(fn func(K, V) bool) Map[K, V] {
-	result := NewMap[K, V]()
-
-	m.ForEach(func(k K, v V) {
-		if fn(k, v) {
-			result.Set(k, v)
-		}
-	})
-
-	return result
-}
-
-// ForEach applies a function to each key-value pair in the Map.
-// The provided function 'fn' should take a key and a value as input parameters and perform an
-// operation.
-// This function is useful for side effects, as it does not return a new Map.
-//
-// Parameters:
-//
-// - fn func(K, V): A function that takes a key and a value as input parameters and performs an
-// operation.
-//
-// Example usage:
-//
-//	originalMap.ForEach(func(key K, value V) {
-//		fmt.Printf("Key: %v, Value: %v\n", key, value)
-//	})
-func (m Map[K, V]) ForEach(fn func(K, V)) {
-	for key, val := range m {
-		fn(key, val)
-	}
-}
-
-// Range applies a given function to each key-value pair in the Map until the function returns false.
-//
-// The provided function 'fn' should take a key and a value as input parameters and return a boolean.
-// If the function returns false for any key-value pair, the iteration stops.
-//
-// Parameters:
-//
-// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a boolean.
-// If it returns false, the iteration will stop.
-//
-// Example usage:
-//
-//	originalMap.Range(func(key K, value V) bool {
-//	    fmt.Printf("Key: %v, Value: %v\n", key, value)
-//	    return key != stopKey // Stop iteration condition
-//	})
-func (m Map[K, V]) Range(fn func(K, V) bool) {
-	for key, val := range m {
-		if !fn(key, val) {
-			break
-		}
-	}
-}
-
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	if m.Len() != other.Len() {
@@ -292,7 +191,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 func (m Map[K, V]) String() string {
 	var builder strings.Builder
 
-	m.ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
+	m.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
 
 	return String(builder.String()).TrimRight(", ").Format("Map{%s}").Std()
 }

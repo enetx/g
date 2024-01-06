@@ -77,4 +77,10 @@ type (
 
 	// baseIterMO is a base struct implementing the iteratorMO interface.
 	baseIterMO[K comparable, V any] struct{ iteratorMO[K, V] }
+
+	// iteratorMO defines a generic interface for iterating over key-value pairs in a MapOrd.
+	iteratorM[K comparable, V any] interface{ Next() Option[pair[K, V]] }
+
+	// baseIterMO is a base struct implementing the iteratorMO interface.
+	baseIterM[K comparable, V any] struct{ iteratorM[K, V] }
 )
