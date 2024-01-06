@@ -1,7 +1,5 @@
 package g
 
-import "context"
-
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
 func (iter *baseIterM[K, V]) Chain(iterators ...iteratorM[K, V]) *chainIterM[K, V] {
 	return chainM[K, V](append([]iteratorM[K, V]{iter}, iterators...)...)
@@ -43,31 +41,6 @@ func (iter *baseIterM[K, V]) ForEach(fn func(K, V)) {
 // Map creates a new iterator by applying the given function to each key-value pair.
 func (iter *baseIterM[K, V]) Map(fn func(K, V) (K, V)) *mapIterM[K, V] {
 	return mapiterM(iter, fn)
-}
-
-// ToChannel converts the iterator into a channel, optionally with context(s).
-func (iter *baseIterM[K, V]) ToChannel(ctxs ...context.Context) chan pair[K, V] {
-	ch := make(chan pair[K, V])
-
-	ctx := context.Background()
-	if len(ctxs) != 0 {
-		ctx = ctxs[0]
-	}
-
-	go func() {
-		defer close(ch)
-
-		for next := iter.Next(); next.IsSome(); next = iter.Next() {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				ch <- next.Some()
-			}
-		}
-	}()
-
-	return ch
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
