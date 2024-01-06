@@ -36,6 +36,8 @@ func NewMapOrd[K comparable, V any](size ...int) *MapOrd[K, V] {
 	return ref.Of(make(MapOrd[K, V], 0, size[0]))
 }
 
+func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
+
 // MapOrdFromMap converts a standard Map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of
 // insertion.
@@ -109,86 +111,23 @@ func (mo *MapOrd[K, V]) SortBy(f func(i, j int) bool) *MapOrd[K, V] {
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo *MapOrd[K, V]) Clone() *MapOrd[K, V] {
 	result := NewMapOrd[K, V](mo.Len())
-	mo.ForEach(func(k K, v V) { result.Set(k, v) })
+	mo.Iter().ForEach(func(k K, v V) { result.Set(k, v) })
 
 	return result
 }
 
 // Copy copies key-value pairs from the source ordered Map to the current ordered Map.
 func (mo *MapOrd[K, V]) Copy(src *MapOrd[K, V]) *MapOrd[K, V] {
-	src.ForEach(func(k K, v V) { mo.Set(k, v) })
+	src.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
 	return mo
 }
 
 // ToMap converts the ordered Map to a standard Map.
 func (mo *MapOrd[K, V]) ToMap() Map[K, V] {
 	m := NewMap[K, V](mo.Len())
-	mo.ForEach(func(k K, v V) { m.Set(k, v) })
+	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
 
 	return m
-}
-
-// Map applies a provided function to all key-value pairs in the ordered Map and returns a new
-// ordered Map with the results. The provided function should take the key and value as input and
-// return a new key-value pair as output. This function is useful when you want to transform the
-// key-value pairs of an ordered Map using a custom function.
-//
-// Parameters:
-//
-// - fn func(K, V) (K, V): The custom function that takes the key and value as input and returns a
-// new key-value pair.
-//
-// Returns:
-//
-// - *MapOrd[K, V]: A pointer to a new ordered Map containing the key-value pairs after applying
-// the custom function.
-//
-// Example usage:
-//
-//	hmapo.Map(func(k string, v int) (string, int) {
-//		return strings.ToUpper(k), v * 2
-//	}) // Transforms the keys to uppercase and doubles the values in the ordered Map.
-func (mo *MapOrd[K, V]) Map(fn func(K, V) (K, V)) *MapOrd[K, V] {
-	result := NewMapOrd[K, V](mo.Len())
-	mo.ForEach(func(k K, v V) { result.Set(fn(k, v)) })
-
-	return result
-}
-
-// Filter filters the ordered Map based on a provided predicate function,
-// returning a new ordered Map with only the key-value pairs that satisfy the predicate.
-// The predicate function should take the key and value as input and return a boolean value.
-// This function is useful when you want to create a new ordered Map containing only the key-value
-// pairs that meet certain criteria.
-//
-// Parameters:
-//
-// - fn func(K, V) bool: The predicate function that takes the key and value as input and returns a
-// boolean value.
-//
-// Returns:
-//
-// - *MapOrd[K, V]: A pointer to a new ordered Map containing only the key-value pairs that
-// satisfy the predicate.
-//
-// Example usage:
-//
-//	hmapo.Filter(func(k string, v int) bool {
-//		return v > 10
-//	})
-//
-// Filters the ordered Map to include only the key-value pairs where the value is greater
-// than 10.
-func (mo *MapOrd[K, V]) Filter(fn func(K, V) bool) *MapOrd[K, V] {
-	result := NewMapOrd[K, V](mo.Len())
-
-	mo.ForEach(func(k K, v V) {
-		if fn(k, v) {
-			result.Set(k, v)
-		}
-	})
-
-	return result
 }
 
 // Set sets the value for the specified key in the ordered Map.
@@ -198,7 +137,7 @@ func (mo *MapOrd[K, V]) Set(key K, value V) *MapOrd[K, V] {
 		return mo
 	}
 
-	mp := mapPair[K, V]{key, value}
+	mp := pair[K, V]{key, value}
 	*mo = append(*mo, mp)
 
 	return mo
@@ -299,7 +238,7 @@ func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
 // values as keys and the original keys as values.
 func (mo *MapOrd[K, V]) Invert() *MapOrd[any, K] {
 	result := NewMapOrd[any, K](mo.Len())
-	mo.ForEach(func(k K, v V) { result.Set(v, k) })
+	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
 }
@@ -317,7 +256,7 @@ func (mo *MapOrd[K, V]) index(key K) int {
 // Keys returns an Slice containing all the keys in the ordered Map.
 func (mo *MapOrd[K, V]) Keys() Slice[K] {
 	keys := NewSlice[K](0, mo.Len())
-	mo.ForEach(func(k K, _ V) { keys = keys.Append(k) })
+	mo.Iter().ForEach(func(k K, _ V) { keys = keys.Append(k) })
 
 	return keys
 }
@@ -325,7 +264,7 @@ func (mo *MapOrd[K, V]) Keys() Slice[K] {
 // Values returns an Slice containing all the values in the ordered Map.
 func (mo *MapOrd[K, V]) Values() Slice[V] {
 	values := NewSlice[V](0, mo.Len())
-	mo.ForEach(func(_ K, v V) { values = values.Append(v) })
+	mo.Iter().ForEach(func(_ K, v V) { values = values.Append(v) })
 
 	return values
 }
@@ -339,51 +278,6 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) *MapOrd[K, V] {
 	}
 
 	return mo
-}
-
-// ForEach executes a provided function for each key-value pair in the ordered Map.
-//
-// This function is useful when you want to perform an operation or side effect for each key-value
-// pair in the ordered Map.
-//
-// Parameters:
-//
-// - fn func(K, V): The function to execute for each key-value pair in the ordered Map. It takes a
-// key (K) and a value (V) as arguments.
-//
-// Example usage:
-//
-//	hmapo.ForEach(func(key K, value V) { fmt.Printf("Key: %v, Value: %v\n", key, value) }).
-//
-// Prints each key-value pair in the ordered Map.
-func (mo *MapOrd[K, V]) ForEach(fn func(K, V)) {
-	for _, mp := range *mo {
-		fn(mp.Key, mp.Value)
-	}
-}
-
-// Range applies a given function to each key-value pair in the ordered Map until the function returns false.
-//
-// The provided function 'fn' should take a key and a value as input parameters and return a boolean.
-// If the function returns false for any key-value pair, the iteration stops.
-//
-// Parameters:
-//
-// - fn func(K, V) bool: A function that takes a key and a value as input parameters and returns a boolean.
-// If it returns false, the iteration will stop.
-//
-// Example usage:
-//
-//	hmapo.Range(func(key K, value V) bool {
-//	    fmt.Printf("Key: %v, Value: %v\n", key, value)
-//	    return key != stopKey // Stop iteration condition
-//	})
-func (mo *MapOrd[K, V]) Range(fn func(K, V) bool) {
-	for _, mp := range *mo {
-		if !fn(mp.Key, mp.Value) {
-			break
-		}
-	}
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
@@ -406,7 +300,7 @@ func (mo *MapOrd[K, V]) Eq(other *MapOrd[K, V]) bool {
 func (mo *MapOrd[K, V]) String() string {
 	var builder strings.Builder
 
-	mo.ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
+	mo.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
 
 	return String(builder.String()).TrimRight(", ").Format("MapOrd{%s}").Std()
 }

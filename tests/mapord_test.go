@@ -23,7 +23,7 @@ func TestMapOrd_Range(t *testing.T) {
 			return key != "b"
 		}
 
-		orderedMap.Range(stopAtB)
+		orderedMap.Iter().Range(stopAtB)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)
@@ -45,7 +45,7 @@ func TestMapOrd_Range(t *testing.T) {
 			return true
 		}
 
-		orderedMap.Range(alwaysTrue)
+		orderedMap.Iter().Range(alwaysTrue)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)
@@ -63,7 +63,7 @@ func TestMapOrd_Range(t *testing.T) {
 			return true
 		}
 
-		emptyMap.Range(anyFunc)
+		emptyMap.Iter().Range(anyFunc)
 
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)

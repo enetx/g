@@ -71,10 +71,9 @@ func main() {
 	fmt.Println(ms.Eq(ms1))
 	fmt.Println(ms.Contains(12))
 
-	ms.ForEach(func(k, v g.Int) { fmt.Println(k, v) })
+	ms.Iter().ForEach(func(k, v g.Int) { fmt.Println(k, v) })
 
-	ms = ms.Map(func(k, v g.Int) (g.Int, g.Int) { return k.Mul(2), v.Mul(2) })
-
+	ms = ms.Iter().Map(func(k, v g.Int) (g.Int, g.Int) { return k.Mul(2), v.Mul(2) }).Collect()
 	ms.Print()
 
 	ms.Delete(12, 1, 222)
