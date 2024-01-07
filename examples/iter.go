@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.com/x0xO/g"
+	"gitlab.com/x0xO/g/filters"
 )
 
 func main() {
@@ -18,7 +19,8 @@ func main() {
 		Iter().
 		Cycle().
 		Take(20).
-		Filter(g.String.NotEmpty).
+		// Filter(g.String.NotEmpty).
+		Exclude(filters.IsZero).
 		Map(g.String.Upper).
 		Collect().
 		Print()

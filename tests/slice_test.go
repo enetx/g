@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gitlab.com/x0xO/g"
+	"gitlab.com/x0xO/g/filters"
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
@@ -754,7 +755,7 @@ func TestSliceMinInt(t *testing.T) {
 
 func TestSliceExcludeZeroValues(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10}
-	sl = sl.ExcludeZeroValues()
+	sl = sl.Iter().Exclude(filters.IsZero).Collect()
 
 	if sl.Len() != 10 {
 		t.Errorf("Expected 10, got %d", sl.Len())

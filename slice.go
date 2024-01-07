@@ -651,46 +651,6 @@ func (sl Slice[T]) SortBy(f func(i, j int) bool) Slice[T] {
 	return sl
 }
 
-// ExcludeZeroValues returns a new slice with all zero values removed.
-//
-// The function iterates over the elements in the slice and checks if they are
-// zero values using the reflect.DeepEqual function. If an element is not a zero value,
-// it is added to the resulting slice. The new slice, containing only non-zero values,
-// is returned.
-//
-// Returns:
-//
-// - Slice[T]: A new slice containing only non-zero values from the original slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 0, 4, 0}
-//	nonZeroSlice := slice.ExcludeZeroValues()
-//	fmt.Println(nonZeroSlice)
-//
-// Output: [1 2 4].
-func (sl Slice[T]) ExcludeZeroValues() Slice[T] {
-	return sl.Iter().Exclude(func(v T) bool { return reflect.DeepEqual(v, *new(T)) }).Collect()
-}
-
-// ExcludeZeroValuesInPlace removes all zero values from the current slice.
-//
-// The function iterates over the elements in the slice and checks if they are
-// zero values using the reflect.DeepEqual function. If an element is a zero value,
-// it is removed from the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 0, 4, 0}
-//	slice.ExcludeZeroValuesInPlace()
-//	fmt.Println(slice)
-//
-// Output: [1 2 4].
-func (sl *Slice[T]) ExcludeZeroValuesInPlace() Slice[T] {
-	*sl = sl.ExcludeZeroValues()
-	return *sl
-}
-
 // ToStringSlice converts the slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
 	result := NewSlice[string](0, sl.Len())

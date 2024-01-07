@@ -10,6 +10,9 @@ import (
 func main() {
 	slice := g.Slice[int]{1, 2, 3, 4}
 
+	fmt.Println(slice.Iter().All(func(i int) bool { return i != 5 }))
+	fmt.Println(slice.Iter().Any(func(i int) bool { return i == 5 }))
+
 	slice.Iter().Range(func(val int) bool {
 		fmt.Println(val)
 		return val != 3
