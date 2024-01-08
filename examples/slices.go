@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/x0xO/g"
+	"gitlab.com/x0xO/g/filters"
 )
 
 func main() {
@@ -66,7 +67,8 @@ func main() {
 	slicea.Print()
 
 	slice = g.Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
-	slice.ExcludeZeroValuesInPlace()
+	slice = slice.Iter().Exclude(filters.IsZero).Collect()
+
 	slice.DeleteInPlace(0)
 	slice.Print()
 

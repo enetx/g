@@ -73,6 +73,9 @@ func (i Int) AsInt64() int64 { return int64(i) }
 // AsInt8 returns the Int as an int8.
 func (i Int) AsInt8() int8 { return int8(i) }
 
+// IsZero checks if the Int is 0.
+func (i Int) IsZero() bool { return i.Eq(0) }
+
 // IsNegative checks if the Int is negative.
 func (i Int) IsNegative() bool { return i.Lt(0) }
 

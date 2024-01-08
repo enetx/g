@@ -9,10 +9,10 @@ import (
 func main() {
 	// f := g.NewFile("some/dir/that/dont/exist/file.txt")
 
-	// words := f.Iterator().Unwrap().ByWords()
-	// runes := f.Iterator().Unwrap().ByRunes()
-	// bytes := f.Iterator().Unwrap().ByBytes()
-	// lines := f.Iterator().Unwrap().ByLines()
+	// // words := f.Iter().Unwrap().ByWords()
+	// // runes := f.Iter().Unwrap().ByRunes()
+	// // bytes := f.Iter().Unwrap().ByBytes()
+	// lines := f.Iter().Unwrap().ByLines()
 
 	// for lines.Next() {
 	// 	fmt.Println(lines.ToString())
@@ -28,8 +28,8 @@ func main() {
 
 	// dbg.Dbg(f.Name())
 
-	// for line := f.Iterator().Unwrap().ByLines(); line.Next(); {
-	// 	// for line := f.Iterator().Expect().ByLines(); line.Next(); {
+	// for line := f.Iter().Unwrap().ByLines(); line.Next(); {
+	// 	// for line := f.Iterr().Expect().ByLines(); line.Next(); {
 	// 	fmt.Println(line.ToString())
 	// }
 

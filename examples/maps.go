@@ -29,7 +29,7 @@ func main() {
 		gos2.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
 	}
 
-	gos2.Print()
+	// gos2.Print()
 
 	// //////////////////////////////////////////////////////////////////////////
 

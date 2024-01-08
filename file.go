@@ -306,7 +306,7 @@ func (f *File) Rename(newpath String) Result[*File] {
 //	f := g.NewFile("file.txt")
 //	position, content := f.SeekToLine(0, 5) // Read 5 lines from the beginning of the file
 func (f *File) SeekToLine(position int64, linesRead int) (int64, String) {
-	iterator := f.Iterator().Unwrap()
+	iterator := f.Iter().Unwrap()
 
 	if _, err := f.file.Seek(position, 0); err != nil {
 		f.Close()
@@ -501,7 +501,7 @@ func (f *File) createAll() Result[*File] {
 	return Ok(f)
 }
 
-// Iterator returns a new fiter instance that can be used to read the file
+// Iter returns a new fiter instance that can be used to read the file
 // line by line, word by word, rune by rune, or byte by byte.
 //
 // Returns:
@@ -511,8 +511,8 @@ func (f *File) createAll() Result[*File] {
 // Example usage:
 //
 //	f := g.NewFile("file.txt")
-//	iterator := f.Iterator().Must() // Returns a new fiter instance for the file
-func (f *File) Iterator() Result[*fiter] {
+//	iterator := f.Iter().Unwrap() // Returns a new fiter instance for the file
+func (f *File) Iter() Result[*fiter] {
 	openfile := f.Open()
 	if openfile.IsErr() {
 		return Err[*fiter](openfile.Err())
@@ -541,7 +541,7 @@ func (f *File) Iterator() Result[*fiter] {
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().Must().ByRunes()
+//	iterator := myFile.Iter().Unwrap().ByRunes()
 //
 //	customBuffer := make([]byte, 1024)
 //	iterator.Buffer(customBuffer, 4096)
@@ -575,7 +575,7 @@ func (fit fiter) Buffer(buf []byte, max int) { fit.scanner.Buffer(buf, max) }
 //	    // Custom implementation here
 //	}
 //
-//	iterator := myFile.Iterator().By(customSplitFunc)
+//	iterator := myFile.Iter().Unwrap().By(customSplitFunc)
 //
 //	for iterator.Next() {
 //	    fmt.Printf("%s", iterator.ToString())
@@ -595,7 +595,7 @@ func (fit fiter) By(f func(data []byte, atEOF bool) (advance int, token []byte, 
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().ByBytes()
+//	iterator := myFile.Iter().Unwrap().ByBytes()
 //
 //	for iterator.Next() {
 //	    fmt.Println(iterator.ToString())
@@ -623,7 +623,7 @@ func (fit fiter) ByBytes() fiter {
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().ByLines()
+//	iterator := myFile.Iter().Unwrap().ByLines()
 //
 //	for iterator.Next() {
 //	    fmt.Printf("%c", iterator.ToBytes())
@@ -667,7 +667,7 @@ func (fit fiter) ByLines() fiter {
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().ByRunes()
+//	iterator := myFile.Iter().Unwrap().ByRunes()
 //
 //	for iterator.Next() {
 //	    fmt.Printf("%c", iterator.ToString())
@@ -708,7 +708,7 @@ func (fit fiter) ByRunes() fiter {
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().ByWords()
+//	iterator := myFile.Iter().Unwrap().ByWords()
 //
 //	for iterator.Next() {
 //	    fmt.Println(iterator.ToString())
@@ -760,7 +760,7 @@ func (fit fiter) ByWords() fiter {
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().Must().ByRunes()
+//	iterator := myFile.Iter().Unwrap().ByRunes()
 //
 //	for iterator.Next() {
 //	    fmt.Printf("%c", iterator.ToString())
@@ -783,7 +783,7 @@ func (fit fiter) Err() error { return fit.scanner.Err() }
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().Must()
+//	iterator := myFile.Iter().Unwrap()
 //	lines := iterator.ByLines() // or iterator.ByWords() or iterator.ByRunes()
 //
 //	for lines.Next() {
@@ -801,7 +801,7 @@ func (fit fiter) Next() bool { return fit.scanner.Scan() }
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().Must().ByBytes() // Sets the iterator to read the file byte by byte
+//	iterator := myFile.Iter().Unwrap().ByBytes() // Sets the iterator to read the file byte by byte
 //
 //	for iterator.Next() {
 //	    fmt.Println(iterator.ToBytes())
@@ -818,7 +818,7 @@ func (fit fiter) ToBytes() Bytes { return Bytes(fit.scanner.Bytes()) }
 //
 //	myFile := g.NewFile("path/to/myfile.txt")
 //
-//	iterator := myFile.Iterator().Must().ByLines() // Sets the iterator to read the file line by line
+//	iterator := myFile.Iter().Unwrap().ByLines() // Sets the iterator to read the file line by line
 //
 //	for iterator.Next() {
 //	    fmt.Println(iterator.ToString())

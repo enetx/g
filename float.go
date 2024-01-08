@@ -44,6 +44,9 @@ func (f Float) Compare(b Float) Int { return Int(cmp.Compare(f, b)) }
 // Div divides two Floats and returns the result.
 func (f Float) Div(b Float) Float { return f / b }
 
+// IsZero checks if the Float is 0.
+func (f Float) IsZero() bool { return f.Eq(0) }
+
 // Eq checks if two Floats are equal.
 func (f Float) Eq(b Float) bool { return f.Compare(b).Eq(0) }
 
