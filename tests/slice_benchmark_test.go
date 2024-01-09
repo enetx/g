@@ -48,7 +48,7 @@ func BenchmarkFilter(b *testing.B) {
 }
 
 func BenchmarkUnique(b *testing.B) {
-	slice := genSlice()
+	slice := genSlice().Iter()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {

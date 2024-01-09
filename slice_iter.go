@@ -1,6 +1,8 @@
 package g
 
-import "context"
+import (
+	"context"
+)
 
 // All checks if all elements in the iterator satisfy the given predicate.
 func (iter *baseIter[T]) All(fn func(T) bool) bool {
@@ -114,6 +116,26 @@ func (iter *baseIter[T]) Range(fn func(T) bool) {
 // Take returns a new iterator with the first n elements.
 func (iter *baseIter[T]) Take(n uint) *takeIter[T] {
 	return take[T](iter, n)
+}
+
+// Unique returns an iterator with only unique elements.
+func (iter *baseIter[T]) Unique() *uniqueIter[T] {
+	return unique[T](iter)
+}
+
+// Chunks returns an iterator that yields chunks of elements of the specified size.
+func (iter *baseIter[T]) Chunks(size int) *chunksIter[T] {
+	return chunks[T](iter, size)
+}
+
+// Permutations generates iterators of all permutations of elements.
+func (iter *baseIter[T]) Permutations() *permutationsIter[T] {
+	return permutations[T](iter)
+}
+
+// Zip combines multiple iterators into a single iterator of tuples.
+func (iter *baseIter[T]) Zip(iterators ...iterator[T]) *zipIter[T] {
+	return zip[T](append([]iterator[T]{iter}, iterators...)...)
 }
 
 // ToChannel converts the iterator into a channel, optionally with context(s).
@@ -355,18 +377,18 @@ func enumerate[T any](iter iterator[T]) *enumerateIter[T] {
 	return &enumerateIter[T]{baseIter: baseIter[T]{iter}}
 }
 
-func (iter *enumerateIter[T]) Next() Option[Map[uint, T]] {
+func (iter *enumerateIter[T]) Next() Option[pair[uint, T]] {
 	if iter.exhausted {
-		return None[Map[uint, T]]()
+		return None[pair[uint, T]]()
 	}
 
 	next := iter.baseIter.Next()
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[Map[uint, T]]()
+		return None[pair[uint, T]]()
 	}
 
-	enext := Map[uint, T]{iter.counter: next.Some()}
+	enext := pair[uint, T]{iter.counter, next.Some()}
 	iter.counter++
 
 	return Some(enext)
@@ -449,4 +471,186 @@ func (iter *cycleIter[T]) Next() Option[T] {
 	iter.index++
 
 	return Some(next)
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// unique
+type uniqueIter[T any] struct {
+	baseIter[T]
+	iter      iterator[T]
+	seen      map[any]struct{}
+	exhausted bool
+}
+
+func unique[T any](iter iterator[T]) *uniqueIter[T] {
+	iterator := &uniqueIter[T]{iter: iter}
+	iterator.baseIter = baseIter[T]{iterator}
+	iterator.seen = make(map[any]struct{})
+
+	return iterator
+}
+
+func (iter *uniqueIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	for next := iter.iter.Next(); next.IsSome(); next = iter.iter.Next() {
+		val := next.Some()
+		if _, ok := iter.seen[val]; !ok {
+			iter.seen[val] = struct{}{}
+			return Some(val)
+		}
+	}
+
+	iter.exhausted = true
+
+	return None[T]()
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// chunks
+type chunksIter[T any] struct {
+	iter      iterator[T]
+	size      int
+	exhausted bool
+}
+
+func chunks[T any](iter iterator[T], size int) *chunksIter[T] {
+	return &chunksIter[T]{
+		iter: iter,
+		size: size,
+	}
+}
+
+func (iter *chunksIter[T]) Next() Option[Slice[T]] {
+	if iter.exhausted || iter.size <= 0 {
+		return None[Slice[T]]()
+	}
+
+	chunkss := make([]T, 0, iter.size)
+
+	for i := 0; i < iter.size; i++ {
+		val := iter.iter.Next()
+		if val.IsNone() {
+			iter.exhausted = true
+
+			if len(chunkss) == 0 {
+				return None[Slice[T]]()
+			}
+
+			break
+		}
+
+		chunkss = append(chunkss, val.Some())
+	}
+
+	return Some(Slice[T](chunkss))
+}
+
+func (iter *chunksIter[T]) Collect() []Slice[T] {
+	result := make([]Slice[T], 0)
+
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		result = append(result, next.Some())
+	}
+
+	return result
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// zip
+type zipIter[T any] struct {
+	iterators []iterator[T]
+}
+
+func zip[T any](iterators ...iterator[T]) *zipIter[T] {
+	return &zipIter[T]{iterators: iterators}
+}
+
+func (iter *zipIter[T]) Next() Option[Slice[T]] {
+	var values []T
+
+	for _, it := range iter.iterators {
+		next := it.Next()
+		if next.IsNone() {
+			return None[Slice[T]]()
+		}
+
+		values = append(values, next.Some())
+	}
+
+	return Some(Slice[T](values))
+}
+
+func (iter *zipIter[T]) Collect() []Slice[T] {
+	result := make([]Slice[T], 0)
+
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		result = append(result, next.Some())
+	}
+
+	return result
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// permutations
+type permutationsIter[T any] struct {
+	data    []T
+	indices []int
+	first   bool
+}
+
+func permutations[T any](iter iterator[T]) *permutationsIter[T] {
+	var data []T
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		data = append(data, next.Some())
+	}
+
+	return &permutationsIter[T]{
+		data:    data,
+		indices: nil,
+		first:   true,
+	}
+}
+
+func (iter *permutationsIter[T]) Next() Option[Slice[T]] {
+	if iter.first {
+		iter.first = false
+		iter.indices = make([]int, len(iter.data))
+
+		return Some(Slice[T](iter.data))
+	}
+
+	n := len(iter.data)
+
+	for i := n - 2; i >= 0; i-- {
+		if iter.indices[i] < n-i-1 {
+			iter.indices[i]++
+			for j := i + 1; j < n; j++ {
+				iter.indices[j] = 0
+			}
+
+			result := make([]T, n)
+			copy(result, iter.data)
+
+			for i, idx := range iter.indices {
+				result[i], result[i+idx] = result[i+idx], result[i]
+			}
+
+			return Some(Slice[T](result))
+		}
+	}
+
+	return None[Slice[T]]()
+}
+
+func (iter *permutationsIter[T]) Collect() []Slice[T] {
+	result := make([]Slice[T], 0)
+
+	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		result = append(result, next.Some())
+	}
+
+	return result
 }

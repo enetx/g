@@ -162,47 +162,6 @@ func (sl Slice[T]) ToMapHashed() Map[String, T] {
 	return result
 }
 
-// Chunks splits the Slice into smaller chunks of the specified size.
-// The function iterates through the Slice, creating new Slice[T] chunks of the specified size.
-// If the size is less than or equal to 0 or the Slice is empty,
-// it returns an empty slice of Slice[T].
-// If the size is greater than or equal to the length of the Slice,
-// it returns a slice of Slice[T] containing the original Slice.
-//
-// Parameters:
-//
-// - size int: The size of each chunk.
-//
-// Returns:
-//
-// - []Slice[T]: A slice of Slice[T] containing the chunks of the original Slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
-//	batches := slice.Chunks(2)
-//
-// The resulting chunks will be: [{1, 2}, {3, 4}, {5, 6}].
-func (sl Slice[T]) Chunks(size int) []Slice[T] {
-	if size <= 0 || sl.Empty() {
-		return nil
-	}
-
-	chunks := (sl.Len() + size - 1) / size // Round up to ensure all items are included
-	result := make([]Slice[T], 0, chunks)
-
-	for i := 0; i < sl.Len(); i += size {
-		end := i + size
-		if end > sl.Len() {
-			end = sl.Len()
-		}
-
-		result = append(result, sl.extract(i, end))
-	}
-
-	return result
-}
-
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) int {
@@ -388,34 +347,6 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 	}
 
 	return *sl
-}
-
-// Unique returns a new slice containing unique elements from the current slice.
-//
-// The order of elements in the returned slice is the same as the order in the original slice.
-//
-// Returns:
-//
-// - Slice[T]: A new Slice containing unique elements from the current slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 2, 4, 5, 3}
-//	unique := slice.Unique()
-//
-// The resulting unique slice will be: [1, 2, 3, 4, 5].
-func (sl Slice[T]) Unique() Slice[T] {
-	seen := NewMap[any, struct{}](sl.Len())
-	unique := NewSlice[T](0, sl.Len())
-
-	sl.Iter().ForEach(func(t T) {
-		if !seen.Contains(t) {
-			seen.Set(t, struct{}{})
-			unique = unique.Append(t)
-		}
-	})
-
-	return unique.Clip()
 }
 
 // AddUnique appends unique elements from the provided arguments to the current slice.
@@ -821,108 +752,6 @@ func factorial(n int) int {
 	}
 
 	return n * factorial(n-1)
-}
-
-// Permutations returns all possible permutations of the elements in the slice.
-//
-// The function uses a recursive approach to generate all the permutations of the elements.
-// If the slice has a length of 0 or 1, it returns the slice itself wrapped in a single-element
-// slice.
-//
-// Returns:
-//
-// - []Slice[T]: A slice of Slice[T] containing all possible permutations of the elements in the
-// slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3}
-//	perms := slice.Permutations()
-//	for _, perm := range perms {
-//	    fmt.Println(perm)
-//	}
-//	// Output:
-//	// [1 2 3]
-//	// [1 3 2]
-//	// [2 1 3]
-//	// [2 3 1]
-//	// [3 1 2]
-//	// [3 2 1]
-func (sl Slice[T]) Permutations() []Slice[T] {
-	if sl.Len() <= 1 {
-		return []Slice[T]{sl}
-	}
-
-	perms := make([]Slice[T], 0, factorial(sl.Len()))
-
-	for i, elem := range sl {
-		rest := NewSlice[T](sl.Len() - 1)
-
-		copy(rest[:i], sl[:i])
-		copy(rest[i:], sl[i+1:])
-
-		subPerms := rest.Permutations()
-
-		for j := range subPerms {
-			subPerms[j] = append(Slice[T]{elem}, subPerms[j]...)
-		}
-
-		perms = append(perms, subPerms...)
-	}
-
-	return perms
-}
-
-// Zip zips the elements of the given slices with the current slice into a new slice of Slice[T]
-// elements.
-//
-// The function combines the elements of the current slice with the elements of the given slices by
-// index. The length of the resulting slice of Slice[T] elements is determined by the shortest
-// input slice.
-//
-// Params:
-//
-// - slices: The slices to be zipped with the current slice.
-//
-// Returns:
-//
-// - []Slice[T]: A new slice of Slice[T] elements containing the zipped elements of the input
-// slices.
-//
-// Example usage:
-//
-//	slice1 := g.Slice[int]{1, 2, 3}
-//	slice2 := g.Slice[int]{4, 5, 6}
-//	slice3 := g.Slice[int]{7, 8, 9}
-//	zipped := slice1.Zip(slice2, slice3)
-//	for _, group := range zipped {
-//	    fmt.Println(group)
-//	}
-//	// Output:
-//	// [1 4 7]
-//	// [2 5 8]
-//	// [3 6 9]
-func (sl Slice[T]) Zip(ss ...Slice[T]) []Slice[T] {
-	minLen := sl.Len()
-
-	for _, slice := range ss {
-		if slice.Len() < minLen {
-			minLen = slice.Len()
-		}
-	}
-
-	result := make([]Slice[T], 0, minLen)
-
-	for i := range iter.N(minLen) {
-		values := NewSlice[T](0, len(ss)+1).Append(sl.Get(i))
-		for _, j := range ss {
-			values = values.Append(j.Get(i))
-		}
-
-		result = append(result, values)
-	}
-
-	return result
 }
 
 // Eq returns true if the slice is equal to the provided other slice.

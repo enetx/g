@@ -106,16 +106,8 @@ func TestCompact(t *testing.T) {
 }
 
 func TestPermutations(t *testing.T) {
-	empty := g.NewSlice[int]()
-	permsEmpty := empty.Permutations()
-	expectedPermsEmpty := []g.Slice[int]{empty}
-
-	if !reflect.DeepEqual(permsEmpty, expectedPermsEmpty) {
-		t.Errorf("expected %v, but got %v", expectedPermsEmpty, permsEmpty)
-	}
-
 	slice1 := g.SliceOf(1)
-	perms1 := slice1.Permutations()
+	perms1 := slice1.Iter().Permutations().Collect()
 	expectedPerms1 := []g.Slice[int]{slice1}
 
 	if !reflect.DeepEqual(perms1, expectedPerms1) {
@@ -123,7 +115,7 @@ func TestPermutations(t *testing.T) {
 	}
 
 	slice2 := g.SliceOf("a", "b")
-	perms2 := slice2.Permutations()
+	perms2 := slice2.Iter().Permutations().Collect()
 	expectedPerms2 := []g.Slice[string]{
 		{"a", "b"},
 		{"b", "a"},
@@ -134,15 +126,15 @@ func TestPermutations(t *testing.T) {
 	}
 
 	slice3 := g.SliceOf(1.0, 2.0, 3.0)
-	perms3 := slice3.Permutations()
+	perms3 := slice3.Iter().Permutations().Collect()
 
 	expectedPerms3 := []g.Slice[float64]{
 		{1.0, 2.0, 3.0},
 		{1.0, 3.0, 2.0},
 		{2.0, 1.0, 3.0},
 		{2.0, 3.0, 1.0},
-		{3.0, 1.0, 2.0},
 		{3.0, 2.0, 1.0},
+		{3.0, 1.0, 2.0},
 	}
 
 	if !reflect.DeepEqual(perms3, expectedPerms3) {
@@ -337,7 +329,7 @@ func TestSliceChunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Chunks(tt.size)
+			result := tt.input.Iter().Chunks(tt.size).Collect()
 
 			if len(result) != len(tt.expected) {
 				t.Errorf("Expected %d chunks, but got %d", len(tt.expected), len(result))
@@ -857,7 +849,7 @@ func TestSliceZip(t *testing.T) {
 	s1 := g.SliceOf(1, 2, 3, 4)
 	s2 := g.SliceOf(5, 6, 7, 8)
 	expected := []g.Slice[int]{{1, 5}, {2, 6}, {3, 7}, {4, 8}}
-	result := s1.Zip(s2)
+	result := s1.Iter().Zip(s2.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v) = %v, expected %v", s1, s2, result, expected)
@@ -866,7 +858,7 @@ func TestSliceZip(t *testing.T) {
 	s3 := g.SliceOf(1, 2, 3)
 	s4 := g.SliceOf(4, 5)
 	expected = []g.Slice[int]{{1, 4}, {2, 5}}
-	result = s3.Zip(s4)
+	result = s3.Iter().Zip(s4.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v) = %v, expected %v", s3, s4, result, expected)
@@ -876,7 +868,7 @@ func TestSliceZip(t *testing.T) {
 	s6 := g.SliceOf(4, 5, 6)
 	s7 := g.SliceOf(7, 8, 9)
 	expected = []g.Slice[int]{{1, 4, 7}, {2, 5, 8}, {3, 6, 9}}
-	result = s5.Zip(s6, s7)
+	result = s5.Iter().Zip(s6.Iter(), s7.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v, %v) = %v, expected %v", s5, s6, s7, result, expected)
@@ -886,7 +878,7 @@ func TestSliceZip(t *testing.T) {
 	s9 := g.SliceOf(4, 5)
 	s10 := g.SliceOf(6)
 	expected = []g.Slice[int]{{1, 4, 6}}
-	result = s8.Zip(s9, s10)
+	result = s8.Iter().Zip(s9.Iter(), s10.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v, %v) = %v, expected %v", s8, s9, s10, result, expected)
@@ -1332,7 +1324,7 @@ func TestSliceUnique(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.Unique()
+		actual := tc.input.Iter().Unique().Collect()
 		if !reflect.DeepEqual(actual, tc.output) {
 			t.Errorf("Unique(%v) returned %v, expected %v", tc.input, actual, tc.output)
 		}

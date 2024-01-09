@@ -32,12 +32,12 @@ func main() {
 	nx.Random().Print()
 	nx.RandomSample(2).Print()
 
-	ch := nx.Chunks(2)         // return []Slice[T]
-	chunks := g.SliceOf(ch...) // make slice chunks
+	ch := nx.Iter().Chunks(2).Collect() // return []Slice[T]
+	chunks := g.SliceOf(ch...)          // make slice chunks
 	chunks.Print()
 
-	pr := nx.Permutations()          // return []Slice[T]
-	permutations := g.SliceOf(pr...) // make slice permutations
+	pr := nx.Iter().Permutations().Collect() // return []Slice[T]
+	permutations := g.SliceOf(pr...)         // make slice permutations
 	permutations.Print()
 
 	m := g.NewMap[string, g.Slice[g.Slice[g.String]]]()

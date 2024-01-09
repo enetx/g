@@ -90,7 +90,7 @@ func main() {
 
 	sl.Iter().Map(g.String.Upper).Collect().Print()
 
-	fmt.Println(sl.Permutations())
+	fmt.Println(sl.Iter().Permutations().Collect())
 
 	counter := sl.Append(sl...).Append("ddd").Counter()
 	counter.Print() // Output: Map[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
@@ -102,7 +102,9 @@ func main() {
 
 	sl.Iter().ForEach(func(v g.String) { v.Print() })
 
-	sl = sl.Unique().Reverse().Iter().Filter(func(s g.String) bool { return s != "bbb" }).Collect()
+	sl = sl.Iter().Unique().Collect().Reverse().Iter().Filter(func(s g.String) bool { return s != "bbb" }).Collect()
+
+	sl.Print()
 
 	fmt.Println(sl.Random())
 

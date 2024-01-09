@@ -34,7 +34,6 @@ func main() {
 		Iter().
 		Cycle().
 		Take(20).
-		// Filter(g.String.NotEmpty).
 		Exclude(filters.IsZero).
 		Map(g.String.Upper).
 		Collect().
@@ -44,7 +43,7 @@ func main() {
 
 	s := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter().Enumerate()
 	for next := s.Next(); next.IsSome(); next = s.Next() {
-		fmt.Println(next.Some())
+		fmt.Println(next.Some().Key, next.Some().Value)
 	}
 
 	// ========================================================================
@@ -56,4 +55,49 @@ func main() {
 		Collect().Print()
 
 	// ========================================================================
+
+	slice1 := g.Slice[int]{1, 2, 3}.Iter()
+	slice2 := g.Slice[int]{4, 5, 6}.Iter()
+	slice3 := g.Slice[int]{7, 8, 9}.Iter()
+
+	zipped := slice1.Zip(slice2, slice3).Collect()
+
+	for _, v := range zipped {
+		v.Print()
+	}
+
+	// ========================================================================
+
+	p1 := g.SliceOf[g.String]("bbb", "ddd")
+	p2 := g.SliceOf[g.String]("xxx", "aaa")
+
+	pp := p1.
+		Iter().
+		Chain(p2.Iter()).
+		Map(g.String.Upper).
+		Permutations().
+		Collect()
+
+	for _, v := range pp {
+		v.Print()
+	}
+
+	// ========================================================================
+
+	g.SliceOf[g.String]("bbb", "ddd", "bbb", "aaa", "bbb").
+		Iter().
+		Unique().
+		Map(g.String.Upper).
+		Collect().
+		Print()
+
+	// ========================================================================
+
+	chunks := g.SliceOf[g.String]("bbb", "ddd", "bbb", "ccc", "aaa", "bbb", "ccc").
+		Iter().
+		Unique().
+		Chunks(2).
+		Collect()
+
+	fmt.Println(chunks)
 }
