@@ -41,10 +41,13 @@ func main() {
 
 	// ========================================================================
 
-	s := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter().Enumerate()
-	for next := s.Next(); next.IsSome(); next = s.Next() {
-		fmt.Println(next.Some().Key, next.Some().Value)
-	}
+	pairs := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").
+		Iter().
+		Enumerate().
+		Collect()
+
+	ps := g.MapOrd[uint, g.String](pairs)
+	ps.Print()
 
 	// ========================================================================
 
