@@ -470,6 +470,31 @@ func (iter *baseIter[T]) Chunks(size int) *chunksIter[T] {
 	return chunks[T](iter, size)
 }
 
+// Windows returns an iterator that yields sliding windows of elements of the specified size.
+//
+// The function creates a new iterator that yields windows of elements from the original iterator,
+// where each window is a slice containing elements of the specified size and moves one element at a time.
+//
+// Params:
+//
+// - size (int): The size of each window.
+//
+// Returns:
+//
+// - *windowsIter[T]: An iterator yielding sliding windows of elements of the specified size.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
+//	windows := slice.Iter().Windows(3).Collect()
+//
+// Output: [Slice[1, 2, 3] Slice[2, 3, 4] Slice[3, 4, 5] Slice[4, 5, 6]]
+//
+// The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
+func (iter *baseIter[T]) Windows(size int) *windowsIter[T] {
+	return windows[T](iter, size)
+}
+
 // Permutations generates iterators of all permutations of elements.
 //
 // The function uses a recursive approach to generate all the permutations of the elements.
@@ -979,27 +1004,80 @@ func (iter *chunksIter[T]) Next() Option[Slice[T]] {
 		return None[Slice[T]]()
 	}
 
-	chunkss := make([]T, 0, iter.size)
+	result := make([]T, 0, iter.size)
 
 	for i := 0; i < iter.size; i++ {
-		val := iter.iter.Next()
-		if val.IsNone() {
+		next := iter.iter.Next()
+		if next.IsNone() {
 			iter.exhausted = true
 
-			if len(chunkss) == 0 {
+			if len(result) == 0 {
 				return None[Slice[T]]()
 			}
 
 			break
 		}
 
-		chunkss = append(chunkss, val.Some())
+		result = append(result, next.Some())
 	}
 
-	return Some(Slice[T](chunkss))
+	return Some(Slice[T](result))
 }
 
 func (iter *chunksIter[T]) Collect() []Slice[T] {
+	result := make([]Slice[T], 0)
+
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return result
+		}
+
+		result = append(result, next.Some())
+	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// windows
+type windowsIter[T any] struct {
+	iter      iterator[T]
+	queue     []T
+	size      int
+	exhausted bool
+}
+
+func windows[T any](iter iterator[T], size int) *windowsIter[T] {
+	return &windowsIter[T]{
+		iter:  iter,
+		size:  size,
+		queue: make([]T, 0, size),
+	}
+}
+
+func (iter *windowsIter[T]) Next() Option[Slice[T]] {
+	if len(iter.queue) < iter.size && !iter.exhausted {
+		for i := 0; i < iter.size; i++ {
+			next := iter.iter.Next()
+			if next.IsNone() {
+				iter.exhausted = true
+				break
+			}
+
+			iter.queue = append(iter.queue, next.Some())
+		}
+	}
+
+	if len(iter.queue) < iter.size {
+		return None[Slice[T]]()
+	}
+
+	window := iter.queue[:iter.size]
+	iter.queue = iter.queue[1:]
+
+	return Some(Slice[T](window))
+}
+
+func (iter *windowsIter[T]) Collect() []Slice[T] {
 	result := make([]Slice[T], 0)
 
 	for {

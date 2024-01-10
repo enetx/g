@@ -11,6 +11,40 @@ import (
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
+func TestWindows(t *testing.T) {
+	testCases := []struct {
+		input    []string
+		window   int
+		expected [][]string
+	}{
+		{[]string{"bbb", "ddd", "xxx", "aaa", "ccc"}, 2, [][]string{{"bbb", "ddd"}, {"ddd", "xxx"}, {"xxx", "aaa"}, {"aaa", "ccc"}}},
+		{[]string{"aaa", "bbb", "ccc", "ddd", "eee"}, 3, [][]string{{"aaa", "bbb", "ccc"}, {"bbb", "ccc", "ddd"}, {"ccc", "ddd", "eee"}}},
+		{[]string{"aaa", "bbb", "ccc"}, 4, [][]string{}},                          // no windows of size 4
+		{[]string{"aaa", "bbb", "ccc"}, 1, [][]string{{"aaa"}, {"bbb"}, {"ccc"}}}, // each element is a window
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Windows of size %d for %v", tc.window, tc.input), func(t *testing.T) {
+			windows := g.SliceOf(tc.input...).Iter().Windows(tc.window).Collect()
+			if len(windows) != len(tc.expected) {
+				t.Errorf("Expected %d windows, but got %d", len(tc.expected), len(windows))
+				return
+			}
+			for i, win := range windows {
+				if len(win) != len(tc.expected[i]) {
+					t.Errorf("Expected window %d to have length %d, but got length %d", i, len(tc.expected[i]), len(win))
+					continue
+				}
+				for j, val := range win {
+					if val != tc.expected[i][j] {
+						t.Errorf("Expected window[%d][%d] to be %s, but got %s", i, j, tc.expected[i][j], val)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestSubSliceWithStep(t *testing.T) {
 	slice := g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
 

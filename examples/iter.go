@@ -9,6 +9,14 @@ import (
 
 func main() {
 	// ========================================================================
+	windows := g.SliceOf(1, 2, 3, 4).
+		Iter().
+		Windows(2).
+		Collect()
+
+	fmt.Println(windows)
+
+	// ========================================================================
 	// retrieve the filter iterator and reuse it
 	fi := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter().Filter(func(_ g.String) bool { return true })
 
