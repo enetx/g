@@ -1,6 +1,8 @@
 package g
 
-import "context"
+import (
+	"context"
+)
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator
@@ -21,13 +23,16 @@ import "context"
 //
 // The resulting allPositive will be true if all elements returned by the iterator are positive.
 func (iter *baseIter[T]) All(fn func(T) bool) bool {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return true
+		}
+
 		if !fn(next.Some()) {
 			return false
 		}
 	}
-
-	return true
 }
 
 // Any checks whether any element in the iterator satisfies the provided condition.
@@ -49,13 +54,16 @@ func (iter *baseIter[T]) All(fn func(T) bool) bool {
 //
 // The resulting anyEven will be true if at least one element returned by the iterator is even.
 func (iter *baseIter[T]) Any(fn func(T) bool) bool {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return false
+		}
+
 		if fn(next.Some()) {
 			return true
 		}
 	}
-
-	return false
 }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
@@ -88,11 +96,14 @@ func (iter *baseIter[T]) Chain(iterators ...iterator[T]) *chainIter[T] {
 func (iter *baseIter[T]) Collect() Slice[T] {
 	values := make([]T, 0)
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return values
+		}
+
 		values = append(values, next.Some())
 	}
-
-	return values
 }
 
 // Cycle returns an iterator that endlessly repeats the elements of the current iterator.
@@ -242,13 +253,16 @@ func (iter *baseIter[T]) Filter(fn func(T) bool) *filterIter[T] {
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
 func (iter *baseIter[T]) Find(fn func(T) bool) Option[T] {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return None[T]()
+		}
+
 		if fn(next.Some()) {
 			return next
 		}
 	}
-
-	return None[T]()
 }
 
 // Flatten flattens an iterator of iterators into a single iterator.
@@ -308,11 +322,14 @@ func (iter *baseIter[T]) Flatten() *flattenIter[T] {
 //
 // The resulting value will be the accumulation of elements based on the provided function.
 func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return init
+		}
+
 		init = fn(init, next.Some())
 	}
-
-	return init
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -332,7 +349,12 @@ func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T {
 //
 // The provided function will be applied to each element in the iterator.
 func (iter *baseIter[T]) ForEach(fn func(T)) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return
+		}
+
 		fn(next.Some())
 	}
 }
@@ -388,9 +410,10 @@ func (iter *baseIter[T]) Map(fn func(T) T) *mapIter[T, T] {
 //
 // The iteration will stop when the provided function returns false for an element.
 func (iter *baseIter[T]) Range(fn func(T) bool) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		if !fn(next.Some()) {
-			break
+	for {
+		next := iter.Next()
+		if next.IsNone() || !fn(next.Some()) {
+			return
 		}
 	}
 }
@@ -457,8 +480,6 @@ func (iter *baseIter[T]) Chunks(size int) *chunksIter[T] {
 //
 // - *permutationsIter[T]: An iterator of iterators containing all possible permutations of the
 // elements in the iterator.
-//
-// Example usage:
 //
 // Example usage:
 //
@@ -552,7 +573,12 @@ func (iter *baseIter[T]) ToChannel(ctxs ...context.Context) chan T {
 	go func() {
 		defer close(ch)
 
-		for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		for {
+			next := iter.Next()
+			if next.IsNone() {
+				return
+			}
+
 			select {
 			case <-ctx.Done():
 				return
@@ -646,15 +672,17 @@ func (iter *filterIter[T]) Next() Option[T] {
 		return None[T]()
 	}
 
-	for next := iter.iter.Next(); next.IsSome(); next = iter.iter.Next() {
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[T]()
+		}
+
 		if iter.fn(next.Some()) {
 			return next
 		}
 	}
-
-	iter.exhausted = true
-
-	return None[T]()
 }
 
 func exclude[T any](iter iterator[T], fn func(T) bool) *filterIter[T] {
@@ -799,11 +827,14 @@ func (iter *enumerateIter[T]) Next() Option[pair[uint, T]] {
 func (iter *enumerateIter[T]) Collect() []pair[uint, T] {
 	result := []pair[uint, T]{}
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return result
+		}
+
 		result = append(result, next.Some())
 	}
-
-	return result
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -812,6 +843,7 @@ type flattenIter[T any] struct {
 	baseIter[T]
 	iter      iterator[T]
 	innerIter *flattenIter[T]
+	exhausted bool
 }
 
 func flatten[T any](iter iterator[T]) *flattenIter[T] {
@@ -822,6 +854,10 @@ func flatten[T any](iter iterator[T]) *flattenIter[T] {
 }
 
 func (iter *flattenIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
 	for {
 		if iter.innerIter != nil {
 			if next := iter.innerIter.Next(); next.IsSome() {
@@ -833,6 +869,7 @@ func (iter *flattenIter[T]) Next() Option[T] {
 
 		next := iter.iter.Next()
 		if next.IsNone() {
+			iter.exhausted = true
 			return None[T]()
 		}
 
@@ -907,17 +944,19 @@ func (iter *uniqueIter[T]) Next() Option[T] {
 		return None[T]()
 	}
 
-	for next := iter.iter.Next(); next.IsSome(); next = iter.iter.Next() {
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[T]()
+		}
+
 		val := next.Some()
 		if _, ok := iter.seen[val]; !ok {
 			iter.seen[val] = struct{}{}
-			return Some(val)
+			return next
 		}
 	}
-
-	iter.exhausted = true
-
-	return None[T]()
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -963,17 +1002,21 @@ func (iter *chunksIter[T]) Next() Option[Slice[T]] {
 func (iter *chunksIter[T]) Collect() []Slice[T] {
 	result := make([]Slice[T], 0)
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return result
+		}
+
 		result = append(result, next.Some())
 	}
-
-	return result
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // zip
 type zipIter[T any] struct {
 	iterators []iterator[T]
+	exhausted bool
 }
 
 func zip[T any](iterators ...iterator[T]) *zipIter[T] {
@@ -981,11 +1024,17 @@ func zip[T any](iterators ...iterator[T]) *zipIter[T] {
 }
 
 func (iter *zipIter[T]) Next() Option[Slice[T]] {
+	if iter.exhausted {
+		return Option[Slice[T]]{}
+	}
+
 	var values []T
 
 	for _, it := range iter.iterators {
 		next := it.Next()
 		if next.IsNone() {
+			iter.exhausted = true
+
 			return None[Slice[T]]()
 		}
 
@@ -998,11 +1047,14 @@ func (iter *zipIter[T]) Next() Option[Slice[T]] {
 func (iter *zipIter[T]) Collect() []Slice[T] {
 	result := make([]Slice[T], 0)
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return result
+		}
+
 		result = append(result, next.Some())
 	}
-
-	return result
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1015,7 +1067,13 @@ type permutationsIter[T any] struct {
 
 func permutations[T any](iter iterator[T]) *permutationsIter[T] {
 	var data []T
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			break
+		}
+
 		data = append(data, next.Some())
 	}
 
@@ -1060,9 +1118,12 @@ func (iter *permutationsIter[T]) Next() Option[Slice[T]] {
 func (iter *permutationsIter[T]) Collect() []Slice[T] {
 	result := make([]Slice[T], 0)
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return result
+		}
+
 		result = append(result, next.Some())
 	}
-
-	return result
 }

@@ -32,11 +32,14 @@ func (iter *baseIterM[K, V]) Chain(iterators ...iteratorM[K, V]) *chainIterM[K, 
 func (iter *baseIterM[K, V]) Collect() Map[K, V] {
 	mp := NewMap[K, V]()
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return mp
+		}
+
 		mp.Set(next.Some().Key, next.Some().Value)
 	}
-
-	return mp
 }
 
 // Drop returns a new iterator that skips the first n elements.
@@ -171,7 +174,12 @@ func (iter *baseIterM[K, V]) Filter(fn func(K, V) bool) *filterIterM[K, V] {
 //
 // The function fn will be executed for each key-value pair in the iterator.
 func (iter *baseIterM[K, V]) ForEach(fn func(K, V)) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return
+		}
+
 		fn(next.Some().Key, next.Some().Value)
 	}
 }
@@ -300,15 +308,17 @@ func (iter *filterIterM[K, V]) Next() Option[pair[K, V]] {
 		return None[pair[K, V]]()
 	}
 
-	for next := iter.iter.Next(); next.IsSome(); next = iter.iter.Next() {
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[pair[K, V]]()
+		}
+
 		if iter.fn(next.Some().Key, next.Some().Value) {
 			return next
 		}
 	}
-
-	iter.exhausted = true
-
-	return None[pair[K, V]]()
 }
 
 func excludeM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) bool) *filterIterM[K, V] {
@@ -373,16 +383,16 @@ func (iter *dropIterM[K, V]) Next() Option[pair[K, V]] {
 		iter.dropped = true
 
 		for i := uint(0); i < iter.count; i++ {
-			if iter.delegateNextM().IsNone() {
+			if iter.delegateNext().IsNone() {
 				return None[pair[K, V]]()
 			}
 		}
 	}
 
-	return iter.delegateNextM()
+	return iter.delegateNext()
 }
 
-func (iter *dropIterM[K, V]) delegateNextM() Option[pair[K, V]] {
+func (iter *dropIterM[K, V]) delegateNext() Option[pair[K, V]] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true

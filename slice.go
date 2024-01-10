@@ -47,6 +47,19 @@ func NewSlice[T any](size ...int) Slice[T] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
+// TransformSlice applies the given function to each element of a Slice and returns a new Slice
+// containing the transformed values.
+//
+// Parameters:
+// - sl: The input Slice.
+// - fn: The function to apply to each element of the input Slice.
+//
+// Returns:
+// A new Slice containing the results of applying the function to each element of the input Slice.
+func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
+	return mapiter[T, U](sl.Iter(), fn).Collect()
+}
+
 func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 
 // Compact removes consecutive duplicate elements from a sorted slice efficiently.

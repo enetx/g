@@ -34,11 +34,14 @@ func (iter *baseIterMO[K, V]) Chain(iterators ...iteratorMO[K, V]) *chainIterMO[
 func (iter *baseIterMO[K, V]) Collect() *MapOrd[K, V] {
 	mp := NewMapOrd[K, V]()
 
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
+	for {
+		next := iter.Next()
+		if next.IsNone() {
+			return mp
+		}
+
 		mp.Set(next.Some().Key, next.Some().Value)
 	}
-
-	return mp
 }
 
 // Drop returns a new iterator skipping the first n elements.
@@ -234,9 +237,10 @@ func (iter *baseIterMO[K, V]) Map(fn func(K, V) (K, V)) *mapIterMO[K, V] {
 //
 // The iteration will stop when the provided function returns false.
 func (iter *baseIterMO[K, V]) Range(fn func(K, V) bool) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		if !fn(next.Some().Key, next.Some().Value) {
-			break
+	for {
+		next := iter.Next()
+		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {
+			return
 		}
 	}
 }
@@ -290,7 +294,12 @@ func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan pair[K, V]
 	go func() {
 		defer close(ch)
 
-		for next := iter.Next(); next.IsSome(); next = iter.Next() {
+		for {
+			next := iter.Next()
+			if next.IsNone() {
+				return
+			}
+
 			select {
 			case <-ctx.Done():
 				return
@@ -382,15 +391,17 @@ func (iter *filterIterMO[K, V]) Next() Option[pair[K, V]] {
 		return None[pair[K, V]]()
 	}
 
-	for next := iter.iter.Next(); next.IsSome(); next = iter.iter.Next() {
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[pair[K, V]]()
+		}
+
 		if iter.fn(next.Some().Key, next.Some().Value) {
 			return next
 		}
 	}
-
-	iter.exhausted = true
-
-	return None[pair[K, V]]()
 }
 
 func excludeMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) bool) *filterIterMO[K, V] {

@@ -19,6 +19,9 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
+// Sprintf formats according to a format specifier and returns the resulting String.
+func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
+
 // Min returns the minimum of Strings.
 func (s String) Min(b ...String) String { return minmax.Min(s, b...) }
 
@@ -350,7 +353,7 @@ func (s String) Split(sep ...String) Slice[String] {
 		separator = sep[0].Std()
 	}
 
-	return SliceMap(strings.Split(s.Std(), separator), NewString)
+	return TransformSlice(strings.Split(s.Std(), separator), NewString)
 }
 
 // SplitLines splits the String by lines.
@@ -362,13 +365,13 @@ func (s String) SplitLines() Slice[String] { return s.TrimSpace().Split("\n") }
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (s String) SplitN(sep String, n Int) Slice[String] {
-	return SliceMap(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
+	return TransformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
 }
 
 // SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
 func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
-	return SliceMap(pattern.Split(s.Std(), -1), NewString)
+	return TransformSlice(pattern.Split(s.Std(), -1), NewString)
 }
 
 // SplitRegexpN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
@@ -378,7 +381,7 @@ func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]] {
-	result := SliceMap(pattern.Split(s.Std(), n.Std()), NewString)
+	result := TransformSlice(pattern.Split(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -388,7 +391,7 @@ func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]]
 
 // Fields splits the String into a slice of substrings, removing any whitespace.
 func (s String) Fields() Slice[String] {
-	return SliceMap(strings.Fields(s.Std()), NewString)
+	return TransformSlice(strings.Fields(s.Std()), NewString)
 }
 
 // Chunks splits the String into chunks of the specified size.
@@ -605,7 +608,7 @@ func (s String) Index(substr String) int { return strings.Index(s.Std(), substr.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (s String) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := SliceMap(pattern.FindStringIndex(s.Std()), NewInt)
+	result := TransformSlice(pattern.FindStringIndex(s.Std()), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
 	}
@@ -625,7 +628,7 @@ func (s String) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
 func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
-	result := SliceMap(pattern.FindAllString(s.Std(), n.Std()), NewString)
+	result := TransformSlice(pattern.FindAllString(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -638,7 +641,7 @@ func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Strin
 // The Option will contain an Slice[String] with the full match at index 0, followed by any captured submatches.
 // If no match is found, it returns None.
 func (s String) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
-	result := SliceMap(pattern.FindStringSubmatch(s.Std()), NewString)
+	result := TransformSlice(pattern.FindStringSubmatch(s.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -666,7 +669,7 @@ func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 	var result Slice[Slice[String]]
 
 	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n.Std()) {
-		result = result.Append(SliceMap(v, NewString))
+		result = result.Append(TransformSlice(v, NewString))
 	}
 
 	if result.Empty() {

@@ -78,7 +78,7 @@ func main() {
 
 	// slices
 	sss := g.Slice[int]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5}
-	fmt.Println(sss.Chunks(2))
+	fmt.Println(sss.Iter().Chunks(2).Collect())
 
 	sl := g.NewSlice[g.String]().Append(a, b, c, d, e) // declaration and assignation
 

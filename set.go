@@ -24,6 +24,21 @@ func SetOf[T comparable](values ...T) Set[T] {
 	return set
 }
 
+// TransformSet applies the given function to each element of a Set and returns a new Set
+// containing the transformed values.
+//
+// Parameters:
+// - s: The input Set.
+// - fn: The function to apply to each element of the input Set.
+//
+// Returns:
+// A new Set containing the results of applying the function to each element of the input Set.
+func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
+	return mapiterS[T, U](s.Iter(), fn).Collect()
+}
+
+func (s Set[T]) Iter() *liftIterS[T] { return liftS[T](s) }
+
 // Add adds the provided elements to the set and returns the modified set.
 func (s Set[T]) Add(values ...T) Set[T] {
 	for _, v := range values {
@@ -78,124 +93,12 @@ func (s Set[T]) ContainsAll(other Set[T]) bool {
 }
 
 // Clone creates a new Set that is a copy of the original Set.
-func (s Set[T]) Clone() Set[T] {
-	result := NewSet[T](s.Len())
-	s.ForEach(func(t T) { result.Add(t) })
-
-	return result
-}
-
-// ForEach applies a function to each value in the Set.
-// The provided function 'fn' should take a value as input parameter and perform an
-// operation.
-// This function is useful for side effects, as it does not return a new Set.
-//
-// Parameters:
-//
-// - fn func(T): A function that takes a value as input parameter and performs an
-// operation.
-//
-// Example usage:
-//
-//	originalSet.ForEach(func(value T) {
-//		fmt.Printf("Value: %v\n", value)
-//	})
-func (s Set[T]) ForEach(fn func(T)) {
-	for value := range s {
-		fn(value)
-	}
-}
-
-// Range applies a given function to each value in the Set until the function returns false.
-//
-// The provided function 'fn' should take a value as input parameter and return a boolean.
-// If the function returns false for any value, the iteration stops.
-//
-// Parameters:
-//
-// - fn func(T) bool: A function that takes a value as input parameter and returns a boolean.
-// If it returns false, the iteration will stop.
-//
-// Example usage:
-//
-//	originalSet.Range(func(value T) bool {
-//	    fmt.Printf("Value: %v\n", value)
-//	    return value != stopValue // Stop iteration condition
-//	})
-func (s Set[T]) Range(fn func(T) bool) {
-	for value := range s {
-		if !fn(value) {
-			break
-		}
-	}
-}
-
-// Map returns a new set by applying a given function to each element in the current set.
-//
-// The function takes one parameter of type T (the same type as the elements of the set)
-// and returns a value of type T. The returned value is added to a new set,
-// which is then returned as the result.
-//
-// Parameters:
-//
-// - fn (func(T) T): The function to be applied to each element of the set.
-//
-// Returns:
-//
-// - Set[T]: A new set containing the results of applying the function to each element
-// of the current set.
-//
-// Example usage:
-//
-//	s := g.SetOf(1, 2, 3)
-//	doubled := s.Map(func(val int) int {
-//	    return val * 2
-//	})
-//	fmt.Println(doubled)
-//
-// Output: [2 4 6].
-func (s Set[T]) Map(fn func(T) T) Set[T] { return SetMap(s, fn) }
-
-// Filter returns a new set containing elements that satisfy a given condition.
-//
-// The function takes one parameter of type T (the same type as the elements of the set)
-// and returns a boolean value. If the returned value is true, the element is added
-// to a new set, which is then returned as the result.
-//
-// Parameters:
-//
-// - fn (func(T) bool): The function to be applied to each element of the set
-// to determine if it should be included in the result.
-//
-// Returns:
-//
-// - Set[T]: A new set containing the elements that satisfy the given condition.
-//
-// Example usage:
-//
-//	s := g.SetOf(1, 2, 3, 4, 5)
-//	even := s.Filter(func(val int) bool {
-//	    return val%2 == 0
-//	})
-//	fmt.Println(even)
-//
-// Output: [2 4].
-func (s Set[T]) Filter(fn func(T) bool) Set[T] {
-	result := NewSet[T]()
-
-	s.ForEach(func(t T) {
-		if fn(t) {
-			result.Add(t)
-		}
-	})
-
-	return result
-}
+func (s Set[T]) Clone() Set[T] { return s.Iter().Collect() }
 
 // ToSlice returns a new Slice with the same elements as the Set[T].
 func (s Set[T]) ToSlice() Slice[T] {
 	sl := NewSlice[T](0, s.Len())
-	s.ForEach(func(v T) { sl = sl.Append(v) })
+	s.Iter().ForEach(func(v T) { sl = sl.Append(v) })
 
 	return sl
 }
@@ -218,16 +121,12 @@ func (s Set[T]) ToSlice() Slice[T] {
 //	intersection := s1.Intersection(s2)
 //
 // The resulting intersection will be: [4, 5].
-func (s Set[T]) Intersection(other Set[T]) Set[T] {
-	result := NewSet[T]()
+func (s Set[T]) Intersection(other Set[T]) *intersectionIterS[T] {
+	if s.Len() <= other.Len() {
+		return intersectionS[T](s.Iter(), other)
+	}
 
-	s.ForEach(func(t T) {
-		if other.Contains(t) {
-			result.Add(t)
-		}
-	})
-
-	return result
+	return intersectionS[T](other.Iter(), s)
 }
 
 // Difference returns the difference between the current set and another set,
@@ -248,17 +147,7 @@ func (s Set[T]) Intersection(other Set[T]) Set[T] {
 //	diff := s1.Difference(s2)
 //
 // The resulting diff will be: [1, 2, 3].
-func (s Set[T]) Difference(other Set[T]) Set[T] {
-	result := NewSet[T]()
-
-	s.ForEach(func(t T) {
-		if !other.Contains(t) {
-			result.Add(t)
-		}
-	})
-
-	return result
-}
+func (s Set[T]) Difference(other Set[T]) *differenceIterS[T] { return differenceS[T](s.Iter(), other) }
 
 // Union returns a new set containing the unique elements of the current set and the provided
 // other set.
@@ -279,9 +168,12 @@ func (s Set[T]) Difference(other Set[T]) Set[T] {
 //	union := s1.Union(s2)
 //
 // The resulting union set will be: [1, 2, 3, 4, 5].
-func (s Set[T]) Union(other Set[T]) Set[T] {
-	result := NewSet[T](s.Len() + other.Len())
-	return result.Add(s.ToSlice()...).Add(other.ToSlice()...)
+func (s Set[T]) Union(other Set[T]) *chainIterS[T] {
+	if s.Len() >= other.Len() {
+		return s.Iter().Chain(other.Difference(s))
+	}
+
+	return other.Iter().Chain(s.Difference(other))
 }
 
 // SymmetricDifference returns the symmetric difference between the current set and another
@@ -302,8 +194,8 @@ func (s Set[T]) Union(other Set[T]) Set[T] {
 //	symDiff := s1.SymmetricDifference(s2)
 //
 // The resulting symDiff will be: [1, 2, 3, 6, 7, 8].
-func (s Set[T]) SymmetricDifference(other Set[T]) Set[T] {
-	return s.Difference(other).Union(other.Difference(s))
+func (s Set[T]) SymmetricDifference(other Set[T]) *chainIterS[T] {
+	return s.Difference(other).Chain(other.Difference(s))
 }
 
 // Subset checks if the current set 's' is a subset of the provided 'other' set.
@@ -370,7 +262,7 @@ func (s Set[T]) Empty() bool { return s.Len() == 0 }
 func (s Set[T]) String() string {
 	var builder strings.Builder
 
-	s.ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
+	s.Iter().ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
 
 	return String(builder.String()).TrimRight(", ").Format("Set{%s}").Std()
 }

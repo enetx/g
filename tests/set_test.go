@@ -1,7 +1,6 @@
 package g_test
 
 import (
-	"reflect"
 	"testing"
 
 	"gitlab.com/x0xO/g"
@@ -13,10 +12,10 @@ func TestSetDifference(t *testing.T) {
 	set5 := g.SetOf(1, 2)
 	set6 := g.SetOf(2, 3, 4)
 
-	set3 := set1.Difference(set2)
-	set4 := set2.Difference(set1)
-	set7 := set5.Difference(set6)
-	set8 := set6.Difference(set5)
+	set3 := set1.Difference(set2).Collect()
+	set4 := set2.Difference(set1).Collect()
+	set7 := set5.Difference(set6).Collect()
+	set8 := set6.Difference(set5).Collect()
 
 	if set3.Len() != 2 || set3.Ne(g.SetOf(1, 2)) {
 		t.Errorf("Unexpected result: %v", set3)
@@ -38,7 +37,7 @@ func TestSetDifference(t *testing.T) {
 func TestSetSymmetricDifference(t *testing.T) {
 	set1 := g.NewSet[int](10)
 	set2 := set1.Clone()
-	result := set1.SymmetricDifference(set2)
+	result := set1.SymmetricDifference(set2).Collect()
 
 	if !result.Empty() {
 		t.Errorf("SymmetricDifference between equal sets should be empty, got %v", result)
@@ -46,8 +45,8 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 	set1 = g.SetOf(0, 1, 2, 3, 4)
 	set2 = g.SetOf(5, 6, 7, 8, 9)
-	result = set1.SymmetricDifference(set2)
-	expected := set1.Union(set2)
+	result = set1.SymmetricDifference(set2).Collect()
+	expected := set1.Union(set2).Collect()
 
 	if !result.Eq(expected) {
 		t.Errorf(
@@ -59,10 +58,10 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 	set1 = g.SetOf(0, 1, 2, 3, 4, 5)
 	set2 = g.SetOf(4, 5, 6, 7, 8)
-	result = set1.SymmetricDifference(set2)
-	expected = g.SetOf(0, 1, 2, 3, 6, 7, 8)
+	result = set1.SymmetricDifference(set2).Collect()
+	expected2 := g.SetOf(0, 1, 2, 3, 6, 7, 8)
 
-	if !result.Eq(expected) {
+	if !result.Eq(expected2) {
 		t.Errorf(
 			"SymmetricDifference between sets with common elements should be correct, expected %v but got %v",
 			expected,
@@ -78,7 +77,7 @@ func TestSetIntersection(t *testing.T) {
 	set1 = set1.Add(1, 2, 3)
 	set2 = set2.Add(2, 3, 4)
 
-	set3 := set1.Intersection(set2)
+	set3 := set1.Intersection(set2).Collect()
 
 	if !set3.Contains(2) || !set3.Contains(3) {
 		t.Error("Intersection failed")
@@ -90,7 +89,7 @@ func TestSetUnion(t *testing.T) {
 	set2 := g.NewSet[int]().Add(2, 3, 4)
 	set3 := g.NewSet[int]().Add(1, 2, 3, 4)
 
-	result := set1.Union(set2)
+	result := set1.Union(set2).Collect()
 
 	if result.Len() != 4 {
 		t.Errorf("Union(%v, %v) returned %v; expected %v", set1, set2, result, set3)
@@ -215,43 +214,4 @@ func TestSetEq(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestSetRange(t *testing.T) {
-	// Test scenario: Function always returns true
-	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
-		set := g.SetOf(1, 2, 3, 4, 5)
-
-		expected := g.SetOf(1, 2, 3, 4, 5)
-
-		result := g.NewSet[int]()
-		alwaysTrue := func(val int) bool {
-			result.Add(val)
-			return true
-		}
-
-		set.Range(alwaysTrue)
-
-		if !result.Eq(expected) {
-			t.Errorf("Expected: %v, Got: %v", expected, result)
-		}
-	})
-
-	// Test scenario: Empty set
-	t.Run("EmptySet", func(t *testing.T) {
-		emptySet := g.NewSet[int]()
-		expected := []int{}
-
-		result := []int{}
-		anyFunc := func(val int) bool {
-			result = append(result, val)
-			return true
-		}
-
-		emptySet.Range(anyFunc)
-
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("Expected: %v, Got: %v", expected, result)
-		}
-	})
 }
