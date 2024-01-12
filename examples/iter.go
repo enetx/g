@@ -9,6 +9,21 @@ import (
 
 func main() {
 	// ========================================================================
+	g.SliceOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10).
+		Iter().
+		StepBy(3).
+		Map(
+			func(i int) int {
+				return i * i
+			}).
+		Inspect(
+			func(i int) {
+				fmt.Println(i)
+			}).
+		Collect().
+		Print()
+
+	// ========================================================================
 	windows := g.SliceOf(1, 2, 3, 4).
 		Iter().
 		Windows(2).
@@ -59,10 +74,19 @@ func main() {
 
 	// ========================================================================
 
-	g.NewMapOrd[int, string]().Set(88, "aa").Set(99, "bb").Set(199, "ii").
+	g.NewMapOrd[int, string]().
+		Set(0, "aa").
+		Set(1, "bb").
+		Set(2, "cc").
+		Set(3, "dd").
+		Set(4, "ee").
+		Set(5, "ff").
+		Set(6, "gg").
 		Iter().
-		Exclude(func(k int, v string) bool { return k == 99 }).
-		Map(func(k int, v string) (int, string) { return k, v + "aaa" }).
+		StepBy(2).
+		Exclude(func(k int, v string) bool { return k == 4 }).
+		Inspect(func(k int, v string) { fmt.Println(k, v) }).
+		Map(func(k int, v string) (int, string) { return k, v + v }).
 		Collect().Print()
 
 	// ========================================================================

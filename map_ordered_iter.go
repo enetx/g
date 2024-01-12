@@ -2,6 +2,35 @@ package g
 
 import "context"
 
+// Inspect creates a new iterator that wraps around the current iterator
+// and allows inspecting each key-value pair as it passes through.
+func (iter *baseIterMO[K, V]) Inspect(fn func(K, V)) *inspectIterMO[K, V] {
+	return inspectMO[K, V](iter, fn)
+}
+
+// StepBy creates a new iterator that iterates over every N-th element of the original iterator.
+// This function is useful when you want to skip a specific number of elements between each iteration.
+//
+// Parameters:
+// - n int: The step size, indicating how many elements to skip between each iteration.
+//
+// Returns:
+// - *stepByIterMO[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
+//
+// Example usage:
+//
+//	mapIter := g.Map[string, int]{"one": 1, "two": 2, "three": 3}.Iter()
+//	iter := mapIter.StepBy(2)
+//	result := iter.Collect()
+//	result.Print()
+//
+// Output: map[one:1 three:3]
+//
+// The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
+func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
+	return stepByMO[K, V](iter, n)
+}
+
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
 //
 // The function creates a new iterator that combines the elements of the current iterator
@@ -335,6 +364,77 @@ func (iter *liftIterMO[K, V]) Next() Option[pair[K, V]] {
 	iter.index++
 
 	return Some(iter.items[iter.index-1])
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// stepby
+type stepByIterMO[K comparable, V any] struct {
+	baseIterMO[K, V]
+	iter      iteratorMO[K, V]
+	n         int
+	counter   uint
+	exhausted bool
+}
+
+func stepByMO[K comparable, V any](iter iteratorMO[K, V], n int) *stepByIterMO[K, V] {
+	iterator := &stepByIterMO[K, V]{iter: iter, n: n}
+	iterator.baseIterMO = baseIterMO[K, V]{iterator}
+
+	return iterator
+}
+
+func (iter *stepByIterMO[K, V]) Next() Option[pair[K, V]] {
+	if iter.exhausted {
+		return None[pair[K, V]]()
+	}
+
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[pair[K, V]]()
+		}
+
+		if iter.counter%uint(iter.n) == 0 {
+			iter.counter++
+			return next
+		}
+
+		iter.counter++
+	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// inspect
+type inspectIterMO[K comparable, V any] struct {
+	baseIterMO[K, V]
+	iter      iteratorM[K, V]
+	fn        func(K, V)
+	exhausted bool
+}
+
+func inspectMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V)) *inspectIterMO[K, V] {
+	iterator := &inspectIterMO[K, V]{iter: iter, fn: fn}
+	iterator.baseIterMO = baseIterMO[K, V]{iterator}
+
+	return iterator
+}
+
+func (iter *inspectIterMO[K, V]) Next() Option[pair[K, V]] {
+	if iter.exhausted {
+		return None[pair[K, V]]()
+	}
+
+	next := iter.iter.Next()
+
+	if next.IsNone() {
+		iter.exhausted = true
+		return None[pair[K, V]]()
+	}
+
+	iter.fn(next.Some().Key, next.Some().Value)
+
+	return next
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

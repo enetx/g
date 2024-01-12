@@ -64,7 +64,7 @@ type (
 	}
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
-	MapOrd[K comparable, V any] Slice[pair[K, V]]
+	MapOrd[K comparable, V any] []pair[K, V]
 
 	// iterator defines a generic interface for iterating over Slice elements.
 	iterator[T any] interface{ Next() Option[T] }

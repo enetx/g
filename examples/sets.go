@@ -17,11 +17,14 @@ func main() {
 
 	even := s.Iter().Filter(func(val int) bool { return val%2 == 0 }).Collect()
 
-	s.Iter().Filter(func(val int) bool { return val%2 == 0 }).Exclude(filters.IsZero).ForEach(func(i int) {
-		fmt.Println(i)
-	})
-
-	s.Print()
+	s.Iter().
+		Filter(func(val int) bool { return val%2 == 0 }).
+		Exclude(filters.IsZero).
+		Inspect(func(i int) {
+			fmt.Println(i)
+		}).
+		Collect().
+		Print()
 
 	s2 := g.SetOf(4, 5, 6, 7, 8)
 	s.SymmetricDifference(s2).Collect().Print()

@@ -1,5 +1,11 @@
 package g
 
+// Inspect creates a new iterator that wraps around the current iterator
+// and allows inspecting each element as it passes through.
+func (iter *baseIterS[T]) Inspect(fn func(T)) *inspectIterS[T] {
+	return inspectS[T](iter, fn)
+}
+
 // Collect gathers all elements from the iterator into a Set.
 func (iter *baseIterS[T]) Collect() Set[T] {
 	set := NewSet[T]()
@@ -216,6 +222,38 @@ func (iter *liftIterS[T]) Next() Option[T] {
 	}
 
 	return Some(item)
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// inspect
+type inspectIterS[T comparable] struct {
+	baseIterS[T]
+	iter      iterator[T]
+	fn        func(T)
+	exhausted bool
+}
+
+func inspectS[T comparable](iter iteratorS[T], fn func(T)) *inspectIterS[T] {
+	iterator := &inspectIterS[T]{iter: iter, fn: fn}
+	iterator.baseIterS = baseIterS[T]{iterator}
+
+	return iterator
+}
+
+func (iter *inspectIterS[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	next := iter.iter.Next()
+	if next.IsNone() {
+		iter.exhausted = true
+		return None[T]()
+	}
+
+	iter.fn(next.Some())
+
+	return next
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

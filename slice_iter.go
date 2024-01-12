@@ -1,8 +1,35 @@
 package g
 
-import (
-	"context"
-)
+import "context"
+
+// Inspect creates a new iterator that wraps around the current iterator
+// and allows inspecting each element as it passes through.
+func (iter *baseIter[T]) Inspect(fn func(T)) *inspectIter[T] {
+	return inspect[T](iter, fn)
+}
+
+// StepBy creates a new iterator that iterates over every N-th element of the original iterator.
+// This function is useful when you want to skip a specific number of elements between each iteration.
+//
+// Parameters:
+// - n int: The step size, indicating how many elements to skip between each iteration.
+//
+// Returns:
+// - *stepByIter[T]: A new iterator that produces elements from the original iterator with a step size of N.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+//	iter := slice.Iter().StepBy(3)
+//	result := iter.Collect()
+//	result.Print()
+//
+// Output: [1 4 7 10]
+//
+// The resulting iterator will produce elements from the original iterator with a step size of N.
+func (iter *baseIter[T]) StepBy(n int) *stepByIter[T] {
+	return stepBy[T](iter, n)
+}
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator
@@ -639,6 +666,76 @@ func (iter *liftIter[T]) Next() Option[T] {
 	iter.index++
 
 	return Some(iter.items[iter.index-1])
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// stepby
+type stepByIter[T any] struct {
+	baseIter[T]
+	iter      iterator[T]
+	n         int
+	counter   uint
+	exhausted bool
+}
+
+func stepBy[T any](iter iterator[T], n int) *stepByIter[T] {
+	iterator := &stepByIter[T]{iter: iter, n: n}
+	iterator.baseIter = baseIter[T]{iterator}
+
+	return iterator
+}
+
+func (iter *stepByIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[T]()
+		}
+
+		if iter.counter%uint(iter.n) == 0 {
+			iter.counter++
+			return next
+		}
+
+		iter.counter++
+	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// inspect
+type inspectIter[T any] struct {
+	baseIter[T]
+	iter      iterator[T]
+	fn        func(T)
+	exhausted bool
+}
+
+func inspect[T any](iter iterator[T], fn func(T)) *inspectIter[T] {
+	iterator := &inspectIter[T]{iter: iter, fn: fn}
+	iterator.baseIter = baseIter[T]{iterator}
+
+	return iterator
+}
+
+func (iter *inspectIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	next := iter.iter.Next()
+	if next.IsNone() {
+		iter.exhausted = true
+		return None[T]()
+	}
+
+	iter.fn(next.Some())
+
+	return next
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

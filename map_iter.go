@@ -1,5 +1,11 @@
 package g
 
+// Inspect creates a new iterator that wraps around the current iterator
+// and allows inspecting each key-value pair as it passes through.
+func (iter *baseIterM[K, V]) Inspect(fn func(K, V)) *inspectIterM[K, V] {
+	return inspectM[K, V](iter, fn)
+}
+
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
 //
 // The function concatenates the key-value pairs from the current iterator with the key-value pairs from the provided iterators,
@@ -252,6 +258,39 @@ func (iter *liftIterM[K, V]) Next() Option[pair[K, V]] {
 	}
 
 	return Some(item)
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// inspect
+type inspectIterM[K comparable, V any] struct {
+	baseIterM[K, V]
+	iter      iteratorM[K, V]
+	fn        func(K, V)
+	exhausted bool
+}
+
+func inspectM[K comparable, V any](iter iteratorM[K, V], fn func(K, V)) *inspectIterM[K, V] {
+	iterator := &inspectIterM[K, V]{iter: iter, fn: fn}
+	iterator.baseIterM = baseIterM[K, V]{iterator}
+
+	return iterator
+}
+
+func (iter *inspectIterM[K, V]) Next() Option[pair[K, V]] {
+	if iter.exhausted {
+		return None[pair[K, V]]()
+	}
+
+	next := iter.iter.Next()
+
+	if next.IsNone() {
+		iter.exhausted = true
+		return None[pair[K, V]]()
+	}
+
+	iter.fn(next.Some().Key, next.Some().Value)
+
+	return next
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
