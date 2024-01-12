@@ -62,40 +62,6 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 
 func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 
-// Compact removes consecutive duplicate elements from a sorted slice efficiently.
-// It assumes the slice is already sorted. The function operates faster than the Unique method.
-// Type T must support element comparison via reflect.DeepEqual.
-// The function takes a pointer to a slice (*Slice[T]) and returns the modified slice.
-// If the original slice contains fewer than two elements, the function returns it unchanged.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{2, 2, 3, 4, 4, 4, 5, 5, 6, 7, 7, 8, 8, 8}
-//	slice.Compact()
-//
-//	// slice now contains: [2 3 4 5 6 7 8]
-func (sl *Slice[T]) Compact() Slice[T] {
-	if sl.Len() < 2 {
-		return *sl
-	}
-
-	i := 1
-
-	for k := 1; k < sl.Len(); k++ {
-		if !reflect.DeepEqual((*sl)[k], (*sl)[k-1]) {
-			if i != k {
-				(*sl)[i] = (*sl)[k]
-			}
-
-			i++
-		}
-	}
-
-	*sl = (*sl)[:i]
-
-	return *sl
-}
-
 // Counter returns an unordered Map with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in an
 // Slice.

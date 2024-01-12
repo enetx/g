@@ -11,6 +11,41 @@ import (
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
+func TestBaseIterDedup(t *testing.T) {
+	// Test case 1: Dedup with consecutive duplicate elements for int
+	sliceInt := g.Slice[int]{1, 2, 2, 3, 4, 4, 4, 5}
+	expectedResultInt := g.Slice[int]{1, 2, 3, 4, 5}
+
+	iterInt := sliceInt.Iter().Dedup()
+	resultInt := iterInt.Collect()
+
+	if !reflect.DeepEqual(resultInt, expectedResultInt) {
+		t.Errorf("Dedup failed for int. Expected %v, got %v", expectedResultInt, resultInt)
+	}
+
+	// Test case 2: Dedup with consecutive duplicate elements for string
+	sliceString := g.Slice[string]{"apple", "orange", "orange", "banana", "banana", "grape"}
+	expectedResultString := g.Slice[string]{"apple", "orange", "banana", "grape"}
+
+	iterString := sliceString.Iter().Dedup()
+	resultString := iterString.Collect()
+
+	if !reflect.DeepEqual(resultString, expectedResultString) {
+		t.Errorf("Dedup failed for string. Expected %v, got %v", expectedResultString, resultString)
+	}
+
+	// Test case 3: Dedup with consecutive duplicate elements for float64
+	sliceFloat64 := g.Slice[float64]{1.2, 2.3, 2.3, 3.4, 4.5, 4.5, 4.5, 5.6}
+	expectedResultFloat64 := g.Slice[float64]{1.2, 2.3, 3.4, 4.5, 5.6}
+
+	iterFloat64 := sliceFloat64.Iter().Dedup()
+	resultFloat64 := iterFloat64.Collect()
+
+	if !reflect.DeepEqual(resultFloat64, expectedResultFloat64) {
+		t.Errorf("Dedup failed for float64. Expected %v, got %v", expectedResultFloat64, resultFloat64)
+	}
+}
+
 func TestBaseIterStepBy(t *testing.T) {
 	// Test case 1: StepBy with a step size of 3
 	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}

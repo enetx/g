@@ -1,6 +1,32 @@
 package g
 
-import "context"
+import (
+	"context"
+	"reflect"
+)
+
+// Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
+// leaving only one occurrence of each unique element. If the iterator is sorted, all elements will be unique.
+
+// Parameters:
+// - None
+//
+// Returns:
+// - *dedupIter[T]: A new iterator with consecutive duplicates removed.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 2, 3, 4, 4, 4, 5}
+//	iter := slice.Iter().Dedup()
+//	result := iter.Collect()
+//	result.Print()
+//
+// Output: [1 2 3 4 5]
+//
+// The resulting iterator will contain only unique elements, removing consecutive duplicates.
+func (iter *baseIter[T]) Dedup() *dedupIter[T] {
+	return dedup[T](iter)
+}
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
@@ -1076,6 +1102,41 @@ func (iter *uniqueIter[T]) Next() Option[T] {
 		val := next.Some()
 		if _, ok := iter.seen[val]; !ok {
 			iter.seen[val] = struct{}{}
+			return next
+		}
+	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// dedup
+type dedupIter[T any] struct {
+	baseIter[T]
+	iter      iterator[T]
+	current   Option[T]
+	exhausted bool
+}
+
+func dedup[T any](iter iterator[T]) *dedupIter[T] {
+	iterator := &dedupIter[T]{iter: iter, current: None[T]()}
+	iterator.baseIter = baseIter[T]{iterator}
+
+	return iterator
+}
+
+func (iter *dedupIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	for {
+		next := iter.iter.Next()
+		if next.IsNone() {
+			iter.exhausted = true
+			return None[T]()
+		}
+
+		if !reflect.DeepEqual(iter.current, next) {
+			iter.current = next
 			return next
 		}
 	}
