@@ -73,7 +73,7 @@ func (iter *baseIterMO[K, V]) Collect() *MapOrd[K, V] {
 	}
 }
 
-// Drop returns a new iterator skipping the first n elements.
+// Skip returns a new iterator skipping the first n elements.
 //
 // The function creates a new iterator that skips the first n elements of the current iterator
 // and returns an iterator starting from the (n+1)th element.
@@ -84,20 +84,20 @@ func (iter *baseIterMO[K, V]) Collect() *MapOrd[K, V] {
 //
 // Returns:
 //
-// - *dropIterMO[K, V]: An iterator that starts after skipping the first n elements.
+// - *skipIterMO[K, V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
 //	iter := g.NewMapOrd[int, string]().Set(1, "a").Set(2, "b").Set(3, "c").Set(4, "d").Iter()
 //
 //	// Skipping the first two elements and collecting the rest.
-//	iter.Drop(2).Collect().Print()
+//	iter.Skip(2).Collect().Print()
 //
 // Output: MapOrd{3:c, 4:d}
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (iter *baseIterMO[K, V]) Drop(n uint) *dropIterMO[K, V] {
-	return dropMO[K, V](iter, n)
+func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
+	return skipMO[K, V](iter, n)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -571,29 +571,29 @@ func (iter *takeIterMO[K, V]) Next() Option[pair[K, V]] {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// drop
-type dropIterMO[K comparable, V any] struct {
+// skip
+type skipIterMO[K comparable, V any] struct {
 	baseIterMO[K, V]
 	iter      iteratorMO[K, V]
 	count     uint
-	dropped   bool
+	skipped   bool
 	exhausted bool
 }
 
-func dropMO[K comparable, V any](iter iteratorMO[K, V], count uint) *dropIterMO[K, V] {
-	iterator := &dropIterMO[K, V]{iter: iter, count: count}
+func skipMO[K comparable, V any](iter iteratorMO[K, V], count uint) *skipIterMO[K, V] {
+	iterator := &skipIterMO[K, V]{iter: iter, count: count}
 	iterator.baseIterMO = baseIterMO[K, V]{iterator}
 
 	return iterator
 }
 
-func (iter *dropIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *skipIterMO[K, V]) Next() Option[pair[K, V]] {
 	if iter.exhausted {
 		return None[pair[K, V]]()
 	}
 
-	if !iter.dropped {
-		iter.dropped = true
+	if !iter.skipped {
+		iter.skipped = true
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNextMO().IsNone() {
@@ -605,7 +605,7 @@ func (iter *dropIterMO[K, V]) Next() Option[pair[K, V]] {
 	return iter.delegateNextMO()
 }
 
-func (iter *dropIterMO[K, V]) delegateNextMO() Option[pair[K, V]] {
+func (iter *skipIterMO[K, V]) delegateNextMO() Option[pair[K, V]] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true

@@ -7,6 +7,53 @@ import (
 	"gitlab.com/x0xO/g"
 )
 
+func TestBaseIterMOStepBy(t *testing.T) {
+	// Test case 1: StepBy with a step size of 2
+	mapData := g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3).Set("four", 4).Set("five", 5)
+	expectedResult := g.NewMapOrd[string, int]().Set("one", 1).Set("three", 3).Set("five", 5)
+
+	iter := mapData.Iter().StepBy(2)
+	result := iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 2: StepBy with a step size of 3
+	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3).Set("four", 4).Set("five", 5)
+	expectedResult = g.NewMapOrd[string, int]().Set("one", 1).Set("four", 4)
+
+	iter = mapData.Iter().StepBy(3)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 3: StepBy with a step size larger than the map length
+
+	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
+	expectedResult = g.NewMapOrd[string, int]().Set("one", 1)
+
+	iter = mapData.Iter().StepBy(5)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 4: StepBy with a step size of 1
+	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
+	expectedResult = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
+
+	iter = mapData.Iter().StepBy(1)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+}
+
 func TestMapOrd_Range(t *testing.T) {
 	// Test scenario: Function stops at a specific key-value pair
 	t.Run("FunctionStopsAtSpecificPair", func(t *testing.T) {

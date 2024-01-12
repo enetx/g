@@ -48,7 +48,7 @@ func (iter *baseIterM[K, V]) Collect() Map[K, V] {
 	}
 }
 
-// Drop returns a new iterator that skips the first n elements.
+// Skip returns a new iterator that skips the first n elements.
 //
 // This function creates a new iterator starting from the (n+1)th key-value pair of the current iterator,
 // excluding the first n key-value pairs.
@@ -59,20 +59,20 @@ func (iter *baseIterM[K, V]) Collect() Map[K, V] {
 //
 // Returns:
 //
-// - *dropIterM[K, V]: An iterator that starts after skipping the first n elements.
+// - *skipIterM[K, V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
 //	iter := g.NewMap[int, string]().Set(1, "a").Set(2, "b").Set(3, "c").Set(4, "d").Iter()
 //
 //	// Skipping the first two elements and collecting the rest.
-//	iter.Drop(2).Collect().Print()
+//	iter.Skip(2).Collect().Print()
 //
 // Output: Map{3:c, 4:d} // The output may vary as Map is not ordered.
 //
 // The resulting iterator will start after skipping the specified number of key-value pairs.
-func (iter *baseIterM[K, V]) Drop(n uint) *dropIterM[K, V] {
-	return dropM[K, V](iter, n)
+func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
+	return skipM[K, V](iter, n)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -397,29 +397,29 @@ func (iter *chainIterM[K, V]) Next() Option[pair[K, V]] {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// drop
-type dropIterM[K comparable, V any] struct {
+// skip
+type skipIterM[K comparable, V any] struct {
 	baseIterM[K, V]
 	iter      iteratorM[K, V]
 	count     uint
-	dropped   bool
+	skipped   bool
 	exhausted bool
 }
 
-func dropM[K comparable, V any](iter iteratorM[K, V], count uint) *dropIterM[K, V] {
-	iterator := &dropIterM[K, V]{iter: iter, count: count}
+func skipM[K comparable, V any](iter iteratorM[K, V], count uint) *skipIterM[K, V] {
+	iterator := &skipIterM[K, V]{iter: iter, count: count}
 	iterator.baseIterM = baseIterM[K, V]{iterator}
 
 	return iterator
 }
 
-func (iter *dropIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *skipIterM[K, V]) Next() Option[pair[K, V]] {
 	if iter.exhausted {
 		return None[pair[K, V]]()
 	}
 
-	if !iter.dropped {
-		iter.dropped = true
+	if !iter.skipped {
+		iter.skipped = true
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNext().IsNone() {
@@ -431,7 +431,7 @@ func (iter *dropIterM[K, V]) Next() Option[pair[K, V]] {
 	return iter.delegateNext()
 }
 
-func (iter *dropIterM[K, V]) delegateNext() Option[pair[K, V]] {
+func (iter *skipIterM[K, V]) delegateNext() Option[pair[K, V]] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true

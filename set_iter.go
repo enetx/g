@@ -73,7 +73,7 @@ func (iter *baseIterS[T]) ForEach(fn func(T)) {
 	}
 }
 
-// Drop returns a new iterator skipping the first n elements.
+// Skip returns a new iterator skipping the first n elements.
 //
 // The function creates a new iterator that skips the first n elements of the current iterator
 // and returns an iterator starting from the (n+1)th element.
@@ -84,18 +84,18 @@ func (iter *baseIterS[T]) ForEach(fn func(T)) {
 //
 // Returns:
 //
-// - *dropIterS[T]: An iterator that starts after skipping the first n elements.
+// - *skipIterS[T]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
 //	iter := g.SetOf(1, 2, 3, 4, 5, 6).Iter()
-//	iter.Drop(3).Collect().Print()
+//	iter.Skip(3).Collect().Print()
 //
 // Output: {4, 5, 6} // The output may vary as the Set type is not ordered.
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (iter *baseIterS[T]) Drop(n uint) *dropIterS[T] {
-	return dropS[T](iter, n)
+func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
+	return skipS[T](iter, n)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -395,6 +395,7 @@ func (iter *differenceIterS[T]) Next() Option[T] {
 	}
 }
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // intersection
 type intersectionIterS[T comparable] struct {
 	baseIterS[T]
@@ -429,29 +430,29 @@ func (iter *intersectionIterS[T]) Next() Option[T] {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// drop
-type dropIterS[T comparable] struct {
+// skip
+type skipIterS[T comparable] struct {
 	baseIterS[T]
 	iter      iteratorS[T]
 	count     uint
-	dropped   bool
+	skipped   bool
 	exhausted bool
 }
 
-func dropS[T comparable](iter iteratorS[T], count uint) *dropIterS[T] {
-	iterator := &dropIterS[T]{iter: iter, count: count}
+func skipS[T comparable](iter iteratorS[T], count uint) *skipIterS[T] {
+	iterator := &skipIterS[T]{iter: iter, count: count}
 	iterator.baseIterS = baseIterS[T]{iterator}
 
 	return iterator
 }
 
-func (iter *dropIterS[T]) Next() Option[T] {
+func (iter *skipIterS[T]) Next() Option[T] {
 	if iter.exhausted {
 		return None[T]()
 	}
 
-	if !iter.dropped {
-		iter.dropped = true
+	if !iter.skipped {
+		iter.skipped = true
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNext().IsNone() {
@@ -463,7 +464,7 @@ func (iter *dropIterS[T]) Next() Option[T] {
 	return iter.delegateNext()
 }
 
-func (iter *dropIterS[T]) delegateNext() Option[T] {
+func (iter *skipIterS[T]) delegateNext() Option[T] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true

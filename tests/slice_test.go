@@ -11,6 +11,52 @@ import (
 	"gitlab.com/x0xO/g/pkg/iter"
 )
 
+func TestBaseIterStepBy(t *testing.T) {
+	// Test case 1: StepBy with a step size of 3
+	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	expectedResult := g.Slice[int]{1, 4, 7, 10}
+
+	iter := slice.Iter().StepBy(3)
+	result := iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 2: StepBy with a step size of 2
+	slice = g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	expectedResult = g.Slice[int]{1, 3, 5, 7, 9}
+
+	iter = slice.Iter().StepBy(2)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 3: StepBy with a step size larger than the slice length
+	slice = g.Slice[int]{1, 2, 3, 4, 5}
+	expectedResult = g.Slice[int]{1}
+
+	iter = slice.Iter().StepBy(10)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+
+	// Test case 4: StepBy with a step size of 1
+	slice = g.Slice[int]{1, 2, 3, 4, 5}
+	expectedResult = g.Slice[int]{1, 2, 3, 4, 5}
+
+	iter = slice.Iter().StepBy(1)
+	result = iter.Collect()
+
+	if !reflect.DeepEqual(result, expectedResult) {
+		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
+	}
+}
+
 func TestWindows(t *testing.T) {
 	testCases := []struct {
 		input    []string

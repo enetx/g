@@ -9,6 +9,16 @@ import (
 
 func main() {
 	// ========================================================================
+
+	is := g.SliceOf[g.Int](1, 2, 3, 4, 5)
+	itos := g.TransformSlice(is, g.Int.ToString)
+
+	itos.Iter().
+		Fold("0", func(acc, val g.String) g.String { return g.Sprintf("(%s + %s)", acc, val) }).
+		Print()
+
+	// ========================================================================
+
 	g.SliceOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10).
 		Iter().
 		StepBy(3).
@@ -24,6 +34,7 @@ func main() {
 		Print()
 
 	// ========================================================================
+
 	windows := g.SliceOf(1, 2, 3, 4).
 		Iter().
 		Windows(2).

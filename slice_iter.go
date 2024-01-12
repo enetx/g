@@ -138,7 +138,7 @@ func (iter *baseIter[T]) Cycle() *cycleIter[T] {
 	return cycle[T](iter)
 }
 
-// Drop returns a new iterator skipping the first n elements.
+// Skip returns a new iterator skipping the first n elements.
 //
 // The function creates a new iterator that skips the first n elements of the current iterator
 // and returns an iterator starting from the (n+1)th element.
@@ -149,18 +149,18 @@ func (iter *baseIter[T]) Cycle() *cycleIter[T] {
 //
 // Returns:
 //
-// - *dropIter[T]: An iterator that starts after skipping the first n elements.
+// - *skipIter[T]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
 //	iter := g.Slice[int]{1, 2, 3, 4, 5, 6}.Iter()
-//	iter.Drop(3).Collect().Print()
+//	iter.Skip(3).Collect().Print()
 //
 // Output: [4, 5, 6]
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (iter *baseIter[T]) Drop(n uint) *dropIter[T] {
-	return drop[T](iter, n)
+func (iter *baseIter[T]) Skip(n uint) *skipIter[T] {
+	return skip[T](iter, n)
 }
 
 // Enumerate adds an index to each element in the iterator.
@@ -874,29 +874,29 @@ func (iter *takeIter[T]) Next() Option[T] {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// drop
-type dropIter[T any] struct {
+// skip
+type skipIter[T any] struct {
 	baseIter[T]
 	iter      iterator[T]
 	count     uint
-	dropped   bool
+	skipped   bool
 	exhausted bool
 }
 
-func drop[T any](iter iterator[T], count uint) *dropIter[T] {
-	iterator := &dropIter[T]{iter: iter, count: count}
+func skip[T any](iter iterator[T], count uint) *skipIter[T] {
+	iterator := &skipIter[T]{iter: iter, count: count}
 	iterator.baseIter = baseIter[T]{iterator}
 
 	return iterator
 }
 
-func (iter *dropIter[T]) Next() Option[T] {
+func (iter *skipIter[T]) Next() Option[T] {
 	if iter.exhausted {
 		return None[T]()
 	}
 
-	if !iter.dropped {
-		iter.dropped = true
+	if !iter.skipped {
+		iter.skipped = true
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNext().IsNone() {
@@ -908,7 +908,7 @@ func (iter *dropIter[T]) Next() Option[T] {
 	return iter.delegateNext()
 }
 
-func (iter *dropIter[T]) delegateNext() Option[T] {
+func (iter *skipIter[T]) delegateNext() Option[T] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true
