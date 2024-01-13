@@ -49,7 +49,7 @@ func (iter *baseIter[T]) SortBy(fn func(a, b T) bool) *sortIter[T] {
 
 // Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
 // leaving only one occurrence of each unique element. If the iterator is sorted, all elements will be unique.
-
+//
 // Parameters:
 // - None
 //
