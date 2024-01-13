@@ -7,7 +7,46 @@ import (
 	"gitlab.com/x0xO/g"
 )
 
-func TestBaseIterMOStepBy(t *testing.T) {
+func TestMapOrdIterSortBy(t *testing.T) {
+	// Sample data
+	data := g.NewMapOrd[int, string]().
+		Set(1, "d").
+		Set(3, "b").
+		Set(2, "c").
+		Set(5, "e").
+		Set(4, "a")
+
+	// Expected result
+	expected := g.NewMapOrd[int, string]().
+		Set(1, "d").
+		Set(2, "c").
+		Set(3, "b").
+		Set(4, "a").
+		Set(5, "e")
+
+	sortedItems := data.Iter().SortBy(func(a, b g.Pair[int, string]) bool { return a.Key < b.Key }).Collect()
+
+	// Check if the result matches the expected output
+	if !reflect.DeepEqual(sortedItems, expected) {
+		t.Errorf("Expected %v, got %v", expected, sortedItems)
+	}
+
+	expected = g.NewMapOrd[int, string]().
+		Set(4, "a").
+		Set(3, "b").
+		Set(2, "c").
+		Set(1, "d").
+		Set(5, "e")
+
+	sortedItems = data.Iter().SortBy(func(a, b g.Pair[int, string]) bool { return a.Value < b.Value }).Collect()
+
+	// Check if the result matches the expected output
+	if !reflect.DeepEqual(sortedItems, expected) {
+		t.Errorf("Expected %v, got %v", expected, sortedItems)
+	}
+}
+
+func TestMapOrdIterStepBy(t *testing.T) {
 	// Test case 1: StepBy with a step size of 2
 	mapData := g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3).Set("four", 4).Set("five", 5)
 	expectedResult := g.NewMapOrd[string, int]().Set("one", 1).Set("three", 3).Set("five", 5)
@@ -54,13 +93,13 @@ func TestBaseIterMOStepBy(t *testing.T) {
 	}
 }
 
-func TestMapOrd_Range(t *testing.T) {
+func TestMapOrdIterRange(t *testing.T) {
 	// Test scenario: Function stops at a specific key-value pair
 	t.Run("FunctionStopsAtSpecificPair", func(t *testing.T) {
 		orderedMap := g.MapOrd[string, int]{
-			{"a", 1},
-			{"b", 2},
-			{"c", 3},
+			{Key: "a", Value: 1},
+			{Key: "b", Value: 2},
+			{Key: "c", Value: 3},
 		}
 		expected := map[string]int{"a": 1, "b": 2}
 

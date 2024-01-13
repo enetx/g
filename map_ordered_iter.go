@@ -1,6 +1,42 @@
 package g
 
-import "context"
+import (
+	"context"
+	"sort"
+)
+
+// SortBy applies a custom sorting function to the elements in the iterator
+// and returns a new iterator containing the sorted elements.
+//
+// The sorting function 'fn' should take two arguments, 'a' and 'b', of type Pair[K, V],
+// and return true if 'a' should be ordered before 'b', and false otherwise.
+//
+// Example:
+//
+//	g.NewMapOrd[int, string]().
+//		Set(6, "bb").
+//		Set(0, "dd").
+//		Set(1, "aa").
+//		Set(5, "xx").
+//		Set(2, "cc").
+//		Set(3, "ff").
+//		Set(4, "zz").
+//		Iter().
+//		SortBy(
+//			func(a, b g.Pair[int, string]) bool {
+//				return a.Key < b.Key
+//				// return a.Value < b.Value
+//			}).
+//		Collect().
+//		Print()
+//
+// Output: MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
+//
+// The returned iterator is of type *sortIterMO[K, V], which implements the iterator
+// interface for further iteration over the sorted elements.
+func (iter *baseIterMO[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) *sortIterMO[K, V] {
+	return sortByMO(iter, fn)
+}
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
@@ -312,8 +348,8 @@ func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
 //	}
 //
 // The function converts the iterator into a channel to allow sequential or concurrent processing of key-value pairs.
-func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan pair[K, V] {
-	ch := make(chan pair[K, V])
+func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V] {
+	ch := make(chan Pair[K, V])
 
 	ctx := context.Background()
 	if len(ctxs) != 0 {
@@ -345,20 +381,20 @@ func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan pair[K, V]
 // lift
 type liftIterMO[K comparable, V any] struct {
 	baseIterMO[K, V]
-	items []pair[K, V]
+	items []Pair[K, V]
 	index int
 }
 
-func liftMO[K comparable, V any](items []pair[K, V]) *liftIterMO[K, V] {
+func liftMO[K comparable, V any](items []Pair[K, V]) *liftIterMO[K, V] {
 	iterator := &liftIterMO[K, V]{items: items}
 	iterator.baseIterMO = baseIterMO[K, V]{iterator}
 
 	return iterator
 }
 
-func (iter *liftIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *liftIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.index >= len(iter.items) {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	iter.index++
@@ -383,16 +419,16 @@ func stepByMO[K comparable, V any](iter iteratorMO[K, V], n int) *stepByIterMO[K
 	return iterator
 }
 
-func (iter *stepByIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *stepByIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	for {
 		next := iter.iter.Next()
 		if next.IsNone() {
 			iter.exhausted = true
-			return None[pair[K, V]]()
+			return None[Pair[K, V]]()
 		}
 
 		if iter.counter%uint(iter.n) == 0 {
@@ -420,16 +456,16 @@ func inspectMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V)) *inspe
 	return iterator
 }
 
-func (iter *inspectIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *inspectIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	next := iter.iter.Next()
 
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	iter.fn(next.Some().Key, next.Some().Value)
@@ -453,21 +489,21 @@ func mapiterMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) (K, V))
 	return iterator
 }
 
-func (iter *mapIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *mapIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	next := iter.iter.Next()
 
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	key, value := iter.fn(next.Some().Key, next.Some().Value)
 
-	return Some(pair[K, V]{Key: key, Value: value})
+	return Some(Pair[K, V]{Key: key, Value: value})
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -486,16 +522,16 @@ func filterMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) bool) *f
 	return iterator
 }
 
-func (iter *filterIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *filterIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	for {
 		next := iter.iter.Next()
 		if next.IsNone() {
 			iter.exhausted = true
-			return None[pair[K, V]]()
+			return None[Pair[K, V]]()
 		}
 
 		if iter.fn(next.Some().Key, next.Some().Value) {
@@ -526,10 +562,10 @@ func chainMO[K comparable, V any](iterators ...iteratorMO[K, V]) *chainIterMO[K,
 	return iter
 }
 
-func (iter *chainIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *chainIterMO[K, V]) Next() Option[Pair[K, V]] {
 	for {
 		if iter.iteratorIndex == len(iter.iterators) {
-			return None[pair[K, V]]()
+			return None[Pair[K, V]]()
 		}
 
 		if next := iter.iterators[iter.iteratorIndex].Next(); next.IsSome() {
@@ -555,9 +591,9 @@ func takeMO[K comparable, V any](iter iteratorMO[K, V], limit uint) *takeIterMO[
 	return iterator
 }
 
-func (iter *takeIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *takeIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.limit == 0 {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	next := iter.iter.Next()
@@ -587,9 +623,9 @@ func skipMO[K comparable, V any](iter iteratorMO[K, V], count uint) *skipIterMO[
 	return iterator
 }
 
-func (iter *skipIterMO[K, V]) Next() Option[pair[K, V]] {
+func (iter *skipIterMO[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	if !iter.skipped {
@@ -597,7 +633,7 @@ func (iter *skipIterMO[K, V]) Next() Option[pair[K, V]] {
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNextMO().IsNone() {
-				return None[pair[K, V]]()
+				return None[Pair[K, V]]()
 			}
 		}
 	}
@@ -605,11 +641,59 @@ func (iter *skipIterMO[K, V]) Next() Option[pair[K, V]] {
 	return iter.delegateNextMO()
 }
 
-func (iter *skipIterMO[K, V]) delegateNextMO() Option[pair[K, V]] {
+func (iter *skipIterMO[K, V]) delegateNextMO() Option[Pair[K, V]] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true
 	}
 
 	return next
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// sort
+type sortIterMO[K comparable, V any] struct {
+	baseIterMO[K, V]
+	iter      iteratorMO[K, V]
+	items     []Pair[K, V]
+	index     int
+	exhausted bool
+}
+
+func sortByMO[K comparable, V any](iter iteratorMO[K, V], fn func(a, b Pair[K, V]) bool) *sortIterMO[K, V] {
+	iterator := &sortIterMO[K, V]{iter: iter, items: make([]Pair[K, V], 0)}
+	iterator.baseIterMO = baseIterMO[K, V]{iterator}
+	iterator.collect(iter)
+
+	sort.Slice(iterator.items, func(i, j int) bool {
+		return fn(iterator.items[i], iterator.items[j])
+	})
+
+	return iterator
+}
+
+func (iter *sortIterMO[K, V]) collect(inner iteratorMO[K, V]) {
+	for {
+		next := inner.Next()
+		if next.IsNone() {
+			return
+		}
+
+		iter.items = append(iter.items, next.Some())
+	}
+}
+
+func (iter *sortIterMO[K, V]) Next() Option[Pair[K, V]] {
+	if iter.exhausted {
+		return None[Pair[K, V]]()
+	}
+
+	if iter.index >= len(iter.items) {
+		iter.exhausted = true
+		return None[Pair[K, V]]()
+	}
+
+	iter.index++
+
+	return Some(iter.items[iter.index-1])
 }

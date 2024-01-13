@@ -22,7 +22,7 @@ func main() {
 		return true
 	})
 
-	nx.Compact().Print()
+	nx = nx.Iter().Dedup().Collect().Print()
 
 	nx.SortBy(func(i, j int) bool { return nx[i].Get(0).Lt(nx[j].Get(0)) }).Print()
 	nx.SortBy(func(i, j int) bool { return nx[i].Len() < nx[j].Len() }).Print()

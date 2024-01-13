@@ -724,15 +724,6 @@ func (sl Slice[T]) LastIndex() int {
 	return 0
 }
 
-// factorial a utility function that calculates the factorial of a given number.
-func factorial(n int) int {
-	if n <= 1 {
-		return 1
-	}
-
-	return n * factorial(n-1)
-}
-
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
 	if sl.Len() != other.Len() {

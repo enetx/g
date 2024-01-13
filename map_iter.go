@@ -233,28 +233,28 @@ func (iter *baseIterM[K, V]) Map(fn func(K, V) (K, V)) *mapIterM[K, V] {
 // lift
 type liftIterM[K comparable, V any] struct {
 	baseIterM[K, V]
-	items chan pair[K, V]
+	items chan Pair[K, V]
 }
 
 func liftM[K comparable, V any](hashmap map[K]V) *liftIterM[K, V] {
-	iter := &liftIterM[K, V]{items: make(chan pair[K, V])}
+	iter := &liftIterM[K, V]{items: make(chan Pair[K, V])}
 	iter.baseIterM = baseIterM[K, V]{iter}
 
 	go func() {
 		defer close(iter.items)
 
 		for k, v := range hashmap {
-			iter.items <- pair[K, V]{k, v}
+			iter.items <- Pair[K, V]{k, v}
 		}
 	}()
 
 	return iter
 }
 
-func (iter *liftIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *liftIterM[K, V]) Next() Option[Pair[K, V]] {
 	item, ok := <-iter.items
 	if !ok {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	return Some(item)
@@ -276,16 +276,16 @@ func inspectM[K comparable, V any](iter iteratorM[K, V], fn func(K, V)) *inspect
 	return iterator
 }
 
-func (iter *inspectIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *inspectIterM[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	next := iter.iter.Next()
 
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	iter.fn(next.Some().Key, next.Some().Value)
@@ -309,21 +309,21 @@ func mapiterM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) (K, V)) *
 	return iterator
 }
 
-func (iter *mapIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *mapIterM[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	next := iter.iter.Next()
 
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	key, value := iter.fn(next.Some().Key, next.Some().Value)
 
-	return Some(pair[K, V]{Key: key, Value: value})
+	return Some(Pair[K, V]{Key: key, Value: value})
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -342,16 +342,16 @@ func filterM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) bool) *fil
 	return iterator
 }
 
-func (iter *filterIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *filterIterM[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	for {
 		next := iter.iter.Next()
 		if next.IsNone() {
 			iter.exhausted = true
-			return None[pair[K, V]]()
+			return None[Pair[K, V]]()
 		}
 
 		if iter.fn(next.Some().Key, next.Some().Value) {
@@ -382,10 +382,10 @@ func chainM[K comparable, V any](iterators ...iteratorM[K, V]) *chainIterM[K, V]
 	return iter
 }
 
-func (iter *chainIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *chainIterM[K, V]) Next() Option[Pair[K, V]] {
 	for {
 		if iter.iteratorIndex == len(iter.iterators) {
-			return None[pair[K, V]]()
+			return None[Pair[K, V]]()
 		}
 
 		if next := iter.iterators[iter.iteratorIndex].Next(); next.IsSome() {
@@ -413,9 +413,9 @@ func skipM[K comparable, V any](iter iteratorM[K, V], count uint) *skipIterM[K, 
 	return iterator
 }
 
-func (iter *skipIterM[K, V]) Next() Option[pair[K, V]] {
+func (iter *skipIterM[K, V]) Next() Option[Pair[K, V]] {
 	if iter.exhausted {
-		return None[pair[K, V]]()
+		return None[Pair[K, V]]()
 	}
 
 	if !iter.skipped {
@@ -423,7 +423,7 @@ func (iter *skipIterM[K, V]) Next() Option[pair[K, V]] {
 
 		for i := uint(0); i < iter.count; i++ {
 			if iter.delegateNext().IsNone() {
-				return None[pair[K, V]]()
+				return None[Pair[K, V]]()
 			}
 		}
 	}
@@ -431,7 +431,7 @@ func (iter *skipIterM[K, V]) Next() Option[pair[K, V]] {
 	return iter.delegateNext()
 }
 
-func (iter *skipIterM[K, V]) delegateNext() Option[pair[K, V]] {
+func (iter *skipIterM[K, V]) delegateNext() Option[Pair[K, V]] {
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true

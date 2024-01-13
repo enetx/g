@@ -3,7 +3,49 @@ package g
 import (
 	"context"
 	"reflect"
+	"sort"
 )
+
+// Sort returns a new iterator containing the elements from the current iterator
+// in sorted order. The elements must be of a comparable type.
+//
+// Example:
+//
+//	g.SliceOf(9, 8, 9, 8, 0, 1, 1, 1, 2, 7, 2, 2, 2, 3, 4, 5).
+//		Iter().
+//		Sort().
+//		Collect().
+//		Print()
+//
+// Output: Slice[0, 1, 1, 1, 2, 2, 2, 2, 3, 4, 5, 7, 8, 8, 9, 9]
+//
+// The returned iterator is of type *sortIter[T], which implements the iterator
+// interface for further iteration over the sorted elements.
+func (iter *baseIter[T]) Sort() *sortIter[T] {
+	return sorti[T](iter)
+}
+
+// SortBy applies a custom sorting function to the elements in the iterator
+// and returns a new iterator containing the sorted elements.
+//
+// The sorting function 'fn' should take two arguments, 'a' and 'b' of type T,
+// and return true if 'a' should be ordered before 'b', and false otherwise.
+//
+// Example:
+//
+//	g.SliceOf("a", "c", "b").
+//		Iter().
+//		SortBy(func(a, b string) bool { return a > b }).
+//		Collect().
+//		Print()
+//
+// Output: Slice[c, b, a]
+//
+// The returned iterator is of type *sortIter[T], which implements the iterator
+// interface for further iteration over the sorted elements.
+func (iter *baseIter[T]) SortBy(fn func(a, b T) bool) *sortIter[T] {
+	return sortBy[T](iter, fn)
+}
 
 // Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
 // leaving only one occurrence of each unique element. If the iterator is sorted, all elements will be unique.
@@ -955,25 +997,25 @@ func enumerate[T any](iter iterator[T]) *enumerateIter[T] {
 	return &enumerateIter[T]{iter: iter}
 }
 
-func (iter *enumerateIter[T]) Next() Option[pair[uint, T]] {
+func (iter *enumerateIter[T]) Next() Option[Pair[uint, T]] {
 	if iter.exhausted {
-		return None[pair[uint, T]]()
+		return None[Pair[uint, T]]()
 	}
 
 	next := iter.iter.Next()
 	if next.IsNone() {
 		iter.exhausted = true
-		return None[pair[uint, T]]()
+		return None[Pair[uint, T]]()
 	}
 
-	enext := pair[uint, T]{iter.counter, next.Some()}
+	enext := Pair[uint, T]{iter.counter, next.Some()}
 	iter.counter++
 
 	return Some(enext)
 }
 
-func (iter *enumerateIter[T]) Collect() []pair[uint, T] {
-	result := []pair[uint, T]{}
+func (iter *enumerateIter[T]) Collect() []Pair[uint, T] {
+	result := []Pair[uint, T]{}
 
 	for {
 		next := iter.Next()
@@ -1362,4 +1404,61 @@ func (iter *permutationsIter[T]) Collect() []Slice[T] {
 
 		result = append(result, next.Some())
 	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// sort
+type sortIter[T any] struct {
+	baseIter[T]
+	iter      iterator[T]
+	items     Slice[T]
+	index     int
+	exhausted bool
+}
+
+func sorti[T any](iter iterator[T]) *sortIter[T] {
+	iterator := &sortIter[T]{iter: iter, items: NewSlice[T]()}
+	iterator.baseIter = baseIter[T]{iterator}
+	iterator.collect(iter)
+	iterator.items.Sort()
+
+	return iterator
+}
+
+func sortBy[T any](iter iterator[T], fn func(a, b T) bool) *sortIter[T] {
+	iterator := &sortIter[T]{iter: iter, items: NewSlice[T]()}
+	iterator.baseIter = baseIter[T]{iterator}
+	iterator.collect(iter)
+
+	sort.Slice(iterator.items, func(i, j int) bool {
+		return fn(iterator.items[i], iterator.items[j])
+	})
+
+	return iterator
+}
+
+func (iter *sortIter[T]) collect(inner iterator[T]) {
+	for {
+		next := inner.Next()
+		if next.IsNone() {
+			return
+		}
+
+		iter.items = append(iter.items, next.Some())
+	}
+}
+
+func (iter *sortIter[T]) Next() Option[T] {
+	if iter.exhausted {
+		return None[T]()
+	}
+
+	if iter.index >= len(iter.items) {
+		iter.exhausted = true
+		return None[T]()
+	}
+
+	iter.index++
+
+	return Some(iter.items[iter.index-1])
 }

@@ -55,21 +55,3 @@ func BenchmarkUnique(b *testing.B) {
 		slice.Unique()
 	}
 }
-
-func BenchmarkDedup(b *testing.B) {
-	slice := genSlice().Iter()
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		slice.Dedup().Collect()
-	}
-}
-
-func BenchmarkDedup2(b *testing.B) {
-	slice := genSlice()
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		slice.Compact()
-	}
-}

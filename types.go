@@ -57,14 +57,14 @@ type (
 	// Set is a generic alias for a set implemented using a map.
 	Set[T comparable] map[T]struct{}
 
-	// pair is a struct representing a key-value pair for MapOrd.
-	pair[K comparable, V any] struct {
+	// Pair is a struct representing a key-value Pair for MapOrd.
+	Pair[K comparable, V any] struct {
 		Key   K // Key of the pair.
 		Value V // Value associated with the key.
 	}
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
-	MapOrd[K comparable, V any] []pair[K, V]
+	MapOrd[K comparable, V any] []Pair[K, V]
 
 	// iterator defines a generic interface for iterating over Slice elements.
 	iterator[T any] interface{ Next() Option[T] }
@@ -73,13 +73,13 @@ type (
 	baseIter[T any] struct{ iterator[T] }
 
 	// iteratorMO defines a generic interface for iterating over key-value pairs in a MapOrd.
-	iteratorMO[K comparable, V any] interface{ Next() Option[pair[K, V]] }
+	iteratorMO[K comparable, V any] interface{ Next() Option[Pair[K, V]] }
 
 	// baseIterMO is a base struct implementing the iteratorMO interface.
 	baseIterMO[K comparable, V any] struct{ iteratorMO[K, V] }
 
 	// iteratorMO defines a generic interface for iterating over key-value pairs in a Map.
-	iteratorM[K comparable, V any] interface{ Next() Option[pair[K, V]] }
+	iteratorM[K comparable, V any] interface{ Next() Option[Pair[K, V]] }
 
 	// baseIterMO is a base struct implementing the iteratorMO interface.
 	baseIterM[K comparable, V any] struct{ iteratorM[K, V] }
