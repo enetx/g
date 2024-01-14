@@ -765,12 +765,10 @@ func (iter *stepByIter[T]) Next() Option[T] {
 			return None[T]()
 		}
 
-		if iter.counter%uint(iter.n) == 0 {
-			iter.counter++
+		iter.counter++
+		if (iter.counter-1)%uint(iter.n) == 0 {
 			return next
 		}
-
-		iter.counter++
 	}
 }
 

@@ -1,23 +1,52 @@
 package g
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
-	"unicode"
-	"unicode/utf8"
 
 	"gitlab.com/x0xO/g/internal/filelock"
 )
 
 // NewFile returns a new File instance with the given name.
 func NewFile(name String) *File { return &File{name: name} }
+
+// Lines returns a new iterator instance that can be used to read the file
+// line by line.
+//
+// Returns:
+//
+// - *liftIterF: A pointer to the new liftIterF instance.
+//
+// Example usage:
+//
+//	// Open a new file with the specified name "text.txt"
+//	g.NewFile("text.txt").
+//		Lines().                 // Read the file line by line
+//		Unwrap().                // Unwrap the Result type to get the underlying iterator
+//		Skip(3).                 // Skip the first 3 lines
+//		Exclude(filters.IsZero). // Exclude lines that are empty or contain only whitespaces
+//		Dedup().                 // Remove consecutive duplicate lines
+//		Map(g.String.Upper).     // Convert each line to uppercase
+//		ForEach(                 // For each line, print it
+//			func(s g.String) {
+//				s.Print()
+//			})
+//
+//	// Output:
+//	// UPPERCASED_LINE4
+//	// UPPERCASED_LINE5
+//	// UPPERCASED_LINE6
+func (f *File) Lines() Result[*liftIterF] {
+	if err := f.Open().Err(); err != nil {
+		return Err[*liftIterF](err)
+	}
+
+	return Ok(liftF(f, f.file))
+}
 
 // Append appends the given content to the file, with the specified mode (optional).
 // If no FileMode is provided, the default FileMode (0644) is used.
@@ -285,52 +314,6 @@ func (f *File) Rename(newpath String) Result[*File] {
 	return nf
 }
 
-// SeekToLine moves the file pointer to the specified line number and reads the
-// specified number of lines from that position.
-// The function returns the new position and a concatenation of the lines read as an String.
-//
-// Parameters:
-//
-// - position int64: The starting position in the file to read from
-//
-// - linesRead int: The number of lines to read.
-//
-// Returns:
-//
-// - int64: The new file position after reading the specified number of lines
-//
-// - String: A concatenation of the lines read as an String.
-//
-// Example usage:
-//
-//	f := g.NewFile("file.txt")
-//	position, content := f.SeekToLine(0, 5) // Read 5 lines from the beginning of the file
-func (f *File) SeekToLine(position int64, linesRead int) (int64, String) {
-	iterator := f.Iter().Unwrap()
-
-	if _, err := f.file.Seek(position, 0); err != nil {
-		f.Close()
-		return 0, ""
-	}
-
-	var (
-		content     strings.Builder
-		linesReaded int
-	)
-
-	for line := iterator.ByLines(); line.Next(); linesReaded++ {
-		if linesReaded == linesRead {
-			f.Close()
-			break
-		}
-
-		_, _ = content.WriteString(line.ToString().Add("\n").Std())
-		position += int64(line.ToBytes().Len() + 1) // Add 1 for the newline character
-	}
-
-	return position, String(content.String())
-}
-
 // Split splits the file path into its directory and file components.
 func (f *File) Split() (*Dir, *File) {
 	path := f.Path()
@@ -500,327 +483,3 @@ func (f *File) createAll() Result[*File] {
 
 	return Ok(f)
 }
-
-// Iter returns a new fiter instance that can be used to read the file
-// line by line, word by word, rune by rune, or byte by byte.
-//
-// Returns:
-//
-// - *fiter: A pointer to the new fiter instance.
-//
-// Example usage:
-//
-//	f := g.NewFile("file.txt")
-//	iterator := f.Iter().Unwrap() // Returns a new fiter instance for the file
-func (f *File) Iter() Result[*fiter] {
-	openfile := f.Open()
-	if openfile.IsErr() {
-		return Err[*fiter](openfile.Err())
-	}
-
-	openfile.Ok().fiter = &fiter{
-		scanner: bufio.NewScanner(f.file),
-		file:    f,
-	}
-
-	return Ok(f.fiter)
-}
-
-// Buffer sets the initial buffer to use when iterating and the maximum size of the buffer.
-//
-// By default, Iterator uses an internal buffer and grows it as large as necessary.
-// This method allows you to use a custom buffer and limit its size.
-//
-// Parameters:
-//
-// - buf: A byte slice that will be used as a buffer.
-//
-// - max: The maximum size of the buffer.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByRunes()
-//
-//	customBuffer := make([]byte, 1024)
-//	iterator.Buffer(customBuffer, 4096)
-//
-//	for iterator.Next() {
-//	    fmt.Printf("%c", iterator.ToString())
-//	}
-func (fit fiter) Buffer(buf []byte, max int) { fit.scanner.Buffer(buf, max) }
-
-// By configures the fiter instance's scanner to use a custom split function.
-//
-// The custom split function should take a byte slice and a boolean indicating whether this is the
-// end of file.
-// It should return the advance count, the token, and any encountered error.
-// Don't forget to close the file in the custom split function!
-//
-// Parameters:
-//
-// - f: A split function of the form func(data []byte, atEOF bool) (advance int, token []byte, err
-// error).
-//
-// Returns:
-//
-// - An fiter instance with the scanner configured to use the provided custom split function.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	customSplitFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-//	    // Custom implementation here
-//	}
-//
-//	iterator := myFile.Iter().Unwrap().By(customSplitFunc)
-//
-//	for iterator.Next() {
-//	    fmt.Printf("%s", iterator.ToString())
-//	}
-func (fit fiter) By(f func(data []byte, atEOF bool) (advance int, token []byte, err error)) fiter {
-	fit.scanner.Split(bufio.SplitFunc(f))
-	return fit
-}
-
-// Bytes sets the iterator to read the file byte by byte.
-//
-// Returns:
-//
-// - An fiter instance with the scanner configured to read the file byte by byte.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByBytes()
-//
-//	for iterator.Next() {
-//	    fmt.Println(iterator.ToString())
-//	}
-func (fit fiter) ByBytes() fiter {
-	fit.By(func(data []byte, atEOF bool) (int, []byte, error) {
-		if atEOF && len(data) == 0 {
-			fit.file.Close()
-			return 0, nil, nil
-		}
-
-		return 1, data[0:1], nil
-	})
-
-	return fit
-}
-
-// Lines sets the iterator to read the file line by line.
-//
-// Returns:
-//
-// - An fiter instance with the scanner configured to read the file line by line.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByLines()
-//
-//	for iterator.Next() {
-//	    fmt.Printf("%c", iterator.ToBytes())
-//	}
-func (fit fiter) ByLines() fiter {
-	dropCR := func(data []byte) []byte {
-		if len(data) > 0 && data[len(data)-1] == '\r' {
-			return data[0 : len(data)-1]
-		}
-
-		return data
-	}
-
-	fit.By(func(data []byte, atEOF bool) (int, []byte, error) {
-		if atEOF && len(data) == 0 {
-			fit.file.Close()
-			return 0, nil, nil
-		}
-
-		if i := bytes.IndexByte(data, '\n'); i >= 0 {
-			return i + 1, dropCR(data[0:i]), nil
-		}
-
-		if atEOF {
-			return len(data), dropCR(data), nil
-		}
-
-		return 0, nil, nil
-	})
-
-	return fit
-}
-
-// Runes sets the iterator to read the file rune by rune.
-//
-// Returns:
-//
-// - An fiter instance with the scanner configured to read the file rune by rune.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByRunes()
-//
-//	for iterator.Next() {
-//	    fmt.Printf("%c", iterator.ToString())
-//	}
-func (fit fiter) ByRunes() fiter {
-	fit.By(func(data []byte, atEOF bool) (int, []byte, error) {
-		if atEOF && len(data) == 0 {
-			fit.file.Close()
-			return 0, nil, nil
-		}
-
-		if data[0] < utf8.RuneSelf {
-			return 1, data[0:1], nil
-		}
-
-		_, width := utf8.DecodeRune(data)
-		if width > 1 {
-			return width, data[0:width], nil
-		}
-
-		if !atEOF && !utf8.FullRune(data) {
-			return 0, nil, nil
-		}
-
-		return 1, []byte(string(utf8.RuneError)), nil
-	})
-
-	return fit
-}
-
-// Words sets the iterator to read the file word by word.
-//
-// Returns:
-//
-// - An fiter instance with the scanner configured to read the file word by word.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByWords()
-//
-//	for iterator.Next() {
-//	    fmt.Println(iterator.ToString())
-//	}
-func (fit fiter) ByWords() fiter {
-	fit.By(func(data []byte, atEOF bool) (int, []byte, error) {
-		if atEOF && len(data) == 0 {
-			fit.file.Close()
-			return 0, nil, nil
-		}
-
-		start := 0
-		for width := 0; start < len(data); start += width {
-			var r rune
-			r, width = utf8.DecodeRune(data[start:])
-			if !unicode.IsSpace(r) {
-				break
-			}
-		}
-
-		for width, i := 0, start; i < len(data); i += width {
-			var r rune
-			r, width = utf8.DecodeRune(data[i:])
-			if unicode.IsSpace(r) {
-				return i + width, data[start:i], nil
-			}
-		}
-
-		if atEOF && len(data) > start {
-			return len(data), data[start:], nil
-		}
-
-		return start, nil, nil
-	})
-
-	return fit
-}
-
-// Error returns the first non-EOF error encountered by the Iterator.
-//
-// Call this method after an iteration loop has finished to check if any errors occurred
-// during the iteration process.
-//
-// Returns:
-//
-// - An error encountered by the iterator, or nil if no errors occurred.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByRunes()
-//
-//	for iterator.Next() {
-//	    fmt.Printf("%c", iterator.ToString())
-//	}
-//
-//	if err := iterator.Err(); err != nil {
-//	    log.Printf("Error while iterating: %v", err)
-//	}
-func (fit fiter) Err() error { return fit.scanner.Err() }
-
-// Next advances the iterator to the next item (byte, line, word, or rune) and
-// returns true if successful or false if there are no more items to read.
-//
-// Returns:
-//
-// - A boolean value indicating whether the iterator successfully advanced to the next item.
-// Returns false if there are no more items to read.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap()
-//	lines := iterator.ByLines() // or iterator.ByWords() or iterator.ByRunes()
-//
-//	for lines.Next() {
-//	    fmt.Println(iterator.ToString())
-//	}
-func (fit fiter) Next() bool { return fit.scanner.Scan() }
-
-// ToBytes returns the current item as an Bytes instance.
-//
-// Returns:
-//
-// - An Bytes instance containing the current item in the iterator.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByBytes() // Sets the iterator to read the file byte by byte
-//
-//	for iterator.Next() {
-//	    fmt.Println(iterator.ToBytes())
-//	}
-func (fit fiter) ToBytes() Bytes { return Bytes(fit.scanner.Bytes()) }
-
-// String returns the current item as an String instance.
-//
-// Returns:
-//
-// - An String instance containing the current item in the iterator.
-//
-// Example usage:
-//
-//	myFile := g.NewFile("path/to/myfile.txt")
-//
-//	iterator := myFile.Iter().Unwrap().ByLines() // Sets the iterator to read the file line by line
-//
-//	for iterator.Next() {
-//	    fmt.Println(iterator.ToString())
-//	}
-func (fit fiter) ToString() String { return String(fit.scanner.Text()) }

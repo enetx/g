@@ -7,34 +7,6 @@ import (
 )
 
 func main() {
-	// f := g.NewFile("some/dir/that/dont/exist/file.txt")
-
-	// // words := f.Iter().Unwrap().ByWords()
-	// // runes := f.Iter().Unwrap().ByRunes()
-	// // bytes := f.Iter().Unwrap().ByBytes()
-	// lines := f.Iter().Unwrap().ByLines()
-
-	// for lines.Next() {
-	// 	fmt.Println(lines.ToString())
-	// }
-
-	// if lines.Err() != nil {
-	// 	fmt.Println(lines.Err())
-	// }
-
-	// or
-
-	// f := g.NewFile("somebigfile.txt")
-
-	// dbg.Dbg(f.Name())
-
-	// for line := f.Iter().Unwrap().ByLines(); line.Next(); {
-	// 	// for line := f.Iterr().Expect().ByLines(); line.Next(); {
-	// 	fmt.Println(line.ToString())
-	// }
-
-	//////////////////////////////////////////////////
-
 	f := g.NewFile("some/dir/that/dont/exist/file.txt")
 
 	f.Append("one").Unwrap().Append("\n")

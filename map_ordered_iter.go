@@ -431,12 +431,10 @@ func (iter *stepByIterMO[K, V]) Next() Option[Pair[K, V]] {
 			return None[Pair[K, V]]()
 		}
 
-		if iter.counter%uint(iter.n) == 0 {
-			iter.counter++
+		iter.counter++
+		if (iter.counter-1)%uint(iter.n) == 0 {
 			return next
 		}
-
-		iter.counter++
 	}
 }
 

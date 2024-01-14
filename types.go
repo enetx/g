@@ -1,7 +1,6 @@
 package g
 
 import (
-	"bufio"
 	"os"
 )
 
@@ -17,16 +16,9 @@ type (
 		value *T // Pointer to the value.
 	}
 
-	// fiter is a struct for iterating through an file.
-	fiter struct {
-		scanner *bufio.Scanner // Scanner for reading from the file.
-		file    *File          // Associated File.
-	}
-
 	// File is a struct that represents a file along with an iterator for reading lines.
 	File struct {
 		file  *os.File // Underlying os.File.
-		fiter *fiter   // Iterator for reading lines.
 		name  String   // File name.
 		guard bool     // Guard indicates whether the file is protected against concurrent access.
 	}
@@ -89,4 +81,10 @@ type (
 
 	// baseIterS is a base struct implementing the iteratorS interface.
 	baseIterS[T comparable] struct{ iteratorS[T] }
+
+	// iteratorF defines a generic interface for iterating over String elements wrapped in a Result.
+	iteratorF interface{ Next() Result[String] }
+
+	// baseIterF is a base struct implementing the iteratorF interface.
+	baseIterF struct{ iteratorF }
 )
