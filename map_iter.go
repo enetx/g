@@ -1,5 +1,9 @@
 package g
 
+import (
+	"context"
+)
+
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
 func (iter *baseIterM[K, V]) Inspect(fn func(K, V)) *inspectIterM[K, V] {
@@ -190,6 +194,16 @@ func (iter *baseIterM[K, V]) ForEach(fn func(K, V)) {
 	}
 }
 
+// The iteration will stop when the provided function returns false for an element.
+func (iter *baseIterM[K, V]) Range(fn func(K, V) bool) {
+	for {
+		next := iter.Next()
+		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {
+			return
+		}
+	}
+}
+
 // Map creates a new iterator by applying the given function to each key-value pair.
 //
 // This function generates a new iterator by traversing the current iterator and applying the provided
@@ -233,18 +247,26 @@ func (iter *baseIterM[K, V]) Map(fn func(K, V) (K, V)) *mapIterM[K, V] {
 // lift
 type liftIterM[K comparable, V any] struct {
 	baseIterM[K, V]
-	items chan Pair[K, V]
+	items  chan Pair[K, V]
+	cancel func()
 }
 
 func liftM[K comparable, V any](hashmap map[K]V) *liftIterM[K, V] {
-	iter := &liftIterM[K, V]{items: make(chan Pair[K, V])}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	iter := &liftIterM[K, V]{items: make(chan Pair[K, V]), cancel: cancel}
 	iter.baseIterM = baseIterM[K, V]{iter}
 
 	go func() {
 		defer close(iter.items)
 
 		for k, v := range hashmap {
-			iter.items <- Pair[K, V]{k, v}
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				iter.items <- Pair[K, V]{k, v}
+			}
 		}
 	}()
 
@@ -258,6 +280,15 @@ func (iter *liftIterM[K, V]) Next() Option[Pair[K, V]] {
 	}
 
 	return Some(item)
+}
+
+// Close stops the iteration and releases associated resources.
+// It signals the iterator to stop processing items and waits for the
+// completion of any ongoing operations. After calling Close, the iterator
+// cannot be used for further iteration.
+func (iter *liftIterM[K, V]) Close() {
+	iter.cancel()
+	<-iter.items
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

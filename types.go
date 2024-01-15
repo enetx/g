@@ -1,8 +1,6 @@
 package g
 
-import (
-	"os"
-)
+import "os"
 
 type (
 	// Result is a generic struct for representing a result value along with an error.

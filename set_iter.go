@@ -1,5 +1,9 @@
 package g
 
+import (
+	"context"
+)
+
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (iter *baseIterS[T]) Inspect(fn func(T)) *inspectIterS[T] {
@@ -70,6 +74,16 @@ func (iter *baseIterS[T]) ForEach(fn func(T)) {
 		}
 
 		fn(next.Some())
+	}
+}
+
+// The iteration will stop when the provided function returns false for an element.
+func (iter *baseIterS[T]) Range(fn func(T) bool) {
+	for {
+		next := iter.Next()
+		if next.IsNone() || !fn(next.Some()) {
+			return
+		}
 	}
 }
 
@@ -197,18 +211,26 @@ func (iter *baseIterS[T]) Map(fn func(T) T) *mapIterS[T, T] {
 // liftS
 type liftIterS[T comparable] struct {
 	baseIterS[T]
-	items chan T
+	items  chan T
+	cancel func()
 }
 
 func liftS[T comparable](hashmap map[T]struct{}) *liftIterS[T] {
-	iter := &liftIterS[T]{items: make(chan T)}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	iter := &liftIterS[T]{items: make(chan T), cancel: cancel}
 	iter.baseIterS = baseIterS[T]{iter}
 
 	go func() {
 		defer close(iter.items)
 
 		for k := range hashmap {
-			iter.items <- k
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				iter.items <- k
+			}
 		}
 	}()
 
@@ -222,6 +244,15 @@ func (iter *liftIterS[T]) Next() Option[T] {
 	}
 
 	return Some(item)
+}
+
+// Close stops the iteration and releases associated resources.
+// It signals the iterator to stop processing items and waits for the
+// completion of any ongoing operations. After calling Close, the iterator
+// cannot be used for further iteration.
+func (iter *liftIterS[T]) Close() {
+	iter.cancel()
+	<-iter.items
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

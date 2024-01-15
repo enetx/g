@@ -122,41 +122,138 @@ func (iter *baseIterF) ToChannel(ctxs ...context.Context) chan String {
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// lift
-type liftIterF struct {
+// line
+type lineIterF struct {
 	baseIterF
 	r         *bufio.Reader
 	f         *File
 	exhausted bool
 }
 
-func liftF(f *File, r io.Reader) *liftIterF {
-	iter := &liftIterF{f: f, r: bufio.NewReader(r)}
+func lineF(f *File, r io.Reader) *lineIterF {
+	iter := &lineIterF{f: f, r: bufio.NewReader(r)}
 	iter.baseIterF = baseIterF{iter}
 	return iter
 }
 
-func (iter *liftIterF) Next() Result[String] {
+func (iter *lineIterF) Next() Result[String] {
 	if iter.exhausted {
 		return Err[String](io.EOF)
 	}
 
 	content, err := iter.r.ReadString('\n')
-	if err == io.EOF {
-		iter.exhausted = true
-		iter.f.Close()
-
-		return Ok(String(content))
-	}
-
 	if err != nil {
 		iter.exhausted = true
 		iter.f.Close()
+
+		if err == io.EOF {
+			return Ok(String(content))
+		}
 
 		return Err[String](err)
 	}
 
 	return Ok(String(content).TrimRight("\r\n"))
+}
+
+// Seek sets the offset for the next Read operation to offset,
+// relative to the origin of the file.
+//
+// Parameters:
+// - offset (int64): The offset to seek to in bytes.
+//
+// Returns:
+// - Result[*lineIterF]: A Result containing either the updated *lineIterF instance or an error.
+//
+// Example:
+//
+//	g.NewFile("text.txt").
+//		Lines().                 // Read the file line by line
+//		Unwrap().                // Unwrap the Result type to get the underlying iterator
+//		Seek(10).Ok().           // Seek to 10 bytes from the beginning of the file
+//		ForEach(                 // For each line, print it
+//			func(s g.String) {
+//				s.Print()
+//			})
+func (iter *lineIterF) Seek(offset int64) Result[*lineIterF] {
+	if _, err := iter.f.file.Seek(offset, 0); err != nil {
+		iter.f.Close()
+		return Err[*lineIterF](err)
+	}
+
+	return Ok(iter)
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// chunk
+type chunkIterF struct {
+	baseIterF
+	r         *bufio.Reader
+	f         *File
+	size      int
+	exhausted bool
+}
+
+func chunkF(f *File, r io.Reader, size int) *chunkIterF {
+	iter := &chunkIterF{f: f, r: bufio.NewReader(r), size: size}
+	iter.baseIterF = baseIterF{iter}
+	return iter
+}
+
+// Seek sets the offset for the next Read operation to offset,
+// relative to the origin of the file.
+//
+// Parameters:
+// - offset (int64): The offset to seek to in bytes.
+//
+// Returns:
+// - Result[*chunkIterF]: A Result containing either the updated *chunkIterF instance or an error.
+//
+// Example:
+//
+//	offset := int64(10) // Initialize offset
+//
+//	g.NewFile("text.txt").
+//		Chunks(3).         // Read the file in chunks of 3 bytes
+//		Unwrap().          // Unwrap the Result type to get the underlying iterator
+//		Seek(offset).Ok(). // Seek to 10 bytes from the beginning of the file
+//		Inspect(func(s g.String) {
+//			offset += int64(s.ToBytes().Len()) // Update the offset based on the length of each chunk
+//		}).
+//		ForEach(func(s g.String) {
+//			fmt.Print(s) // Print each chunk
+//		})
+//
+//	fmt.Println(offset) // Print the final offset
+func (iter *chunkIterF) Seek(offset int64) Result[*chunkIterF] {
+	if _, err := iter.f.file.Seek(offset, 0); err != nil {
+		iter.f.Close()
+		return Err[*chunkIterF](err)
+	}
+
+	return Ok(iter)
+}
+
+func (iter *chunkIterF) Next() Result[String] {
+	if iter.exhausted {
+		return Err[String](io.EOF)
+	}
+
+	content := make([]byte, iter.size)
+
+	n, err := iter.r.Read(content)
+	if err != nil {
+		iter.exhausted = true
+		iter.f.Close()
+
+		if err == io.EOF && n != 0 {
+			return Ok(String(content[:n]))
+		}
+
+		return Err[String](err)
+	}
+
+	return Ok(String(content[:n]))
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
