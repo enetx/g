@@ -28,15 +28,34 @@ func SetOf[T comparable](values ...T) Set[T] {
 // containing the transformed values.
 //
 // Parameters:
+//
 // - s: The input Set.
 // - fn: The function to apply to each element of the input Set.
 //
 // Returns:
+//
 // A new Set containing the results of applying the function to each element of the input Set.
 func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 	return mapiterS[T, U](s.Iter(), fn).Collect()
 }
 
+// Iter returns an iterator (*liftIterS) for the Set, allowing for sequential iteration
+// over its elements. It is commonly used in combination with higher-order functions,
+// such as 'ForEach' or 'TransformSet', to perform operations on each element of the Set.
+//
+// Returns:
+//
+// A pointer to a liftIterS, which can be used for sequential iteration over the elements of the Set.
+//
+// Example usage:
+//
+//	iter := g.SetOf(1, 2, 3).Iter()
+//	iter.ForEach(func(val T) {
+//	    fmt.Println(val) // Replace this with the function logic you need.
+//	})
+//
+// The 'Iter' method provides a convenient way to traverse the elements of a Set
+// in a functional style, enabling operations like mapping or filtering.
 func (s Set[T]) Iter() *liftIterS[T] { return liftS[T](s) }
 
 // Add adds the provided elements to the set and returns the modified set.

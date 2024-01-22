@@ -60,6 +60,25 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 	return mapiter[T, U](sl.Iter(), fn).Collect()
 }
 
+// Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration
+// over its elements. It is commonly used in combination with higher-order functions,
+// such as 'ForEach', to perform operations on each element of the Slice.
+//
+// Returns:
+//
+// A pointer to a liftIter, which can be used for sequential iteration over the elements of the Slice.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	iterator := slice.Iter()
+//	iterator.ForEach(func(element int) {
+//		// Perform some operation on each element
+//		fmt.Println(element)
+//	})
+//
+// The 'Iter' method provides a convenient way to traverse the elements of a Slice
+// in a functional style, enabling operations like mapping or filtering.
 func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 
 // Counter returns an unordered Map with the counts of each unique element in the slice.
@@ -89,7 +108,7 @@ func (sl Slice[T]) Counter() Map[any, uint] {
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same
 // value.
-// This method can be used in place, as it modifies the original slice.
+// This method modifies the original slice in place.
 //
 // Parameters:
 //
@@ -105,12 +124,10 @@ func (sl Slice[T]) Counter() Map[any, uint] {
 //	slice.Fill(5)
 //
 // The modified slice will now contain: 5, 5, 5.
-func (sl Slice[T]) Fill(val T) Slice[T] {
+func (sl Slice[T]) Fill(val T) {
 	for i := range iter.N(sl.Len()) {
 		sl.Set(i, val)
 	}
-
-	return sl
 }
 
 // ToMapHashed returns a map with the hashed version of each element as the key.
@@ -175,7 +192,10 @@ func (sl Slice[T]) RandomSample(sequence int) Slice[T] {
 		return sl
 	}
 
-	return sl.Clone().Shuffle()[0:sequence]
+	clone := sl.Clone()
+	clone.Shuffle()
+
+	return clone[0:sequence]
 }
 
 // RandomRange returns a new slice containing a random sample of elements from a subrange of the original slice.
@@ -232,10 +252,7 @@ func (sl Slice[T]) Insert(i int, values ...T) Slice[T] { return sl.Replace(i, i,
 //	slice.InsertInPlace(2, "e", "f")
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl *Slice[T]) InsertInPlace(i int, values ...T) Slice[T] {
-	sl.ReplaceInPlace(i, i, values...)
-	return *sl
-}
+func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, values...) }
 
 // Replace replaces the elements of sl[i:j] with the given values, and returns
 // a new slice with the modifications. The original slice remains unchanged.
@@ -295,13 +312,13 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 //	slice.ReplaceInPlace(1, 3, "e", "f")
 //
 // After the ReplaceInPlace operation, the resulting slice will be: ["a", "e", "f", "d"].
-func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
+func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 	i = sl.normalizeIndex(i)
 	j = sl.normalizeIndex(j)
 
 	if i > j {
 		*sl = (*sl)[:0]
-		return *sl
+		return
 	}
 
 	if i == j {
@@ -309,7 +326,7 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 			*sl = (*sl)[:i].Append(append(values, (*sl)[i:]...)...)
 		}
 
-		return *sl
+		return
 	}
 
 	diff := len(values) - (j - i)
@@ -324,8 +341,6 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) Slice[T] {
 	if diff < 0 {
 		*sl = (*sl)[:sl.Len()+diff]
 	}
-
-	return *sl
 }
 
 // AddUnique appends unique elements from the provided arguments to the current slice.
@@ -377,14 +392,12 @@ func (sl Slice[T]) AddUnique(elems ...T) Slice[T] {
 //	fmt.Println(slice)
 //
 // Output: [1 2 3 4 5 6 7].
-func (sl *Slice[T]) AddUniqueInPlace(elems ...T) Slice[T] {
+func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
 			*sl = sl.Append(elem)
 		}
 	}
-
-	return *sl
 }
 
 // Get returns the element at the given index, handling negative indices as counting from the end
@@ -479,8 +492,8 @@ func (sl Slice[T]) Min() T {
 	return min
 }
 
-// Shuffle shuffles the elements in the slice randomly. This method can be used in place, as it
-// modifies the original slice.
+// Shuffle shuffles the elements in the slice randomly.
+// This method modifies the original slice in place.
 //
 // The function uses the crypto/rand package to generate random indices.
 //
@@ -495,19 +508,17 @@ func (sl Slice[T]) Min() T {
 // fmt.Println(shuffled)
 //
 // Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
-func (sl Slice[T]) Shuffle() Slice[T] {
+func (sl Slice[T]) Shuffle() {
 	n := sl.Len()
 
 	for i := n - 1; i > 0; i-- {
 		j := rand.N(i + 1)
 		sl.Swap(i, j)
 	}
-
-	return sl
 }
 
-// Reverse reverses the order of the elements in the slice. This method can be used in place, as it
-// modifies the original slice.
+// Reverse reverses the order of the elements in the slice.
+// This method modifies the original slice in place.
 //
 // Returns:
 //
@@ -516,28 +527,23 @@ func (sl Slice[T]) Shuffle() Slice[T] {
 // Example usage:
 //
 // slice := g.Slice[int]{1, 2, 3, 4, 5}
-// reversed := slice.Reverse()
-// fmt.Println(reversed)
+// slice.Reverse()
+// fmt.Println(slice)
 //
 // Output: [5 4 3 2 1].
-func (sl Slice[T]) Reverse() Slice[T] {
+func (sl Slice[T]) Reverse() {
 	for i, j := 0, sl.Len()-1; i < j; i, j = i+1, j-1 {
 		sl.Swap(i, j)
 	}
-
-	return sl
 }
 
 // Sort sorts the elements in the slice in increasing order. It modifies the original
 // slice in place. For proper functionality, the type T used in the slice must support
 // comparison via the Less method.
-func (sl Slice[T]) Sort() Slice[T] {
-	sort.Sort(sl)
-	return sl
-}
+func (sl Slice[T]) Sort() { sort.Sort(sl) }
 
-// SortBy sorts the elements in the slice using the provided comparison function. This method can
-// be used in place, as it modifies the original slice. It requires the elements to be of a type
+// SortBy sorts the elements in the slice using the provided comparison function.
+// It modifies the original slice in place. It requires the elements to be of a type
 // that is comparable.
 //
 // The function takes a custom comparison function as an argument and sorts the elements
@@ -548,18 +554,11 @@ func (sl Slice[T]) Sort() Slice[T] {
 //
 // - f func(i, j int) bool: A comparison function that takes two indices i and j and returns a bool.
 //
-// Returns:
-//
-// - Slice[T]: The sorted Slice.
-//
 // Example usage:
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
 // sl.SortBy(func(i, j int) bool { return sl[i] < sl[j] }) // sorts in ascending order.
-func (sl Slice[T]) SortBy(f func(i, j int) bool) Slice[T] {
-	sort.Slice(sl, f)
-	return sl
-}
+func (sl Slice[T]) SortBy(f func(i, j int) bool) { sort.Slice(sl, f) }
 
 // ToStringSlice converts the slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
@@ -686,7 +685,7 @@ func (sl Slice[T]) Cut(start, end int) Slice[T] { return sl.Replace(start, end) 
 // The function also supports negative indices. Negative indices are counted
 // from the end of the slice. For example, -1 means the last element, -2
 // means the second-to-last element, and so on.
-func (sl *Slice[T]) CutInPlace(start, end int) Slice[T] { return sl.ReplaceInPlace(start, end) }
+func (sl *Slice[T]) CutInPlace(start, end int) { sl.ReplaceInPlace(start, end) }
 
 // Random returns a random element from the slice.
 //
@@ -752,10 +751,7 @@ func (sl Slice[T]) String() string {
 func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 
 // AppendInPlace appends the provided elements to the slice and modifies the original slice.
-func (sl *Slice[T]) AppendInPlace(elems ...T) Slice[T] {
-	*sl = sl.Append(elems...)
-	return *sl
-}
+func (sl *Slice[T]) AppendInPlace(elems ...T) { *sl = sl.Append(elems...) }
 
 // Cap returns the capacity of the Slice.
 func (sl Slice[T]) Cap() int { return cap(sl) }
@@ -809,12 +805,10 @@ func (sl Slice[T]) Delete(i int) Slice[T] {
 
 // DeleteInPlace removes the element at the specified index from the slice and modifies the
 // original slice.
-func (sl *Slice[T]) DeleteInPlace(i int) Slice[T] {
+func (sl *Slice[T]) DeleteInPlace(i int) {
 	i = sl.normalizeIndex(i)
 	copy((*sl)[i:], (*sl)[i+1:])
 	*sl = (*sl)[:sl.Len()-1]
-
-	return *sl
 }
 
 // Empty returns true if the slice is empty.
@@ -833,7 +827,7 @@ func (sl Slice[T]) NotEmpty() bool { return sl.Len() != 0 }
 func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 
 // Set sets the value at the specified index in the slice and returns the modified slice.
-// This method can be used in place, as it modifies the original slice.
+// This method modifies the original slice in place.
 //
 // Parameters:
 //
@@ -852,11 +846,9 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 // fmt.Println(slice)
 //
 // Output: [1 2 99 4 5].
-func (sl Slice[T]) Set(index int, val T) Slice[T] {
+func (sl Slice[T]) Set(index int, val T) {
 	index = sl.normalizeIndex(index)
 	sl[index] = val
-
-	return sl
 }
 
 // Len returns the length of the slice.
@@ -901,7 +893,7 @@ func (sl Slice[T]) Less(i, j int) bool {
 }
 
 // Swap swaps the elements at the specified indices in the slice.
-// This method used in place, as it modifies the original slice.
+// This method modifies the original slice in place.
 //
 // Parameters:
 //

@@ -40,7 +40,7 @@ func (iter *baseIterMO[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) *sortIterMO[
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
-func (iter *baseIterMO[K, V]) Inspect(fn func(K, V)) *inspectIterMO[K, V] {
+func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
 	return inspectMO[K, V](iter, fn)
 }
 
@@ -169,7 +169,7 @@ func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
 // Output: MapOrd{1:1, 3:3, 5:5}
 //
 // The resulting iterator will exclude elements based on the provided condition.
-func (iter *baseIterMO[K, V]) Exclude(fn func(K, V) bool) *filterIterMO[K, V] {
+func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V] {
 	return excludeMO[K, V](iter, fn)
 }
 
@@ -206,7 +206,7 @@ func (iter *baseIterMO[K, V]) Exclude(fn func(K, V) bool) *filterIterMO[K, V] {
 // Output: MapOrd{2:2, 4:4}
 //
 // The resulting iterator will include elements based on the provided condition.
-func (iter *baseIterMO[K, V]) Filter(fn func(K, V) bool) *filterIterMO[K, V] {
+func (iter *baseIterMO[K, V]) Filter(fn func(k K, v V) bool) *filterIterMO[K, V] {
 	return filterMO[K, V](iter, fn)
 }
 
@@ -233,7 +233,7 @@ func (iter *baseIterMO[K, V]) Filter(fn func(K, V) bool) *filterIterMO[K, V] {
 //	})
 //
 // The provided function will be applied to each key-value pair in the iterator.
-func (iter *baseIterMO[K, V]) ForEach(fn func(K, V)) {
+func (iter *baseIterMO[K, V]) ForEach(fn func(k K, v V)) {
 	for next := iter.Next(); next.IsSome(); next = iter.Next() {
 		fn(next.Some().Key, next.Some().Value)
 	}
@@ -272,7 +272,7 @@ func (iter *baseIterMO[K, V]) ForEach(fn func(K, V)) {
 // Output: MapOrd{1:1, 4:4, 9:9, 16:16, 25:25}
 //
 // The resulting iterator will contain transformed key-value pairs.
-func (iter *baseIterMO[K, V]) Map(fn func(K, V) (K, V)) *mapIterMO[K, V] {
+func (iter *baseIterMO[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterMO[K, V] {
 	return mapiterMO(iter, fn)
 }
 
@@ -301,7 +301,7 @@ func (iter *baseIterMO[K, V]) Map(fn func(K, V) (K, V)) *mapIterMO[K, V] {
 //	})
 //
 // The iteration will stop when the provided function returns false.
-func (iter *baseIterMO[K, V]) Range(fn func(K, V) bool) {
+func (iter *baseIterMO[K, V]) Range(fn func(k K, v V) bool) {
 	for {
 		next := iter.Next()
 		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {

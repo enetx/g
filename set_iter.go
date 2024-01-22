@@ -6,7 +6,7 @@ import (
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (iter *baseIterS[T]) Inspect(fn func(T)) *inspectIterS[T] {
+func (iter *baseIterS[T]) Inspect(fn func(v T)) *inspectIterS[T] {
 	return inspectS[T](iter, fn)
 }
 
@@ -66,7 +66,7 @@ func (iter *baseIterS[T]) Chain(iterators ...iteratorS[T]) *chainIterS[T] {
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (iter *baseIterS[T]) ForEach(fn func(T)) {
+func (iter *baseIterS[T]) ForEach(fn func(v T)) {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -78,7 +78,7 @@ func (iter *baseIterS[T]) ForEach(fn func(T)) {
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (iter *baseIterS[T]) Range(fn func(T) bool) {
+func (iter *baseIterS[T]) Range(fn func(v T) bool) {
 	for {
 		next := iter.Next()
 		if next.IsNone() || !fn(next.Some()) {
@@ -140,7 +140,7 @@ func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
 // Output: Set{2, 4} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (iter *baseIterS[T]) Filter(fn func(T) bool) *filterIterS[T] {
+func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
 	return filterS[T](iter, fn)
 }
 
@@ -172,7 +172,7 @@ func (iter *baseIterS[T]) Filter(fn func(T) bool) *filterIterS[T] {
 // Output: Set{1, 3, 5} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (iter *baseIterS[T]) Exclude(fn func(T) bool) *filterIterS[T] {
+func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
 	return excludeS[T](iter, fn)
 }
 
@@ -203,7 +203,7 @@ func (iter *baseIterS[T]) Exclude(fn func(T) bool) *filterIterS[T] {
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (iter *baseIterS[T]) Map(fn func(T) T) *mapIterS[T, T] {
+func (iter *baseIterS[T]) Map(fn func(v T) T) *mapIterS[T, T] {
 	return transformS[T](iter, fn)
 }
 

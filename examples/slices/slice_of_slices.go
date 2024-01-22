@@ -24,10 +24,14 @@ func main() {
 
 	nx = nx.Iter().Dedup().Collect().Print()
 
-	nx.SortBy(func(i, j int) bool { return nx[i].Get(0).Lt(nx[j].Get(0)) }).Print()
-	nx.SortBy(func(i, j int) bool { return nx[i].Len() < nx[j].Len() }).Print()
+	nx.SortBy(func(i, j int) bool { return nx[i].Get(0).Lt(nx[j].Get(0)) })
+	nx.Print()
 
-	nx.Reverse().Print()
+	nx.SortBy(func(i, j int) bool { return nx[i].Len() < nx[j].Len() })
+	nx.Print()
+
+	nx.Reverse()
+	nx.Print()
 
 	nx.Random().Print()
 	nx.RandomSample(2).Print()

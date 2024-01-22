@@ -1,12 +1,10 @@
 package g
 
-import (
-	"context"
-)
+import "context"
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
-func (iter *baseIterM[K, V]) Inspect(fn func(K, V)) *inspectIterM[K, V] {
+func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
 	return inspectM[K, V](iter, fn)
 }
 
@@ -113,7 +111,7 @@ func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
 // Output: Map{1:1, 3:3, 5:5} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will exclude elements for which the function returns true.
-func (iter *baseIterM[K, V]) Exclude(fn func(K, V) bool) *filterIterM[K, V] {
+func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] {
 	return excludeM[K, V](iter, fn)
 }
 
@@ -149,7 +147,7 @@ func (iter *baseIterM[K, V]) Exclude(fn func(K, V) bool) *filterIterM[K, V] {
 // Output: Map{2:2, 4:4} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements for which the function returns true.
-func (iter *baseIterM[K, V]) Filter(fn func(K, V) bool) *filterIterM[K, V] {
+func (iter *baseIterM[K, V]) Filter(fn func(k K, v V) bool) *filterIterM[K, V] {
 	return filterM[K, V](iter, fn)
 }
 
@@ -164,7 +162,7 @@ func (iter *baseIterM[K, V]) Filter(fn func(K, V) bool) *filterIterM[K, V] {
 //
 // Example usage:
 //
-//	m := g.NewMapOrd[int, int]().
+//	m := g.NewMap[int, int]().
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -183,7 +181,7 @@ func (iter *baseIterM[K, V]) Filter(fn func(K, V) bool) *filterIterM[K, V] {
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The function fn will be executed for each key-value pair in the iterator.
-func (iter *baseIterM[K, V]) ForEach(fn func(K, V)) {
+func (iter *baseIterM[K, V]) ForEach(fn func(k K, v V)) {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -195,7 +193,7 @@ func (iter *baseIterM[K, V]) ForEach(fn func(K, V)) {
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (iter *baseIterM[K, V]) Range(fn func(K, V) bool) {
+func (iter *baseIterM[K, V]) Range(fn func(k K, v V) bool) {
 	for {
 		next := iter.Next()
 		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {
@@ -220,7 +218,7 @@ func (iter *baseIterM[K, V]) Range(fn func(K, V) bool) {
 //
 // Example usage:
 //
-//	m := g.NewMapOrd[int, int]().
+//	m := g.NewMap[int, int]().
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -239,7 +237,7 @@ func (iter *baseIterM[K, V]) Range(fn func(K, V) bool) {
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain key-value pairs transformed by the given function.
-func (iter *baseIterM[K, V]) Map(fn func(K, V) (K, V)) *mapIterM[K, V] {
+func (iter *baseIterM[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterM[K, V] {
 	return mapiterM(iter, fn)
 }
 

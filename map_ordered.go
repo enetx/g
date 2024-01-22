@@ -36,6 +36,28 @@ func NewMapOrd[K comparable, V any](size ...int) *MapOrd[K, V] {
 	return ref.Of(make(MapOrd[K, V], 0, size[0]))
 }
 
+// Iter returns an iterator (*liftIterMO) for the ordered Map, allowing for sequential iteration
+// over its key-value pairs. It is commonly used in combination with higher-order functions,
+// such as 'ForEach', to perform operations on each key-value pair of the ordered Map.
+//
+// Returns:
+//
+// A pointer to a liftIterMO, which can be used for sequential iteration over the key-value pairs of the ordered Map.
+//
+// Example usage:
+//
+//	iter := g.NewMapOrd[int, int]().
+//		Set(1, 1).
+//		Set(2, 2).
+//		Set(3, 3).
+//		Iter()
+//
+//	iter.ForEach(func(k, v int) {
+//	    // Process key-value pair
+//	})
+//
+// The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
+// in a functional style, enabling operations like mapping or filtering.
 func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
 
 // MapOrdFromMap converts a standard Map to an ordered Map.

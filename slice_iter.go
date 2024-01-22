@@ -72,7 +72,7 @@ func (iter *baseIter[T]) Dedup() *dedupIter[T] {
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (iter *baseIter[T]) Inspect(fn func(T)) *inspectIter[T] {
+func (iter *baseIter[T]) Inspect(fn func(v T)) *inspectIter[T] {
 	return inspect[T](iter, fn)
 }
 
@@ -117,7 +117,7 @@ func (iter *baseIter[T]) StepBy(n int) *stepByIter[T] {
 //	allPositive := slice.Iter().All(isPositive)
 //
 // The resulting allPositive will be true if all elements returned by the iterator are positive.
-func (iter *baseIter[T]) All(fn func(T) bool) bool {
+func (iter *baseIter[T]) All(fn func(v T) bool) bool {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -148,7 +148,7 @@ func (iter *baseIter[T]) All(fn func(T) bool) bool {
 //	anyEven := slice.Iter().Any(isEven)
 //
 // The resulting anyEven will be true if at least one element returned by the iterator is even.
-func (iter *baseIter[T]) Any(fn func(T) bool) bool {
+func (iter *baseIter[T]) Any(fn func(v T) bool) bool {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -282,7 +282,7 @@ func (iter *baseIter[T]) Enumerate() *enumerateIter[T] {
 // Output: [1, 3, 5]
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (iter *baseIter[T]) Exclude(fn func(T) bool) *filterIter[T] {
+func (iter *baseIter[T]) Exclude(fn func(v T) bool) *filterIter[T] {
 	return exclude[T](iter, fn)
 }
 
@@ -314,7 +314,7 @@ func (iter *baseIter[T]) Exclude(fn func(T) bool) *filterIter[T] {
 // Output: [2 4].
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (iter *baseIter[T]) Filter(fn func(T) bool) *filterIter[T] {
+func (iter *baseIter[T]) Filter(fn func(v T) bool) *filterIter[T] {
 	return filter[T](iter, fn)
 }
 
@@ -347,7 +347,7 @@ func (iter *baseIter[T]) Filter(fn func(T) bool) *filterIter[T] {
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (iter *baseIter[T]) Find(fn func(T) bool) Option[T] {
+func (iter *baseIter[T]) Find(fn func(v T) bool) Option[T] {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -416,7 +416,7 @@ func (iter *baseIter[T]) Flatten() *flattenIter[T] {
 // Output: 15.
 //
 // The resulting value will be the accumulation of elements based on the provided function.
-func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T {
+func (iter *baseIter[T]) Fold(init T, fn func(acc, val T) T) T {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -443,7 +443,7 @@ func (iter *baseIter[T]) Fold(init T, fn func(T, T) T) T {
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (iter *baseIter[T]) ForEach(fn func(T)) {
+func (iter *baseIter[T]) ForEach(fn func(v T)) {
 	for {
 		next := iter.Next()
 		if next.IsNone() {
@@ -482,7 +482,7 @@ func (iter *baseIter[T]) ForEach(fn func(T)) {
 // Output: [2 4 6].
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (iter *baseIter[T]) Map(fn func(T) T) *mapIter[T, T] {
+func (iter *baseIter[T]) Map(fn func(v T) T) *mapIter[T, T] {
 	return transform[T](iter, fn)
 }
 
@@ -504,7 +504,7 @@ func (iter *baseIter[T]) Map(fn func(T) T) *mapIter[T, T] {
 //	})
 //
 // The iteration will stop when the provided function returns false for an element.
-func (iter *baseIter[T]) Range(fn func(T) bool) {
+func (iter *baseIter[T]) Range(fn func(v T) bool) {
 	for {
 		next := iter.Next()
 		if next.IsNone() || !fn(next.Some()) {

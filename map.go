@@ -19,13 +19,28 @@ func NewMap[K comparable, V any](size ...int) Map[K, V] {
 // MapFromStd creates an Map from a given Go map.
 func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 
+// Iter returns an iterator (*liftIterM) for the Map, allowing for sequential iteration
+// over its key-value pairs. It is commonly used in combination with higher-order functions,
+// such as 'ForEach', to perform operations on each key-value pair of the Map.
+//
+// Returns:
+//
+// A pointer to a liftIterM, which can be used for sequential iteration over the key-value pairs of the Map.
+//
+// Example usage:
+//
+//	myMap := g.Map[string, int]{"one": 1, "two": 2, "three": 3}
+//	iterator := myMap.Iter()
+//	iterator.ForEach(func(key string, value int) {
+//		// Perform some operation on each key-value pair
+//		fmt.Printf("%s: %d\n", key, value)
+//	})
+//
+// The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
+// in a functional style, enabling operations like mapping or filtering.
 func (m Map[K, V]) Iter() *liftIterM[K, V] { return liftM[K, V](m) }
 
 // Random returns a new map containing a single randomly selected key-value pair from the original map.
-//
-// Parameters:
-//
-// None.
 //
 // Returns:
 //

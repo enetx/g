@@ -229,34 +229,34 @@ func TestSubSliceWithStep(t *testing.T) {
 
 func TestSortInts(t *testing.T) {
 	slice := g.Slice[int]{5, 2, 8, 1, 6}
-	sorted := slice.Sort()
+	slice.Sort()
 
 	expected := g.Slice[int]{1, 2, 5, 6, 8}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Expected %v but got %v", expected, slice)
 	}
 }
 
 func TestSortStrings(t *testing.T) {
 	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
-	sorted := slice.Sort()
+	slice.Sort()
 
 	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Expected %v but got %v", expected, slice)
 	}
 }
 
 func TestSortFloats(t *testing.T) {
 	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
-	sorted := slice.Sort()
+	slice.Sort()
 
 	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
+	if !reflect.DeepEqual(slice, expected) {
+		t.Errorf("Expected %v but got %v", expected, slice)
 	}
 }
 
@@ -502,7 +502,7 @@ func TestSliceChunks(t *testing.T) {
 
 func TestSliceReverse(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5}
-	sl = sl.Reverse()
+	sl.Reverse()
 
 	if !reflect.DeepEqual(sl, g.Slice[int]{5, 4, 3, 2, 1}) {
 		t.Errorf("Expected %v, got %v", g.Slice[int]{5, 4, 3, 2, 1}, sl)
@@ -716,28 +716,28 @@ func TestSliceSortBy(t *testing.T) {
 	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
 	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
 
-	actual1 := sl1.SortBy(func(i, j int) bool { return sl1[i] < sl1[j] })
+	sl1.SortBy(func(i, j int) bool { return sl1[i] < sl1[j] })
 
-	if !actual1.Eq(expected1) {
-		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
+	if !sl1.Eq(expected1) {
+		t.Errorf("SortBy failed: expected %v, but got %v", expected1, sl1)
 	}
 
 	sl2 := g.NewSlice[string]().Append("foo", "bar", "baz")
 	expected2 := g.NewSlice[string]().Append("foo", "baz", "bar")
 
-	actual2 := sl2.SortBy(func(i, j int) bool { return sl2[i] > sl2[j] })
+	sl2.SortBy(func(i, j int) bool { return sl2[i] > sl2[j] })
 
-	if !actual2.Eq(expected2) {
-		t.Errorf("SortBy failed: expected %v, but got %v", expected2, actual2)
+	if !sl2.Eq(expected2) {
+		t.Errorf("SortBy failed: expected %v, but got %v", expected2, sl2)
 	}
 
 	sl3 := g.NewSlice[int]()
 	expected3 := g.NewSlice[int]()
 
-	actual3 := sl3.SortBy(func(i, j int) bool { return sl3[i] < sl3[j] })
+	sl3.SortBy(func(i, j int) bool { return sl3[i] < sl3[j] })
 
-	if !actual3.Eq(expected3) {
-		t.Errorf("SortBy failed: expected %v, but got %v", expected3, actual3)
+	if !sl3.Eq(expected3) {
+		t.Errorf("SortBy failed: expected %v, but got %v", expected3, sl3)
 	}
 }
 

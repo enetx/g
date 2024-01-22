@@ -38,7 +38,9 @@ func main() {
 	result.Print()
 	fmt.Printf("%#v\n", result.Std())
 
-	filled := g.NewSlice[int](10).Fill(88)
+	filled := g.NewSlice[int](10)
+	filled.Fill(88)
+
 	filled.Print()
 
 	slice = g.Slice[int]{1, 2, 3, 4, 5}.Print()
