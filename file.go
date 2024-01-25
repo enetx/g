@@ -371,6 +371,23 @@ func (f *File) Stat() Result[fs.FileInfo] {
 	return ToResult(os.Stat(f.name.Std()))
 }
 
+// Lstat retrieves information about the symbolic link represented by the *File instance.
+// It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
+// Unlike Stat, Lstat does not follow the link and provides information about the link itself.
+func (f *File) Lstat() Result[fs.FileInfo] {
+	return ToResult(os.Lstat(f.name.Std()))
+}
+
+func (f *File) IsDir() bool {
+	stat := f.Stat()
+	return stat.IsOk() && stat.Ok().IsDir()
+}
+
+func (f *File) IsLink() bool {
+	stat := f.Lstat()
+	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
+}
+
 // Std returns the underlying *os.File instance.
 // Don't forget to close the file with g.File().Close()!
 func (f *File) Std() *os.File { return f.file }
@@ -474,9 +491,7 @@ func (f *File) dirPath() Result[String] {
 		err  error
 	)
 
-	stat := f.Stat()
-
-	if stat.IsOk() && stat.Ok().IsDir() {
+	if f.IsDir() {
 		path, err = filepath.Abs(f.name.Std())
 	} else {
 		path, err = filepath.Abs(filepath.Dir(f.name.Std()))
@@ -496,8 +511,7 @@ func (f *File) filePath() Result[String] {
 		return Err[String](dirPath.Err())
 	}
 
-	stat := f.Stat()
-	if stat.IsOk() && stat.Ok().IsDir() {
+	if f.IsDir() {
 		return dirPath
 	}
 

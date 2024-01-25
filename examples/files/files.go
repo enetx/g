@@ -18,7 +18,8 @@ func main() {
 
 	stat := f.Stat().Unwrap()
 	fmt.Printf("Name(): %v\n", f.Name())
-	fmt.Printf("IsDir(): %v\n", stat.IsDir())
+	fmt.Printf("IsDir(): %v\n", f.IsDir())
+	fmt.Printf("f.IsLink(): %v\n", f.IsLink())
 	fmt.Printf("Size(): %v\n", stat.Size())
 	fmt.Printf("Mode(): %v\n", stat.Mode())
 	fmt.Printf("ModeTime(): %v\n", stat.ModTime())

@@ -1,11 +1,22 @@
 package g
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
+
+// SkipWalk is used as a return value from the walker function to indicate that
+// the file or directory named in the call should be skipped. It is not returned
+// as an error by any function.
+var SkipWalk = errors.New("skip")
+
+// StopWalk is used as a return value from the walker function to indicate that
+// all remaining files and directories should be skipped. It is not returned
+// as an error by any function.
+var StopWalk = errors.New("stop the walk")
 
 // NewDir returns a new Dir instance with the given path.
 func NewDir(path String) *Dir { return &Dir{path: path} }
@@ -29,6 +40,13 @@ func (d *Dir) Stat() Result[fs.FileInfo] {
 	}
 
 	return ToResult(os.Stat(d.Path().Ok().Std()))
+}
+
+// Lstat retrieves information about the symbolic link represented by the Dir instance.
+// It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
+// Unlike Stat, Lstat does not follow the link and provides information about the link itself.
+func (d *Dir) Lstat() Result[fs.FileInfo] {
+	return ToResult(os.Lstat(d.Path().Ok().Std()))
 }
 
 // CreateTemp creates a new temporary directory in the specified directory with the
@@ -110,25 +128,50 @@ func (d *Dir) Remove() Result[*Dir] {
 //
 //	sourceDir := g.NewDir("path/to/source")
 //	destinationDir := sourceDir.Copy("path/to/destination")
-func (d *Dir) Copy(dest String) Result[*Dir] {
-	if err := filepath.Walk(d.path.Std(), func(path string, info os.FileInfo, err error) error {
+func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
+	follow := true
+	if len(followLinks) != 0 {
+		follow = followLinks[0]
+	}
+
+	root := d.Path()
+	if root.IsErr() {
+		return Err[*Dir](root.Err())
+	}
+
+	walker := func(f *File) error {
+		path := f.Path()
+		if path.IsErr() {
+			return path.Err()
+		}
+
+		relpath, err := filepath.Rel(root.Ok().Std(), path.Ok().Std())
 		if err != nil {
 			return err
 		}
 
-		relPath, err := filepath.Rel(d.path.Std(), path)
-		if err != nil {
-			return err
+		destpath := NewDir(dest).Join(String(relpath))
+		if destpath.IsErr() {
+			return destpath.Err()
 		}
 
-		destPath := filepath.Join(dest.Std(), relPath)
-
-		if info.IsDir() {
-			return NewDir(String(destPath)).CreateAll(info.Mode()).Err()
+		stat := f.Stat()
+		if stat.IsErr() {
+			return stat.Err()
 		}
 
-		return NewFile(String(path)).Copy(String(destPath), info.Mode()).Err()
-	}); err != nil {
+		if stat.Ok().IsDir() {
+			if !follow && f.IsLink() {
+				return SkipWalk
+			}
+
+			return NewDir(destpath.Ok()).CreateAll(stat.Ok().Mode()).Err()
+		}
+
+		return f.Copy(destpath.Ok(), stat.Ok().Mode()).Err()
+	}
+
+	if err := d.Walk(walker); err != nil {
 		return Err[*Dir](err)
 	}
 
@@ -334,33 +377,27 @@ func (d Dir) Exist() bool {
 //
 //	dir := g.NewDir("path/to/directory")
 //	files := dir.Read()
-func (d *Dir) Read(fullPath ...bool) Result[Slice[*File]] {
-	dirs, err := os.ReadDir(d.path.Std())
+
+func (d *Dir) Read() Result[Slice[*File]] {
+	entries, err := os.ReadDir(d.path.Std())
 	if err != nil {
 		return Err[Slice[*File]](err)
 	}
 
-	files := NewSlice[*File](0, len(dirs))
+	files := NewSlice[*File](0, len(entries))
 
-	fp := len(fullPath) != 0 && fullPath[0]
-
-	for _, dir := range dirs {
-		file := String(dir.Name())
-		if fp {
-			dpath := d.Path()
-			if dpath.IsErr() {
-				return Err[Slice[*File]](dpath.Err())
-			}
-
-			nfp := NewDir(dpath.Ok()).Join(file)
-			if nfp.IsErr() {
-				return Err[Slice[*File]](nfp.Err())
-			}
-
-			file = nfp.Ok()
+	for _, entry := range entries {
+		dpath := d.Path()
+		if dpath.IsErr() {
+			return Err[Slice[*File]](dpath.Err())
 		}
 
-		files = files.Append(NewFile(file))
+		file := NewDir(dpath.Ok()).Join(String(entry.Name()))
+		if file.IsErr() {
+			return Err[Slice[*File]](file.Err())
+		}
+
+		files = files.Append(NewFile(file.Ok()))
 	}
 
 	return Ok(files)
@@ -378,7 +415,7 @@ func (d *Dir) Read(fullPath ...bool) Result[Slice[*File]] {
 //
 //	dir := g.NewDir("path/to/directory/*.txt")
 //	files := dir.Glob()
-func (d *Dir) Glob(fullPath ...bool) Result[Slice[*File]] {
+func (d *Dir) Glob() Result[Slice[*File]] {
 	matches, err := filepath.Glob(d.path.Std())
 	if err != nil {
 		return Err[Slice[*File]](err)
@@ -386,23 +423,74 @@ func (d *Dir) Glob(fullPath ...bool) Result[Slice[*File]] {
 
 	files := NewSlice[*File](0, len(matches))
 
-	fp := len(fullPath) != 0 && fullPath[0]
-
 	for _, match := range matches {
-		file := NewFile(String(match))
-		if fp {
-			nfp := file.Path()
-			if nfp.IsErr() {
-				return Err[Slice[*File]](nfp.Err())
-			}
-
-			file = NewFile(nfp.Ok())
+		file := NewFile(String(match)).Path()
+		if file.IsErr() {
+			return Err[Slice[*File]](file.Err())
 		}
 
-		files = files.Append(file)
+		files = files.Append(NewFile(file.Ok()))
 	}
 
 	return Ok(files)
+}
+
+// Walk recursively traverses the directory structure and applies the walker function to each file and directory.
+//
+// Parameters:
+//
+// - walker: A function that takes a *File as an argument and returns an error.
+// It is applied to each file and directory encountered during the walk.
+//
+// - followLinks (optional): A boolean indicating whether to follow symbolic links during the walk.
+// If true, symbolic links are followed, otherwise, they are skipped.
+//
+// Returns:
+//
+// - error: An error indicating any issues that occurred during the walk. If no errors occurred, it returns nil.
+func (d *Dir) Walk(walker func(f *File) error) error {
+	entries := d.Read()
+	if entries.IsErr() {
+		return entries.Err()
+	}
+
+	for _, entry := range entries.Ok() {
+		if err := walker(entry); err != nil {
+			switch err {
+			case SkipWalk:
+				continue
+			case StopWalk:
+				return nil
+			default:
+				return err
+			}
+		}
+
+		stat := entry.Stat()
+		if stat.IsErr() {
+			return stat.Err()
+		}
+
+		if stat.Ok().IsDir() {
+			entryPath := entry.Path()
+			if entryPath.IsErr() {
+				return entryPath.Err()
+			}
+
+			subdir := NewDir(entryPath.Ok())
+
+			if err := subdir.Walk(walker); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *Dir) IsLink() bool {
+	stat := d.Lstat()
+	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
 }
 
 // ToString returns the String representation of the current directory's path.
