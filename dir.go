@@ -16,7 +16,7 @@ var SkipWalk = errors.New("skip")
 // StopWalk is used as a return value from the walker function to indicate that
 // all remaining files and directories should be skipped. It is not returned
 // as an error by any function.
-var StopWalk = errors.New("stop the walk")
+var StopWalk = errors.New("stop")
 
 // NewDir returns a new Dir instance with the given path.
 func NewDir(path String) *Dir { return &Dir{path: path} }
@@ -47,6 +47,12 @@ func (d *Dir) Stat() Result[fs.FileInfo] {
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
 func (d *Dir) Lstat() Result[fs.FileInfo] {
 	return ToResult(os.Lstat(d.Path().Ok().Std()))
+}
+
+// IsLink checks if the directory is a symbolic link.
+func (d *Dir) IsLink() bool {
+	stat := d.Lstat()
+	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
 }
 
 // CreateTemp creates a new temporary directory in the specified directory with the
@@ -117,17 +123,23 @@ func (d *Dir) Remove() Result[*Dir] {
 //
 // Parameters:
 //
-// - dest (String): The destination directory where the contents of the current
-// directory should be copied.
+// - dest (String): The destination directory where the contents of the current directory should be copied.
+//
+// - followLinks (optional): A boolean indicating whether to follow symbolic links during the walk.
+// If true, symbolic links are followed; otherwise, they are skipped.
 //
 // Returns:
 //
-// - *Dir: A pointer to a new Dir instance representing the destination directory.
+// - Result[*Dir]: A Result type containing either a pointer to a new Dir instance representing the destination directory or an error.
 //
 // Example usage:
 //
 //	sourceDir := g.NewDir("path/to/source")
-//	destinationDir := sourceDir.Copy("path/to/destination")
+//	destinationDirResult := sourceDir.Copy("path/to/destination")
+//	if destinationDirResult.IsErr() {
+//		// Handle error
+//	}
+//	destinationDir := destinationDirResult.Ok()
 func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 	follow := true
 	if len(followLinks) != 0 {
@@ -442,9 +454,6 @@ func (d *Dir) Glob() Result[Slice[*File]] {
 // - walker: A function that takes a *File as an argument and returns an error.
 // It is applied to each file and directory encountered during the walk.
 //
-// - followLinks (optional): A boolean indicating whether to follow symbolic links during the walk.
-// If true, symbolic links are followed, otherwise, they are skipped.
-//
 // Returns:
 //
 // - error: An error indicating any issues that occurred during the walk. If no errors occurred, it returns nil.
@@ -486,11 +495,6 @@ func (d *Dir) Walk(walker func(f *File) error) error {
 	}
 
 	return nil
-}
-
-func (d *Dir) IsLink() bool {
-	stat := d.Lstat()
-	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
 }
 
 // ToString returns the String representation of the current directory's path.

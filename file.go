@@ -378,11 +378,13 @@ func (f *File) Lstat() Result[fs.FileInfo] {
 	return ToResult(os.Lstat(f.name.Std()))
 }
 
+// IsDir checks if the file is a directory.
 func (f *File) IsDir() bool {
 	stat := f.Stat()
 	return stat.IsOk() && stat.Ok().IsDir()
 }
 
+// IsLink checks if the file is a symbolic link.
 func (f *File) IsLink() bool {
 	stat := f.Lstat()
 	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0

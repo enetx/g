@@ -51,10 +51,13 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 // containing the transformed values.
 //
 // Parameters:
+//
 // - sl: The input Slice.
+//
 // - fn: The function to apply to each element of the input Slice.
 //
 // Returns:
+//
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 	return mapiter[T, U](sl.Iter(), fn).Collect()
