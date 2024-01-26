@@ -9,7 +9,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gitlab.com/x0xO/g/pkg/iter"
 	"gitlab.com/x0xO/g/pkg/minmax"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -54,7 +53,7 @@ func (String) Random(count int, letters ...String) String {
 
 	var result strings.Builder
 
-	for range iter.N(count) {
+	for range count {
 		result.WriteRune(chars.Random())
 	}
 
@@ -829,7 +828,7 @@ func writePadding(output *strings.Builder, pad String, padlen, remains int) {
 	}
 
 	padrunes := pad.ToRunes()
-	for i := range iter.N(remains % padlen) {
+	for i := range remains % padlen {
 		_, _ = output.WriteRune(padrunes[i])
 	}
 }

@@ -1,8 +1,6 @@
 package g
 
-import (
-	"context"
-)
+import "context"
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.

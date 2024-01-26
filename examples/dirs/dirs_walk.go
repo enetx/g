@@ -14,7 +14,7 @@ func walker(f *g.File) error {
 
 	// Skip symbolic link files
 	if f.IsLink() {
-		return g.SkipWalk
+		return nil
 	}
 
 	// Print the path

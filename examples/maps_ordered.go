@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/iter"
 	"gitlab.com/x0xO/g/pkg/ref"
 )
 
@@ -16,11 +15,11 @@ func main() {
 
 	gos := g.NewMapOrd[int, *g.Slice[int]]()
 
-	for i := range iter.N(5) {
+	for i := range 5 {
 		gos.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
 	}
 
-	for i := range iter.N(10) {
+	for i := range 10 {
 		gos.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
 	}
 
@@ -36,11 +35,11 @@ func main() {
 
 	god := g.NewMapOrd[int, g.Slice[int]]()
 
-	for i := range iter.N(5) {
+	for i := range 5 {
 		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
 	}
 
-	for i := range iter.N(10) {
+	for i := range 10 {
 		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
 	}
 

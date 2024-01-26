@@ -102,7 +102,15 @@ func main() {
 
 	sl.Iter().ForEach(func(v g.String) { v.Print() })
 
-	sl = sl.Iter().Unique().Collect().Reverse().Iter().Filter(func(s g.String) bool { return s != "bbb" }).Collect()
+	sl = sl.Iter().Unique().Collect()
+	sl.Reverse()
+
+	sl.Iter().
+		Filter(
+			func(s g.String) bool {
+				return s != "bbb"
+			}).
+		Collect()
 
 	sl.Print()
 

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/iter"
 )
 
 func TestIntIsPositive(t *testing.T) {
@@ -46,7 +45,7 @@ func TestIntNegative(t *testing.T) {
 }
 
 func TestIntRandomRange(t *testing.T) {
-	for range iter.N(100) {
+	for range 100 {
 		min := g.NewInt(100).Random()
 		max := g.NewInt(100).Random().Add(min)
 

@@ -367,7 +367,7 @@ func (d *Dir) Path() Result[String] {
 //
 //	dir := g.NewDir("path/to/directory")
 //	exists := dir.Exist()
-func (d Dir) Exist() bool {
+func (d *Dir) Exist() bool {
 	path := d.Path()
 	if path.IsErr() {
 		return false
@@ -465,10 +465,10 @@ func (d *Dir) Walk(walker func(f *File) error) error {
 
 	for _, entry := range entries.Ok() {
 		if err := walker(entry); err != nil {
-			switch err {
-			case SkipWalk:
+			switch {
+			case errors.Is(err, SkipWalk):
 				continue
-			case StopWalk:
+			case errors.Is(err, StopWalk):
 				return nil
 			default:
 				return err
@@ -498,7 +498,7 @@ func (d *Dir) Walk(walker func(f *File) error) error {
 }
 
 // ToString returns the String representation of the current directory's path.
-func (d Dir) ToString() String { return d.path }
+func (d *Dir) ToString() String { return d.path }
 
 // Print prints the content of the Dir to the standard output (console)
 // and returns the Dir unchanged.

@@ -35,11 +35,3 @@ func BenchmarkZlib(b *testing.B) {
 		alice.Comp().Zlib()
 	}
 }
-
-func BenchmarkBrotli(b *testing.B) {
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		alice.Comp().Brotli()
-	}
-}

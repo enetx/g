@@ -10,8 +10,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"gitlab.com/x0xO/g/pkg/iter"
 )
 
 type (
@@ -169,7 +167,7 @@ func (e enc) XOR(key String) String {
 
 	encrypted := e.str.ToBytes()
 
-	for i := range iter.N(e.str.Len()) {
+	for i := range e.str.Len() {
 		encrypted[i] ^= key[i%key.Len()]
 	}
 
@@ -183,7 +181,7 @@ func (d dec) XOR(key String) String { return d.str.Enc().XOR(key) }
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
 func (e enc) Hex() String {
 	var result strings.Builder
-	for i := range iter.N(e.str.Len()) {
+	for i := range e.str.Len() {
 		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToHex())
 	}
 
@@ -235,7 +233,7 @@ func (d dec) Octal() Result[String] {
 // Binary converts the wrapped String to its binary representation as an String.
 func (e enc) Binary() String {
 	var result strings.Builder
-	for i := range iter.N(e.str.Len()) {
+	for i := range e.str.Len() {
 		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToBinary())
 	}
 

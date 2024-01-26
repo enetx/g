@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.com/x0xO/g/pkg/iter"
 	"gitlab.com/x0xO/g/pkg/rand"
 )
 
@@ -128,7 +127,7 @@ func (sl Slice[T]) Counter() Map[any, uint] {
 //
 // The modified slice will now contain: 5, 5, 5.
 func (sl Slice[T]) Fill(val T) {
-	for i := range iter.N(sl.Len()) {
+	for i := range sl.Len() {
 		sl.Set(i, val)
 	}
 }
@@ -433,11 +432,11 @@ func (sl Slice[T]) Max() T {
 		return *new(T)
 	}
 
-	max := sl.Get(0)
+	maxi := sl.Get(0)
 
 	var greater func(a, b any) bool
 
-	switch any(max).(type) {
+	switch any(maxi).(type) {
 	case Int:
 		greater = func(a, b any) bool { return a.(Int).Gt(b.(Int)) }
 	case int:
@@ -453,12 +452,12 @@ func (sl Slice[T]) Max() T {
 	}
 
 	sl.Iter().ForEach(func(t T) {
-		if greater(t, max) {
-			max = t
+		if greater(t, maxi) {
+			maxi = t
 		}
 	})
 
-	return max
+	return maxi
 }
 
 // Min returns the minimum element in the slice, assuming elements are comparable.
@@ -467,11 +466,11 @@ func (sl Slice[T]) Min() T {
 		return *new(T)
 	}
 
-	min := sl.Get(0)
+	mini := sl.Get(0)
 
 	var less func(a, b any) bool
 
-	switch any(min).(type) {
+	switch any(mini).(type) {
 	case Int:
 		less = func(a, b any) bool { return a.(Int).Lt(b.(Int)) }
 	case int:
@@ -487,12 +486,12 @@ func (sl Slice[T]) Min() T {
 	}
 
 	sl.Iter().ForEach(func(t T) {
-		if less(t, min) {
-			min = t
+		if less(t, mini) {
+			mini = t
 		}
 	})
 
-	return min
+	return mini
 }
 
 // Shuffle shuffles the elements in the slice randomly.

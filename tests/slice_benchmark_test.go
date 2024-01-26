@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/iter"
 )
 
 // go test -bench=. -benchmem -count=4
 
 func genSlice() g.Slice[g.String] {
 	slice := g.NewSlice[g.String](0, 10000)
-	for i := range iter.N(10000) {
+	for i := range 10000 {
 		slice = slice.Append(g.NewInt(i).ToString())
 	}
 

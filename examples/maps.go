@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/iter"
 	"gitlab.com/x0xO/g/pkg/ref"
 )
 
@@ -21,11 +20,11 @@ func main() {
 
 	gos2 := g.NewMap[int, *g.Slice[int]]()
 
-	for i := range iter.N(5) {
+	for i := range 5 {
 		gos2.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
 	}
 
-	for i := range iter.N(10) {
+	for i := range 10 {
 		gos2.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
 	}
 
@@ -35,19 +34,19 @@ func main() {
 
 	god := g.NewMap[int, g.Slice[int]]()
 
-	for i := range iter.N(5) {
+	for i := range 5 {
 		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
 		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
 		// god.Set(i, god.Get(i).Append(i))
 	}
 
-	for i := range iter.N(10) {
+	for i := range 10 {
 		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
 		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
 		// god.Set(i, god.Get(i).Append(i))
 	}
 
-	for i := range iter.N(10) {
+	for i := range 10 {
 		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
 		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
 	}

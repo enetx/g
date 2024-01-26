@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/iter"
 )
 
 func TestStringIsDigit(t *testing.T) {
@@ -200,7 +199,7 @@ func TestStringAddPrefix(t *testing.T) {
 }
 
 func TestStringRandom(t *testing.T) {
-	for i := range iter.N(100) {
+	for i := range 100 {
 		random := g.NewString("").Random(i)
 
 		if random.Len() != i {

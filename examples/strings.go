@@ -37,8 +37,6 @@ func main() {
 	g.NewString("").Random(10, g.DIGITS).Print()
 	g.NewString("").Random(10, g.PUNCTUATION).Print()
 
-	g.NewString("some text").Comp().Brotli().Decomp().Brotli().Unwrap().Print()
-
 	g.String("https://www.test.com/?query=Hellö Wörld&param=value").Enc().URL().Print()
 	g.String("Hellö Wörld@Golang").Enc().URL("").Print()
 }

@@ -8,7 +8,6 @@ import (
 
 	"gitlab.com/x0xO/g"
 	"gitlab.com/x0xO/g/filters"
-	"gitlab.com/x0xO/g/pkg/iter"
 )
 
 func TestSliceIterSortInts(t *testing.T) {
@@ -908,7 +907,7 @@ func TestSliceExcludeZeroValues(t *testing.T) {
 		t.Errorf("Expected 10, got %d", sl.Len())
 	}
 
-	for i := range iter.N(sl.Len()) {
+	for i := range sl.Len() {
 		if sl[i] == 0 {
 			t.Errorf("Expected non-zero value, got %d", sl[i])
 		}
