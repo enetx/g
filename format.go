@@ -36,12 +36,12 @@ func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
 // Output:
 //
 //	Hello, my name is John. I am 30 years old and live in New York.
-func GSprintf[T ~string](str T, args Map[T, any]) String {
+func GSprintf[T, U ~string](str T, args Map[U, any]) String {
 	result := String(str)
 
 	args.Iter().
 		ForEach(
-			func(k T, v any) {
+			func(k U, v any) {
 				result = result.ReplaceAll("{"+String(k)+"}", Sprint(v))
 			})
 
