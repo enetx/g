@@ -13,7 +13,8 @@ import (
 //
 // Example:
 //
-//	g.NewMapOrd[int, string]().
+//	m := g.NewMapOrd[int, string]()
+//	m.
 //		Set(6, "bb").
 //		Set(0, "dd").
 //		Set(1, "aa").
@@ -55,12 +56,12 @@ func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
 //
 // Example usage:
 //
-//	mapIter := g.Map[string, int]{"one": 1, "two": 2, "three": 3}.Iter()
+//	mapIter := g.MapOrd[string, int]{{"one", 1}, {"two", 2}, {"three", 3}}.Iter()
 //	iter := mapIter.StepBy(2)
 //	result := iter.Collect()
 //	result.Print()
 //
-// Output: map[one:1 three:3]
+// Output: MapOrd{one:1, three:3}
 //
 // The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
 func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
@@ -82,8 +83,11 @@ func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
 //
 // Example usage:
 //
-//	iter1 := g.NewMapOrd[int, string]().Set(1, "a").Iter()
-//	iter2 := g.NewMapOrd[int, string]().Set(2, "b").Iter()
+//	iter1 := g.NewMapOrd[int, string]()
+//	iter1.Set(1, "a").Iter()
+//
+//	iter2 := g.NewMapOrd[int, string]()
+//	iter2.Set(2, "b").Iter()
 //
 //	// Concatenating iterators and collecting the result.
 //	iter1.Chain(iter2).Collect().Print()
@@ -96,7 +100,7 @@ func (iter *baseIterMO[K, V]) Chain(iterators ...iteratorMO[K, V]) *chainIterMO[
 }
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
-func (iter *baseIterMO[K, V]) Collect() *MapOrd[K, V] {
+func (iter *baseIterMO[K, V]) Collect() MapOrd[K, V] {
 	mp := NewMapOrd[K, V]()
 
 	for {
@@ -124,7 +128,14 @@ func (iter *baseIterMO[K, V]) Collect() *MapOrd[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, string]().Set(1, "a").Set(2, "b").Set(3, "c").Set(4, "d").Iter()
+
+//	iter := g.NewMapOrd[int, string]()
+//	iter.
+//		Set(1, "a").
+//		Set(2, "b").
+//		Set(3, "c").
+//		Set(4, "d").
+//		Iter()
 //
 //	// Skipping the first two elements and collecting the rest.
 //	iter.Skip(2).Collect().Print()
@@ -151,7 +162,8 @@ func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
 //
 // Example usage:
 //
-//	mo := g.NewMapOrd[int, int]().
+//	mo := g.NewMapOrd[int, int]()
+//	mo.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -188,7 +200,8 @@ func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V
 //
 // Example usage:
 //
-//	mo := g.NewMapOrd[int, int]().
+//	mo := g.NewMapOrd[int, int]()
+//	mo.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -220,7 +233,8 @@ func (iter *baseIterMO[K, V]) Filter(fn func(k K, v V) bool) *filterIterMO[K, V]
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]().
+//	iter := g.NewMapOrd[int, int]()
+//	iter.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -253,7 +267,8 @@ func (iter *baseIterMO[K, V]) ForEach(fn func(k K, v V)) {
 //
 // Example usage:
 //
-//	mo := g.NewMapOrd[int, int]().
+//	mo := g.NewMapOrd[int, int]()
+//	mo.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -287,7 +302,8 @@ func (iter *baseIterMO[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterMO[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]().
+//	iter := g.NewMapOrd[int, int]()
+//	iter.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -331,7 +347,8 @@ func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]().
+//	iter := g.NewMapOrd[int, int]()
+//	iter.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).

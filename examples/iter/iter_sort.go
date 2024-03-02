@@ -8,14 +8,15 @@ import (
 
 func main() {
 	// Example 1: Sort an ordered map by key and print the result
-	g.NewMapOrd[int, string]().
-		Set(6, "bb").
-		Set(0, "dd").
-		Set(1, "aa").
-		Set(5, "xx").
-		Set(2, "cc").
-		Set(3, "ff").
-		Set(4, "zz").
+	g.MapOrd[int, string]{
+		{6, "bb"},
+		{0, "dd"},
+		{1, "aa"},
+		{5, "xx"},
+		{2, "cc"},
+		{3, "ff"},
+		{4, "zz"},
+	}.
 		Iter().
 		SortBy(
 			func(a, b g.Pair[int, string]) bool {

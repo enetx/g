@@ -9,7 +9,8 @@ import (
 
 func TestMapOrdIterSortBy(t *testing.T) {
 	// Sample data
-	data := g.NewMapOrd[int, string]().
+	data := g.NewMapOrd[int, string]()
+	data.
 		Set(1, "d").
 		Set(3, "b").
 		Set(2, "c").
@@ -17,7 +18,8 @@ func TestMapOrdIterSortBy(t *testing.T) {
 		Set(4, "a")
 
 	// Expected result
-	expected := g.NewMapOrd[int, string]().
+	expected := g.NewMapOrd[int, string]()
+	expected.
 		Set(1, "d").
 		Set(2, "c").
 		Set(3, "b").
@@ -31,7 +33,8 @@ func TestMapOrdIterSortBy(t *testing.T) {
 		t.Errorf("Expected %v, got %v", expected, sortedItems)
 	}
 
-	expected = g.NewMapOrd[int, string]().
+	expected = g.NewMapOrd[int, string]()
+	expected.
 		Set(4, "a").
 		Set(3, "b").
 		Set(2, "c").
@@ -48,8 +51,19 @@ func TestMapOrdIterSortBy(t *testing.T) {
 
 func TestMapOrdIterStepBy(t *testing.T) {
 	// Test case 1: StepBy with a step size of 2
-	mapData := g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3).Set("four", 4).Set("five", 5)
-	expectedResult := g.NewMapOrd[string, int]().Set("one", 1).Set("three", 3).Set("five", 5)
+	mapData := g.NewMapOrd[string, int]()
+	mapData.
+		Set("one", 1).
+		Set("two", 2).
+		Set("three", 3).
+		Set("four", 4).
+		Set("five", 5)
+
+	expectedResult := g.NewMapOrd[string, int]()
+	expectedResult.
+		Set("one", 1).
+		Set("three", 3).
+		Set("five", 5)
 
 	iter := mapData.Iter().StepBy(2)
 	result := iter.Collect()
@@ -59,8 +73,16 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	}
 
 	// Test case 2: StepBy with a step size of 3
-	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3).Set("four", 4).Set("five", 5)
-	expectedResult = g.NewMapOrd[string, int]().Set("one", 1).Set("four", 4)
+	mapData = g.NewMapOrd[string, int]()
+	mapData.
+		Set("one", 1).
+		Set("two", 2).
+		Set("three", 3).
+		Set("four", 4).
+		Set("five", 5)
+
+	expectedResult = g.NewMapOrd[string, int]()
+	expectedResult.Set("one", 1).Set("four", 4)
 
 	iter = mapData.Iter().StepBy(3)
 	result = iter.Collect()
@@ -71,8 +93,13 @@ func TestMapOrdIterStepBy(t *testing.T) {
 
 	// Test case 3: StepBy with a step size larger than the map length
 
-	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
-	expectedResult = g.NewMapOrd[string, int]().Set("one", 1)
+	mapData = g.NewMapOrd[string, int]()
+	mapData.Set("one", 1).
+		Set("two", 2).
+		Set("three", 3)
+
+	expectedResult = g.NewMapOrd[string, int]()
+	expectedResult.Set("one", 1)
 
 	iter = mapData.Iter().StepBy(5)
 	result = iter.Collect()
@@ -82,8 +109,16 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	}
 
 	// Test case 4: StepBy with a step size of 1
-	mapData = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
-	expectedResult = g.NewMapOrd[string, int]().Set("one", 1).Set("two", 2).Set("three", 3)
+	mapData = g.NewMapOrd[string, int]()
+	mapData.Set("one", 1).
+		Set("two", 2).
+		Set("three", 3)
+
+	expectedResult = g.NewMapOrd[string, int]()
+	expectedResult.
+		Set("one", 1).
+		Set("two", 2).
+		Set("three", 3)
 
 	iter = mapData.Iter().StepBy(1)
 	result = iter.Collect()
@@ -123,6 +158,7 @@ func TestMapOrdIterRange(t *testing.T) {
 			{"b", 2},
 			{"c", 3},
 		}
+
 		expected := map[string]int{"a": 1, "b": 2, "c": 3}
 
 		result := make(map[string]int)

@@ -96,7 +96,7 @@ func main() {
 	counter.Print() // Output: Map[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
 	mo := g.MapOrdFromMap(counter).Print()
 
-	mo.SortBy(func(i, j int) bool { return (*mo)[i].Value < (*mo)[j].Value }).Print()
+	mo.SortBy(func(i, j int) bool { return mo[i].Value < mo[j].Value }).Print()
 
 	counter.Iter().ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
 
@@ -105,7 +105,7 @@ func main() {
 	sl = sl.Iter().Unique().Collect()
 	sl.Reverse()
 
-	sl.Iter().
+	sl = sl.Iter().
 		Filter(
 			func(s g.String) bool {
 				return s != "bbb"

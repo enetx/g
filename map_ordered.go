@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-
-	"gitlab.com/x0xO/g/pkg/ref"
 )
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
@@ -20,7 +18,7 @@ import (
 //
 // Returns:
 //
-// - *MapOrd[K, V]: A pointer to a new ordered Map with the specified initial size (or default
+// - MapOrd[K, V]: Ordered Map with the specified initial size (or default
 // size if not provided).
 //
 // Example usage:
@@ -28,12 +26,12 @@ import (
 //	mapOrd := g.NewMapOrd[string, int](10)
 //
 // Creates a new ordered Map with an initial size of 10.
-func NewMapOrd[K comparable, V any](size ...int) *MapOrd[K, V] {
+func NewMapOrd[K comparable, V any](size ...int) MapOrd[K, V] {
 	if len(size) == 0 {
-		return ref.Of(make(MapOrd[K, V], 0))
+		return make(MapOrd[K, V], 0)
 	}
 
-	return ref.Of(make(MapOrd[K, V], 0, size[0]))
+	return make(MapOrd[K, V], 0, size[0])
 }
 
 // Iter returns an iterator (*liftIterMO) for the ordered Map, allowing for sequential iteration
@@ -46,7 +44,8 @@ func NewMapOrd[K comparable, V any](size ...int) *MapOrd[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]().
+//	iter := g.NewMapOrd[int, int]()
+//	iter.
 //		Set(1, 1).
 //		Set(2, 2).
 //		Set(3, 3).
@@ -58,7 +57,7 @@ func NewMapOrd[K comparable, V any](size ...int) *MapOrd[K, V] {
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
 // in a functional style, enabling operations like mapping or filtering.
-func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
+func (mo MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](mo) }
 
 // MapOrdFromMap converts a standard Map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of
@@ -71,7 +70,7 @@ func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
 //
 // Returns:
 //
-// - *MapOrd[K, V]: A pointer to a new ordered Map containing the same key-value pairs as the
+// - MapOrd[K, V]: New ordered Map containing the same key-value pairs as the
 // input Map.
 //
 // Example usage:
@@ -79,7 +78,7 @@ func (mo *MapOrd[K, V]) Iter() *liftIterMO[K, V] { return liftMO[K, V](*mo) }
 //	mapOrd := g.MapOrdFromMap[string, int](hmap)
 //
 // Converts the standard Map 'hmap' to an ordered Map.
-func MapOrdFromMap[K comparable, V any](m Map[K, V]) *MapOrd[K, V] {
+func MapOrdFromMap[K comparable, V any](m Map[K, V]) MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
 	m.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
 
@@ -97,7 +96,7 @@ func MapOrdFromMap[K comparable, V any](m Map[K, V]) *MapOrd[K, V] {
 //
 // Returns:
 //
-// - *hMapOrd[K, V]: A pointer to a new ordered Map containing the same key-value pairs as the
+// - MapOrd[K, V]: New ordered Map containing the same key-value pairs as the
 // input Go map.
 //
 // Example usage:
@@ -105,7 +104,7 @@ func MapOrdFromMap[K comparable, V any](m Map[K, V]) *MapOrd[K, V] {
 //	mapOrd := g.MapOrdFromStd[string, int](goMap)
 //
 // Converts the standard Go map 'map[K]V' to an ordered Map.
-func MapOrdFromStd[K comparable, V any](m map[K]V) *MapOrd[K, V] { return MapOrdFromMap(MapFromStd(m)) }
+func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdFromMap(MapFromStd(m)) }
 
 // SortBy sorts the ordered Map by a custom comparison function.
 // The comparison function should return true if the element at index i should be sorted before the
@@ -118,20 +117,20 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) *MapOrd[K, V] { return MapOrd
 //
 // Returns:
 //
-// - *MapOrd[K, V]: A pointer to the same ordered Map, sorted according to the custom comparison
+// - MapOrd[K, V]: Same ordered Map, sorted according to the custom comparison
 // function.
 //
 // Example usage:
 //
-//	hmapo.SortBy(func(i, j int) bool { return (*hmapo)[i].Key < (*hmapo)[j].Key })
-//	hmapo.SortBy(func(i, j int) bool { return (*hmapo)[i].Value < (*hmapo)[j].Value })
-func (mo *MapOrd[K, V]) SortBy(f func(i, j int) bool) *MapOrd[K, V] {
-	sort.Slice(*mo, f)
+//	hmapo.SortBy(func(i, j int) bool { return hmapo[i].Key < hmapo[j].Key })
+//	hmapo.SortBy(func(i, j int) bool { return hmapo[i].Value < hmapo[j].Value })
+func (mo MapOrd[K, V]) SortBy(f func(i, j int) bool) MapOrd[K, V] {
+	sort.Slice(mo, f)
 	return mo
 }
 
 // Clone creates a new ordered Map with the same key-value pairs.
-func (mo *MapOrd[K, V]) Clone() *MapOrd[K, V] {
+func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
 	result := NewMapOrd[K, V](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { result.Set(k, v) })
 
@@ -139,13 +138,13 @@ func (mo *MapOrd[K, V]) Clone() *MapOrd[K, V] {
 }
 
 // Copy copies key-value pairs from the source ordered Map to the current ordered Map.
-func (mo *MapOrd[K, V]) Copy(src *MapOrd[K, V]) *MapOrd[K, V] {
+func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
 	src.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
-	return mo
+	return *mo
 }
 
 // ToMap converts the ordered Map to a standard Map.
-func (mo *MapOrd[K, V]) ToMap() Map[K, V] {
+func (mo MapOrd[K, V]) ToMap() Map[K, V] {
 	m := NewMap[K, V](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
 
@@ -186,9 +185,9 @@ func (mo *MapOrd[K, V]) Set(key K, value V) *MapOrd[K, V] {
 //
 // Retrieves the value associated with the key "some_key" and checks if the key exists in the
 // ordered Map.
-func (mo *MapOrd[K, V]) Get(key K) (V, bool) {
+func (mo MapOrd[K, V]) Get(key K) (V, bool) {
 	if i := mo.index(key); i != -1 {
-		return (*mo)[i].Value, true
+		return mo[i].Value, true
 	}
 
 	return *new(V), false // Returns the zero value for type V and false (not found)
@@ -215,9 +214,9 @@ func (mo *MapOrd[K, V]) Get(key K) (V, bool) {
 //
 // Retrieves the value associated with the key "some_key" or returns "default_value" if the key is
 // not found.
-func (mo *MapOrd[K, V]) GetOrDefault(key K, defaultValue V) V {
+func (mo MapOrd[K, V]) GetOrDefault(key K, defaultValue V) V {
 	if i := mo.index(key); i != -1 {
-		return (*mo)[i].Value
+		return mo[i].Value
 	}
 
 	return defaultValue
@@ -258,15 +257,15 @@ func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
 
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
-func (mo *MapOrd[K, V]) Invert() *MapOrd[any, K] {
+func (mo MapOrd[K, V]) Invert() MapOrd[any, K] {
 	result := NewMapOrd[any, K](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
 }
 
-func (mo *MapOrd[K, V]) index(key K) int {
-	for i, mp := range *mo {
+func (mo MapOrd[K, V]) index(key K) int {
+	for i, mp := range mo {
 		if mp.Key == key {
 			return i
 		}
@@ -276,7 +275,7 @@ func (mo *MapOrd[K, V]) index(key K) int {
 }
 
 // Keys returns an Slice containing all the keys in the ordered Map.
-func (mo *MapOrd[K, V]) Keys() Slice[K] {
+func (mo MapOrd[K, V]) Keys() Slice[K] {
 	keys := NewSlice[K](0, mo.Len())
 	mo.Iter().ForEach(func(k K, _ V) { keys = keys.Append(k) })
 
@@ -284,7 +283,7 @@ func (mo *MapOrd[K, V]) Keys() Slice[K] {
 }
 
 // Values returns an Slice containing all the values in the ordered Map.
-func (mo *MapOrd[K, V]) Values() Slice[V] {
+func (mo MapOrd[K, V]) Values() Slice[V] {
 	values := NewSlice[V](0, mo.Len())
 	mo.Iter().ForEach(func(_ K, v V) { values = values.Append(v) })
 
@@ -292,23 +291,23 @@ func (mo *MapOrd[K, V]) Values() Slice[V] {
 }
 
 // Delete removes the specified keys from the ordered Map.
-func (mo *MapOrd[K, V]) Delete(keys ...K) *MapOrd[K, V] {
+func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
 	for _, key := range keys {
 		if i := mo.index(key); i != -1 {
 			*mo = append((*mo)[:i], (*mo)[i+1:]...)
 		}
 	}
 
-	return mo
+	return *mo
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
-func (mo *MapOrd[K, V]) Eq(other *MapOrd[K, V]) bool {
+func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 	if mo.Len() != other.Len() {
 		return false
 	}
 
-	for _, mp := range *mo {
+	for _, mp := range mo {
 		value, ok := other.Get(mp.Key)
 		if !ok || !reflect.DeepEqual(value, mp.Value) {
 			return false
@@ -319,7 +318,7 @@ func (mo *MapOrd[K, V]) Eq(other *MapOrd[K, V]) bool {
 }
 
 // String returns a string representation of the ordered Map.
-func (mo *MapOrd[K, V]) String() string {
+func (mo MapOrd[K, V]) String() string {
 	var builder strings.Builder
 
 	mo.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
@@ -328,24 +327,24 @@ func (mo *MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() *MapOrd[K, V] { return mo.Delete(mo.Keys()...) }
+func (mo *MapOrd[K, V]) Clear() MapOrd[K, V] { return mo.Delete(mo.Keys()...) }
 
 // Contains checks if the ordered Map contains the specified key.
-func (mo *MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }
+func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }
 
 // Empty checks if the ordered Map is empty.
-func (mo *MapOrd[K, V]) Empty() bool { return mo.Len() == 0 }
+func (mo MapOrd[K, V]) Empty() bool { return mo.Len() == 0 }
 
 // Len returns the number of key-value pairs in the ordered Map.
-func (mo *MapOrd[K, V]) Len() int { return len(*mo) }
+func (mo MapOrd[K, V]) Len() int { return len(mo) }
 
 // Ne compares the current ordered Map to another ordered Map and returns true if they are not
 // equal.
-func (mo *MapOrd[K, V]) Ne(other *MapOrd[K, V]) bool { return !mo.Eq(other) }
+func (mo MapOrd[K, V]) Ne(other MapOrd[K, V]) bool { return !mo.Eq(other) }
 
 // NotEmpty checks if the ordered Map is not empty.
-func (mo *MapOrd[K, V]) NotEmpty() bool { return !mo.Empty() }
+func (mo MapOrd[K, V]) NotEmpty() bool { return !mo.Empty() }
 
 // Print prints the key-value pairs of the MapOrd to the standard output (console)
 // and returns the MapOrd pointer unchanged.
-func (mo *MapOrd[K, V]) Print() *MapOrd[K, V] { fmt.Println(mo); return mo }
+func (mo MapOrd[K, V]) Print() MapOrd[K, V] { fmt.Println(mo); return mo }

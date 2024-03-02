@@ -8,10 +8,9 @@ import (
 )
 
 func main() {
-	// var mo *g.MapOrd[int, string]
-	// mo := &g.MapOrd[int, string]{}
-	// mo := new(g.MapOrd[int, string])
-	// mo := ref.Of(make(g.MapOrd[int, string], 0))
+	// var mo g.MapOrd[int, string]
+	// mo := g.MapOrd[int, string]{}
+	// mo := make(g.MapOrd[int, string], 0)
 
 	gos := g.NewMapOrd[int, *g.Slice[int]]()
 
@@ -27,7 +26,7 @@ func main() {
 
 	//////////////////////////////////////////////////////////////////////////
 
-	for _, m := range *gos {
+	for _, m := range gos {
 		fmt.Println(m.Key, m.Value)
 	}
 
@@ -48,12 +47,17 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////
 
 	ms := g.NewMapOrd[g.Int, g.Int]()
-	ms.Set(11, 99).Set(12, 2).Set(1, 22).Set(2, 32).Set(222, 2)
+	ms.
+		Set(11, 99).
+		Set(12, 2).
+		Set(1, 22).
+		Set(2, 32).
+		Set(222, 2)
 
 	ms1 := ms.Clone()
-
-	ms1.Set(888, 000)
-	ms1.Set(888, 300)
+	ms1.
+		Set(888, 000).
+		Set(888, 300)
 
 	if v, ok := ms1.Get(888); ok {
 		v.Print()
@@ -64,6 +68,7 @@ func main() {
 	}
 
 	ms1.Set(1, 223)
+
 	ms.Print()
 	ms1.Print()
 
@@ -79,14 +84,18 @@ func main() {
 	fmt.Println(ms.Contains(12))
 
 	msstr := g.NewMapOrd[g.String, g.String]()
-	msstr.Set("aaa", "CCC").Set("ccc", "AAA").Set("bbb", "DDD").Set("ddd", "BBB")
+	msstr.
+		Set("aaa", "CCC").
+		Set("ccc", "AAA").
+		Set("bbb", "DDD").
+		Set("ddd", "BBB")
+
 	msstr.Print() // before sort
 
-	msstr.SortBy(func(i, j int) bool { return (*msstr)[i].Key < (*msstr)[j].Key })
+	msstr.SortBy(func(i, j int) bool { return msstr[i].Key < msstr[j].Key })
 	msstr.Print() // after sort by key
 
-	msstr.SortBy(func(i, j int) bool { return (*msstr)[i].Value < (*msstr)[j].Value })
-
+	msstr.SortBy(func(i, j int) bool { return msstr[i].Value < msstr[j].Value })
 	msstr.Print() // after sort by value
 
 	mss := g.NewMapOrd[g.Int, g.Slice[int]]()
@@ -94,10 +103,10 @@ func main() {
 	mss.Set(11, g.Slice[int]{1, 2, 3, 4})
 	mss.Print() // before sort
 
-	mss.SortBy(func(i, j int) bool { return (*mss)[i].Key < (*mss)[j].Key })
+	mss.SortBy(func(i, j int) bool { return mss[i].Key < mss[j].Key })
 	mss.Print() // after sort by key
 
-	mss.SortBy(func(i, j int) bool { return (*mss)[i].Value.Get(1) < (*mss)[j].Value.Get(1) })
+	mss.SortBy(func(i, j int) bool { return mss[i].Value.Get(1) < mss[j].Value.Get(1) })
 	mss.Print() // after sort by value
 
 	g.MapOrdFromStd(mss.ToMap().Std()).Print()

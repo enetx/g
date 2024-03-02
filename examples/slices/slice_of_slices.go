@@ -14,7 +14,7 @@ func main() {
 
 	nx := g.SliceOf(ns3, ns2, ns1, ns2)
 
-	nx.SortBy(func(i int, j int) bool {
+	nx.SortBy(func(i, j int) bool {
 		if nx[i].Eq(nx[j]) {
 			return false
 		}
@@ -69,7 +69,7 @@ func main() {
 		g.SliceOf[any](4.5, 6.7),
 		g.Slice[any]{4.5, 6.7},
 		map[string]string{"a": "ss"},
-		g.SliceOf[any](g.NewMapOrd[int, int]().Set(1, 1), g.NewMapOrd[int, int]().Set(2, 2)),
+		g.SliceOf[any](g.MapOrd[int, int]{{1, 1}}, g.MapOrd[int, int]{{2, 2}}),
 	}
 
 	dbg.Dbg(nestedSlice2.Iter().Flatten().Collect())

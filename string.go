@@ -18,8 +18,6 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
-// Sprintf formats according to a format specifier and returns the resulting String.
-func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
 
 // Min returns the minimum of Strings.
 func (s String) Min(b ...String) String { return minmax.Min(s, b...) }
@@ -727,7 +725,7 @@ func (s String) Std() string { return string(s) }
 func (s String) TrimSpace() String { return String(strings.TrimSpace(s.Std())) }
 
 // Format applies a specified format to the String object.
-func (s String) Format(format String) String { return String(fmt.Sprintf(format.Std(), s)) }
+func (s String) Format(format String) String { return Sprintf(format, s) }
 
 // LeftJustify justifies the String to the left by adding padding to the right, up to the
 // specified length. If the length of the String is already greater than or equal to the specified
