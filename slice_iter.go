@@ -22,7 +22,7 @@ import (
 // The returned iterator is of type *sortIter[T], which implements the iterator
 // interface for further iteration over the sorted elements.
 func (iter *baseIter[T]) Sort() *sortIter[T] {
-	return sorti[T](iter)
+	return sorti(iter)
 }
 
 // SortBy applies a custom sorting function to the elements in the iterator
@@ -44,7 +44,7 @@ func (iter *baseIter[T]) Sort() *sortIter[T] {
 // The returned iterator is of type *sortIter[T], which implements the iterator
 // interface for further iteration over the sorted elements.
 func (iter *baseIter[T]) SortBy(fn func(a, b T) bool) *sortIter[T] {
-	return sortBy[T](iter, fn)
+	return sortBy(iter, fn)
 }
 
 // Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
@@ -67,13 +67,13 @@ func (iter *baseIter[T]) SortBy(fn func(a, b T) bool) *sortIter[T] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (iter *baseIter[T]) Dedup() *dedupIter[T] {
-	return dedup[T](iter)
+	return dedup(iter)
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (iter *baseIter[T]) Inspect(fn func(v T)) *inspectIter[T] {
-	return inspect[T](iter, fn)
+	return inspect(iter, fn)
 }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
@@ -96,7 +96,7 @@ func (iter *baseIter[T]) Inspect(fn func(v T)) *inspectIter[T] {
 //
 // The resulting iterator will produce elements from the original iterator with a step size of N.
 func (iter *baseIter[T]) StepBy(n int) *stepByIter[T] {
-	return stepBy[T](iter, n)
+	return stepBy(iter, n)
 }
 
 // All checks whether all elements in the iterator satisfy the provided condition.
@@ -184,7 +184,7 @@ func (iter *baseIter[T]) Any(fn func(v T) bool) bool {
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
 func (iter *baseIter[T]) Chain(iterators ...iterator[T]) *chainIter[T] {
-	return chain[T](append([]iterator[T]{iter}, iterators...)...)
+	return chain(append([]iterator[T]{iter}, iterators...)...)
 }
 
 // Collect gathers all elements from the iterator into a Slice.
@@ -203,7 +203,7 @@ func (iter *baseIter[T]) Collect() Slice[T] {
 
 // Cycle returns an iterator that endlessly repeats the elements of the current iterator.
 func (iter *baseIter[T]) Cycle() *cycleIter[T] {
-	return cycle[T](iter)
+	return cycle(iter)
 }
 
 // Skip returns a new iterator skipping the first n elements.
@@ -228,7 +228,7 @@ func (iter *baseIter[T]) Cycle() *cycleIter[T] {
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (iter *baseIter[T]) Skip(n uint) *skipIter[T] {
-	return skip[T](iter, n)
+	return skip(iter, n)
 }
 
 // Enumerate adds an index to each element in the iterator.
@@ -251,7 +251,7 @@ func (iter *baseIter[T]) Skip(n uint) *skipIter[T] {
 //
 // Output: MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
 func (iter *baseIter[T]) Enumerate() *enumerateIter[T] {
-	return enumerate[T](iter)
+	return enumerate(iter)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -283,7 +283,7 @@ func (iter *baseIter[T]) Enumerate() *enumerateIter[T] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (iter *baseIter[T]) Exclude(fn func(v T) bool) *filterIter[T] {
-	return exclude[T](iter, fn)
+	return exclude(iter, fn)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -315,7 +315,7 @@ func (iter *baseIter[T]) Exclude(fn func(v T) bool) *filterIter[T] {
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (iter *baseIter[T]) Filter(fn func(v T) bool) *filterIter[T] {
-	return filter[T](iter, fn)
+	return filter(iter, fn)
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -385,7 +385,7 @@ func (iter *baseIter[T]) Find(fn func(v T) bool) Option[T] {
 //
 // The resulting iterator will contain elements from each iterator in sequence.
 func (iter *baseIter[T]) Flatten() *flattenIter[T] {
-	return flatten[T](iter)
+	return flatten(iter)
 }
 
 // Fold accumulates values in the iterator using a function.
@@ -483,7 +483,7 @@ func (iter *baseIter[T]) ForEach(fn func(v T)) {
 //
 // The resulting iterator will contain elements transformed by the provided function.
 func (iter *baseIter[T]) Map(fn func(v T) T) *mapIter[T, T] {
-	return transform[T](iter, fn)
+	return transform(iter, fn)
 }
 
 // Range iterates through elements until the given function returns false.
@@ -516,7 +516,7 @@ func (iter *baseIter[T]) Range(fn func(v T) bool) {
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (iter *baseIter[T]) Take(n uint) *takeIter[T] {
-	return take[T](iter, n)
+	return take(iter, n)
 }
 
 // Unique returns an iterator with only unique elements.
@@ -537,7 +537,7 @@ func (iter *baseIter[T]) Take(n uint) *takeIter[T] {
 //
 // The resulting iterator will contain only unique elements from the original iterator.
 func (iter *baseIter[T]) Unique() *uniqueIter[T] {
-	return unique[T](iter)
+	return unique(iter)
 }
 
 // Chunks returns an iterator that yields chunks of elements of the specified size.
@@ -562,7 +562,7 @@ func (iter *baseIter[T]) Unique() *uniqueIter[T] {
 //
 // The resulting iterator will yield chunks of elements, each containing the specified number of elements.
 func (iter *baseIter[T]) Chunks(size int) *chunksIter[T] {
-	return chunks[T](iter, size)
+	return chunks(iter, size)
 }
 
 // Windows returns an iterator that yields sliding windows of elements of the specified size.
@@ -587,7 +587,7 @@ func (iter *baseIter[T]) Chunks(size int) *chunksIter[T] {
 //
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
 func (iter *baseIter[T]) Windows(size int) *windowsIter[T] {
-	return windows[T](iter, size)
+	return windows(iter, size)
 }
 
 // Permutations generates iterators of all permutations of elements.
@@ -619,7 +619,7 @@ func (iter *baseIter[T]) Windows(size int) *windowsIter[T] {
 // The resulting iterator will contain iterators representing all possible permutations
 // of the elements in the original iterator.
 func (iter *baseIter[T]) Permutations() *permutationsIter[T] {
-	return permutations[T](iter)
+	return permutations(iter)
 }
 
 // Zip combines the elements of the given iterators with the current iterator into a new iterator
@@ -655,7 +655,7 @@ func (iter *baseIter[T]) Permutations() *permutationsIter[T] {
 //	Slice[2, 5, 8]
 //	Slice[3, 6, 9]
 func (iter *baseIter[T]) Zip(iterators ...iterator[T]) *zipIter[T] {
-	return zip[T](append([]iterator[T]{iter}, iterators...)...)
+	return zip(append([]iterator[T]{iter}, iterators...)...)
 }
 
 // ToChannel converts the iterator into a channel, optionally with context(s).
@@ -821,7 +821,7 @@ func mapiter[T, U any](iter iterator[T], fn func(T) U) *mapIter[T, U] {
 }
 
 func transform[T any](iter iterator[T], fn func(T) T) *mapIter[T, T] {
-	return mapiter[T, T](iter, fn)
+	return mapiter(iter, fn)
 }
 
 func (iter *mapIter[T, U]) Next() Option[U] {

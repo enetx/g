@@ -5,7 +5,7 @@ import "context"
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
 func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
-	return inspectM[K, V](iter, fn)
+	return inspectM(iter, fn)
 }
 
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
@@ -33,7 +33,7 @@ func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
 //
 // The resulting iterator will contain elements from both iterators.
 func (iter *baseIterM[K, V]) Chain(iterators ...iteratorM[K, V]) *chainIterM[K, V] {
-	return chainM[K, V](append([]iteratorM[K, V]{iter}, iterators...)...)
+	return chainM(append([]iteratorM[K, V]{iter}, iterators...)...)
 }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
@@ -74,7 +74,7 @@ func (iter *baseIterM[K, V]) Collect() Map[K, V] {
 //
 // The resulting iterator will start after skipping the specified number of key-value pairs.
 func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
-	return skipM[K, V](iter, n)
+	return skipM(iter, n)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -112,7 +112,7 @@ func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
 //
 // The resulting iterator will exclude elements for which the function returns true.
 func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] {
-	return excludeM[K, V](iter, fn)
+	return excludeM(iter, fn)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -148,7 +148,7 @@ func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] 
 //
 // The resulting iterator will contain elements for which the function returns true.
 func (iter *baseIterM[K, V]) Filter(fn func(k K, v V) bool) *filterIterM[K, V] {
-	return filterM[K, V](iter, fn)
+	return filterM(iter, fn)
 }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.

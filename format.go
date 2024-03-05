@@ -30,7 +30,7 @@ func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
 //	    "City":  "New York",
 //	}
 //	formatString := "Hello, my name is {Name}. I am {Age} years old and live in {City}."
-//	formattedString := GSprintf(formatString, values)
+//	formattedString := g.GSprintf(formatString, values)
 //	formattedString.Print()
 //
 // Output:

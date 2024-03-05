@@ -59,7 +59,7 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
-	return mapiter[T, U](sl.Iter(), fn).Collect()
+	return mapiter(sl.Iter(), fn).Collect()
 }
 
 // Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration

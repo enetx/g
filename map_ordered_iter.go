@@ -42,7 +42,7 @@ func (iter *baseIterMO[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) *sortIterMO[
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
 func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
-	return inspectMO[K, V](iter, fn)
+	return inspectMO(iter, fn)
 }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
@@ -65,7 +65,7 @@ func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
 //
 // The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
 func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
-	return stepByMO[K, V](iter, n)
+	return stepByMO(iter, n)
 }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
@@ -96,7 +96,7 @@ func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
 func (iter *baseIterMO[K, V]) Chain(iterators ...iteratorMO[K, V]) *chainIterMO[K, V] {
-	return chainMO[K, V](append([]iteratorMO[K, V]{iter}, iterators...)...)
+	return chainMO(append([]iteratorMO[K, V]{iter}, iterators...)...)
 }
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
@@ -144,7 +144,7 @@ func (iter *baseIterMO[K, V]) Collect() MapOrd[K, V] {
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
-	return skipMO[K, V](iter, n)
+	return skipMO(iter, n)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -182,7 +182,7 @@ func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
 //
 // The resulting iterator will exclude elements based on the provided condition.
 func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V] {
-	return excludeMO[K, V](iter, fn)
+	return excludeMO(iter, fn)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -220,7 +220,7 @@ func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V
 //
 // The resulting iterator will include elements based on the provided condition.
 func (iter *baseIterMO[K, V]) Filter(fn func(k K, v V) bool) *filterIterMO[K, V] {
-	return filterMO[K, V](iter, fn)
+	return filterMO(iter, fn)
 }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
@@ -329,7 +329,7 @@ func (iter *baseIterMO[K, V]) Range(fn func(k K, v V) bool) {
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
-	return takeMO[K, V](iter, n)
+	return takeMO(iter, n)
 }
 
 // ToChannel converts the iterator into a channel, optionally with context(s).

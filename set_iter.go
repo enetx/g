@@ -5,7 +5,7 @@ import "context"
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (iter *baseIterS[T]) Inspect(fn func(v T)) *inspectIterS[T] {
-	return inspectS[T](iter, fn)
+	return inspectS(iter, fn)
 }
 
 // Collect gathers all elements from the iterator into a Set.
@@ -45,7 +45,7 @@ func (iter *baseIterS[T]) Collect() Set[T] {
 //
 // The resulting iterator will contain elements from both iterators.
 func (iter *baseIterS[T]) Chain(iterators ...iteratorS[T]) *chainIterS[T] {
-	return chainS[T](append([]iteratorS[T]{iter}, iterators...)...)
+	return chainS(append([]iteratorS[T]{iter}, iterators...)...)
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -107,7 +107,7 @@ func (iter *baseIterS[T]) Range(fn func(v T) bool) {
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
-	return skipS[T](iter, n)
+	return skipS(iter, n)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -139,7 +139,7 @@ func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
-	return filterS[T](iter, fn)
+	return filterS(iter, fn)
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -171,7 +171,7 @@ func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
-	return excludeS[T](iter, fn)
+	return excludeS(iter, fn)
 }
 
 // Map transforms each element in the iterator using the given function.
@@ -202,7 +202,7 @@ func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
 //
 // The resulting iterator will contain elements transformed by the provided function.
 func (iter *baseIterS[T]) Map(fn func(v T) T) *mapIterS[T, T] {
-	return transformS[T](iter, fn)
+	return transformS(iter, fn)
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -344,7 +344,7 @@ func mapiterS[T, U comparable](iter iterator[T], fn func(T) U) *mapIterS[T, U] {
 }
 
 func transformS[T comparable](iter iterator[T], fn func(T) T) *mapIterS[T, T] {
-	return mapiterS[T, T](iter, fn)
+	return mapiterS(iter, fn)
 }
 
 func (iter *mapIterS[T, U]) Next() Option[U] {
