@@ -77,9 +77,6 @@ func main() {
 	fl.Round().Print() // 13
 
 	// slices
-	sss := g.Slice[int]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5}
-	fmt.Println(sss.Iter().Chunks(2).Collect())
-
 	sl := g.NewSlice[g.String]().Append(a, b, c, d, e) // declaration and assignation
 
 	sl.Shuffle()
@@ -90,13 +87,10 @@ func main() {
 
 	sl.Iter().Map(g.String.Upper).Collect().Print()
 
-	fmt.Println(sl.Iter().Permutations().Collect())
-
 	counter := sl.Append(sl...).Append("ddd").Counter()
-	counter.Print() // Output: Map[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
-	mo := g.MapOrdFromMap(counter).Print()
+	counter.Print() // Output: MapOrd[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
 
-	mo.SortBy(func(i, j int) bool { return mo[i].Value < mo[j].Value }).Print()
+	counter.SortBy(func(a, b g.Pair[any, uint]) bool { return a.Key.(g.String) < b.Key.(g.String) })
 
 	counter.Iter().ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
 
@@ -137,8 +131,8 @@ func main() {
 
 	// maps
 	m1 := g.MapFromStd(map[int]string{1: "root", 22: "toor"}) // declaration and assignation
-	m1.Values().Print()
-	m1.Keys().Print()
+	m1.Iter().Values().Collect().Print()
+	m1.Iter().Keys().Collect().Print()
 
 	m2 := g.NewMap[int, string]() // declaration and assignation
 
@@ -147,13 +141,13 @@ func main() {
 	m2.Set(77, "CCC")
 
 	m2.Delete(99).Print()
-	m2.Keys().Print()
+	m2.Iter().Keys().Collect().Print()
 
 	m2.Print()
 	fmt.Println(m2.Std())
 
-	fmt.Println(m2.Invert().Values().Get(0))        // return int type
-	fmt.Println(m2.Invert().Keys().Get(0).(string)) // return any type, need assert to type
+	fmt.Println(m2.Invert().Iter().Values().Collect().Get(0))        // return int type
+	fmt.Println(m2.Invert().Iter().Keys().Collect().Get(0).(string)) // return any type, need assert to type
 
 	m3 := g.Map[string, string]{"test": "rest"} // declaration and assignation
 	fmt.Println(m3.Contains("test"))

@@ -48,37 +48,13 @@ type (
 	Set[T comparable] map[T]struct{}
 
 	// Pair is a struct representing a key-value Pair for MapOrd.
-	Pair[K comparable, V any] struct {
+	Pair[K, V any] struct {
 		Key   K // Key of the pair.
 		Value V // Value associated with the key.
 	}
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
-	MapOrd[K comparable, V any] []Pair[K, V]
-
-	// iterator defines a generic interface for iterating over Slice elements.
-	iterator[T any] interface{ Next() Option[T] }
-
-	// baseIter is a base struct implementing the iterator interface.
-	baseIter[T any] struct{ iterator[T] }
-
-	// iteratorMO defines a generic interface for iterating over key-value pairs in a MapOrd.
-	iteratorMO[K comparable, V any] interface{ Next() Option[Pair[K, V]] }
-
-	// baseIterMO is a base struct implementing the iteratorMO interface.
-	baseIterMO[K comparable, V any] struct{ iteratorMO[K, V] }
-
-	// iteratorMO defines a generic interface for iterating over key-value pairs in a Map.
-	iteratorM[K comparable, V any] interface{ Next() Option[Pair[K, V]] }
-
-	// baseIterMO is a base struct implementing the iteratorMO interface.
-	baseIterM[K comparable, V any] struct{ iteratorM[K, V] }
-
-	// iteratorS defines a generic interface for iterating over Set elements.
-	iteratorS[T comparable] interface{ Next() Option[T] }
-
-	// baseIterS is a base struct implementing the iteratorS interface.
-	baseIterS[T comparable] struct{ iteratorS[T] }
+	MapOrd[K, V any] []Pair[K, V]
 
 	// iteratorF defines a generic interface for iterating over String elements wrapped in a Result.
 	iteratorF interface{ Next() Result[String] }

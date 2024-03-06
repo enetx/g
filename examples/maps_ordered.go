@@ -80,8 +80,8 @@ func main() {
 	ms = ms.Iter().Map(func(k, v g.Int) (g.Int, g.Int) { return k.Mul(2), v.Mul(2) }).Collect()
 	ms.Print()
 
-	ms.Delete(12, 1, 222)
-	fmt.Println(ms.Contains(12))
+	ms.Delete(22)
+	fmt.Println(ms.Contains(22))
 
 	msstr := g.NewMapOrd[g.String, g.String]()
 	msstr.
@@ -90,24 +90,28 @@ func main() {
 		Set("bbb", "DDD").
 		Set("ddd", "BBB")
 
-	msstr.Print() // before sort
+	fmt.Println("before sort:", msstr)
 
-	msstr.SortBy(func(i, j int) bool { return msstr[i].Key < msstr[j].Key })
-	msstr.Print() // after sort by key
+	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) bool { return a.Key < b.Key })
+	fmt.Println("after sort:", msstr)
 
-	msstr.SortBy(func(i, j int) bool { return msstr[i].Value < msstr[j].Value })
-	msstr.Print() // after sort by value
+	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) bool { return a.Value < b.Value })
+	fmt.Println("after sort by value:", msstr)
 
 	mss := g.NewMapOrd[g.Int, g.Slice[int]]()
 	mss.Set(22, g.Slice[int]{4, 0, 9, 6, 7})
 	mss.Set(11, g.Slice[int]{1, 2, 3, 4})
-	mss.Print() // before sort
 
-	mss.SortBy(func(i, j int) bool { return mss[i].Key < mss[j].Key })
-	mss.Print() // after sort by key
+	fmt.Println("before sort: ", mss)
 
-	mss.SortBy(func(i, j int) bool { return mss[i].Value.Get(1) < mss[j].Value.Get(1) })
-	mss.Print() // after sort by value
+	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) bool { return a.Key < b.Key })
+	fmt.Println("after sort by key: ", mss)
 
-	g.MapOrdFromStd(mss.ToMap().Std()).Print()
+	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) bool { return a.Value[1] < b.Value[1] })
+	fmt.Println("after sort by second value: ", mss)
+
+	// mss.Iter().Keys().Collect().Print()
+	// mss.Iter().Values().Collect().Print()
+
+	// g.MapOrdFromStd(mss.ToMap().Std()).Print()
 }

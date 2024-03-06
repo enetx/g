@@ -20,7 +20,12 @@ func main() {
 	})
 
 	slice = g.Slice[int]{1, 2, 3, 1, 2, 1}
-	slice.Counter().Print()
+	slice.
+		Counter().
+		Iter().
+		SortBy(func(a, b g.Pair[any, uint]) bool { return a.Value > b.Value }).
+		Collect().
+		Print()
 
 	result := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 

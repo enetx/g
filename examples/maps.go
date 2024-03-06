@@ -52,4 +52,6 @@ func main() {
 	}
 
 	god.Print()
+	god.Iter().Keys().Collect().Print()
+	god.Iter().Values().Collect().Print()
 }

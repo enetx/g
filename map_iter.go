@@ -1,12 +1,20 @@
 package g
 
-import "context"
+import (
+	"iter"
+)
 
-// Inspect creates a new iterator that wraps around the current iterator
-// and allows inspecting each key-value pair as it passes through.
-func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
-	return inspectM(iter, fn)
+type seqMap[K comparable, V any] iter.Seq2[K, V]
+
+func (s seqMap[K, V]) pull() (func() (K, V, bool), func()) {
+	return iter.Pull2(iter.Seq2[K, V](s))
 }
+
+// Keys returns an iterator containing all the keys in the ordered Map.
+func (seq seqMap[K, V]) Keys() seqSlice[K] { return keysM(seq) }
+
+// Values returns an iterator containing all the values in the ordered Map.
+func (seq seqMap[K, V]) Values() seqSlice[V] { return valuesM(seq) }
 
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
 //
@@ -15,11 +23,11 @@ func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
 //
 // Params:
 //
-// - iterators ([]iteratorM[K, V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]seqMap[K, V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - *chainIterM[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
+// - sequence2: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -32,49 +40,19 @@ func (iter *baseIterM[K, V]) Inspect(fn func(k K, v V)) *inspectIterM[K, V] {
 // Output: Map{1:a, 2:b} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements from both iterators.
-func (iter *baseIterM[K, V]) Chain(iterators ...iteratorM[K, V]) *chainIterM[K, V] {
-	return chainM(append([]iteratorM[K, V]{iter}, iterators...)...)
+func (s seqMap[K, V]) Chain(seqs ...seqMap[K, V]) seqMap[K, V] {
+	return chainMap(append([]seqMap[K, V]{s}, seqs...)...)
 }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
-func (iter *baseIterM[K, V]) Collect() Map[K, V] {
-	mp := NewMap[K, V]()
+func (s seqMap[K, V]) Collect() Map[K, V] {
+	collection := NewMap[K, V]()
 
-	for {
-		next := iter.Next()
-		if next.IsNone() {
-			return mp
-		}
-
-		mp.Set(next.Some().Key, next.Some().Value)
+	for k, v := range s {
+		collection.Set(k, v)
 	}
-}
 
-// Skip returns a new iterator that skips the first n elements.
-//
-// This function creates a new iterator starting from the (n+1)th key-value pair of the current iterator,
-// excluding the first n key-value pairs.
-//
-// Params:
-//
-// - n (uint): The number of key-value pairs to skip from the beginning of the iterator.
-//
-// Returns:
-//
-// - *skipIterM[K, V]: An iterator that starts after skipping the first n elements.
-//
-// Example usage:
-//
-//	iter := g.NewMap[int, string]().Set(1, "a").Set(2, "b").Set(3, "c").Set(4, "d").Iter()
-//
-//	// Skipping the first two elements and collecting the rest.
-//	iter.Skip(2).Collect().Print()
-//
-// Output: Map{3:c, 4:d} // The output may vary as Map is not ordered.
-//
-// The resulting iterator will start after skipping the specified number of key-value pairs.
-func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
-	return skipM(iter, n)
+	return collection
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -89,7 +67,7 @@ func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
 //
 // Returns:
 //
-// - *filterIterM[K, V]: An iterator excluding elements that satisfy the given function.
+// - seqMap[K, V]: An iterator excluding elements that satisfy the given function.
 //
 // Example usage:
 //
@@ -111,9 +89,7 @@ func (iter *baseIterM[K, V]) Skip(n uint) *skipIterM[K, V] {
 // Output: Map{1:1, 3:3, 5:5} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will exclude elements for which the function returns true.
-func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] {
-	return excludeM(iter, fn)
-}
+func (s seqMap[K, V]) Exclude(fn func(K, V) bool) seqMap[K, V] { return excludeMap(s, fn) }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -127,7 +103,7 @@ func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] 
 //
 // Returns:
 //
-// - *filterIterM[K, V]: An iterator containing elements that satisfy the given function.
+// - seqMap[K, V]: An iterator containing elements that satisfy the given function.
 //
 //	m := g.NewMap[int, int]().
 //		Set(1, 1).
@@ -147,9 +123,7 @@ func (iter *baseIterM[K, V]) Exclude(fn func(k K, v V) bool) *filterIterM[K, V] 
 // Output: Map{2:2, 4:4} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements for which the function returns true.
-func (iter *baseIterM[K, V]) Filter(fn func(k K, v V) bool) *filterIterM[K, V] {
-	return filterM(iter, fn)
-}
+func (s seqMap[K, V]) Filter(fn func(K, V) bool) seqMap[K, V] { return filterMap(s, fn) }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
 //
@@ -181,26 +155,15 @@ func (iter *baseIterM[K, V]) Filter(fn func(k K, v V) bool) *filterIterM[K, V] {
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The function fn will be executed for each key-value pair in the iterator.
-func (iter *baseIterM[K, V]) ForEach(fn func(k K, v V)) {
-	for {
-		next := iter.Next()
-		if next.IsNone() {
-			return
-		}
-
-		fn(next.Some().Key, next.Some().Value)
+func (s seqMap[K, V]) ForEach(fn func(k K, v V)) {
+	for k, v := range s {
+		fn(k, v)
 	}
 }
 
-// The iteration will stop when the provided function returns false for an element.
-func (iter *baseIterM[K, V]) Range(fn func(k K, v V) bool) {
-	for {
-		next := iter.Next()
-		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {
-			return
-		}
-	}
-}
+// Inspect creates a new iterator that wraps around the current iterator
+// and allows inspecting each key-value pair as it passes through.
+func (s seqMap[K, V]) Inspect(fn func(k K, v V)) seqMap[K, V] { return inspectMap(s, fn) }
 
 // Map creates a new iterator by applying the given function to each key-value pair.
 //
@@ -214,7 +177,7 @@ func (iter *baseIterM[K, V]) Range(fn func(k K, v V) bool) {
 //
 // Returns:
 //
-// - *mapIterM[K, V]: A new iterator containing key-value pairs transformed by the provided function.
+// - seqMap[K, V]: A new iterator containing key-value pairs transformed by the provided function.
 //
 // Example usage:
 //
@@ -237,234 +200,81 @@ func (iter *baseIterM[K, V]) Range(fn func(k K, v V) bool) {
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain key-value pairs transformed by the given function.
-func (iter *baseIterM[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterM[K, V] {
-	return mapiterM(iter, fn)
+func (s seqMap[K, V]) Map(transform func(K, V) (K, V)) seqMap[K, V] { return mapMap(s, transform) }
+
+// The iteration will stop when the provided function returns false for an element.
+func (s seqMap[K, V]) Range(fn func(k K, v V) bool) {
+	for k, v := range s {
+		if !fn(k, v) {
+			return
+		}
+	}
 }
 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// lift
-type liftIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	items  chan Pair[K, V]
-	cancel func()
-}
-
-func liftM[K comparable, V any](hashmap map[K]V) *liftIterM[K, V] {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	iter := &liftIterM[K, V]{items: make(chan Pair[K, V]), cancel: cancel}
-	iter.baseIterM = baseIterM[K, V]{iter}
-
-	go func() {
-		defer close(iter.items)
-
+func liftMap[K comparable, V any](hashmap map[K]V) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
 		for k, v := range hashmap {
-			select {
-			case <-ctx.Done():
+			if !yield(k, v) {
 				return
-			default:
-				iter.items <- Pair[K, V]{k, v}
-			}
-		}
-	}()
-
-	return iter
-}
-
-func (iter *liftIterM[K, V]) Next() Option[Pair[K, V]] {
-	item, ok := <-iter.items
-	if !ok {
-		return None[Pair[K, V]]()
-	}
-
-	return Some(item)
-}
-
-// Close stops the iteration and releases associated resources.
-// It signals the iterator to stop processing items and waits for the
-// completion of any ongoing operations. After calling Close, the iterator
-// cannot be used for further iteration.
-func (iter *liftIterM[K, V]) Close() {
-	iter.cancel()
-	<-iter.items
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// inspect
-type inspectIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	iter      iteratorM[K, V]
-	fn        func(K, V)
-	exhausted bool
-}
-
-func inspectM[K comparable, V any](iter iteratorM[K, V], fn func(K, V)) *inspectIterM[K, V] {
-	iterator := &inspectIterM[K, V]{iter: iter, fn: fn}
-	iterator.baseIterM = baseIterM[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *inspectIterM[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	next := iter.iter.Next()
-
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[Pair[K, V]]()
-	}
-
-	iter.fn(next.Some().Key, next.Some().Value)
-
-	return next
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// map
-type mapIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	iter      iteratorM[K, V]
-	fn        func(K, V) (K, V)
-	exhausted bool
-}
-
-func mapiterM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) (K, V)) *mapIterM[K, V] {
-	iterator := &mapIterM[K, V]{iter: iter, fn: fn}
-	iterator.baseIterM = baseIterM[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *mapIterM[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	next := iter.iter.Next()
-
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[Pair[K, V]]()
-	}
-
-	key, value := iter.fn(next.Some().Key, next.Some().Value)
-
-	return Some(Pair[K, V]{Key: key, Value: value})
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// filter
-type filterIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	iter      iteratorM[K, V]
-	fn        func(K, V) bool
-	exhausted bool
-}
-
-func filterM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) bool) *filterIterM[K, V] {
-	iterator := &filterIterM[K, V]{iter: iter, fn: fn}
-	iterator.baseIterM = baseIterM[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *filterIterM[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[Pair[K, V]]()
-		}
-
-		if iter.fn(next.Some().Key, next.Some().Value) {
-			return next
-		}
-	}
-}
-
-func excludeM[K comparable, V any](iter iteratorM[K, V], fn func(K, V) bool) *filterIterM[K, V] {
-	inverse := func(k K, v V) bool { return !fn(k, v) }
-	iterator := &filterIterM[K, V]{iter: iter, fn: inverse}
-	iterator.baseIterM = baseIterM[K, V]{iterator}
-
-	return iterator
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// chain
-type chainIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	iterators     []iteratorM[K, V]
-	iteratorIndex int
-}
-
-func chainM[K comparable, V any](iterators ...iteratorM[K, V]) *chainIterM[K, V] {
-	iter := &chainIterM[K, V]{iterators: iterators}
-	iter.baseIterM = baseIterM[K, V]{iter}
-	return iter
-}
-
-func (iter *chainIterM[K, V]) Next() Option[Pair[K, V]] {
-	for {
-		if iter.iteratorIndex == len(iter.iterators) {
-			return None[Pair[K, V]]()
-		}
-
-		if next := iter.iterators[iter.iteratorIndex].Next(); next.IsSome() {
-			return next
-		}
-
-		iter.iteratorIndex++
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// skip
-type skipIterM[K comparable, V any] struct {
-	baseIterM[K, V]
-	iter      iteratorM[K, V]
-	count     uint
-	skipped   bool
-	exhausted bool
-}
-
-func skipM[K comparable, V any](iter iteratorM[K, V], count uint) *skipIterM[K, V] {
-	iterator := &skipIterM[K, V]{iter: iter, count: count}
-	iterator.baseIterM = baseIterM[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *skipIterM[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	if !iter.skipped {
-		iter.skipped = true
-
-		for i := uint(0); i < iter.count; i++ {
-			if iter.delegateNext().IsNone() {
-				return None[Pair[K, V]]()
 			}
 		}
 	}
-
-	return iter.delegateNext()
 }
 
-func (iter *skipIterM[K, V]) delegateNext() Option[Pair[K, V]] {
-	next := iter.iter.Next()
-	if next.IsNone() {
-		iter.exhausted = true
+func chainMap[K comparable, V any](seqs ...seqMap[K, V]) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, seq := range seqs {
+			seq(func(k K, v V) bool {
+				return yield(k, v)
+			})
+		}
 	}
+}
 
-	return next
+func mapMap[K comparable, V any](seq seqMap[K, V], fn func(K, V) (K, V)) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			return yield(fn(k, v))
+		})
+	}
+}
+
+func filterMap[K comparable, V any](seq seqMap[K, V], fn func(K, V) bool) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if fn(k, v) {
+				return yield(k, v)
+			}
+			return true
+		})
+	}
+}
+
+func excludeMap[K comparable, V any](s seqMap[K, V], fn func(K, V) bool) seqMap[K, V] {
+	return filterMap(s, func(k K, v V) bool { return !fn(k, v) })
+}
+
+func inspectMap[K comparable, V any](seq seqMap[K, V], fn func(K, V)) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			fn(k, v)
+			return yield(k, v)
+		})
+	}
+}
+
+func keysM[K comparable, V any](seq seqMap[K, V]) seqSlice[K] {
+	return func(yield func(K) bool) {
+		seq(func(k K, _ V) bool {
+			return yield(k)
+		})
+	}
+}
+
+func valuesM[K comparable, V any](seq seqMap[K, V]) seqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(_ K, v V) bool {
+			return yield(v)
+		})
+	}
 }

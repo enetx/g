@@ -1,25 +1,24 @@
 package g
 
-import "context"
+import "iter"
+
+type seqSet[V comparable] iter.Seq[V]
+
+func (s seqSet[V]) pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](s)) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (iter *baseIterS[T]) Inspect(fn func(v T)) *inspectIterS[T] {
-	return inspectS(iter, fn)
-}
+func (s seqSet[V]) Inspect(fn func(v V)) seqSet[V] { return inspectSet(s, fn) }
 
 // Collect gathers all elements from the iterator into a Set.
-func (iter *baseIterS[T]) Collect() Set[T] {
-	set := NewSet[T]()
+func (s seqSet[V]) Collect() Set[V] {
+	collection := NewSet[V]()
 
-	for {
-		next := iter.Next()
-		if next.IsNone() {
-			return set
-		}
-
-		set.Add(next.Some())
+	for v := range s {
+		collection.Add(v)
 	}
+
+	return collection
 }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
@@ -29,11 +28,11 @@ func (iter *baseIterS[T]) Collect() Set[T] {
 //
 // Params:
 //
-// - iterators ([]iterator[T]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]seqSet[V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - *chainIter[T]: A new iterator containing elements from the current iterator and the provided iterators.
+// - seqSet[V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -44,8 +43,8 @@ func (iter *baseIterS[T]) Collect() Set[T] {
 // Output: Set{3, 4, 5, 6, 1, 2} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements from both iterators.
-func (iter *baseIterS[T]) Chain(iterators ...iteratorS[T]) *chainIterS[T] {
-	return chainS(append([]iteratorS[T]{iter}, iterators...)...)
+func (s seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
+	return chainSet(append([]seqSet[V]{s}, seqs...)...)
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -64,50 +63,19 @@ func (iter *baseIterS[T]) Chain(iterators ...iteratorS[T]) *chainIterS[T] {
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (iter *baseIterS[T]) ForEach(fn func(v T)) {
-	for {
-		next := iter.Next()
-		if next.IsNone() {
-			return
-		}
-
-		fn(next.Some())
+func (s seqSet[V]) ForEach(fn func(v V)) {
+	for v := range s {
+		fn(v)
 	}
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (iter *baseIterS[T]) Range(fn func(v T) bool) {
-	for {
-		next := iter.Next()
-		if next.IsNone() || !fn(next.Some()) {
+func (s seqSet[V]) Range(fn func(v V) bool) {
+	for v := range s {
+		if !fn(v) {
 			return
 		}
 	}
-}
-
-// Skip returns a new iterator skipping the first n elements.
-//
-// The function creates a new iterator that skips the first n elements of the current iterator
-// and returns an iterator starting from the (n+1)th element.
-//
-// Params:
-//
-// - n (uint): The number of elements to skip from the beginning of the iterator.
-//
-// Returns:
-//
-// - *skipIterS[T]: An iterator that starts after skipping the first n elements.
-//
-// Example usage:
-//
-//	iter := g.SetOf(1, 2, 3, 4, 5, 6).Iter()
-//	iter.Skip(3).Collect().Print()
-//
-// Output: {4, 5, 6} // The output may vary as the Set type is not ordered.
-//
-// The resulting iterator will start after skipping the specified number of elements.
-func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
-	return skipS(iter, n)
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -122,7 +90,7 @@ func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
 //
 // Returns:
 //
-// - *filterIterS[T]: A new iterator containing the elements that satisfy the given condition.
+// - seqSet[V]: A new iterator containing the elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -138,9 +106,7 @@ func (iter *baseIterS[T]) Skip(n uint) *skipIterS[T] {
 // Output: Set{2, 4} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
-	return filterS(iter, fn)
-}
+func (s seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(s, fn) }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
 //
@@ -154,7 +120,7 @@ func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
 //
 // Returns:
 //
-// - *filterIterS[T]: A new iterator containing the elements that do not satisfy the given condition.
+// - seqSet[V]: A new iterator containing the elements that do not satisfy the given condition.
 //
 // Example usage:
 //
@@ -170,9 +136,7 @@ func (iter *baseIterS[T]) Filter(fn func(v T) bool) *filterIterS[T] {
 // Output: Set{1, 3, 5} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
-	return excludeS(iter, fn)
-}
+func (s seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return excludeSet(s, fn) }
 
 // Map transforms each element in the iterator using the given function.
 //
@@ -185,7 +149,7 @@ func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
 //
 // Returns:
 //
-// - *mapIterS[T, T]: A new iterator containing elements transformed by the provided function.
+// - seqSet[V]: A new iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //
@@ -201,303 +165,78 @@ func (iter *baseIterS[T]) Exclude(fn func(v T) bool) *filterIterS[T] {
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (iter *baseIterS[T]) Map(fn func(v T) T) *mapIterS[T, T] {
-	return transformS(iter, fn)
-}
+func (s seqSet[V]) Map(transform func(V) V) seqSet[V] { return mapSet(s, transform) }
 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// liftS
-type liftIterS[T comparable] struct {
-	baseIterS[T]
-	items  chan T
-	cancel func()
-}
-
-func liftS[T comparable](hashmap map[T]struct{}) *liftIterS[T] {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	iter := &liftIterS[T]{items: make(chan T), cancel: cancel}
-	iter.baseIterS = baseIterS[T]{iter}
-
-	go func() {
-		defer close(iter.items)
-
-		for k := range hashmap {
-			select {
-			case <-ctx.Done():
+func liftSet[V comparable](slice Set[V]) seqSet[V] {
+	return func(yield func(V) bool) {
+		for v := range slice {
+			if !yield(v) {
 				return
-			default:
-				iter.items <- k
-			}
-		}
-	}()
-
-	return iter
-}
-
-func (iter *liftIterS[T]) Next() Option[T] {
-	item, ok := <-iter.items
-	if !ok {
-		return None[T]()
-	}
-
-	return Some(item)
-}
-
-// Close stops the iteration and releases associated resources.
-// It signals the iterator to stop processing items and waits for the
-// completion of any ongoing operations. After calling Close, the iterator
-// cannot be used for further iteration.
-func (iter *liftIterS[T]) Close() {
-	iter.cancel()
-	<-iter.items
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// inspect
-type inspectIterS[T comparable] struct {
-	baseIterS[T]
-	iter      iterator[T]
-	fn        func(T)
-	exhausted bool
-}
-
-func inspectS[T comparable](iter iteratorS[T], fn func(T)) *inspectIterS[T] {
-	iterator := &inspectIterS[T]{iter: iter, fn: fn}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-func (iter *inspectIterS[T]) Next() Option[T] {
-	if iter.exhausted {
-		return None[T]()
-	}
-
-	next := iter.iter.Next()
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[T]()
-	}
-
-	iter.fn(next.Some())
-
-	return next
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// filter
-type filterIterS[T comparable] struct {
-	baseIterS[T]
-	iter      iteratorS[T]
-	fn        func(T) bool
-	exhausted bool
-}
-
-func filterS[T comparable](iter iteratorS[T], fn func(T) bool) *filterIterS[T] {
-	iterator := &filterIterS[T]{iter: iter, fn: fn}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-func (iter *filterIterS[T]) Next() Option[T] {
-	if iter.exhausted {
-		return None[T]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[T]()
-		}
-
-		if iter.fn(next.Some()) {
-			return next
-		}
-	}
-}
-
-func excludeS[T comparable](iter iteratorS[T], fn func(T) bool) *filterIterS[T] {
-	inverse := func(t T) bool { return !fn(t) }
-	iterator := &filterIterS[T]{iter: iter, fn: inverse}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// map
-type mapIterS[T, U comparable] struct {
-	baseIterS[U]
-	iter      iterator[T]
-	fn        func(T) U
-	exhausted bool
-}
-
-func mapiterS[T, U comparable](iter iterator[T], fn func(T) U) *mapIterS[T, U] {
-	iterator := &mapIterS[T, U]{iter: iter, fn: fn}
-	iterator.baseIterS = baseIterS[U]{iterator}
-
-	return iterator
-}
-
-func transformS[T comparable](iter iterator[T], fn func(T) T) *mapIterS[T, T] {
-	return mapiterS(iter, fn)
-}
-
-func (iter *mapIterS[T, U]) Next() Option[U] {
-	if iter.exhausted {
-		return None[U]()
-	}
-
-	next := iter.iter.Next()
-
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[U]()
-	}
-
-	return Some(iter.fn(next.Some()))
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// chain
-type chainIterS[T comparable] struct {
-	baseIterS[T]
-	iterators     []iteratorS[T]
-	iteratorIndex int
-}
-
-func chainS[T comparable](iterators ...iteratorS[T]) *chainIterS[T] {
-	iter := &chainIterS[T]{iterators: iterators}
-	iter.baseIterS = baseIterS[T]{iter}
-	return iter
-}
-
-func (iter *chainIterS[T]) Next() Option[T] {
-	for {
-		if iter.iteratorIndex == len(iter.iterators) {
-			return None[T]()
-		}
-
-		if next := iter.iterators[iter.iteratorIndex].Next(); next.IsSome() {
-			return next
-		}
-
-		iter.iteratorIndex++
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// difference
-type differenceIterS[T comparable] struct {
-	baseIterS[T]
-	other     Set[T]
-	iter      iteratorS[T]
-	exhausted bool
-}
-
-func differenceS[T comparable](iter iteratorS[T], other Set[T]) *differenceIterS[T] {
-	iterator := &differenceIterS[T]{iter: iter, other: other}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-func (iter *differenceIterS[T]) Next() Option[T] {
-	if iter.exhausted {
-		return None[T]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[T]()
-		}
-
-		if !iter.other.Contains(next.Some()) {
-			return next
-		}
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// intersection
-type intersectionIterS[T comparable] struct {
-	baseIterS[T]
-	other     Set[T]
-	iter      iteratorS[T]
-	exhausted bool
-}
-
-func intersectionS[T comparable](iter iteratorS[T], other Set[T]) *intersectionIterS[T] {
-	iterator := &intersectionIterS[T]{iter: iter, other: other}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-func (iter *intersectionIterS[T]) Next() Option[T] {
-	if iter.exhausted {
-		return None[T]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[T]()
-		}
-
-		if iter.other.Contains(next.Some()) {
-			return next
-		}
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// skip
-type skipIterS[T comparable] struct {
-	baseIterS[T]
-	iter      iteratorS[T]
-	count     uint
-	skipped   bool
-	exhausted bool
-}
-
-func skipS[T comparable](iter iteratorS[T], count uint) *skipIterS[T] {
-	iterator := &skipIterS[T]{iter: iter, count: count}
-	iterator.baseIterS = baseIterS[T]{iterator}
-
-	return iterator
-}
-
-func (iter *skipIterS[T]) Next() Option[T] {
-	if iter.exhausted {
-		return None[T]()
-	}
-
-	if !iter.skipped {
-		iter.skipped = true
-
-		for i := uint(0); i < iter.count; i++ {
-			if iter.delegateNext().IsNone() {
-				return None[T]()
 			}
 		}
 	}
-
-	return iter.delegateNext()
 }
 
-func (iter *skipIterS[T]) delegateNext() Option[T] {
-	next := iter.iter.Next()
-	if next.IsNone() {
-		iter.exhausted = true
+func inspectSet[V comparable](seq seqSet[V], fn func(V)) seqSet[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			fn(v)
+			return yield(v)
+		})
 	}
+}
 
-	return next
+func chainSet[V comparable](seqs ...seqSet[V]) seqSet[V] {
+	return func(yield func(V) bool) {
+		for _, seq := range seqs {
+			seq(func(v V) bool {
+				return yield(v)
+			})
+		}
+	}
+}
+
+func mapSet[V, W comparable](seq seqSet[V], fn func(V) W) seqSet[W] {
+	return func(yield func(W) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
+}
+
+func filterSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if fn(v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
+}
+
+func excludeSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
+	return filterSet(seq, func(v V) bool { return !fn(v) })
+}
+
+func differenceS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if other.Contains(v) {
+				return true
+			}
+			return yield(v)
+		})
+	}
+}
+
+func intersectionS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if other.Contains(v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
 }

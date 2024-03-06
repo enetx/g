@@ -18,11 +18,9 @@ func main() {
 		Collect().
 		Print()
 
-	iter := g.NewMapOrd[int, string]()
-	iter.
-		Set(1, "a").
-		Set(2, "b").
-		Set(3, "c").
-		Set(4, "d").
-		Iter()
+	g.SliceOf(0, 1, 2, 3, 4, 5, 6).
+		Iter().
+		StepBy(2).
+		Collect().
+		Print()
 }

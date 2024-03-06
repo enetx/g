@@ -15,7 +15,6 @@ func main() {
 		Range(func(k int, v string) bool {
 			// Close the iterator if the key is 198
 			if k == 198 {
-				m.Close() // Close the channel
 				return false
 			}
 
@@ -29,9 +28,8 @@ func main() {
 	set.
 		Map(func(v int) int { return v + v }).
 		Range(func(v int) bool {
-			// Close the iterator if the value is 3
+			// Close the iterator if the value is 10
 			if v == 10 {
-				set.Close() // Close the channel
 				return false
 			}
 

@@ -38,7 +38,8 @@ func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-func (m Map[K, V]) Iter() *liftIterM[K, V] { return liftM[K, V](m) }
+// func (m Map[K, V]) Iter() *liftIterM[K, V] { return liftM[K, V](m) }
+func (m Map[K, V]) Iter() seqMap[K, V] { return liftMap(m) }
 
 // Random returns a new map containing a single randomly selected key-value pair from the original map.
 //
@@ -57,7 +58,7 @@ func (m Map[K, V]) Random() Map[K, V] {
 		return m
 	}
 
-	key := m.Keys()[0]
+	key := m.Iter().Keys().Take(1).Collect()[0]
 
 	return NewMap[K, V]().Set(key, m.Get(key))
 }
@@ -83,7 +84,7 @@ func (m Map[K, V]) RandomSample(sequence int) Map[K, V] {
 		return m
 	}
 
-	keys := m.Keys()
+	keys := m.Iter().Keys().Collect()
 
 	if sequence >= keys.Len() {
 		return m.Clone()
@@ -142,22 +143,6 @@ func (m Map[K, V]) Invert() Map[any, K] {
 	m.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
-}
-
-// Keys returns a slice of the Map's keys.
-func (m Map[K, V]) Keys() Slice[K] {
-	keys := NewSlice[K](0, m.Len())
-	m.Iter().ForEach(func(k K, _ V) { keys = keys.Append(k) })
-
-	return keys
-}
-
-// Values returns a slice of the Map's values.
-func (m Map[K, V]) Values() Slice[V] {
-	values := NewSlice[V](0, m.Len())
-	m.Iter().ForEach(func(_ K, v V) { values = values.Append(v) })
-
-	return values
 }
 
 // Contains checks if the Map contains the specified key.

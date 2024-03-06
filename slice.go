@@ -59,7 +59,8 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
-	return mapiter(sl.Iter(), fn).Collect()
+	// return mapiter(sl.Iter(), fn).Collect()
+	return mapSlice(sl.Iter(), fn).Collect()
 }
 
 // Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration
@@ -81,7 +82,9 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Slice
 // in a functional style, enabling operations like mapping or filtering.
-func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
+func (sl Slice[T]) Iter() seqSlice[T] { return liftSlice(sl) }
+
+// func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 
 // Counter returns an unordered Map with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in an
@@ -100,9 +103,13 @@ func (sl Slice[T]) Iter() *liftIter[T] { return lift(sl) }
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (sl Slice[T]) Counter() Map[any, uint] {
-	result := NewMap[any, uint](sl.Len())
-	sl.Iter().ForEach(func(t T) { result[t]++ })
+func (sl Slice[T]) Counter() MapOrd[any, uint] {
+	result := NewMapOrd[any, uint](sl.Len())
+	sl.Iter().ForEach(func(t T) {
+		i := result.GetOrDefault(t, 0)
+		i++
+		result.Set(t, i)
+	})
 
 	return result
 }
@@ -559,8 +566,14 @@ func (sl Slice[T]) Sort() { sort.Sort(sl) }
 // Example usage:
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
-// sl.SortBy(func(i, j int) bool { return sl[i] < sl[j] }) // sorts in ascending order.
-func (sl Slice[T]) SortBy(f func(i, j int) bool) { sort.Slice(sl, f) }
+// sl.SortBy(func(a, j int) bool { return sl[i] < sl[j] }) // sorts in ascending order.
+func (sl Slice[T]) SortBy(fn func(a, b T) bool) Slice[T] {
+	sort.Slice(sl, func(i, j int) bool {
+		return fn(sl[i], sl[j])
+	})
+
+	return sl
+}
 
 // ToStringSlice converts the slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
@@ -966,11 +979,4 @@ func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
 	}
 
 	return ii
-}
-
-func (sl Slice[T]) extract(start, end int) Slice[T] {
-	slice := NewSlice[T](end - start)
-	copy(slice, sl[start:end])
-
-	return slice
 }

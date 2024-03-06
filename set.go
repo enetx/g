@@ -36,7 +36,7 @@ func SetOf[T comparable](values ...T) Set[T] {
 //
 // A new Set containing the results of applying the function to each element of the input Set.
 func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
-	return mapiterS[T, U](s.Iter(), fn).Collect()
+	return mapSet(s.Iter(), fn).Collect()
 }
 
 // Iter returns an iterator (*liftIterS) for the Set, allowing for sequential iteration
@@ -56,7 +56,7 @@ func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
-func (s Set[T]) Iter() *liftIterS[T] { return liftS[T](s) }
+func (s Set[T]) Iter() seqSet[T] { return liftSet(s) }
 
 // Add adds the provided elements to the set and returns the modified set.
 func (s Set[T]) Add(values ...T) Set[T] {
@@ -140,12 +140,12 @@ func (s Set[T]) ToSlice() Slice[T] {
 //	intersection := s1.Intersection(s2)
 //
 // The resulting intersection will be: [4, 5].
-func (s Set[T]) Intersection(other Set[T]) *intersectionIterS[T] {
+func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
 	if s.Len() <= other.Len() {
-		return intersectionS[T](s.Iter(), other)
+		return intersectionS(s.Iter(), other)
 	}
 
-	return intersectionS[T](other.Iter(), s)
+	return intersectionS(other.Iter(), s)
 }
 
 // Difference returns the difference between the current set and another set,
@@ -166,7 +166,7 @@ func (s Set[T]) Intersection(other Set[T]) *intersectionIterS[T] {
 //	diff := s1.Difference(s2)
 //
 // The resulting diff will be: [1, 2, 3].
-func (s Set[T]) Difference(other Set[T]) *differenceIterS[T] { return differenceS[T](s.Iter(), other) }
+func (s Set[T]) Difference(other Set[T]) seqSet[T] { return differenceS(s.Iter(), other) }
 
 // Union returns a new set containing the unique elements of the current set and the provided
 // other set.
@@ -187,7 +187,7 @@ func (s Set[T]) Difference(other Set[T]) *differenceIterS[T] { return difference
 //	union := s1.Union(s2)
 //
 // The resulting union set will be: [1, 2, 3, 4, 5].
-func (s Set[T]) Union(other Set[T]) *chainIterS[T] {
+func (s Set[T]) Union(other Set[T]) seqSet[T] {
 	if s.Len() >= other.Len() {
 		return s.Iter().Chain(other.Difference(s))
 	}
@@ -213,7 +213,7 @@ func (s Set[T]) Union(other Set[T]) *chainIterS[T] {
 //	symDiff := s1.SymmetricDifference(s2)
 //
 // The resulting symDiff will be: [1, 2, 3, 6, 7, 8].
-func (s Set[T]) SymmetricDifference(other Set[T]) *chainIterS[T] {
+func (s Set[T]) SymmetricDifference(other Set[T]) seqSet[T] {
 	return s.Difference(other).Chain(other.Difference(s))
 }
 

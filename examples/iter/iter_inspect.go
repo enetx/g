@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// Create a new ordered map with integer keys and string values
-	mo := g.NewMapOrd[int, string]()
+	mo := g.NewMap[int, string]()
 	mo.Set(0, "aa").
 		Set(1, "bb").
 		Set(2, "cc").
@@ -17,7 +17,7 @@ func main() {
 		Set(5, "ff").
 		Set(6, "gg").
 		Iter().
-		StepBy(2).                                                        // Iterate with a step size of 2
+		// StepBy(2).                                                        // Iterate with a step size of 2
 		Exclude(func(k int, v string) bool { return k == 4 }).            // Exclude entry with key 4
 		Inspect(func(k int, v string) { fmt.Println("~inspect", k, v) }). // Inspect each entry
 		Map(func(k int, v string) (int, string) { return k, v + v }).

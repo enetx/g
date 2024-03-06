@@ -9,25 +9,27 @@ import (
 
 func main() {
 	ns1 := g.NewSlice[g.String]().Append("aaa")
-	ns2 := g.NewSlice[g.String]().Append("bbb").Append("ccc")
-	ns3 := g.NewSlice[g.String]().Append("ccc").Append("dddd").Append("wwwww")
+	ns2 := g.NewSlice[g.String]().Append("bbb", "ccc")
+	ns3 := g.NewSlice[g.String]().Append("ccc", "dddd", "wwwww")
 
 	nx := g.SliceOf(ns3, ns2, ns1, ns2)
 
-	nx.SortBy(func(i, j int) bool {
-		if nx[i].Eq(nx[j]) {
+	nx.SortBy(func(a, b g.Slice[g.String]) bool {
+		if a.Eq(b) {
 			return false
 		}
 
 		return true
 	})
 
-	nx = nx.Iter().Dedup().Collect().Print()
-
-	nx.SortBy(func(i, j int) bool { return nx[i].Get(0).Lt(nx[j].Get(0)) })
 	nx.Print()
 
-	nx.SortBy(func(i, j int) bool { return nx[i].Len() < nx[j].Len() })
+	nx = nx.Iter().Dedup().Collect().Print()
+
+	nx.SortBy(func(a, b g.Slice[g.String]) bool { return a.Get(0).Lt(b.Get(0)) })
+	nx.Print()
+
+	nx.SortBy(func(a, b g.Slice[g.String]) bool { return a.Len() < b.Len() })
 	nx.Print()
 
 	nx.Reverse()
@@ -36,13 +38,13 @@ func main() {
 	nx.Random().Print()
 	nx.RandomSample(2).Print()
 
-	ch := nx.Iter().Chunks(2).Collect() // return []Slice[T]
-	chunks := g.SliceOf(ch...)          // make slice chunks
-	chunks.Print()
+	// ch := nx.Iter().Chunks(2).Collect() // return []Slice[T]
+	// chunks := g.SliceOf(ch...)          // make slice chunks
+	// chunks.Print()
 
-	pr := nx.Iter().Permutations().Collect() // return []Slice[T]
-	permutations := g.SliceOf(pr...)         // make slice permutations
-	permutations.Print()
+	// pr := nx.Iter().Permutations().Collect() // return []Slice[T]
+	// permutations := g.SliceOf(pr...)         // make slice permutations
+	// permutations.Print()
 
 	m := g.NewMap[string, g.Slice[g.Slice[g.String]]]()
 	m.Set("one", nx)

@@ -2,8 +2,24 @@ package g
 
 import (
 	"context"
+	"iter"
 	"sort"
 )
+
+type seqMapOrd[K, V any] iter.Seq2[K, V]
+
+func (seq seqMapOrd[K, V]) pull() (func() (K, V, bool), func()) {
+	return iter.Pull2(iter.Seq2[K, V](seq))
+}
+
+// Keys returns an iterator containing all the keys in the ordered Map.
+func (seq seqMapOrd[K, V]) Keys() seqSlice[K] { return keysMO(seq) }
+
+// Values returns an iterator containing all the values in the ordered Map.
+func (seq seqMapOrd[K, V]) Values() seqSlice[V] { return valuesMO(seq) }
+
+// Unzip returns a tuple of slices containing keys and values from the ordered map.
+func (seq seqMapOrd[K, V]) Unzip() (seqSlice[K], seqSlice[V]) { return seq.Keys(), seq.Values() }
 
 // SortBy applies a custom sorting function to the elements in the iterator
 // and returns a new iterator containing the sorted elements.
@@ -35,15 +51,13 @@ import (
 //
 // The returned iterator is of type *sortIterMO[K, V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (iter *baseIterMO[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) *sortIterMO[K, V] {
-	return sortByMO(iter, fn)
+func (seq seqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) seqMapOrd[K, V] {
+	return sortbyMapOrd(seq, fn)
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
-func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
-	return inspectMO(iter, fn)
-}
+func (seq seqMapOrd[K, V]) Inspect(fn func(k K, v V)) seqMapOrd[K, V] { return inspectMapOrd(seq, fn) }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
 // This function is useful when you want to skip a specific number of elements between each iteration.
@@ -52,7 +66,7 @@ func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
 // - n int: The step size, indicating how many elements to skip between each iteration.
 //
 // Returns:
-// - *stepByIterMO[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
+// - seqMapOrd[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
 //
 // Example usage:
 //
@@ -64,9 +78,7 @@ func (iter *baseIterMO[K, V]) Inspect(fn func(k K, v V)) *inspectIterMO[K, V] {
 // Output: MapOrd{one:1, three:3}
 //
 // The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
-func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
-	return stepByMO(iter, n)
-}
+func (seq seqMapOrd[K, V]) StepBy(n uint) seqMapOrd[K, V] { return stepbyMapOrd(seq, n) }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
 //
@@ -75,11 +87,11 @@ func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
 //
 // Params:
 //
-// - iterators ([]iteratorMO[K, V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]seqMapOrd[K, V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - *chainIterMO[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
+// - seqMapOrd[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -95,22 +107,19 @@ func (iter *baseIterMO[K, V]) StepBy(n int) *stepByIterMO[K, V] {
 // Output: MapOrd{1:a, 2:b}
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
-func (iter *baseIterMO[K, V]) Chain(iterators ...iteratorMO[K, V]) *chainIterMO[K, V] {
-	return chainMO(append([]iteratorMO[K, V]{iter}, iterators...)...)
+func (seq seqMapOrd[K, V]) Chain(seqs ...seqMapOrd[K, V]) seqMapOrd[K, V] {
+	return chainMapOrd(append([]seqMapOrd[K, V]{seq}, seqs...)...)
 }
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
-func (iter *baseIterMO[K, V]) Collect() MapOrd[K, V] {
-	mp := NewMapOrd[K, V]()
+func (seq seqMapOrd[K, V]) Collect() MapOrd[K, V] {
+	collection := NewMapOrd[K, V]()
 
-	for {
-		next := iter.Next()
-		if next.IsNone() {
-			return mp
-		}
-
-		mp.Set(next.Some().Key, next.Some().Value)
+	for k, v := range seq {
+		collection.Set(k, v)
 	}
+
+	return collection
 }
 
 // Skip returns a new iterator skipping the first n elements.
@@ -124,7 +133,7 @@ func (iter *baseIterMO[K, V]) Collect() MapOrd[K, V] {
 //
 // Returns:
 //
-// - *skipIterMO[K, V]: An iterator that starts after skipping the first n elements.
+// - seqMapOrd[K, V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
@@ -143,9 +152,7 @@ func (iter *baseIterMO[K, V]) Collect() MapOrd[K, V] {
 // Output: MapOrd{3:c, 4:d}
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
-	return skipMO(iter, n)
-}
+func (seq seqMapOrd[K, V]) Skip(n uint) seqMapOrd[K, V] { return skipMapOrd(seq, n) }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
 //
@@ -158,7 +165,7 @@ func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
 //
 // Returns:
 //
-// - *filterIterMO[K, V]: A new iterator excluding elements that satisfy the given condition.
+// - seqMapOrd[K, V]: A new iterator excluding elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -181,9 +188,7 @@ func (iter *baseIterMO[K, V]) Skip(n uint) *skipIterMO[K, V] {
 // Output: MapOrd{1:1, 3:3, 5:5}
 //
 // The resulting iterator will exclude elements based on the provided condition.
-func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V] {
-	return excludeMO(iter, fn)
-}
+func (seq seqMapOrd[K, V]) Exclude(fn func(K, V) bool) seqMapOrd[K, V] { return excludeMapOrd(seq, fn) }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -196,7 +201,7 @@ func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V
 //
 // Returns:
 //
-// - *filterIterMO[K, V]: A new iterator containing elements that satisfy the given condition.
+// - seqMapOrd[K, V]: A new iterator containing elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -219,9 +224,7 @@ func (iter *baseIterMO[K, V]) Exclude(fn func(k K, v V) bool) *filterIterMO[K, V
 // Output: MapOrd{2:2, 4:4}
 //
 // The resulting iterator will include elements based on the provided condition.
-func (iter *baseIterMO[K, V]) Filter(fn func(k K, v V) bool) *filterIterMO[K, V] {
-	return filterMO(iter, fn)
-}
+func (seq seqMapOrd[K, V]) Filter(fn func(K, V) bool) seqMapOrd[K, V] { return filterMapOrd(seq, fn) }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
 //
@@ -247,9 +250,9 @@ func (iter *baseIterMO[K, V]) Filter(fn func(k K, v V) bool) *filterIterMO[K, V]
 //	})
 //
 // The provided function will be applied to each key-value pair in the iterator.
-func (iter *baseIterMO[K, V]) ForEach(fn func(k K, v V)) {
-	for next := iter.Next(); next.IsSome(); next = iter.Next() {
-		fn(next.Some().Key, next.Some().Value)
+func (seq seqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
+	for k, v := range seq {
+		fn(k, v)
 	}
 }
 
@@ -263,7 +266,7 @@ func (iter *baseIterMO[K, V]) ForEach(fn func(k K, v V)) {
 //
 // Returns:
 //
-// - *mapIterMO[K, V]: A new iterator containing transformed key-value pairs.
+// - seqMapOrd[K, V]: A new iterator containing transformed key-value pairs.
 //
 // Example usage:
 //
@@ -287,8 +290,8 @@ func (iter *baseIterMO[K, V]) ForEach(fn func(k K, v V)) {
 // Output: MapOrd{1:1, 4:4, 9:9, 16:16, 25:25}
 //
 // The resulting iterator will contain transformed key-value pairs.
-func (iter *baseIterMO[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterMO[K, V] {
-	return mapiterMO(iter, fn)
+func (seq seqMapOrd[K, V]) Map(transform func(K, V) (K, V)) seqMapOrd[K, V] {
+	return mapiMapOrd(seq, transform)
 }
 
 // Range iterates through elements until the given function returns false.
@@ -317,10 +320,9 @@ func (iter *baseIterMO[K, V]) Map(fn func(k K, v V) (K, V)) *mapIterMO[K, V] {
 //	})
 //
 // The iteration will stop when the provided function returns false.
-func (iter *baseIterMO[K, V]) Range(fn func(k K, v V) bool) {
-	for {
-		next := iter.Next()
-		if next.IsNone() || !fn(next.Some().Key, next.Some().Value) {
+func (seq seqMapOrd[K, V]) Range(fn func(k K, v V) bool) {
+	for k, v := range seq {
+		if !fn(k, v) {
 			return
 		}
 	}
@@ -328,9 +330,7 @@ func (iter *baseIterMO[K, V]) Range(fn func(k K, v V) bool) {
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
-func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
-	return takeMO(iter, n)
-}
+func (seq seqMapOrd[K, V]) Take(limit uint) seqMapOrd[K, V] { return takeMapOrd(seq, limit) }
 
 // ToChannel converts the iterator into a channel, optionally with context(s).
 //
@@ -343,7 +343,7 @@ func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
 //
 // Returns:
 //
-// - chan pair[K, V]: A channel emitting key-value pairs from the iterator.
+// - chan Pair[K, V]: A channel emitting key-value pairs from the iterator.
 //
 // Example usage:
 //
@@ -365,7 +365,7 @@ func (iter *baseIterMO[K, V]) Take(n uint) *takeIterMO[K, V] {
 //	}
 //
 // The function converts the iterator into a channel to allow sequential or concurrent processing of key-value pairs.
-func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V] {
+func (seq seqMapOrd[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V] {
 	ch := make(chan Pair[K, V])
 
 	ctx := context.Background()
@@ -376,17 +376,12 @@ func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V]
 	go func() {
 		defer close(ch)
 
-		for {
-			next := iter.Next()
-			if next.IsNone() {
-				return
-			}
-
+		for k, v := range seq {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				ch <- next.Some()
+				ch <- Pair[K, V]{k, v}
 			}
 		}
 	}()
@@ -394,321 +389,118 @@ func (iter *baseIterMO[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V]
 	return ch
 }
 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// lift
-type liftIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	items []Pair[K, V]
-	index int
-}
-
-func liftMO[K comparable, V any](items []Pair[K, V]) *liftIterMO[K, V] {
-	iterator := &liftIterMO[K, V]{items: items}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *liftIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.index >= len(iter.items) {
-		return None[Pair[K, V]]()
-	}
-
-	iter.index++
-
-	return Some(iter.items[iter.index-1])
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// stepby
-type stepByIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorMO[K, V]
-	n         int
-	counter   uint
-	exhausted bool
-}
-
-func stepByMO[K comparable, V any](iter iteratorMO[K, V], n int) *stepByIterMO[K, V] {
-	iterator := &stepByIterMO[K, V]{iter: iter, n: n}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *stepByIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[Pair[K, V]]()
-		}
-
-		iter.counter++
-		if (iter.counter-1)%uint(iter.n) == 0 {
-			return next
-		}
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// inspect
-type inspectIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorM[K, V]
-	fn        func(K, V)
-	exhausted bool
-}
-
-func inspectMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V)) *inspectIterMO[K, V] {
-	iterator := &inspectIterMO[K, V]{iter: iter, fn: fn}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *inspectIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	next := iter.iter.Next()
-
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[Pair[K, V]]()
-	}
-
-	iter.fn(next.Some().Key, next.Some().Value)
-
-	return next
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// map
-type mapIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorMO[K, V]
-	fn        func(K, V) (K, V)
-	exhausted bool
-}
-
-func mapiterMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) (K, V)) *mapIterMO[K, V] {
-	iterator := &mapIterMO[K, V]{iter: iter, fn: fn}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *mapIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	next := iter.iter.Next()
-
-	if next.IsNone() {
-		iter.exhausted = true
-		return None[Pair[K, V]]()
-	}
-
-	key, value := iter.fn(next.Some().Key, next.Some().Value)
-
-	return Some(Pair[K, V]{Key: key, Value: value})
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// filter
-type filterIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorMO[K, V]
-	fn        func(K, V) bool
-	exhausted bool
-}
-
-func filterMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) bool) *filterIterMO[K, V] {
-	iterator := &filterIterMO[K, V]{iter: iter, fn: fn}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *filterIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	for {
-		next := iter.iter.Next()
-		if next.IsNone() {
-			iter.exhausted = true
-			return None[Pair[K, V]]()
-		}
-
-		if iter.fn(next.Some().Key, next.Some().Value) {
-			return next
-		}
-	}
-}
-
-func excludeMO[K comparable, V any](iter iteratorMO[K, V], fn func(K, V) bool) *filterIterMO[K, V] {
-	inverse := func(k K, v V) bool { return !fn(k, v) }
-	iterator := &filterIterMO[K, V]{iter: iter, fn: inverse}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// chain
-type chainIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iterators     []iteratorMO[K, V]
-	iteratorIndex int
-}
-
-func chainMO[K comparable, V any](iterators ...iteratorMO[K, V]) *chainIterMO[K, V] {
-	iter := &chainIterMO[K, V]{iterators: iterators}
-	iter.baseIterMO = baseIterMO[K, V]{iter}
-	return iter
-}
-
-func (iter *chainIterMO[K, V]) Next() Option[Pair[K, V]] {
-	for {
-		if iter.iteratorIndex == len(iter.iterators) {
-			return None[Pair[K, V]]()
-		}
-
-		if next := iter.iterators[iter.iteratorIndex].Next(); next.IsSome() {
-			return next
-		}
-
-		iter.iteratorIndex++
-	}
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// take
-type takeIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter  iteratorMO[K, V]
-	limit uint
-}
-
-func takeMO[K comparable, V any](iter iteratorMO[K, V], limit uint) *takeIterMO[K, V] {
-	iterator := &takeIterMO[K, V]{iter: iter, limit: limit}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *takeIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.limit == 0 {
-		return None[Pair[K, V]]()
-	}
-
-	next := iter.iter.Next()
-	if next.IsNone() {
-		iter.limit = 0
-	} else {
-		iter.limit--
-	}
-
-	return next
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// skip
-type skipIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorMO[K, V]
-	count     uint
-	skipped   bool
-	exhausted bool
-}
-
-func skipMO[K comparable, V any](iter iteratorMO[K, V], count uint) *skipIterMO[K, V] {
-	iterator := &skipIterMO[K, V]{iter: iter, count: count}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-
-	return iterator
-}
-
-func (iter *skipIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
-	}
-
-	if !iter.skipped {
-		iter.skipped = true
-
-		for i := uint(0); i < iter.count; i++ {
-			if iter.delegateNextMO().IsNone() {
-				return None[Pair[K, V]]()
+func liftMO[K, V any](mo MapOrd[K, V]) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, v := range mo {
+			if !yield(v.Key, v.Value) {
+				return
 			}
 		}
 	}
-
-	return iter.delegateNextMO()
 }
 
-func (iter *skipIterMO[K, V]) delegateNextMO() Option[Pair[K, V]] {
-	next := iter.iter.Next()
-	if next.IsNone() {
-		iter.exhausted = true
-	}
+func sortbyMapOrd[K, V any](seq seqMapOrd[K, V], fn func(a, b Pair[K, V]) bool) seqMapOrd[K, V] {
+	items := seq.Collect()
 
-	return next
-}
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// sort
-type sortIterMO[K comparable, V any] struct {
-	baseIterMO[K, V]
-	iter      iteratorMO[K, V]
-	items     []Pair[K, V]
-	index     int
-	exhausted bool
-}
-
-func sortByMO[K comparable, V any](iter iteratorMO[K, V], fn func(a, b Pair[K, V]) bool) *sortIterMO[K, V] {
-	iterator := &sortIterMO[K, V]{iter: iter, items: make([]Pair[K, V], 0)}
-	iterator.baseIterMO = baseIterMO[K, V]{iterator}
-	iterator.collect(iter)
-
-	sort.Slice(iterator.items, func(i, j int) bool {
-		return fn(iterator.items[i], iterator.items[j])
+	sort.Slice(items, func(i, j int) bool {
+		return fn(items[i], items[j])
 	})
 
-	return iterator
+	return items.Iter()
 }
 
-func (iter *sortIterMO[K, V]) collect(inner iteratorMO[K, V]) {
-	for {
-		next := inner.Next()
-		if next.IsNone() {
-			return
+func inspectMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V)) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			fn(k, v)
+			return yield(k, v)
+		})
+	}
+}
+
+func stepbyMapOrd[K, V any](seq seqMapOrd[K, V], n uint) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		i := uint(0)
+		seq(func(k K, v V) bool {
+			i++
+			if (i-1)%n == 0 {
+				return yield(k, v)
+			}
+
+			return true
+		})
+	}
+}
+
+func chainMapOrd[K, V any](seqs ...seqMapOrd[K, V]) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, seq := range seqs {
+			seq(func(k K, v V) bool {
+				return yield(k, v)
+			})
 		}
-
-		iter.items = append(iter.items, next.Some())
 	}
 }
 
-func (iter *sortIterMO[K, V]) Next() Option[Pair[K, V]] {
-	if iter.exhausted {
-		return None[Pair[K, V]]()
+func skipMapOrd[K, V any](seq seqMapOrd[K, V], n uint) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if n > 0 {
+				n--
+				return true
+			}
+			return yield(k, v)
+		})
 	}
+}
 
-	if iter.index >= len(iter.items) {
-		iter.exhausted = true
-		return None[Pair[K, V]]()
+func mapiMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V) (K, V)) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			return yield(fn(k, v))
+		})
 	}
+}
 
-	iter.index++
+func filterMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V) bool) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if fn(k, v) {
+				return yield(k, v)
+			}
+			return true
+		})
+	}
+}
 
-	return Some(iter.items[iter.index-1])
+func excludeMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V) bool) seqMapOrd[K, V] {
+	return filterMapOrd(seq, func(k K, v V) bool { return !fn(k, v) })
+}
+
+func takeMapOrd[K, V any](seq seqMapOrd[K, V], n uint) seqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if n == 0 {
+				return false
+			}
+			n--
+			return yield(k, v)
+		})
+	}
+}
+
+func keysMO[K, V any](seq seqMapOrd[K, V]) seqSlice[K] {
+	return func(yield func(K) bool) {
+		seq(func(k K, _ V) bool {
+			return yield(k)
+		})
+	}
+}
+
+func valuesMO[K, V any](seq seqMapOrd[K, V]) seqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(_ K, v V) bool {
+			return yield(v)
+		})
+	}
 }
