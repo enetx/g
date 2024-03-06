@@ -1,6 +1,7 @@
 package g
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/fs"
@@ -16,10 +17,6 @@ func NewFile(name String) *File { return &File{name: name} }
 
 // Lines returns a new iterator instance that can be used to read the file
 // line by line.
-//
-// Returns:
-//
-// - *liftIterF: A pointer to the new liftIterF instance.
 //
 // Example usage:
 //
@@ -40,47 +37,24 @@ func NewFile(name String) *File { return &File{name: name} }
 //	// UPPERCASED_LINE4
 //	// UPPERCASED_LINE5
 //	// UPPERCASED_LINE6
-func (f *File) Lines() Result[*lineIterF] {
-	if err := f.Open().Err(); err != nil {
-		return Err[*lineIterF](err)
+func (f *File) Lines() Result[seqSlice[String]] {
+	if f.file == nil {
+		if err := f.Open().Err(); err != nil {
+			return Err[seqSlice[String]](err)
+		}
 	}
 
-	return Ok(lineF(f, f.file))
-}
+	return Ok(seqSlice[String](func(yield func(String) bool) {
+		defer f.Close()
 
-// Chunks returns a new iterator instance that can be used to read the file
-// in fixed-size chunks of the specified size in bytes.
-//
-// Parameters:
-//
-// - size (int): The size of each chunk in bytes.
-//
-// Returns:
-//
-// - *chunkIterF: A pointer to the new chunkIterF instance.
-//
-// Example usage:
-//
-//	// Open a new file with the specified name "text.txt"
-//	g.NewFile("text.txt").
-//		Chunks(100).              // Read the file in chunks of 100 bytes
-//		Unwrap().                 // Unwrap the Result type to get the underlying iterator
-//		Map(g.String.Upper).      // Convert each chunk to uppercase
-//		ForEach(                  // For each chunk, print it
-//			func(s g.String) {
-//				s.Print()
-//			})
-//
-//	// Output:
-//	// UPPERCASED_CHUNK1
-//	// UPPERCASED_CHUNK2
-//	// UPPERCASED_CHUNK3
-func (f *File) Chunks(size int) Result[*chunkIterF] {
-	if err := f.Open().Err(); err != nil {
-		return Err[*chunkIterF](err)
-	}
-
-	return Ok(chunkF(f, f.file, size))
+		scanner := bufio.NewScanner(f.file)
+		scanner.Split(bufio.ScanLines)
+		for scanner.Scan() {
+			if !yield(String(scanner.Text())) {
+				return
+			}
+		}
+	}))
 }
 
 // Append appends the given content to the file, with the specified mode (optional).
@@ -135,6 +109,21 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 	}
 
 	if err != nil {
+		return Err[*File](err)
+	}
+
+	return Ok(f)
+}
+
+func (f *File) Seek(offset int64, whence int) Result[*File] {
+	if f.file == nil {
+		if err := f.Open().Err(); err != nil {
+			return Err[*File](err)
+		}
+	}
+
+	if _, err := f.file.Seek(offset, whence); err != nil {
+		f.Close()
 		return Err[*File](err)
 	}
 

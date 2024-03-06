@@ -17,10 +17,4 @@ func main() {
 		StepBy(2). // Iterate over the map with a step size of 2
 		Collect().
 		Print()
-
-	g.SliceOf(0, 1, 2, 3, 4, 5, 6).
-		Iter().
-		StepBy(2).
-		Collect().
-		Print()
 }

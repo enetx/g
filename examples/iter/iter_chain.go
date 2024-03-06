@@ -19,14 +19,4 @@ func main() {
 	for _, v := range pp {
 		v.Print()
 	}
-
-	// iter1 := g.NewMap[int, string]().Set(1, "a").Iter()
-	// iter2 := g.NewMap[int, string]().Set(2, "b").Iter()
-
-	// iter1.Chain(iter2).Collect().Print()
-
-	// set1 := g.NewSet[int]().Add(1, 2, 3).Iter()
-	// set2 := g.NewSet[int]().Add(3, 3, 2, 3, 4, 5).Iter()
-
-	// set1.Chain(set2).Collect().Print()
 }
