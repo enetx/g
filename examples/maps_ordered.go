@@ -59,12 +59,12 @@ func main() {
 		Set(888, 000).
 		Set(888, 300)
 
-	if v, ok := ms1.Get(888); ok {
-		v.Print()
+	if r := ms1.Get(888); r.IsSome() {
+		r.Some().Print()
 	}
 
-	if v, ok := ms1.Get(11); ok {
-		v.Print()
+	if r := ms1.Get(11); r.IsSome() {
+		r.Some().Print()
 	}
 
 	ms1.Set(1, 223)

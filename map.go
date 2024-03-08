@@ -25,7 +25,7 @@ func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 //
 // Returns:
 //
-// A pointer to a liftIterM, which can be used for sequential iteration over the key-value pairs of the Map.
+// - seqMap[K, V], which can be used for sequential iteration over the key-value pairs of the Map.
 //
 // Example usage:
 //
@@ -38,7 +38,7 @@ func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-// func (m Map[K, V]) Iter() *liftIterM[K, V] { return liftM[K, V](m) }
+// func (m Map[K, V]) Iter() seqMap[K, V] { return liftM[K, V](m) }
 func (m Map[K, V]) Iter() seqMap[K, V] { return liftMap(m) }
 
 // Random returns a new map containing a single randomly selected key-value pair from the original map.
@@ -60,7 +60,7 @@ func (m Map[K, V]) Random() Map[K, V] {
 
 	key := m.Iter().Keys().Take(1).Collect()[0]
 
-	return NewMap[K, V]().Set(key, m.Get(key))
+	return NewMap[K, V]().Set(key, m.Get(key).Some())
 }
 
 // RandomSample returns a new map containing a random sample of key-value pairs from the original map.
@@ -91,7 +91,7 @@ func (m Map[K, V]) RandomSample(sequence int) Map[K, V] {
 	}
 
 	nmap := NewMap[K, V](sequence)
-	keys[0:sequence].Iter().ForEach(func(key K) { nmap.Set(key, m.Get(key)) })
+	keys[0:sequence].Iter().ForEach(func(key K) { nmap.Set(key, m.Get(key).Some()) })
 
 	return nmap
 }
@@ -145,6 +145,12 @@ func (m Map[K, V]) Invert() Map[any, K] {
 	return result
 }
 
+// Keys returns a slice of the Map's keys.
+func (m Map[K, V]) Keys() Slice[K] { return m.Iter().Keys().Collect() }
+
+// Values returns a slice of the Map's values.
+func (m Map[K, V]) Values() Slice[V] { return m.Iter().Values().Collect() }
+
 // Contains checks if the Map contains the specified key.
 func (m Map[K, V]) Contains(key K) bool {
 	_, ok := m[key]
@@ -194,32 +200,6 @@ func (m Map[K, V]) String() string {
 	m.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
 
 	return String(builder.String()).TrimRight(", ").Format("Map{%s}").Std()
-}
-
-// GetOrDefault returns the value for a key. If the key does not exist, returns the default value
-// instead. This function is useful when you want to provide a fallback value for keys that may not
-// be present in the Map.
-//
-// Parameters:
-//
-// - key K: The key for which to retrieve the value.
-//
-// - defaultValue V: The default value to return if the key does not exist in the Map.
-//
-// Returns:
-//
-// - V: The value associated with the key if it exists in the Map, or the default value if the key
-// is not found.
-//
-// Example usage:
-//
-//	value := m.GetOrDefault("someKey", "defaultValue")
-func (m Map[K, V]) GetOrDefault(key K, defaultValue V) V {
-	if value, ok := m[key]; ok {
-		return value
-	}
-
-	return defaultValue
 }
 
 // GetOrSet returns the value for a key. If the key exists in the Map, it returns the associated value.
@@ -273,7 +253,13 @@ func (m Map[K, V]) Clear() Map[K, V] { clear(m); return m }
 func (m Map[K, V]) Empty() bool { return m.Len() == 0 }
 
 // Get retrieves the value associated with the given key.
-func (m Map[K, V]) Get(k K) V { return m[k] }
+func (m Map[K, V]) Get(k K) Option[V] {
+	if v, ok := m[k]; ok {
+		return Some(v)
+	}
+
+	return None[V]()
+}
 
 // Len returns the number of key-value pairs in the Map.
 func (m Map[K, V]) Len() int { return len(m) }

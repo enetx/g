@@ -151,7 +151,7 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
 	return *mo
 }
 
-// // ToMap converts the ordered Map to a standard Map.
+// ToMap converts the ordered Map to a standard Map.
 // func (mo MapOrd[K, V]) ToMap() Map[K, V] {
 // 	m := NewMap[K, V](mo.Len())
 // 	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
@@ -193,12 +193,12 @@ func (mo *MapOrd[K, V]) Set(key K, value V) *MapOrd[K, V] {
 //
 // Retrieves the value associated with the key "some_key" and checks if the key exists in the
 // ordered Map.
-func (mo MapOrd[K, V]) Get(key K) (V, bool) {
+func (mo MapOrd[K, V]) Get(key K) Option[V] {
 	if i := mo.index(key); i != -1 {
-		return mo[i].Value, true
+		return Some(mo[i].Value)
 	}
 
-	return *new(V), false // Returns the zero value for type V and false (not found)
+	return None[V]()
 }
 
 // GetOrDefault returns the value for a key. If the key does not exist, returns the default value
@@ -282,6 +282,12 @@ func (mo MapOrd[K, V]) index(key K) int {
 	return -1
 }
 
+// Keys returns an Slice containing all the keys in the ordered Map.
+func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
+
+// Values returns an Slice containing all the values in the ordered Map.
+func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
+
 // Delete removes the specified keys from the ordered Map.
 func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
 	for _, key := range keys {
@@ -300,8 +306,8 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 	}
 
 	for _, mp := range mo {
-		value, ok := other.Get(mp.Key)
-		if !ok || !reflect.DeepEqual(value, mp.Value) {
+		value := other.Get(mp.Key)
+		if value.IsNone() || !reflect.DeepEqual(value.Some(), mp.Value) {
 			return false
 		}
 	}
@@ -319,7 +325,7 @@ func (mo MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() MapOrd[K, V] { return mo.Delete(mo.Iter().Keys().Collect()...) }
+func (mo *MapOrd[K, V]) Clear() MapOrd[K, V] { return mo.Delete(mo.Keys()...) }
 
 // Contains checks if the ordered Map contains the specified key.
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }

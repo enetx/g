@@ -7,7 +7,10 @@ import (
 	"sort"
 )
 
-type seqSlice[V any] iter.Seq[V]
+type (
+	seqSlice[V any]  iter.Seq[V]
+	seqSlices[V any] iter.Seq[[]V]
+)
 
 func (seq seqSlice[V]) pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
 
@@ -92,6 +95,29 @@ func (seq seqSlice[V]) Any(fn func(V) bool) bool {
 func (seq seqSlice[V]) Chain(seqs ...seqSlice[V]) seqSlice[V] {
 	return chainSlice(append([]seqSlice[V]{seq}, seqs...)...)
 }
+
+// Chunks returns an iterator that yields chunks of elements of the specified size.
+//
+// The function creates a new iterator that yields chunks of elements from the original iterator,
+// with each chunk containing elements of the specified size.
+//
+// Params:
+//
+// - size (int): The size of each chunk.
+//
+// Returns:
+//
+// - seqSlices[V]: An iterator yielding chunks of elements of the specified size.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
+//	chunks := slice.Iter().Chunks(2).Collect()
+//
+// Output: [Slice[1, 2] Slice[3, 4] Slice[5, 6]]
+//
+// The resulting iterator will yield chunks of elements, each containing the specified number of elements.
+func (seq seqSlice[V]) Chunks(n int) seqSlices[V] { return chunks(seq, n) }
 
 // Collect gathers all elements from the iterator into a Slice.
 func (seq seqSlice[V]) Collect() Slice[V] {
@@ -259,32 +285,6 @@ func (seq seqSlice[V]) ForEach(fn func(v V)) {
 		fn(v)
 	}
 }
-
-// Flatten flattens an iterator of iterators into a single iterator.
-//
-// The function creates a new iterator that flattens a sequence of iterators,
-// returning a single iterator containing elements from each iterator in sequence.
-//
-// Returns:
-//
-// - seqSlice[V]: A single iterator containing elements from the sequence of iterators.
-//
-// Example usage:
-//
-//	nestedSlice := g.Slice[any]{
-//		1,
-//		g.SliceOf[any](2, 3),
-//		"abc",
-//		g.SliceOf[any]("def", "ghi"),
-//		g.SliceOf[any](4.5, 6.7),
-//	}
-//
-//	nestedSlice.Iter().Flatten().Collect().Print()
-//
-// Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
-//
-// The resulting iterator will contain elements from each iterator in sequence.
-func (seq seqSlice[V]) Flatten() seqSlice[V] { return flatten(seq) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
@@ -502,6 +502,60 @@ func (seq seqSlice[V]) Unique() seqSlice[V] { return uniqueSlice(seq) }
 // creating an ordered map with identical keys and values of type V.
 func (seq seqSlice[V]) Zip(two seqSlice[V]) seqMapOrd[V, V] { return zip(seq, two) }
 
+// Find searches for an element in the iterator that satisfies the provided function.
+//
+// The function iterates through the elements of the iterator and returns the first element
+// for which the provided function returns true.
+//
+// Params:
+//
+// - fn (func(T) bool): The function used to test elements for a condition.
+//
+// Returns:
+//
+// - Option[V]: An Option containing the first element that satisfies the condition; None if not found.
+//
+// Example usage:
+//
+//	iter := g.Slice[int]{1, 2, 3, 4, 5}.Iter()
+//
+//	found := iter.Find(
+//		func(i int) bool {
+//			return i == 2
+//		})
+//
+//	if found.IsSome() {
+//		fmt.Println("Found:", found.Some())
+//	} else {
+//		fmt.Println("Not found.")
+//	}
+//
+// The resulting Option may contain the first element that satisfies the condition, or None if not found.
+func (seq seqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq, fn) }
+
+// Windows returns an iterator that yields sliding windows of elements of the specified size.
+//
+// The function creates a new iterator that yields windows of elements from the original iterator,
+// where each window is a slice containing elements of the specified size and moves one element at a time.
+//
+// Params:
+//
+// - size (int): The size of each window.
+//
+// Returns:
+//
+// - seqSlices[V]: An iterator yielding sliding windows of elements of the specified size.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
+//	windows := slice.Iter().Windows(3).Collect()
+//
+// Output: [Slice[1, 2, 3] Slice[2, 3, 4] Slice[3, 4, 5] Slice[4, 5, 6]]
+//
+// The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
+func (seq seqSlice[V]) Windows(n int) seqSlices[V] { return windows(seq, n) }
+
 func liftSlice[V any](slice []V) seqSlice[V] {
 	return func(yield func(V) bool) {
 		for _, v := range slice {
@@ -547,25 +601,19 @@ func excludeSlice[V any](seq seqSlice[V], fn func(V) bool) seqSlice[V] {
 
 func cycleSlice[V any](seq seqSlice[V]) seqSlice[V] {
 	return func(yield func(V) bool) {
-		var (
-			saved []V
-			i     int
-		)
+		var saved []V
 
-		for v := range seq {
+		seq(func(v V) bool {
 			saved = append(saved, v)
-			if !yield(v) {
-				return
-			}
-		}
+			return yield(v)
+		})
 
 		for len(saved) > 0 {
-			for ; i < len(saved); i++ {
-				if !yield(saved[i]) {
+			for _, v := range saved {
+				if !yield(v) {
 					return
 				}
 			}
-			i = 0
 		}
 	}
 }
@@ -695,24 +743,89 @@ func zip[V, W any](one seqSlice[V], two seqSlice[W]) seqMapOrd[V, W] {
 	}
 }
 
-func flatten[V any](seq seqSlice[V]) seqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if inner, ok := any(v).(Slice[V]); ok {
-				flatten(inner.Iter())(func(v V) bool {
-					return yield(v)
-				})
-				return true
-			}
-			return yield(v)
-		})
-	}
-}
-
 func fold[V any](seq seqSlice[V], init V, fn func(V, V) V) V {
 	seq(func(v V) bool {
 		init = fn(init, v)
 		return true
 	})
 	return init
+}
+
+func findSlice[V any](seq seqSlice[V], fn func(V) bool) (r Option[V]) {
+	seq(func(v V) bool {
+		if !fn(v) {
+			return true
+		}
+		r = Some(v)
+		return false
+	})
+
+	return r
+}
+
+func (seqs seqSlices[V]) Collect() []Slice[V] {
+	collection := make([]Slice[V], 0)
+
+	for seq := range seqs {
+		inner := make([]V, 0)
+		for _, v := range seq {
+			inner = append(inner, v)
+		}
+		collection = append(collection, inner)
+	}
+
+	return collection
+}
+
+func chunks[V any](seq seqSlice[V], n int) seqSlices[V] {
+	return func(yield func([]V) bool) {
+		win := make([]V, 0, n)
+
+		seq(func(v V) bool {
+			if len(win) == n {
+				clear(win)
+				win = win[:0]
+			}
+
+			if len(win) < n-1 {
+				win = append(win, v)
+				return true
+			}
+
+			if len(win) < n {
+				win = append(win, v)
+				return yield(win)
+			}
+
+			return yield(win)
+		})
+		if len(win) < n {
+			yield(win)
+		}
+	}
+}
+
+func windows[V any](seq seqSlice[V], n int) seqSlices[V] {
+	return func(yield func([]V) bool) {
+		win := make([]V, 0, n)
+
+		seq(func(v V) bool {
+			if len(win) < n-1 {
+				win = append(win, v)
+				return true
+			}
+			if len(win) < n {
+				win = append(win, v)
+				return yield(win)
+			}
+
+			copy(win, win[1:])
+			win[len(win)-1] = v
+			return yield(win)
+		})
+
+		if len(win) < n {
+			yield(win)
+		}
+	}
 }

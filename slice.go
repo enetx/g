@@ -139,6 +139,45 @@ func (sl Slice[T]) Fill(val T) {
 	}
 }
 
+// Flatten flattens the nested slice structure into a single-level Slice[any].
+//
+// It recursively traverses the nested slice structure and appends all non-slice elements to a new
+// Slice[any].
+//
+// Returns:
+//
+// - Slice[any]: A new Slice[any] containing the flattened elements.
+//
+// Example usage:
+//
+//	nested := g.Slice[any]{1, 2, g.Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
+//	flattened := nested.Flatten()
+//	fmt.Println(flattened)
+//
+// Output: Slice[1, 2, 3, 4, 5, 6, 7, 8, 9].
+func (sl Slice[T]) Flatten() Slice[any] {
+	flattened := NewSlice[any]()
+	flattenRecursive(reflect.ValueOf(sl), &flattened)
+
+	return flattened
+}
+
+// flattenRecursive a helper function for recursively flattening nested slices.
+func flattenRecursive(val reflect.Value, flattened *Slice[any]) {
+	for i := range val.Len() {
+		elem := val.Index(i)
+		if elem.Kind() == reflect.Interface {
+			elem = elem.Elem()
+		}
+
+		if elem.Kind() == reflect.Slice {
+			flattenRecursive(elem, flattened)
+		} else {
+			*flattened = append(*flattened, elem.Interface())
+		}
+	}
+}
+
 // ToMapHashed returns a map with the hashed version of each element as the key.
 func (sl Slice[T]) ToMapHashed() Map[String, T] {
 	result := NewMap[String, T](sl.Len())
@@ -177,6 +216,65 @@ func (sl Slice[T]) Index(val T) int {
 	}
 
 	return -1
+}
+
+// factorial a utility function that calculates the factorial of a given number.
+func factorial(n int) int {
+	if n <= 1 {
+		return 1
+	}
+
+	return n * factorial(n-1)
+}
+
+// Permutations returns all possible permutations of the elements in the slice.
+//
+// The function uses a recursive approach to generate all the permutations of the elements.
+// If the slice has a length of 0 or 1, it returns the slice itself wrapped in a single-element
+// slice.
+//
+// Returns:
+//
+// - []Slice[T]: A slice of Slice[T] containing all possible permutations of the elements in the
+// slice.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3}
+//	perms := slice.Permutations()
+//	for _, perm := range perms {
+//	    fmt.Println(perm)
+//	}
+//	// Output:
+//	// [1 2 3]
+//	// [1 3 2]
+//	// [2 1 3]
+//	// [2 3 1]
+//	// [3 1 2]
+//	// [3 2 1]
+func (sl Slice[T]) Permutations() []Slice[T] {
+	if sl.Len() <= 1 {
+		return []Slice[T]{sl}
+	}
+
+	perms := make([]Slice[T], 0, factorial(sl.Len()))
+
+	for i, elem := range sl {
+		rest := NewSlice[T](sl.Len() - 1)
+
+		copy(rest[:i], sl[:i])
+		copy(rest[i:], sl[i+1:])
+
+		subPerms := rest.Permutations()
+
+		for j := range subPerms {
+			subPerms[j] = append(Slice[T]{elem}, subPerms[j]...)
+		}
+
+		perms = append(perms, subPerms...)
+	}
+
+	return perms
 }
 
 // RandomSample returns a new slice containing a random sample of elements from the original slice.

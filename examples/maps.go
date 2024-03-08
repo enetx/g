@@ -11,47 +11,36 @@ func main() {
 	gos := g.NewMap[string, *int]()
 
 	gos.GetOrSet("root", ref.Of(3))
-	fmt.Println(*gos.Get("root") == 3)
+	fmt.Println(*gos.Get("root").Some() == 3)
 
 	*gos.GetOrSet("root", ref.Of(10)) *= 2
-	fmt.Println(*gos.Get("root") == 6)
+	fmt.Println(*gos.Get("root").Some() == 6)
 
-	// //////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
-	gos2 := g.NewMap[int, *g.Slice[int]]()
+	gos2 := g.NewMap[int, g.Slice[int]]()
 
 	for i := range 5 {
-		gos2.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
+		gos2.Set(i, gos2.Get(i).UnwrapOrDefault().Append(i))
 	}
 
 	for i := range 10 {
-		gos2.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
+		gos2.Set(i, gos2.Get(i).UnwrapOrDefault().Append(i))
 	}
 
-	// gos2.Print()
+	gos2.Print()
 
-	// //////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////
 
 	god := g.NewMap[int, g.Slice[int]]()
 
-	for i := range 5 {
-		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
-		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
-		// god.Set(i, god.Get(i).Append(i))
+	for i := range 10 {
+		god[i] = god.Get(i).UnwrapOrDefault().Append(i)
 	}
 
 	for i := range 10 {
-		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
-		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
-		// god.Set(i, god.Get(i).Append(i))
-	}
-
-	for i := range 10 {
-		// god[i] = god.GetOrDefault(i, g.NewSlice[int]()).Append(i)
-		god.Set(i, god.GetOrDefault(i, g.NewSlice[int]()).Append(i))
+		god[i] = god.Get(i).UnwrapOrDefault().Append(i)
 	}
 
 	god.Print()
-	god.Iter().Keys().Collect().Print()
-	god.Iter().Values().Collect().Print()
 }

@@ -39,13 +39,13 @@ func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 	return mapSet(s.Iter(), fn).Collect()
 }
 
-// Iter returns an iterator (*liftIterS) for the Set, allowing for sequential iteration
+// Iter returns an iterator (seqSet[T]) for the Set, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
 // such as 'ForEach' or 'TransformSet', to perform operations on each element of the Set.
 //
 // Returns:
 //
-// A pointer to a liftIterS, which can be used for sequential iteration over the elements of the Set.
+// A pointer to a seqSet[T], which can be used for sequential iteration over the elements of the Set.
 //
 // Example usage:
 //

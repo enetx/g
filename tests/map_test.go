@@ -15,7 +15,7 @@ func TestMapKeys(t *testing.T) {
 	m.Set("b", 2)
 	m.Set("c", 3)
 
-	keys := m.Iter().Keys().Collect()
+	keys := m.Keys()
 	if keys.Len() != 3 {
 		t.Errorf("Expected 3 keys, got %d", keys.Len())
 	}
@@ -40,7 +40,7 @@ func TestMapValues(t *testing.T) {
 	m.Set("b", 2)
 	m.Set("c", 3)
 
-	values := m.Iter().Values().Collect()
+	values := m.Values()
 
 	if values.Len() != 3 {
 		t.Errorf("Expected 3 values, got %d", values.Len())
@@ -310,16 +310,16 @@ func TestMapInvertValues(t *testing.T) {
 		t.Errorf("Expected inverted map to have length 3, but got length %d", inv2.Len())
 	}
 
-	if inv2.Get(1) != "one" {
-		t.Errorf("Expected inverted map to map 1 to 'one', but got %s", inv2.Get(1))
+	if inv2.Get(1).Some() != "one" {
+		t.Errorf("Expected inverted map to map 1 to 'one', but got %s", inv2.Get(1).Some())
 	}
 
-	if inv2.Get(2) != "two" {
-		t.Errorf("Expected inverted map to map 2 to 'two', but got %s", inv2.Get(2))
+	if inv2.Get(2).Some() != "two" {
+		t.Errorf("Expected inverted map to map 2 to 'two', but got %s", inv2.Get(2).Some())
 	}
 
-	if inv2.Get(3) != "three" {
-		t.Errorf("Expected inverted map to map 3 to 'three', but got %s", inv2.Get(3))
+	if inv2.Get(3).Some() != "three" {
+		t.Errorf("Expected inverted map to map 3 to 'three', but got %s", inv2.Get(3).Some())
 	}
 }
 
@@ -331,7 +331,7 @@ func TestGetOrSet(t *testing.T) {
 	m.GetOrSet("root", ref.Of(3))
 
 	// Check if the value for the key "root" is equal to 3
-	value := m.Get("root")
+	value := m.Get("root").Some()
 	if *value != 3 {
 		t.Errorf("Expected value 3 for key 'root', but got %v", *value)
 	}
@@ -340,7 +340,7 @@ func TestGetOrSet(t *testing.T) {
 	*m.GetOrSet("root", ref.Of(10)) *= 2
 
 	// Check if the value for the key "root" is equal to 6
-	value = m.Get("root")
+	value = m.Get("root").Some()
 	if *value != 6 {
 		t.Errorf("Expected value 6 for key 'root', but got %v", *value)
 	}
@@ -362,14 +362,14 @@ func TestRandomMap(t *testing.T) {
 	}
 
 	// Check if the selected key exists in the original map
-	key := randomResult.Iter().Keys().Collect()[0]
+	key := randomResult.Keys()[0]
 	if !testMap.Contains(key) {
 		t.Errorf("Randomly selected key not found in the original map")
 	}
 
 	// Check if the selected value matches the original map
-	value := randomResult.Get(key)
-	originalValue := testMap.Get(key)
+	value := randomResult.Get(key).Some()
+	originalValue := testMap.Get(key).Some()
 	if value != originalValue {
 		t.Errorf("Randomly selected value does not match the original value")
 	}
@@ -404,7 +404,7 @@ func TestRandomSampleMap(t *testing.T) {
 	}
 
 	// Check if all selected keys exist in the original map
-	keys := randomResult.Iter().Keys().Collect()
+	keys := randomResult.Keys()
 	for _, key := range keys {
 		if !testMap.Contains(key) {
 			t.Errorf("Randomly selected key '%s' not found in the original map", key)
@@ -413,8 +413,8 @@ func TestRandomSampleMap(t *testing.T) {
 
 	// Check if the selected values match the original map
 	for _, key := range keys {
-		value := randomResult.Get(key)
-		originalValue := testMap.Get(key)
+		value := randomResult.Get(key).Some()
+		originalValue := testMap.Get(key).Some()
 		if value != originalValue {
 			t.Errorf("Randomly selected value for key '%s' does not match the original value", key)
 		}
@@ -448,7 +448,7 @@ func TestRandomSampleFullMap(t *testing.T) {
 		t.Errorf("Expected a map with 2 key-value pairs, but got length %d", randomResult.Len())
 	}
 
-	keys := randomResult.Iter().Keys().Collect()
+	keys := randomResult.Keys()
 	for _, key := range keys {
 		if !testMap.Contains(key) {
 			t.Errorf("Randomly selected key '%s' not found in the original map", key)

@@ -115,6 +115,33 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 	return Ok(f)
 }
 
+// Seek sets the file offset for the next Read or Write operation. The offset
+// is specified by the 'offset' parameter, and the 'whence' parameter determines
+// the reference point for the offset.
+//
+// The 'offset' parameter specifies the new offset in bytes relative to the
+// reference point determined by 'whence'. If 'whence' is set to io.SeekStart,
+// io.SeekCurrent, or io.SeekEnd, the offset is relative to the start of the file,
+// the current offset, or the end of the file, respectively.
+//
+// If the file is not open, this method will attempt to open it. If the open
+// operation fails, an error is returned.
+//
+// If the Seek operation fails, the file is closed, and an error is returned.
+//
+// Example:
+//
+//	file := g.NewFile("example.txt")
+//	result := file.Seek(100, io.SeekStart)
+//	if result.Err() != nil {
+//	    log.Fatal(result.Err())
+//	}
+//
+// Parameters:
+//   - offset: The new offset in bytes.
+//   - whence: The reference point for the offset (io.SeekStart, io.SeekCurrent, or io.SeekEnd).
+//
+// Don't forget to close the file!
 func (f *File) Seek(offset int64, whence int) Result[*File] {
 	if f.file == nil {
 		if err := f.Open().Err(); err != nil {
