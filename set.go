@@ -24,7 +24,7 @@ func SetOf[T comparable](values ...T) Set[T] {
 	return set
 }
 
-// TransformSet applies the given function to each element of a Set and returns a new Set
+// MapSet applies the given function to each element of a Set and returns a new Set
 // containing the transformed values.
 //
 // Parameters:
@@ -35,9 +35,7 @@ func SetOf[T comparable](values ...T) Set[T] {
 // Returns:
 //
 // A new Set containing the results of applying the function to each element of the input Set.
-func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
-	return mapSet(s.Iter(), fn).Collect()
-}
+func MapSet[T, U comparable](s Set[T], fn func(T) U) Set[U] { return mapSet(s.Iter(), fn).Collect() }
 
 // Iter returns an iterator (seqSet[T]) for the Set, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,

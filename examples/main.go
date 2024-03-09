@@ -183,7 +183,7 @@ func main() {
 	to.Enc().Octal().Print()
 	to.Enc().Octal().Dec().Octal().Unwrap().Print()
 
-	to.Enc().Binary().Chunks(8).Some().Join(" ").Print()
+	to.Enc().Binary().Chunks(8).Join(" ").Print()
 	to.Enc().Binary().Dec().Binary().Unwrap().Print()
 
 	toi := g.Int(1234567890)

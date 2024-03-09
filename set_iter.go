@@ -4,19 +4,20 @@ import "iter"
 
 type seqSet[V comparable] iter.Seq[V]
 
-func (s seqSet[V]) pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](s)) }
+func (seq seqSet[V]) pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (s seqSet[V]) Inspect(fn func(v V)) seqSet[V] { return inspectSet(s, fn) }
+func (seq seqSet[V]) Inspect(fn func(v V)) seqSet[V] { return inspectSet(seq, fn) }
 
 // Collect gathers all elements from the iterator into a Set.
-func (s seqSet[V]) Collect() Set[V] {
+func (seq seqSet[V]) Collect() Set[V] {
 	collection := NewSet[V]()
 
-	for v := range s {
+	seq(func(v V) bool {
 		collection.Add(v)
-	}
+		return true
+	})
 
 	return collection
 }
@@ -43,8 +44,8 @@ func (s seqSet[V]) Collect() Set[V] {
 // Output: Set{3, 4, 5, 6, 1, 2} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements from both iterators.
-func (s seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
-	return chainSet(append([]seqSet[V]{s}, seqs...)...)
+func (seq seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
+	return chainSet(append([]seqSet[V]{seq}, seqs...)...)
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -63,19 +64,18 @@ func (s seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (s seqSet[V]) ForEach(fn func(v V)) {
-	for v := range s {
+func (seq seqSet[V]) ForEach(fn func(v V)) {
+	seq(func(v V) bool {
 		fn(v)
-	}
+		return true
+	})
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (s seqSet[V]) Range(fn func(v V) bool) {
-	for v := range s {
-		if !fn(v) {
-			return
-		}
-	}
+func (seq seqSet[V]) Range(fn func(v V) bool) {
+	seq(func(v V) bool {
+		return fn(v)
+	})
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -106,7 +106,7 @@ func (s seqSet[V]) Range(fn func(v V) bool) {
 // Output: Set{2, 4} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (s seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(s, fn) }
+func (seq seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(seq, fn) }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
 //
@@ -136,7 +136,7 @@ func (s seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(s, fn) }
 // Output: Set{1, 3, 5} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (s seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return excludeSet(s, fn) }
+func (seq seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return excludeSet(seq, fn) }
 
 // Map transforms each element in the iterator using the given function.
 //
@@ -165,7 +165,7 @@ func (s seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return excludeSet(s, fn)
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (s seqSet[V]) Map(transform func(V) V) seqSet[V] { return mapSet(s, transform) }
+func (seq seqSet[V]) Map(transform func(V) V) seqSet[V] { return mapSet(seq, transform) }
 
 func liftSet[V comparable](slice Set[V]) seqSet[V] {
 	return func(yield func(V) bool) {

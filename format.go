@@ -1,6 +1,8 @@
 package g
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Sprintf formats according to a format specifier and returns the resulting String.
 func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
@@ -9,9 +11,9 @@ func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(s
 // Spaces are added between operands when neither is a string.
 func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
 
-// GSprintf formats a string (str) by replacing placeholders with values from a map (args)
+// Format formats a string (str) by replacing placeholders with values from a map (args)
 // and returns the result as a String. Placeholders in the format string should be enclosed
-// in curly braces, e.g., "{Name}". The values for placeholders are retrieved from the
+// in curly braces, e.g., "{name}". The values for placeholders are retrieved from the
 // provided map using Sprint for formatting individual values.
 //
 // Parameters:
@@ -25,18 +27,18 @@ func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
 // Example:
 //
 //	values := map[string]any{
-//	    "Name":  "John",
-//	    "Age":   30,
-//	    "City":  "New York",
+//	    "name":  "John",
+//	    "age":   30,
+//	    "city":  "New York",
 //	}
-//	formatString := "Hello, my name is {Name}. I am {Age} years old and live in {City}."
-//	formattedString := g.GSprintf(formatString, values)
-//	formattedString.Print()
+//	format := "Hello, my name is {name}. I am {age} years old and live in {city}."
+//	formatted := g.Format(formatString, values)
+//	formatted.Print()
 //
 // Output:
 //
 //	Hello, my name is John. I am 30 years old and live in New York.
-func GSprintf[T, U ~string](str T, args Map[U, any]) String {
+func Format[T, U ~string](str T, args Map[U, any]) String {
 	result := String(str)
 
 	args.Iter().

@@ -6,15 +6,15 @@ import (
 
 type seqMap[K comparable, V any] iter.Seq2[K, V]
 
-func (s seqMap[K, V]) pull() (func() (K, V, bool), func()) {
-	return iter.Pull2(iter.Seq2[K, V](s))
+func (seq seqMap[K, V]) pull() (func() (K, V, bool), func()) {
+	return iter.Pull2(iter.Seq2[K, V](seq))
 }
 
 // Keys returns an iterator containing all the keys in the ordered Map.
-func (seq seqMap[K, V]) Keys() seqSlice[K] { return keysM(seq) }
+func (seq seqMap[K, V]) Keys() seqSlice[K] { return keysMap(seq) }
 
 // Values returns an iterator containing all the values in the ordered Map.
-func (seq seqMap[K, V]) Values() seqSlice[V] { return valuesM(seq) }
+func (seq seqMap[K, V]) Values() seqSlice[V] { return valuesMap(seq) }
 
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
 //
@@ -40,17 +40,18 @@ func (seq seqMap[K, V]) Values() seqSlice[V] { return valuesM(seq) }
 // Output: Map{1:a, 2:b} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements from both iterators.
-func (s seqMap[K, V]) Chain(seqs ...seqMap[K, V]) seqMap[K, V] {
-	return chainMap(append([]seqMap[K, V]{s}, seqs...)...)
+func (seq seqMap[K, V]) Chain(seqs ...seqMap[K, V]) seqMap[K, V] {
+	return chainMap(append([]seqMap[K, V]{seq}, seqs...)...)
 }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
-func (s seqMap[K, V]) Collect() Map[K, V] {
+func (seq seqMap[K, V]) Collect() Map[K, V] {
 	collection := NewMap[K, V]()
 
-	for k, v := range s {
+	seq(func(k K, v V) bool {
 		collection.Set(k, v)
-	}
+		return true
+	})
 
 	return collection
 }
@@ -89,7 +90,7 @@ func (s seqMap[K, V]) Collect() Map[K, V] {
 // Output: Map{1:1, 3:3, 5:5} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will exclude elements for which the function returns true.
-func (s seqMap[K, V]) Exclude(fn func(K, V) bool) seqMap[K, V] { return excludeMap(s, fn) }
+func (seq seqMap[K, V]) Exclude(fn func(K, V) bool) seqMap[K, V] { return excludeMap(seq, fn) }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -123,7 +124,10 @@ func (s seqMap[K, V]) Exclude(fn func(K, V) bool) seqMap[K, V] { return excludeM
 // Output: Map{2:2, 4:4} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements for which the function returns true.
-func (s seqMap[K, V]) Filter(fn func(K, V) bool) seqMap[K, V] { return filterMap(s, fn) }
+func (seq seqMap[K, V]) Filter(fn func(K, V) bool) seqMap[K, V] { return filterMap(seq, fn) }
+
+// The resulting Option may contain the first element that satisfies the condition, or None if not found.
+func (seq seqMap[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] { return findMap(seq, fn) }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
 //
@@ -155,15 +159,16 @@ func (s seqMap[K, V]) Filter(fn func(K, V) bool) seqMap[K, V] { return filterMap
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The function fn will be executed for each key-value pair in the iterator.
-func (s seqMap[K, V]) ForEach(fn func(k K, v V)) {
-	for k, v := range s {
+func (seq seqMap[K, V]) ForEach(fn func(k K, v V)) {
+	seq(func(k K, v V) bool {
 		fn(k, v)
-	}
+		return true
+	})
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
-func (s seqMap[K, V]) Inspect(fn func(k K, v V)) seqMap[K, V] { return inspectMap(s, fn) }
+func (seq seqMap[K, V]) Inspect(fn func(k K, v V)) seqMap[K, V] { return inspectMap(seq, fn) }
 
 // Map creates a new iterator by applying the given function to each key-value pair.
 //
@@ -200,15 +205,13 @@ func (s seqMap[K, V]) Inspect(fn func(k K, v V)) seqMap[K, V] { return inspectMa
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain key-value pairs transformed by the given function.
-func (s seqMap[K, V]) Map(transform func(K, V) (K, V)) seqMap[K, V] { return mapMap(s, transform) }
+func (seq seqMap[K, V]) Map(transform func(K, V) (K, V)) seqMap[K, V] { return mapMap(seq, transform) }
 
 // The iteration will stop when the provided function returns false for an element.
-func (s seqMap[K, V]) Range(fn func(k K, v V) bool) {
-	for k, v := range s {
-		if !fn(k, v) {
-			return
-		}
-	}
+func (seq seqMap[K, V]) Range(fn func(k K, v V) bool) {
+	seq(func(k K, v V) bool {
+		return fn(k, v)
+	})
 }
 
 func liftMap[K comparable, V any](hashmap map[K]V) seqMap[K, V] {
@@ -263,7 +266,7 @@ func inspectMap[K comparable, V any](seq seqMap[K, V], fn func(K, V)) seqMap[K, 
 	}
 }
 
-func keysM[K comparable, V any](seq seqMap[K, V]) seqSlice[K] {
+func keysMap[K comparable, V any](seq seqMap[K, V]) seqSlice[K] {
 	return func(yield func(K) bool) {
 		seq(func(k K, _ V) bool {
 			return yield(k)
@@ -271,10 +274,22 @@ func keysM[K comparable, V any](seq seqMap[K, V]) seqSlice[K] {
 	}
 }
 
-func valuesM[K comparable, V any](seq seqMap[K, V]) seqSlice[V] {
+func valuesMap[K comparable, V any](seq seqMap[K, V]) seqSlice[V] {
 	return func(yield func(V) bool) {
 		seq(func(_ K, v V) bool {
 			return yield(v)
 		})
 	}
+}
+
+func findMap[K comparable, V any](seq seqMap[K, V], fn func(K, V) bool) (r Option[Pair[K, V]]) {
+	seq(func(k K, v V) bool {
+		if !fn(k, v) {
+			return true
+		}
+		r = Some(Pair[K, V]{k, v})
+		return false
+	})
+
+	return r
 }

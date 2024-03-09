@@ -46,7 +46,7 @@ func NewSlice[T any](size ...int) Slice[T] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
-// TransformSlice applies the given function to each element of a Slice and returns a new Slice
+// MapSlice applies the given function to each element of a Slice and returns a new Slice
 // containing the transformed values.
 //
 // Parameters:
@@ -58,10 +58,7 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 // Returns:
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
-func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
-	// return mapiter(sl.Iter(), fn).Collect()
-	return mapSlice(sl.Iter(), fn).Collect()
-}
+func MapSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return mapSlice(sl.Iter(), fn).Collect() }
 
 // Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,

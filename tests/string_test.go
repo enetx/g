@@ -2,10 +2,105 @@ package g_test
 
 import (
 	"io"
+	"reflect"
 	"testing"
 
 	"gitlab.com/x0xO/g"
 )
+
+func TestChars(t *testing.T) {
+	// Testing on a regular string with ASCII characters
+	asciiStr := g.String("Hello")
+	asciiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o"}
+	asciiResult := asciiStr.Chars()
+	if !reflect.DeepEqual(asciiExpected, asciiResult) {
+		t.Errorf("Expected %v, but got %v", asciiExpected, asciiResult)
+	}
+
+	// Testing on a string with Unicode characters (Russian)
+	unicodeStr := g.String("Привет")
+	unicodeExpected := g.Slice[g.String]{"П", "р", "и", "в", "е", "т"}
+	unicodeResult := unicodeStr.Chars()
+	if !reflect.DeepEqual(unicodeExpected, unicodeResult) {
+		t.Errorf("Expected %v, but got %v", unicodeExpected, unicodeResult)
+	}
+
+	// Testing on a string with Unicode characters (Chinese)
+	chineseStr := g.String("你好")
+	chineseExpected := g.Slice[g.String]{"你", "好"}
+	chineseResult := chineseStr.Chars()
+	if !reflect.DeepEqual(chineseExpected, chineseResult) {
+		t.Errorf("Expected %v, but got %v", chineseExpected, chineseResult)
+	}
+
+	// Additional test with a mix of ASCII and Unicode characters
+	mixedStr := g.String("Hello 你好")
+	mixedExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", " ", "你", "好"}
+	mixedResult := mixedStr.Chars()
+	if !reflect.DeepEqual(mixedExpected, mixedResult) {
+		t.Errorf("Expected %v, but got %v", mixedExpected, mixedResult)
+	}
+
+	// Testing on a string with special characters and symbols
+	specialStr := g.String("Hello, 你好! How are you today? こんにちは")
+	specialExpected := g.Slice[g.String]{
+		"H",
+		"e",
+		"l",
+		"l",
+		"o",
+		",",
+		" ",
+		"你",
+		"好",
+		"!",
+		" ",
+		"H",
+		"o",
+		"w",
+		" ",
+		"a",
+		"r",
+		"e",
+		" ",
+		"y",
+		"o",
+		"u",
+		" ",
+		"t",
+		"o",
+		"d",
+		"a",
+		"y",
+		"?",
+		" ",
+		"こ",
+		"ん",
+		"に",
+		"ち",
+		"は",
+	}
+	specialResult := specialStr.Chars()
+	if !reflect.DeepEqual(specialExpected, specialResult) {
+		t.Errorf("Expected %v, but got %v", specialExpected, specialResult)
+	}
+
+	// Testing on a string with emojis
+	emojiStr := g.String("Hello, 😊🌍🚀")
+	emojiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", ",", " ", "😊", "🌍", "🚀"}
+	emojiResult := emojiStr.Chars()
+	if !reflect.DeepEqual(emojiExpected, emojiResult) {
+		t.Errorf("Expected %v, but got %v", emojiExpected, emojiResult)
+	}
+
+	// Testing on an empty string
+	emptyStr := g.String("")
+	emptyExpected := g.Slice[g.String]{}
+	emptyResult := emptyStr.Chars()
+	if !reflect.DeepEqual(emptyExpected, emptyResult) {
+		t.Errorf("Expected %v, but got %v", emptyExpected, emptyResult)
+	}
+}
 
 func TestStringIsDigit(t *testing.T) {
 	tests := []struct {
@@ -210,14 +305,14 @@ func TestStringRandom(t *testing.T) {
 
 func TestStringChunks(t *testing.T) {
 	str := g.String("")
-	chunks := str.Chunks(3).UnwrapOrDefault()
+	chunks := str.Chunks(3)
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
 	}
 
 	str = g.String("hello")
-	chunks = str.Chunks(10).Some()
+	chunks = str.Chunks(10)
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -228,7 +323,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = g.String("hello")
-	chunks = str.Chunks(2).Some()
+	chunks = str.Chunks(2)
 
 	if chunks.Len() != 3 {
 		t.Errorf("Expected 3 chunks, but got %v", chunks.Len())
@@ -243,7 +338,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = g.String("hello world")
-	chunks = str.Chunks(3).Some()
+	chunks = str.Chunks(3)
 
 	if chunks.Len() != 4 {
 		t.Errorf("Expected 4 chunks, but got %v", chunks.Len())
@@ -258,7 +353,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = g.String("hello")
-	chunks = str.Chunks(5).Some()
+	chunks = str.Chunks(5)
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -269,7 +364,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = g.String("hello")
-	chunks = str.Chunks(-1).UnwrapOrDefault()
+	chunks = str.Chunks(-1)
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
@@ -360,7 +455,13 @@ func TestURLEncode(t *testing.T) {
 	for _, tc := range testCases {
 		encoded := tc.input.Enc().URL(tc.safe)
 		if encoded != tc.expected {
-			t.Errorf("For input: %s and safe: %s, expected: %s, but got: %s", tc.input, tc.safe, tc.expected, encoded.Std())
+			t.Errorf(
+				"For input: %s and safe: %s, expected: %s, but got: %s",
+				tc.input,
+				tc.safe,
+				tc.expected,
+				encoded.Std(),
+			)
 		}
 	}
 }

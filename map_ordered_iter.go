@@ -13,10 +13,10 @@ func (seq seqMapOrd[K, V]) pull() (func() (K, V, bool), func()) {
 }
 
 // Keys returns an iterator containing all the keys in the ordered Map.
-func (seq seqMapOrd[K, V]) Keys() seqSlice[K] { return keysMO(seq) }
+func (seq seqMapOrd[K, V]) Keys() seqSlice[K] { return keysMapOrd(seq) }
 
 // Values returns an iterator containing all the values in the ordered Map.
-func (seq seqMapOrd[K, V]) Values() seqSlice[V] { return valuesMO(seq) }
+func (seq seqMapOrd[K, V]) Values() seqSlice[V] { return valuesMapOrd(seq) }
 
 // Unzip returns a tuple of slices containing keys and values from the ordered map.
 func (seq seqMapOrd[K, V]) Unzip() (seqSlice[K], seqSlice[V]) { return seq.Keys(), seq.Values() }
@@ -115,9 +115,10 @@ func (seq seqMapOrd[K, V]) Chain(seqs ...seqMapOrd[K, V]) seqMapOrd[K, V] {
 func (seq seqMapOrd[K, V]) Collect() MapOrd[K, V] {
 	collection := NewMapOrd[K, V]()
 
-	for k, v := range seq {
+	seq(func(k K, v V) bool {
 		collection.Set(k, v)
-	}
+		return true
+	})
 
 	return collection
 }
@@ -226,6 +227,11 @@ func (seq seqMapOrd[K, V]) Exclude(fn func(K, V) bool) seqMapOrd[K, V] { return 
 // The resulting iterator will include elements based on the provided condition.
 func (seq seqMapOrd[K, V]) Filter(fn func(K, V) bool) seqMapOrd[K, V] { return filterMapOrd(seq, fn) }
 
+// The resulting Option may contain the first element that satisfies the condition, or None if not found.
+func (seq seqMapOrd[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
+	return findMapOrd(seq, fn)
+}
+
 // ForEach iterates through all elements and applies the given function to each key-value pair.
 //
 // The function applies the provided function to each key-value pair in the iterator.
@@ -251,9 +257,10 @@ func (seq seqMapOrd[K, V]) Filter(fn func(K, V) bool) seqMapOrd[K, V] { return f
 //
 // The provided function will be applied to each key-value pair in the iterator.
 func (seq seqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
-	for k, v := range seq {
+	seq(func(k K, v V) bool {
 		fn(k, v)
-	}
+		return true
+	})
 }
 
 // Map creates a new iterator by applying the given function to each key-value pair.
@@ -321,11 +328,9 @@ func (seq seqMapOrd[K, V]) Map(transform func(K, V) (K, V)) seqMapOrd[K, V] {
 //
 // The iteration will stop when the provided function returns false.
 func (seq seqMapOrd[K, V]) Range(fn func(k K, v V) bool) {
-	for k, v := range seq {
-		if !fn(k, v) {
-			return
-		}
-	}
+	seq(func(k K, v V) bool {
+		return fn(k, v)
+	})
 }
 
 // Take returns a new iterator with the first n elements.
@@ -489,7 +494,7 @@ func takeMapOrd[K, V any](seq seqMapOrd[K, V], n uint) seqMapOrd[K, V] {
 	}
 }
 
-func keysMO[K, V any](seq seqMapOrd[K, V]) seqSlice[K] {
+func keysMapOrd[K, V any](seq seqMapOrd[K, V]) seqSlice[K] {
 	return func(yield func(K) bool) {
 		seq(func(k K, _ V) bool {
 			return yield(k)
@@ -497,10 +502,22 @@ func keysMO[K, V any](seq seqMapOrd[K, V]) seqSlice[K] {
 	}
 }
 
-func valuesMO[K, V any](seq seqMapOrd[K, V]) seqSlice[V] {
+func valuesMapOrd[K, V any](seq seqMapOrd[K, V]) seqSlice[V] {
 	return func(yield func(V) bool) {
 		seq(func(_ K, v V) bool {
 			return yield(v)
 		})
 	}
+}
+
+func findMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V) bool) (r Option[Pair[K, V]]) {
+	seq(func(k K, v V) bool {
+		if !fn(k, v) {
+			return true
+		}
+		r = Some(Pair[K, V]{k, v})
+		return false
+	})
+
+	return r
 }

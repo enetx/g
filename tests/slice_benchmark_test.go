@@ -18,39 +18,37 @@ func genSlice() g.Slice[g.String] {
 }
 
 func BenchmarkForEach(b *testing.B) {
-	slice := genSlice().Iter()
+	slice := genSlice()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		slice.ForEach(func(s g.String) {
-			s.Comp().Flate()
-		})
+		slice.Iter().ForEach(func(s g.String) { _ = s })
 	}
 }
 
 func BenchmarkMap(b *testing.B) {
-	slice := genSlice().Iter()
+	slice := genSlice()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		slice.Map(func(s g.String) g.String { return s.Comp().Flate() }).Collect()
+		slice.Iter().Map(func(s g.String) g.String { return s }).Collect()
 	}
 }
 
 func BenchmarkFilter(b *testing.B) {
-	slice := genSlice().Iter()
+	slice := genSlice()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		slice.Filter(func(s g.String) bool { return s.Comp().Flate().Len()%2 == 0 }).Collect()
+		slice.Iter().Filter(func(_ g.String) bool { return true }).Collect()
 	}
 }
 
 func BenchmarkUnique(b *testing.B) {
-	slice := genSlice().Iter()
+	slice := genSlice()
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		slice.Unique()
+		slice.Iter().Unique().Collect()
 	}
 }

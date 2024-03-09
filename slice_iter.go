@@ -123,9 +123,10 @@ func (seq seqSlice[V]) Chunks(n int) seqSlices[V] { return chunks(seq, n) }
 func (seq seqSlice[V]) Collect() Slice[V] {
 	collection := make([]V, 0)
 
-	for v := range seq {
+	seq(func(v V) bool {
 		collection = append(collection, v)
-	}
+		return true
+	})
 
 	return collection
 }
@@ -281,9 +282,10 @@ func (seq seqSlice[V]) Fold(init V, fn func(acc, val V) V) V { return fold(seq, 
 //
 // The provided function will be applied to each element in the iterator.
 func (seq seqSlice[V]) ForEach(fn func(v V)) {
-	for v := range seq {
+	seq(func(v V) bool {
 		fn(v)
-	}
+		return true
+	})
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
@@ -339,11 +341,9 @@ func (seq seqSlice[V]) Map(transform func(V) V) seqSlice[V] { return mapSlice(se
 //
 // The iteration will stop when the provided function returns false for an element.
 func (seq seqSlice[V]) Range(fn func(v V) bool) {
-	for v := range seq {
-		if !fn(v) {
-			return
-		}
-	}
+	seq(func(v V) bool {
+		return fn(v)
+	})
 }
 
 // Skip returns a new iterator skipping the first n elements.
@@ -766,13 +766,11 @@ func findSlice[V any](seq seqSlice[V], fn func(V) bool) (r Option[V]) {
 func (seqs seqSlices[V]) Collect() []Slice[V] {
 	collection := make([]Slice[V], 0)
 
-	for seq := range seqs {
-		inner := make([]V, 0)
-		for _, v := range seq {
-			inner = append(inner, v)
-		}
+	seqs(func(v []V) bool {
+		inner := liftSlice(v).Collect()
 		collection = append(collection, inner)
-	}
+		return true
+	})
 
 	return collection
 }
@@ -799,6 +797,7 @@ func chunks[V any](seq seqSlice[V], n int) seqSlices[V] {
 
 			return yield(win)
 		})
+
 		if len(win) < n {
 			yield(win)
 		}
