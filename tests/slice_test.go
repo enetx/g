@@ -10,6 +10,74 @@ import (
 	"gitlab.com/x0xO/g/filters"
 )
 
+func TestCombinations(t *testing.T) {
+	// Test case 1: Combinations of integers
+	slice1 := g.Slice[int]{0, 1, 2, 3}
+	combs1 := slice1.Iter().Combinations(3).Collect()
+	expectedCombs1 := []g.Slice[int]{
+		{0, 1, 2},
+		{0, 1, 3},
+		{0, 2, 3},
+		{1, 2, 3},
+	}
+
+	if !reflect.DeepEqual(combs1, expectedCombs1) {
+		t.Errorf("Test case 1 failed: expected %v, but got %v", expectedCombs1, combs1)
+	}
+
+	// Test case 2: Combinations of strings
+	p1 := g.SliceOf[g.String]("a", "b")
+	p2 := g.SliceOf[g.String]("c", "d")
+	combs2 := p1.Iter().Chain(p2.Iter()).Map(g.String.Upper).Combinations(2).Collect()
+	expectedCombs2 := []g.Slice[g.String]{
+		{"A", "B"},
+		{"A", "C"},
+		{"A", "D"},
+		{"B", "C"},
+		{"B", "D"},
+		{"C", "D"},
+	}
+
+	if !reflect.DeepEqual(combs2, expectedCombs2) {
+		t.Errorf("Test case 2 failed: expected %v, but got %v", expectedCombs2, combs2)
+	}
+
+	// Test case 3: Combinations of mixed types
+	p3 := g.SliceOf[any]("x", "y")
+	p4 := g.SliceOf[any](1, 2)
+	combs3 := p3.Iter().Chain(p4.Iter()).Combinations(2).Collect()
+	expectedCombs3 := []g.Slice[any]{
+		{"x", "y"},
+		{"x", 1},
+		{"x", 2},
+		{"y", 1},
+		{"y", 2},
+		{1, 2},
+	}
+
+	if !reflect.DeepEqual(combs3, expectedCombs3) {
+		t.Errorf("Test case 3 failed: expected %v, but got %v", expectedCombs3, combs3)
+	}
+
+	// Test case 4: Empty slice
+	emptySlice := g.Slice[int]{}
+	combs4 := emptySlice.Iter().Combinations(2).Collect()
+	expectedCombs4 := []g.Slice[int]{}
+
+	if !reflect.DeepEqual(combs4, expectedCombs4) {
+		t.Errorf("Test case 4 failed: expected %v, but got %v", expectedCombs4, combs4)
+	}
+
+	// Test case 5: Combinations with k greater than slice length
+	slice5 := g.Slice[int]{1, 2, 3}
+	combs5 := slice5.Iter().Combinations(4).Collect()
+	expectedCombs5 := []g.Slice[int]{}
+
+	if !reflect.DeepEqual(combs5, expectedCombs5) {
+		t.Errorf("Test case 5 failed: expected %v, but got %v", expectedCombs5, combs5)
+	}
+}
+
 func TestSliceIterSortInts(t *testing.T) {
 	slice := g.Slice[int]{5, 2, 8, 1, 6}
 	sorted := slice.Iter().Sort().Collect()
@@ -226,16 +294,18 @@ func TestSortFloats(t *testing.T) {
 }
 
 func TestPermutations(t *testing.T) {
+	// Test case 1: Single element slice
 	slice1 := g.SliceOf(1)
-	perms1 := slice1.Permutations()
+	perms1 := slice1.Iter().Permutations().Collect()
 	expectedPerms1 := []g.Slice[int]{slice1}
 
 	if !reflect.DeepEqual(perms1, expectedPerms1) {
 		t.Errorf("expected %v, but got %v", expectedPerms1, perms1)
 	}
 
+	// Test case 2: Two-element string slice
 	slice2 := g.SliceOf("a", "b")
-	perms2 := slice2.Permutations()
+	perms2 := slice2.Iter().Permutations().Collect()
 	expectedPerms2 := []g.Slice[string]{
 		{"a", "b"},
 		{"b", "a"},
@@ -245,9 +315,9 @@ func TestPermutations(t *testing.T) {
 		t.Errorf("expected %v, but got %v", expectedPerms2, perms2)
 	}
 
+	// Test case 3: Three-element float64 slice
 	slice3 := g.SliceOf(1.0, 2.0, 3.0)
-	perms3 := slice3.Permutations()
-
+	perms3 := slice3.Iter().Permutations().Collect()
 	expectedPerms3 := []g.Slice[float64]{
 		{1.0, 2.0, 3.0},
 		{1.0, 3.0, 2.0},
@@ -259,6 +329,49 @@ func TestPermutations(t *testing.T) {
 
 	if !reflect.DeepEqual(perms3, expectedPerms3) {
 		t.Errorf("expected %v, but got %v", expectedPerms3, perms3)
+	}
+
+	// Additional Test case 4: Empty slice
+	slice4 := g.Slice[any]{}
+	perms4 := slice4.Iter().Permutations().Collect()
+	expectedPerms4 := []g.Slice[any]{slice4}
+
+	if !reflect.DeepEqual(perms4, expectedPerms4) {
+		t.Errorf("expected %v, but got %v", expectedPerms4, perms4)
+	}
+
+	// Additional Test case 5: Four-element mixed-type slice
+	slice5 := g.SliceOf[any]("a", 1, 2.5, true)
+	perms5 := slice5.Iter().Permutations().Collect()
+	expectedPerms5 := []g.Slice[any]{
+		{"a", 1, 2.5, true},
+		{"a", 1, true, 2.5},
+		{"a", 2.5, 1, true},
+		{"a", 2.5, true, 1},
+		{"a", true, 1, 2.5},
+		{"a", true, 2.5, 1},
+		{1, "a", 2.5, true},
+		{1, "a", true, 2.5},
+		{1, 2.5, "a", true},
+		{1, 2.5, true, "a"},
+		{1, true, "a", 2.5},
+		{1, true, 2.5, "a"},
+		{2.5, "a", 1, true},
+		{2.5, "a", true, 1},
+		{2.5, 1, "a", true},
+		{2.5, 1, true, "a"},
+		{2.5, true, "a", 1},
+		{2.5, true, 1, "a"},
+		{true, "a", 1, 2.5},
+		{true, "a", 2.5, 1},
+		{true, 1, "a", 2.5},
+		{true, 1, 2.5, "a"},
+		{true, 2.5, "a", 1},
+		{true, 2.5, 1, "a"},
+	}
+
+	if !reflect.DeepEqual(perms5, expectedPerms5) {
+		t.Errorf("expected %v, but got %v", expectedPerms5, perms5)
 	}
 }
 
@@ -1016,7 +1129,7 @@ func TestSliceFlatten(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Flatten()
+			result := tt.input.Iter().Flatten().Collect()
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Flatten() = %v, want %v", result, tt.expected)
 			}

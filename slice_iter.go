@@ -131,6 +131,9 @@ func (seq seqSlice[V]) Collect() Slice[V] {
 	return collection
 }
 
+// Combinations generates all combinations of length 'n' from the sequence.
+func (seq seqSlice[V]) Combinations(n int) seqSlices[V] { return combinations(seq, n) }
+
 // Cycle returns an iterator that endlessly repeats the elements of the current iterator.
 func (seq seqSlice[V]) Cycle() seqSlice[V] { return cycleSlice(seq) }
 
@@ -288,6 +291,32 @@ func (seq seqSlice[V]) ForEach(fn func(v V)) {
 	})
 }
 
+// Flatten flattens an iterator of iterators into a single iterator.
+//
+// The function creates a new iterator that flattens a sequence of iterators,
+// returning a single iterator containing elements from each iterator in sequence.
+//
+// Returns:
+//
+// - seqSlice[V]: A single iterator containing elements from the sequence of iterators.
+//
+// Example usage:
+//
+//	nestedSlice := g.Slice[any]{
+//		1,
+//		g.SliceOf(2, 3),
+//		"abc",
+//		g.SliceOf("def", "ghi"),
+//		g.SliceOf(4.5, 6.7),
+//	}
+//
+//	nestedSlice.Iter().Flatten().Collect().Print()
+//
+// Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+//
+// The resulting iterator will contain elements from each iterator in sequence.
+func (seq seqSlice[V]) Flatten() seqSlice[V] { return flatten(seq) }
+
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (seq seqSlice[V]) Inspect(fn func(v V)) seqSlice[V] { return inspectSlice(seq, fn) }
@@ -303,7 +332,7 @@ func (seq seqSlice[V]) Inspect(fn func(v V)) seqSlice[V] { return inspectSlice(s
 //
 // Returns:
 //
-// - seqSlice[V]: A new iterator containing elements transformed by the provided function.
+// - seqSlice[V]: A iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //
@@ -321,6 +350,38 @@ func (seq seqSlice[V]) Inspect(fn func(v V)) seqSlice[V] { return inspectSlice(s
 //
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq seqSlice[V]) Map(transform func(V) V) seqSlice[V] { return mapSlice(seq, transform) }
+
+// Permutations generates iterators of all permutations of elements.
+//
+// The function uses a recursive approach to generate all the permutations of the elements.
+// If the iterator is empty or contains a single element, it returns the iterator itself
+// wrapped in a single-element iterator.
+//
+// Returns:
+//
+// - seqSlices[V]: An iterator of iterators containing all possible permutations of the
+// elements in the iterator.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3}
+//	perms := slice.Iter().Permutations().Collect()
+//	for _, perm := range perms {
+//	    fmt.Println(perm)
+//	}
+//
+// Output:
+//
+//	Slice[1, 2, 3]
+//	Slice[1, 3, 2]
+//	Slice[2, 1, 3]
+//	Slice[2, 3, 1]
+//	Slice[3, 1, 2]
+//	Slice[3, 2, 1]
+//
+// The resulting iterator will contain iterators representing all possible permutations
+// of the elements in the original iterator.
+func (seq seqSlice[V]) Permutations() seqSlices[V] { return permutations(seq) }
 
 // Range iterates through elements until the given function returns false.
 //
@@ -777,54 +838,184 @@ func (seqs seqSlices[V]) Collect() []Slice[V] {
 
 func chunks[V any](seq seqSlice[V], n int) seqSlices[V] {
 	return func(yield func([]V) bool) {
-		win := make([]V, 0, n)
+		buf := make([]V, 0, n)
 
 		seq(func(v V) bool {
-			if len(win) == n {
-				clear(win)
-				win = win[:0]
+			if len(buf) == n {
+				clear(buf)
+				buf = buf[:0]
 			}
 
-			if len(win) < n-1 {
-				win = append(win, v)
+			if len(buf) < n-1 {
+				buf = append(buf, v)
 				return true
 			}
 
-			if len(win) < n {
-				win = append(win, v)
-				return yield(win)
+			if len(buf) < n {
+				buf = append(buf, v)
+				return yield(buf)
 			}
 
-			return yield(win)
+			return yield(buf)
 		})
 
-		if len(win) < n {
-			yield(win)
+		if len(buf) < n {
+			yield(buf)
 		}
 	}
 }
 
 func windows[V any](seq seqSlice[V], n int) seqSlices[V] {
 	return func(yield func([]V) bool) {
-		win := make([]V, 0, n)
+		buf := make([]V, 0, n)
 
 		seq(func(v V) bool {
-			if len(win) < n-1 {
-				win = append(win, v)
+			if len(buf) < n-1 {
+				buf = append(buf, v)
 				return true
 			}
-			if len(win) < n {
-				win = append(win, v)
-				return yield(win)
+			if len(buf) < n {
+				buf = append(buf, v)
+				return yield(buf)
 			}
 
-			copy(win, win[1:])
-			win[len(win)-1] = v
-			return yield(win)
+			copy(buf, buf[1:])
+			buf[len(buf)-1] = v
+			return yield(buf)
 		})
 
-		if len(win) < n {
-			yield(win)
+		if len(buf) < n {
+			yield(buf)
+		}
+	}
+}
+
+func combinationIndices(n, k int) iter.Seq[[]int] {
+	return func(yield func([]int) bool) {
+		if k > n || k < 1 || n < 0 {
+			return
+		}
+
+		indices := make([]int, k)
+		for i := range indices {
+			indices[i] = i
+		}
+
+		for {
+			if !yield(indices) {
+				return
+			}
+
+			i := k - 1
+			for i >= 0 && indices[i] == i+n-k {
+				i--
+			}
+
+			if i < 0 {
+				return
+			}
+
+			indices[i]++
+			for j := i + 1; j < k; j++ {
+				indices[j] = indices[j-1] + 1
+			}
+		}
+	}
+}
+
+func combinations[V any](seq seqSlice[V], n int) seqSlices[V] {
+	return func(yield func([]V) bool) {
+		s := seq.Collect()
+		for indices := range combinationIndices(len(s), n) {
+			buf := make([]V, n)
+			for i, v := range indices {
+				buf[i] = s[v]
+			}
+			if !yield(buf) {
+				return
+			}
+		}
+	}
+}
+
+func permutationIndices(n int) iter.Seq[[]int] {
+	return func(yield func([]int) bool) {
+		indices := make([]int, n)
+		for i := range indices {
+			indices[i] = i
+		}
+
+		for {
+			if !yield(indices) {
+				return
+			}
+
+			i := n - 1
+			for i > 0 && indices[i-1] >= indices[i] {
+				i--
+			}
+
+			if i <= 0 {
+				return
+			}
+
+			j := n - 1
+			for indices[j] <= indices[i-1] {
+				j--
+			}
+
+			indices[i-1], indices[j] = indices[j], indices[i-1]
+
+			for x, y := i, n-1; x < y; x, y = x+1, y-1 {
+				indices[x], indices[y] = indices[y], indices[x]
+			}
+		}
+	}
+}
+
+func permutations[V any](seq seqSlice[V]) seqSlices[V] {
+	return func(yield func([]V) bool) {
+		s := seq.Collect()
+		for indices := range permutationIndices(len(s)) {
+			buf := make([]V, len(s))
+			for i, v := range indices {
+				buf[i] = s[v]
+			}
+			if !yield(buf) {
+				return
+			}
+		}
+	}
+}
+
+func flatten[V any](seq seqSlice[V]) seqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(s V) bool {
+			if reflect.TypeOf(s).Kind() == reflect.Slice {
+				flattenSlice(s, yield)
+			} else {
+				yield(s)
+			}
+			return true
+		})
+	}
+}
+
+func flattenSlice[V any](s V, yield func(V) bool) {
+	val := reflect.ValueOf(s)
+
+	for i := 0; i < val.Len(); i++ {
+		elem := val.Index(i)
+		if elem.Kind() == reflect.Interface {
+			elem = elem.Elem()
+		}
+
+		if elem.Kind() == reflect.Slice {
+			flattenSlice(elem.Interface().(V), yield)
+		} else {
+			if !yield(elem.Interface().(V)) {
+				return
+			}
 		}
 	}
 }

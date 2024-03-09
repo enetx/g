@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/dbg"
 )
 
 func main() {
@@ -52,7 +51,7 @@ func main() {
 	fmt.Println(m.Get("one").Some().Last().Contains("aaa"))
 
 	nested := g.Slice[any]{1, 2, g.Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
-	flattened := nested.Flatten()
+	flattened := nested.Iter().Flatten().Collect()
 	fmt.Println(flattened)
 
 	nestedSlice := g.Slice[any]{
@@ -63,8 +62,8 @@ func main() {
 		g.SliceOf(4.5, 6.7),
 	}
 
-	nestedSlice.Print()           // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
-	nestedSlice.Flatten().Print() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+	nestedSlice.Print()                            // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
+	nestedSlice.Iter().Flatten().Collect().Print() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
 
 	nestedSlice2 := g.Slice[any]{
 		1,
@@ -74,8 +73,8 @@ func main() {
 		g.SliceOf("co", "ol"),
 		g.SliceOf(4.5, 6.7),
 		map[string]string{"a": "ss"},
-		g.SliceOf[any](g.MapOrd[int, int]{{1, 1}}, g.MapOrd[int, int]{{2, 2}}),
+		g.SliceOf(g.MapOrd[int, int]{{1, 1}}, g.MapOrd[int, int]{{2, 2}}),
 	}
 
-	dbg.Dbg(nestedSlice2.Flatten())
+	nestedSlice2.Iter().Flatten().Collect().Print()
 }
