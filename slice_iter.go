@@ -131,6 +131,19 @@ func (seq seqSlice[V]) Collect() Slice[V] {
 	return collection
 }
 
+// Collect gathers all elements from the iterator into a []Slice.
+func (seqs seqSlices[V]) Collect() []Slice[V] {
+	collection := make([]Slice[V], 0)
+
+	seqs(func(v []V) bool {
+		inner := liftSlice(v).Collect()
+		collection = append(collection, inner)
+		return true
+	})
+
+	return collection
+}
+
 // Combinations generates all combinations of length 'n' from the sequence.
 func (seq seqSlice[V]) Combinations(n int) seqSlices[V] { return combinations(seq, n) }
 
@@ -822,18 +835,6 @@ func findSlice[V any](seq seqSlice[V], fn func(V) bool) (r Option[V]) {
 	})
 
 	return r
-}
-
-func (seqs seqSlices[V]) Collect() []Slice[V] {
-	collection := make([]Slice[V], 0)
-
-	seqs(func(v []V) bool {
-		inner := liftSlice(v).Collect()
-		collection = append(collection, inner)
-		return true
-	})
-
-	return collection
 }
 
 func chunks[V any](seq seqSlice[V], n int) seqSlices[V] {

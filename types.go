@@ -55,10 +55,4 @@ type (
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
 	MapOrd[K, V any] []Pair[K, V]
-
-	// iteratorF defines a generic interface for iterating over String elements wrapped in a Result.
-	iteratorF interface{ Next() Result[String] }
-
-	// baseIterF is a base struct implementing the iteratorF interface.
-	baseIterF struct{ iteratorF }
 )
