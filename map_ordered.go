@@ -201,35 +201,6 @@ func (mo MapOrd[K, V]) Get(key K) Option[V] {
 	return None[V]()
 }
 
-// GetOrDefault returns the value for a key. If the key does not exist, returns the default value
-// instead. This function is useful when you want to access the value associated with a key in the
-// ordered Map, but if the key does not exist, you want to return a specified default value.
-//
-// Parameters:
-//
-// - key K: The key to search for in the ordered Map.
-//
-// - defaultValue V: The default value to return if the key is not found in the ordered Map.
-//
-// Returns:
-//
-// - V: The value associated with the specified key if found, or the provided default value if the
-// key is not found.
-//
-// Example usage:
-//
-//	value := mo.GetOrDefault("some_key", "default_value")
-//
-// Retrieves the value associated with the key "some_key" or returns "default_value" if the key is
-// not found.
-func (mo MapOrd[K, V]) GetOrDefault(key K, defaultValue V) V {
-	if i := mo.index(key); i != -1 {
-		return mo[i].Value
-	}
-
-	return defaultValue
-}
-
 // GetOrSet returns the value for a key. If the key does not exist, it returns the default value
 // instead and also sets the default value for the key in the ordered Map. This function is useful
 // when you want to access the value associated with a key in the ordered Map, and if the key does
@@ -254,8 +225,8 @@ func (mo MapOrd[K, V]) GetOrDefault(key K, defaultValue V) V {
 // not found, and sets "default_value" as the value for "some_key" in the ordered Map if it's not
 // present.
 func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
-	if i := mo.index(key); i != -1 {
-		return (*mo)[i].Value
+	if value := mo.Get(key); value.IsSome() {
+		return value.Some()
 	}
 
 	mo.Set(key, defaultValue)
@@ -265,8 +236,8 @@ func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
 
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
-func (mo MapOrd[K, V]) Invert() MapOrd[any, K] {
-	result := NewMapOrd[any, K](mo.Len())
+func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
+	result := NewMapOrd[V, K](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result

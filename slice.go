@@ -105,10 +105,10 @@ func (sl Slice[T]) AsAny() Slice[any] { return MapSlice(sl, func(t T) any { retu
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (sl Slice[T]) Counter() MapOrd[any, uint] {
-	result := NewMapOrd[any, uint](sl.Len())
+func (sl Slice[T]) Counter() MapOrd[T, uint] {
+	result := NewMapOrd[T, uint](sl.Len())
 	sl.Iter().ForEach(func(t T) {
-		i := result.GetOrDefault(t, 0)
+		i := result.Get(t).UnwrapOrDefault()
 		i++
 		result.Set(t, i)
 	})

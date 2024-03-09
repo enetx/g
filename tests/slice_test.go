@@ -1141,7 +1141,7 @@ func TestSliceCounter(t *testing.T) {
 	sl1 := g.Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
 	sl2 := g.Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
-	expected1 := g.NewMapOrd[any, uint]()
+	expected1 := g.NewMapOrd[int, uint]()
 	expected1.
 		Set(3, 1).
 		Set(5, 1).
@@ -1155,7 +1155,7 @@ func TestSliceCounter(t *testing.T) {
 	}
 
 	// Test with string values
-	expected2 := g.NewMapOrd[any, uint]()
+	expected2 := g.NewMapOrd[string, uint]()
 	expected2.
 		Set("banana", 1).
 		Set("grape", 1).
