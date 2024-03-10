@@ -14,7 +14,7 @@ func main() {
 		Print()
 
 	// Example 2: Chained filtering on a slice of strings and print the result
-	fi := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter().Filter(func(_ g.String) bool { return true })
+	fi := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter()
 
 	fi = fi.Filter(func(s g.String) bool { return s.Ne("aaa") })
 	fi = fi.Filter(func(s g.String) bool { return s.Ne("xxx") })

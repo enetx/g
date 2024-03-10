@@ -140,10 +140,10 @@ func (s Set[T]) ToSlice() Slice[T] {
 // The resulting intersection will be: [4, 5].
 func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
 	if s.Len() <= other.Len() {
-		return intersectionS(s.Iter(), other)
+		return intersection(s.Iter(), other)
 	}
 
-	return intersectionS(other.Iter(), s)
+	return intersection(other.Iter(), s)
 }
 
 // Difference returns the difference between the current set and another set,
@@ -164,7 +164,7 @@ func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
 //	diff := s1.Difference(s2)
 //
 // The resulting diff will be: [1, 2, 3].
-func (s Set[T]) Difference(other Set[T]) seqSet[T] { return differenceS(s.Iter(), other) }
+func (s Set[T]) Difference(other Set[T]) seqSet[T] { return difference(s.Iter(), other) }
 
 // Union returns a new set containing the unique elements of the current set and the provided
 // other set.

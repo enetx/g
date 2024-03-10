@@ -111,6 +111,9 @@ func (seq seqMapOrd[K, V]) Chain(seqs ...seqMapOrd[K, V]) seqMapOrd[K, V] {
 	return chainMapOrd(append([]seqMapOrd[K, V]{seq}, seqs...)...)
 }
 
+// Count consumes the iterator, counting the number of iterations and returning it.
+func (seq seqMapOrd[K, V]) Count() int { return countMapOrd(seq) }
+
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
 func (seq seqMapOrd[K, V]) Collect() MapOrd[K, V] {
 	collection := NewMapOrd[K, V]()
@@ -520,4 +523,14 @@ func findMapOrd[K, V any](seq seqMapOrd[K, V], fn func(K, V) bool) (r Option[Pai
 	})
 
 	return r
+}
+
+func countMapOrd[K, V any](seq seqMapOrd[K, V]) int {
+	var counter int
+	seq(func(K, V) bool {
+		counter++
+		return true
+	})
+
+	return counter
 }

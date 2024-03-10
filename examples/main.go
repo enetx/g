@@ -90,9 +90,9 @@ func main() {
 	counter := sl.Append(sl...).Append("ddd").Counter()
 	counter.Print() // Output: MapOrd[bbb:2, eee:2, ccc:2, abc:2, ddd:3]
 
-	counter.SortBy(func(a, b g.Pair[any, uint]) bool { return a.Key.(g.String) < b.Key.(g.String) })
+	counter.SortBy(func(a, b g.Pair[g.String, uint]) bool { return a.Key < b.Key })
 
-	counter.Iter().ForEach(func(k any, v uint) { fmt.Println(k.(g.String).Title(), ":", v) })
+	counter.Iter().ForEach(func(k g.String, v uint) { fmt.Println(k.Title(), ":", v) })
 
 	sl.Iter().ForEach(func(v g.String) { v.Print() })
 

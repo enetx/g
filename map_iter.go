@@ -10,6 +10,10 @@ func (seq seqMap[K, V]) pull() (func() (K, V, bool), func()) {
 	return iter.Pull2(iter.Seq2[K, V](seq))
 }
 
+// Take returns a new iterator with the first n elements.
+// The function creates a new iterator containing the first n elements from the original iterator.
+func (seq seqMap[K, V]) Take(n uint) seqMap[K, V] { return takeMap(seq, n) }
+
 // Keys returns an iterator containing all the keys in the ordered Map.
 func (seq seqMap[K, V]) Keys() seqSlice[K] { return keysMap(seq) }
 
@@ -43,6 +47,9 @@ func (seq seqMap[K, V]) Values() seqSlice[V] { return valuesMap(seq) }
 func (seq seqMap[K, V]) Chain(seqs ...seqMap[K, V]) seqMap[K, V] {
 	return chainMap(append([]seqMap[K, V]{seq}, seqs...)...)
 }
+
+// Count consumes the iterator, counting the number of iterations and returning it.
+func (seq seqMap[K, V]) Count() int { return countMap(seq) }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
 func (seq seqMap[K, V]) Collect() Map[K, V] {
@@ -292,4 +299,26 @@ func findMap[K comparable, V any](seq seqMap[K, V], fn func(K, V) bool) (r Optio
 	})
 
 	return r
+}
+
+func takeMap[K comparable, V any](seq seqMap[K, V], n uint) seqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if n == 0 {
+				return false
+			}
+			n--
+			return yield(k, v)
+		})
+	}
+}
+
+func countMap[K comparable, V any](seq seqMap[K, V]) int {
+	var counter int
+	seq(func(K, V) bool {
+		counter++
+		return true
+	})
+
+	return counter
 }

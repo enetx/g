@@ -48,6 +48,9 @@ func (seq seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
 	return chainSet(append([]seqSet[V]{seq}, seqs...)...)
 }
 
+// Count consumes the iterator, counting the number of iterations and returning it.
+func (seq seqSet[V]) Count() int { return countSet(seq) }
+
 // ForEach iterates through all elements and applies the given function to each.
 //
 // The function applies the provided function to each element of the iterator.
@@ -136,7 +139,7 @@ func (seq seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(seq, f
 // Output: Set{1, 3, 5} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (seq seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return excludeSet(seq, fn) }
+func (seq seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return exclude(seq, fn) }
 
 // Map transforms each element in the iterator using the given function.
 //
@@ -215,11 +218,11 @@ func filterSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
 	}
 }
 
-func excludeSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
+func exclude[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
 	return filterSet(seq, func(v V) bool { return !fn(v) })
 }
 
-func differenceS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+func difference[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if other.Contains(v) {
@@ -230,7 +233,7 @@ func differenceS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 	}
 }
 
-func intersectionS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+func intersection[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if other.Contains(v) {
@@ -239,4 +242,14 @@ func intersectionS[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 			return true
 		})
 	}
+}
+
+func countSet[V comparable](seq seqSet[V]) int {
+	var counter int
+	seq(func(V) bool {
+		counter++
+		return true
+	})
+
+	return counter
 }

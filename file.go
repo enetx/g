@@ -331,16 +331,6 @@ func (f *File) Read() Result[String] {
 	return Ok(String(content))
 }
 
-// ReadLines reads the file and returns its content as a slice of lines.
-func (f *File) ReadLines() Result[Slice[String]] {
-	read := f.Read()
-	if read.IsErr() {
-		return Err[Slice[String]](read.Err())
-	}
-
-	return Ok(read.Ok().SplitLines())
-}
-
 // Remove removes the file.
 func (f *File) Remove() Result[*File] {
 	if err := os.Remove(f.name.Std()); err != nil {

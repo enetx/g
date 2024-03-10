@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+	// Example 1: Reading and processing lines
 	f := g.NewFile("text.txt") // Open a new file with the specified name "text.txt"
 	f.
 		Lines().                 // Read the file line by line

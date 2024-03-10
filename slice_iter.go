@@ -144,10 +144,13 @@ func (seqs seqSlices[V]) Collect() []Slice[V] {
 	return collection
 }
 
+// Count consumes the iterator, counting the number of iterations and returning it.
+func (seq seqSlice[V]) Count() int { return countSlice(seq) }
+
 // Combinations generates all combinations of length 'n' from the sequence.
 func (seq seqSlice[V]) Combinations(n int) seqSlices[V] { return combinations(seq, n) }
 
-// Cycle returns an iterator that endlessly repeats the elements of the current iterator.
+// Cycle returns an iterator that endlessly repeats the elements of the current sequence.
 func (seq seqSlice[V]) Cycle() seqSlice[V] { return cycleSlice(seq) }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -1019,4 +1022,14 @@ func flattenSlice[V any](s V, yield func(V) bool) {
 			}
 		}
 	}
+}
+
+func countSlice[V any](seq seqSlice[V]) int {
+	var counter int
+	seq(func(V) bool {
+		counter++
+		return true
+	})
+
+	return counter
 }

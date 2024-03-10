@@ -110,8 +110,5 @@ func main() {
 	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) bool { return a.Value[1] < b.Value[1] })
 	fmt.Println("after sort by second value: ", mss)
 
-	// mss.Iter().Keys().Collect().Print()
-	// mss.Iter().Values().Collect().Print()
-
 	// g.MapOrdFromStd(mss.ToMap().Std()).Print()
 }
