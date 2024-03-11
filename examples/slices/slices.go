@@ -23,9 +23,9 @@ func main() {
 	slice.
 		Counter().
 		Iter().
-		SortBy(func(a, b g.Pair[any, uint]) bool { return a.Value > b.Value }).
+		SortBy(func(a, b g.Pair[int, uint]) bool { return a.Value > b.Value }).
 		Collect().
-		Print()
+		Print() // MapOrd{1:3, 2:2, 3:1}
 
 	result := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 

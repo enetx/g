@@ -367,6 +367,35 @@ func (seq seqSlice[V]) Inspect(fn func(v V)) seqSlice[V] { return inspectSlice(s
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq seqSlice[V]) Map(transform func(V) V) seqSlice[V] { return mapSlice(seq, transform) }
 
+// Partition divides the elements of the iterator into two separate slices based on a given predicate function.
+//
+// The function takes a predicate function 'fn', which should return true or false for each element in the iterator.
+// Elements for which 'fn' returns true are collected into the left slice, while those for which 'fn' returns false
+// are collected into the right slice.
+//
+// Params:
+//
+// - fn (func(V) bool): The predicate function used to determine the placement of elements.
+//
+// Returns:
+//
+// - (Slice[V], Slice[V]): Two slices representing elements that satisfy and don't satisfy the predicate, respectively.
+//
+// Example usage:
+//
+//	evens, odds := g.Slice[int]{1, 2, 3, 4, 5}.
+//		Iter().
+//		Partition(
+//			func(v int) bool {
+//				return v%2 == 0
+//			})
+//
+//	fmt.Println("Even numbers:", evens) // Output: Even numbers: Slice[2, 4]
+//	fmt.Println("Odd numbers:", odds)   // Output: Odd numbers: Slice[1, 3, 5]
+//
+// The resulting two slices will contain elements separated based on whether they satisfy the predicate or not.
+func (seq seqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) { return partition(seq, fn) }
+
 // Permutations generates iterators of all permutations of elements.
 //
 // The function uses a recursive approach to generate all the permutations of the elements.
@@ -1032,4 +1061,18 @@ func countSlice[V any](seq seqSlice[V]) int {
 	})
 
 	return counter
+}
+
+func partition[V any](seq seqSlice[V], fn func(V) bool) (Slice[V], Slice[V]) {
+	left, right := make([]V, 0), make([]V, 0)
+	seq(func(v V) bool {
+		if fn(v) {
+			left = append(left, v)
+		} else {
+			right = append(right, v)
+		}
+		return true
+	})
+
+	return left, right
 }

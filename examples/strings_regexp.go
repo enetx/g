@@ -16,15 +16,23 @@ func main() {
 	// Output: post-38
 
 	// Find the first match of the pattern in the string
-	g.String("x post-55 x").FindRegexp(pattern).Some().Print()
+	o := g.String("x post-55 x").FindRegexp(pattern)
 	// Output: post-55
+
+	// switch pattern
+	switch {
+	case o.IsSome():
+		o.Some().Print()
+	case o.IsNone():
+		fmt.Println("not found")
+	}
 
 	// If no match is found, provide a default value
 	g.String("post-not-found").FindRegexp(pattern).UnwrapOr("post-333").Print()
 	// Output: post-333
 
 	// Find all matches of the pattern in the string
-	g.String("some post-55 not found post-31 post-22").FindAllRegexp(pattern).Some().Print()
+	g.String("some post-55 not found post-31 post-22").FindAllRegexp(pattern).Unwrap().Print()
 	// Output: Slice[post-55, post-31, post-22]
 
 	// Find a specific number of matches of the pattern in the string
