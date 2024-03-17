@@ -57,6 +57,4 @@ func main() {
 	} else {
 		fmt.Println("Error:", resultf.Err()) // Output: Error: division by zero
 	}
-
-	// Example 5
 }
