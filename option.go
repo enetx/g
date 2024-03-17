@@ -65,3 +65,13 @@ func (o Option[T]) Expect(msg string) T {
 
 	return o.Some()
 }
+
+// Then applies the function fn to the value inside the Option and returns a new Option.
+// If the Option is None, it returns the same Option without applying fn.
+func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
+	if o.IsNone() {
+		return o
+	}
+
+	return fn(o.Some())
+}

@@ -1,8 +1,6 @@
 package g
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Sprintf formats according to a format specifier and returns the resulting String.
 func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }

@@ -1,8 +1,6 @@
 package g
 
-import (
-	"iter"
-)
+import "iter"
 
 type seqMap[K comparable, V any] iter.Seq2[K, V]
 

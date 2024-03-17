@@ -88,3 +88,13 @@ func (r Result[T]) Expect(msg string) T {
 
 	return r.Ok()
 }
+
+// Then applies the function fn to the value inside the Result and returns a new Result.
+// If the Result contains an error, it returns the same Result without applying fn.
+func (r Result[T]) Then(fn func(T) Result[T]) Result[T] {
+	if r.IsErr() {
+		return r
+	}
+
+	return fn(r.Ok())
+}

@@ -9,6 +9,51 @@ import (
 	"gitlab.com/x0xO/g"
 )
 
+func TestSliceUnpack(t *testing.T) {
+	tests := []struct {
+		name     string
+		slice    g.Slice[int]
+		vars     []*int
+		expected []int
+	}{
+		{
+			name:     "Unpack with valid indices",
+			slice:    g.Slice[int]{1, 2, 3, 4, 5},
+			vars:     []*int{new(int), new(int), new(int)},
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "Unpack with invalid indices",
+			slice:    g.Slice[int]{1, 2, 3},
+			vars:     []*int{new(int), new(int), new(int), new(int)},
+			expected: []int{1, 2, 3, 0}, // Expecting zero value for the fourth variable
+		},
+		{
+			name:     "Unpack with empty slice",
+			slice:    g.Slice[int]{},
+			vars:     []*int{new(int)},
+			expected: []int{0}, // Expecting zero value for the only variable
+		},
+		{
+			name:     "Unpack with nil slice",
+			slice:    nil,
+			vars:     []*int{new(int)},
+			expected: []int{0}, // Expecting zero value for the only variable
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.slice.Unpack(test.vars...)
+			for i, v := range test.vars {
+				if *v != test.expected[i] {
+					t.Errorf("Expected %d but got %d", test.expected[i], *v)
+				}
+			}
+		})
+	}
+}
+
 func TestSubSliceWithStep(t *testing.T) {
 	slice := g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
 

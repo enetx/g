@@ -160,7 +160,7 @@ func (f *File) Seek(offset int64, whence int) Result[*File] {
 // Close closes the File and unlocks its underlying file, if it is not already closed.
 func (f *File) Close() error {
 	if f.file == nil {
-		return fmt.Errorf("%s: file is already closed and unlocked", f.name)
+		return &ErrFileClosed{f.name.Std()}
 	}
 
 	var err error
@@ -343,7 +343,7 @@ func (f *File) Remove() Result[*File] {
 // Rename renames the file to the specified new path.
 func (f *File) Rename(newpath String) Result[*File] {
 	if !f.Exist() {
-		return Err[*File](fmt.Errorf("no such file: %s", f.name))
+		return Err[*File](&ErrFileNotExist{f.name.Std()})
 	}
 
 	nf := NewFile(newpath).createAll()

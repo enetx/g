@@ -569,12 +569,8 @@ func (sl Slice[T]) Sort() { sort.Sort(sl) }
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
 // sl.SortBy(func(a, j int) bool { return sl[i] < sl[j] }) // sorts in ascending order.
-func (sl Slice[T]) SortBy(fn func(a, b T) bool) Slice[T] {
-	sort.Slice(sl, func(i, j int) bool {
-		return fn(sl[i], sl[j])
-	})
-
-	return sl
+func (sl Slice[T]) SortBy(fn func(a, b T) bool) {
+	sort.Slice(sl, func(i, j int) bool { return fn(sl[i], sl[j]) })
 }
 
 // ToStringSlice converts the slice into a slice of strings.
@@ -964,6 +960,30 @@ func (sl Slice[T]) Clear() Slice[T] { clear(sl); return sl }
 // Print prints the elements of the Slice to the standard output (console)
 // and returns the Slice unchanged.
 func (sl Slice[T]) Print() Slice[T] { fmt.Println(sl); return sl }
+
+// Unpack assigns values of the slice's elements to the variables passed as pointers.
+// If the number of variables passed is greater than the length of the slice,
+// the function ignores the extra variables.
+//
+// Parameters:
+//
+// - vars (...*T): Pointers to variables where the values of the slice's elements will be stored.
+//
+// Example:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	var a, b, c int
+//	slice.Unpack(&a, &b, &c)
+//	fmt.Println(a, b, c) // Output: 1 2 3
+func (sl Slice[T]) Unpack(vars ...*T) {
+	if len(vars) > sl.Len() {
+		vars = vars[:sl.Len()]
+	}
+
+	for i, v := range vars {
+		*v = sl[i]
+	}
+}
 
 func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
 	ii := i
