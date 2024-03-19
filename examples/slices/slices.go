@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/filters"
+	"github.com/enetx/g"
+	"github.com/enetx/g/filters"
 )
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 
 	fmt.Println(sll.Cap())
 
-	g.MapSlice([]string{"AAA", "BBB"}, g.NewString).Iter().Map(g.String.Lower).Collect().Print()
+	g.SliceMap([]string{"AAA", "BBB"}, g.NewString).Iter().Map(g.String.Lower).Collect().Print()
 	g.SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Print()
 
 	g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).Iter().

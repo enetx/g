@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	// Create a slice of integers with repeated elements

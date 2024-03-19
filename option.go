@@ -14,6 +14,23 @@ func Some[T any](value T) Option[T] { return Option[T]{&value} }
 // None creates an Option containing a nil value.
 func None[T any]() Option[T] { return Option[T]{nil} }
 
+// MapOption applies the given function to the value inside the Option, producing a new Option with the transformed value.
+// If the input Option is None, the output Option will also be None.
+// Parameters:
+//   - o: The input Option to map over.
+//   - fn: The function to apply to the value inside the Option.
+//
+// Returns:
+//
+//	A new Option with the transformed value.
+func MapOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
+	if o.IsNone() {
+		return None[U]()
+	}
+
+	return fn(o.Some())
+}
+
 // Some returns the value held in the Option.
 func (o Option[T]) Some() T { return *o.value }
 

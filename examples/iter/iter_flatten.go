@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	// Example 1: Flatten a slice containing various types of elements
@@ -26,7 +26,7 @@ func main() {
 
 	// MapSlice applies a mapping function to each element of the source slice and returns a new slice.
 	// In this example, it maps each string in 'words' to its individual characters.
-	g.MapSlice(words, g.String.Chars).
+	g.SliceMap(words, g.String.Chars).
 		AsAny(). // Required if the source slice is not of type g.Slice[any]
 		Iter().
 		Flatten().

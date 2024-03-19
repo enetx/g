@@ -3,7 +3,7 @@ package g_test
 import (
 	"testing"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
 
 func TestStringMD5(t *testing.T) {

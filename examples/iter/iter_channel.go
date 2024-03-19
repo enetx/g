@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
 
 func main() {

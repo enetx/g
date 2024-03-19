@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/x0xO/g/internal/filelock"
+	"github.com/enetx/g/internal/filelock"
 )
 
 // NewFile returns a new File instance with the given name.
@@ -371,17 +371,17 @@ func (f *File) Split() (*Dir, *File) {
 // It calls the file's Stat method if the file is open, or os.Stat otherwise.
 func (f *File) Stat() Result[fs.FileInfo] {
 	if f.file != nil {
-		return ToResult(f.file.Stat())
+		return ResultOf(f.file.Stat())
 	}
 
-	return ToResult(os.Stat(f.name.Std()))
+	return ResultOf(os.Stat(f.name.Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the *File instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
 func (f *File) Lstat() Result[fs.FileInfo] {
-	return ToResult(os.Lstat(f.name.Std()))
+	return ResultOf(os.Lstat(f.name.Std()))
 }
 
 // IsDir checks if the file is a directory.

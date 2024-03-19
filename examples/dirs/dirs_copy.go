@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	// Copy the contents of the current directory to a new directory named "copy".

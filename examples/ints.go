@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	g.NewInt(100).Random().Print()

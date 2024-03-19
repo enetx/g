@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/filters"
+	"github.com/enetx/g"
+	"github.com/enetx/g/filters"
 )
 
 func main() {
@@ -50,5 +50,5 @@ func main() {
 	}
 
 	s = g.SetOf(1, 2, 3)
-	g.MapSet(s, g.NewInt) // g.Set[g.Int]
+	g.SetMap(s, g.NewInt) // g.Set[g.Int]
 }

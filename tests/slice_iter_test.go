@@ -1,12 +1,13 @@
 package g_test
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
 
-	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/filters"
+	"github.com/enetx/g"
+	"github.com/enetx/g/filters"
 )
 
 func TestSliceIterPartition(t *testing.T) {
@@ -704,4 +705,192 @@ func TestSliceIterRange(t *testing.T) {
 			t.Errorf("Expected: %v, Got: %v", expected, result)
 		}
 	})
+}
+
+func TestSliceIterCount(t *testing.T) {
+	// Test case 1: Count elements from the sequence
+	seq := g.Slice[int]{1, 2, 3, 4, 5}
+	count := seq.Iter().Count()
+	if count != 5 {
+		t.Errorf("Expected count to be %d, got %d", 5, count)
+	}
+
+	// Test case 2: Empty sequence
+	emptySeq := g.Slice[int]{}
+	emptyCount := emptySeq.Iter().Count()
+	if emptyCount != 0 {
+		t.Errorf("Expected count of an empty sequence to be %d, got %d", 0, emptyCount)
+	}
+}
+
+func TestSliceIterCycle(t *testing.T) {
+	// Test case 1: Cyclic behavior
+	seq := g.Slice[int]{1, 2, 3}
+	cycle := seq.Iter().Cycle().Take(9).Collect()
+
+	expected := []int{1, 2, 3, 1, 2, 3, 1, 2, 3}
+	for i := 0; i < len(expected); i++ {
+		if cycle[i] != expected[i] {
+			t.Errorf("Expected element at index %d to be %d, got %d", i, expected[i], cycle[i])
+		}
+	}
+}
+
+func TestSliceIterEnumerate(t *testing.T) {
+	// Test case 1: Enumerate elements
+	seq := g.Slice[string]{"bbb", "ddd", "xxx", "aaa", "ccc"}
+	enumerated := seq.Iter().Enumerate().Collect()
+
+	expected := g.NewMapOrd[int, string]()
+	expected.Set(0, "bbb").Set(1, "ddd").Set(2, "xxx").Set(3, "aaa").Set(4, "ccc")
+
+	for i, v := range enumerated {
+		if expected[i] != v {
+			t.Errorf("Expected element at index %d to be %v, got %v", i, expected[i], v)
+		}
+	}
+}
+
+func TestSliceIterSkip(t *testing.T) {
+	// Test case 1: Skip elements
+	seq := g.Slice[int]{1, 2, 3, 4, 5, 6}
+	skipped := seq.Iter().Skip(3).Collect()
+	expected := g.Slice[int]{4, 5, 6}
+	if len(skipped) != len(expected) {
+		t.Errorf("Expected skipped slice to have length %d, got %d", len(expected), len(skipped))
+	}
+	for i := range expected {
+		if skipped[i] != expected[i] {
+			t.Errorf("Expected element at index %d to be %d, got %d", i, expected[i], skipped[i])
+		}
+	}
+
+	// Test case 2: Skip all elements
+	seq2 := g.Slice[string]{"a", "b", "c"}
+	skipped2 := seq2.Iter().Skip(3).Collect()
+	if len(skipped2) != 0 {
+		t.Errorf("Expected skipped slice of all elements to be empty, got length %d", len(skipped2))
+	}
+}
+
+func TestSliceIterUnique(t *testing.T) {
+	// Test case 1: Unique elements
+	seq := g.Slice[int]{1, 2, 3, 2, 4, 5, 3}
+	unique := seq.Iter().Unique().Collect()
+
+	expected := g.Slice[int]{1, 2, 3, 4, 5}
+	if len(unique) != len(expected) {
+		t.Errorf("Expected unique iterator length to be %d, got %d", len(expected), len(unique))
+	}
+	for i, v := range unique {
+		if v != expected[i] {
+			t.Errorf("Expected element at index %d to be %d, got %d", i, expected[i], v)
+		}
+	}
+}
+
+func TestSliceIterFind(t *testing.T) {
+	// Test case 1: Element found
+	seq := g.Slice[int]{1, 2, 3, 4, 5}
+	found := seq.Iter().Find(func(i int) bool {
+		return i == 2
+	})
+	if !found.IsSome() {
+		t.Error("Expected found option to be Some")
+	}
+	if found.Some() != 2 {
+		t.Errorf("Expected found element to be 2, got %d", found.Some())
+	}
+
+	// Test case 2: Element not found
+	notFound := seq.Iter().Find(func(i int) bool {
+		return i == 6
+	})
+	if notFound.IsSome() {
+		t.Error("Expected not found option to be None")
+	}
+}
+
+func TestSliceIterWindows(t *testing.T) {
+	// Test case 1: Windows of correct size
+	seq := g.Slice[int]{1, 2, 3, 4, 5, 6}
+	windows := seq.Iter().Windows(3).Collect()
+
+	expected := []g.Slice[int]{
+		{1, 2, 3},
+		{2, 3, 4},
+		{3, 4, 5},
+		{4, 5, 6},
+	}
+
+	if len(windows) != len(expected) {
+		t.Errorf("Expected %d windows, got %d", len(expected), len(windows))
+	}
+
+	for i, window := range windows {
+		if len(window) != len(expected[i]) {
+			t.Errorf("Expected window %d length to be %d, got %d", i, len(expected[i]), len(window))
+		}
+		for j, v := range window {
+			if v != expected[i][j] {
+				t.Errorf("Expected window %d element at index %d to be %d, got %d", i, j, expected[i][j], v)
+			}
+		}
+	}
+}
+
+func TestSliceIterToChannel(t *testing.T) {
+	// Test case 1: Channel streaming without cancellation
+	seq := g.Slice[int]{1, 2, 3}
+
+	ch := seq.Iter().ToChannel()
+	var result []int
+	for val := range ch {
+		result = append(result, val)
+	}
+
+	expected := []int{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d elements, got %d", len(expected), len(result))
+	}
+	for i, v := range result {
+		if v != expected[i] {
+			t.Errorf("Expected element at index %d to be %d, got %d", i, expected[i], v)
+		}
+	}
+
+	// Test case 2: Channel streaming with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Ensure cancellation to avoid goroutine leaks.
+
+	ch = seq.Iter().ToChannel(ctx)
+	var result2 []int
+	for val := range ch {
+		result2 = append(result2, val)
+	}
+
+	if len(result2) != 0 {
+		t.Error("Expected no elements due to cancellation, got some elements")
+	}
+}
+
+func TestSliceIterInspect(t *testing.T) {
+	// Define a slice to iterate over
+	s := g.Slice[int]{1, 2, 3}
+
+	// Define a slice to store the inspected elements
+	var inspectedElements g.Slice[int]
+
+	// Create a new iterator with Inspect and collect the elements
+	s.Iter().Inspect(func(v int) {
+		inspectedElements = append(inspectedElements, v)
+	}).Collect()
+
+	if inspectedElements.Len() != s.Len() {
+		t.Errorf("Expected %d inspected elements, got %d", s.Len(), inspectedElements.Len())
+	}
+
+	if inspectedElements.Ne(s) {
+		t.Errorf("Expected %v, got %v", s, inspectedElements)
+	}
 }

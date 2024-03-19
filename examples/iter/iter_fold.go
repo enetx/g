@@ -1,13 +1,13 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	// Create a slice of integers
 	is := g.SliceOf[g.Int](1, 2, 3, 4, 5)
 
 	// Transform the slice of integers into a slice of strings
-	itos := g.MapSlice(is, g.Int.ToString)
+	itos := g.SliceMap(is, g.Int.ToString)
 
 	// Iterate over the transformed slice, perform folding, and print the result
 	itos.Iter().

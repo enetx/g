@@ -9,7 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"gitlab.com/x0xO/g/pkg/minmax"
+	"github.com/enetx/g/pkg/minmax"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -240,7 +240,7 @@ func (s String) ReplaceNth(oldS, newS String, n int) String {
 
 // ContainsRegexp checks if the String contains a match for the specified regular expression pattern.
 func (s String) ContainsRegexp(pattern String) Result[bool] {
-	return ToResult(regexp.MatchString(pattern.Std(), s.Std()))
+	return ResultOf(regexp.MatchString(pattern.Std(), s.Std()))
 }
 
 // ContainsRegexpAny checks if the String contains a match for any of the specified regular
@@ -349,7 +349,7 @@ func (s String) Split(sep ...String) Slice[String] {
 		separator = sep[0].Std()
 	}
 
-	return MapSlice(strings.Split(s.Std(), separator), NewString)
+	return SliceMap(strings.Split(s.Std(), separator), NewString)
 }
 
 // SplitLines splits the String by lines.
@@ -360,14 +360,14 @@ func (s String) SplitLines() Slice[String] { return s.TrimSpace().Split("\n") }
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitN(sep String, n Int) Slice[String] {
-	return MapSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
+func (s String) SplitN(sep String, n int) Slice[String] {
+	return SliceMap(strings.SplitN(s.Std(), sep.Std(), n), NewString)
 }
 
 // SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
 func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
-	return MapSlice(pattern.Split(s.Std(), -1), NewString)
+	return SliceMap(pattern.Split(s.Std(), -1), NewString)
 }
 
 // SplitRegexpN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
@@ -376,8 +376,8 @@ func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]] {
-	result := MapSlice(pattern.Split(s.Std(), n.Std()), NewString)
+func (s String) SplitRegexpN(pattern regexp.Regexp, n int) Option[Slice[String]] {
+	result := SliceMap(pattern.Split(s.Std(), n), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -387,7 +387,7 @@ func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]]
 
 // Fields splits the String into a slice of substrings, removing any whitespace.
 func (s String) Fields() Slice[String] {
-	return MapSlice(strings.Fields(s.Std()), NewString)
+	return SliceMap(strings.Fields(s.Std()), NewString)
 }
 
 // Chunks splits the String into chunks of the specified size.
@@ -421,7 +421,7 @@ func (s String) Chunks(size int) Slice[String] {
 		return Slice[String]{s}
 	}
 
-	return MapSlice(s.Split().Iter().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
+	return SliceMap(s.Split().Iter().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
 }
 
 // Cut returns two String values. The first String contains the remainder of the
@@ -592,7 +592,7 @@ func (s String) Index(substr String) int { return strings.Index(s.Std(), substr.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (s String) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := MapSlice(pattern.FindStringIndex(s.Std()), NewInt)
+	result := SliceMap(pattern.FindStringIndex(s.Std()), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
 	}
@@ -611,8 +611,8 @@ func (s String) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
 // and returns an Option[Slice[String]] containing a slice of matched substrings.
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
-func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
-	result := MapSlice(pattern.FindAllString(s.Std(), n.Std()), NewString)
+func (s String) FindAllRegexpN(pattern *regexp.Regexp, n int) Option[Slice[String]] {
+	result := SliceMap(pattern.FindAllString(s.Std(), n), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -625,7 +625,7 @@ func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Strin
 // The Option will contain an Slice[String] with the full match at index 0, followed by any captured submatches.
 // If no match is found, it returns None.
 func (s String) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
-	result := MapSlice(pattern.FindStringSubmatch(s.Std()), NewString)
+	result := SliceMap(pattern.FindStringSubmatch(s.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -649,11 +649,11 @@ func (s String) FindAllSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[Slice
 // where each Slice[String] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Slice[String]]] will be None.
 // The 'n' parameter specifies the maximum number of matches to find. If n is negative, it finds all occurrences.
-func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Slice[String]]] {
+func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n int) Option[Slice[Slice[String]]] {
 	var result Slice[Slice[String]]
 
-	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n.Std()) {
-		result = result.Append(MapSlice(v, NewString))
+	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n) {
+		result = result.Append(SliceMap(v, NewString))
 	}
 
 	if result.Empty() {

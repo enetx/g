@@ -7,8 +7,8 @@ import (
 	"math/bits"
 	"strconv"
 
-	"gitlab.com/x0xO/g/pkg/minmax"
-	"gitlab.com/x0xO/g/pkg/rand"
+	"github.com/enetx/g/pkg/minmax"
+	"github.com/enetx/g/pkg/rand"
 )
 
 // NewInt creates a new Int with the provided int value.

@@ -5,8 +5,44 @@ import (
 	"reflect"
 	"testing"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
+
+func TestStringMinMax(t *testing.T) {
+	// Test cases for Min method
+	minTestCases := []struct {
+		inputs   []g.String
+		expected g.String
+	}{
+		{[]g.String{"apple", "banana", "orange"}, "apple"},
+		{[]g.String{"cat", "dog", "elephant"}, "cat"},
+		{[]g.String{"123", "456", "789"}, "123"},
+	}
+
+	for _, testCase := range minTestCases {
+		result := g.NewString(testCase.inputs[0]).Min(testCase.inputs[1:]...)
+		if result != testCase.expected {
+			t.Errorf("Min test failed. Expected: %s, Got: %s", testCase.expected, result)
+		}
+	}
+
+	// Test cases for Max method
+	maxTestCases := []struct {
+		inputs   []g.String
+		expected g.String
+	}{
+		{[]g.String{"apple", "banana", "orange"}, "orange"},
+		{[]g.String{"cat", "dog", "elephant"}, "elephant"},
+		{[]g.String{"123", "456", "789"}, "789"},
+	}
+
+	for _, testCase := range maxTestCases {
+		result := g.NewString(testCase.inputs[0]).Max(testCase.inputs[1:]...)
+		if result != testCase.expected {
+			t.Errorf("Max test failed. Expected: %s, Got: %s", testCase.expected, result)
+		}
+	}
+}
 
 func TestChars(t *testing.T) {
 	// Testing on a regular string with ASCII characters
@@ -1004,5 +1040,619 @@ func TestStringReplaceMulti(t *testing.T) {
 	replaced4 := input4.ReplaceMulti("Hello", "Greetings")
 	if replaced4 != input4 {
 		t.Errorf("Test case 4 failed: Expected '%s', got '%s'", input4, replaced4)
+	}
+}
+
+func TestStringToFloat(t *testing.T) {
+	// Test cases for valid float strings
+	validFloatCases := []struct {
+		input    g.String
+		expected g.Float
+	}{
+		{"3.14", g.Float(3.14)},
+		{"-123.456", g.Float(-123.456)},
+		{"0.0", g.Float(0.0)},
+	}
+
+	for _, testCase := range validFloatCases {
+		result := testCase.input.ToFloat()
+		if result.IsErr() {
+			t.Errorf("ToFloat test failed for %s. Unexpected error: %v", testCase.input, result.Err())
+		}
+
+		if result.Ok().Ne(testCase.expected) {
+			t.Errorf("ToFloat test failed for %s. Expected: %v, Got: %v",
+				testCase.input,
+				testCase.expected,
+				result.Ok(),
+			)
+		}
+	}
+
+	// Test cases for invalid float strings
+	invalidFloatCases := []g.String{"abc", "123abc", "12.34.56", "", " "}
+
+	for _, input := range invalidFloatCases {
+		result := input.ToFloat()
+		if result.IsOk() {
+			t.Errorf("ToFloat test failed for %s. Expected error, got result: %v", input, result.Ok())
+		}
+	}
+}
+
+func TestStringLower(t *testing.T) {
+	// Test cases for lowercase conversion
+	lowerCases := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"HELLO", "hello"},
+		{"Hello World", "hello world"},
+		{"123", "123"},
+		{"", ""},
+		{"AbCdEfG", "abcdefg"},
+	}
+
+	for _, testCase := range lowerCases {
+		result := testCase.input.Lower()
+		if !result.Eq(testCase.expected) {
+			t.Errorf("Lower test failed for %s. Expected: %s, Got: %s", testCase.input, testCase.expected, result)
+		}
+	}
+}
+
+func TestStringTrim(t *testing.T) {
+	// Test cases for Trim
+	trimCases := []struct {
+		input    g.String
+		cutset   g.String
+		expected g.String
+	}{
+		{"   Hello, World!   ", " ", "Hello, World!"},
+		{"Hello, World!", ",! ", "Hello, World"},
+		{"  Golang  ", " Go", "lang"},
+		{"", "", ""},
+	}
+
+	for _, testCase := range trimCases {
+		result := testCase.input.Trim(testCase.cutset)
+		if !result.Eq(testCase.expected) {
+			t.Errorf(
+				"Trim test failed for %s with cutset %s. Expected: %s, Got: %s",
+				testCase.input,
+				testCase.cutset,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringTrimLeft(t *testing.T) {
+	// Test cases for TrimLeft
+	trimLeftCases := []struct {
+		input    g.String
+		cutset   g.String
+		expected g.String
+	}{
+		{"   Hello, World!   ", " ", "Hello, World!   "},
+		{"Hello, World!", ",! ", "Hello, World!"},
+		{"  Golang  ", " Go", "lang  "},
+		{"", "", ""},
+	}
+
+	for _, testCase := range trimLeftCases {
+		result := testCase.input.TrimLeft(testCase.cutset)
+		if !result.Eq(testCase.expected) {
+			t.Errorf(
+				"TrimLeft test failed for %s with cutset %s. Expected: %s, Got: %s",
+				testCase.input,
+				testCase.cutset,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringTrimPrefix(t *testing.T) {
+	// Test cases for TrimPrefix
+	trimPrefixCases := []struct {
+		input    g.String
+		prefix   g.String
+		expected g.String
+	}{
+		{"Hello, World!", "Hello, ", "World!"},
+		{"prefix-prefix-suffix", "prefix-", "prefix-suffix"},
+		{"no prefix", "prefix-", "no prefix"},
+		{"", "prefix-", ""},
+	}
+
+	for _, testCase := range trimPrefixCases {
+		result := testCase.input.TrimPrefix(testCase.prefix)
+		if !result.Eq(testCase.expected) {
+			t.Errorf(
+				"TrimPrefix test failed for %s with prefix %s. Expected: %s, Got: %s",
+				testCase.input,
+				testCase.prefix,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringTrimSuffix(t *testing.T) {
+	// Test cases for TrimSuffix
+	trimSuffixCases := []struct {
+		input    g.String
+		suffix   g.String
+		expected g.String
+	}{
+		{"Hello, World!", ", World!", "Hello"},
+		{"prefix-prefix-suffix", "-suffix", "prefix-prefix"},
+		{"no suffix", "-suffix", "no suffix"},
+		{"", "-suffix", ""},
+	}
+
+	for _, testCase := range trimSuffixCases {
+		result := testCase.input.TrimSuffix(testCase.suffix)
+		if !result.Eq(testCase.expected) {
+			t.Errorf(
+				"TrimSuffix test failed for %s with suffix %s. Expected: %s, Got: %s",
+				testCase.input,
+				testCase.suffix,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringReplace(t *testing.T) {
+	// Test cases for Replace
+	replaceCases := []struct {
+		input    g.String
+		oldS     g.String
+		newS     g.String
+		n        int
+		expected g.String
+	}{
+		{"Hello, World!", "Hello", "Hi", 1, "Hi, World!"},
+		{"Hello, Hello, Hello!", "Hello", "Hi", -1, "Hi, Hi, Hi!"},
+		{"prefix-prefix-suffix", "prefix", "pre", 1, "pre-prefix-suffix"},
+		{"no match", "match", "replacement", 1, "no replacement"},
+		{"", "", "", 0, ""},
+	}
+
+	for _, testCase := range replaceCases {
+		result := testCase.input.Replace(testCase.oldS, testCase.newS, testCase.n)
+		if !result.Eq(testCase.expected) {
+			t.Errorf(
+				"Replace test failed for %s with oldS %s and newS %s. Expected: %s, Got: %s",
+				testCase.input,
+				testCase.oldS,
+				testCase.newS,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringContainsAnyChars(t *testing.T) {
+	// Test cases for ContainsAnyChars
+	containsAnyCharsCases := []struct {
+		input    g.String
+		chars    g.String
+		expected bool
+	}{
+		{"Hello, World!", "aeiou", true}, // Contains vowels
+		{"1234567890", "aeiou", false},   // Does not contain vowels
+		{"Hello, World!", "abc", false},  // Contains a, b, or c
+		{"Hello, World!", "123", false},  // Does not contain 1, 2, or 3
+		{"", "aeiou", false},             // Empty string
+	}
+
+	for _, testCase := range containsAnyCharsCases {
+		result := testCase.input.ContainsAnyChars(testCase.chars)
+		if result != testCase.expected {
+			t.Errorf(
+				"ContainsAnyChars test failed for %s with chars %s. Expected: %t, Got: %t",
+				testCase.input,
+				testCase.chars,
+				testCase.expected,
+				result,
+			)
+		}
+	}
+}
+
+func TestStringSplitLines(t *testing.T) {
+	// Test case 1: String with multiple lines.
+	str1 := g.NewString("hello\nworld\nhow\nare\nyou\n")
+	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	result1 := str1.SplitLines()
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
+	}
+
+	// Test case 2: String with single line.
+	str2 := g.NewString("hello")
+	expected2 := g.Slice[g.String]{"hello"}
+	result2 := str2.SplitLines()
+	if !reflect.DeepEqual(result2, expected2) {
+		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+}
+
+func TestStringSplitN(t *testing.T) {
+	// Test case 1: String with multiple segments, n > 0.
+	str1 := g.NewString("hello,world,how,are,you")
+	sep1 := g.NewString(",")
+	n1 := 3
+	expected1 := g.Slice[g.String]{"hello", "world", "how,are,you"}
+	result1 := str1.SplitN(sep1, n1)
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
+	}
+
+	// Test case 2: String with multiple segments, n < 0.
+	str2 := g.NewString("hello,world,how,are,you")
+	sep2 := g.NewString(",")
+	n2 := -1
+	expected2 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	result2 := str2.SplitN(sep2, n2)
+	if !reflect.DeepEqual(result2, expected2) {
+		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+
+	// Test case 3: String with single segment, n > 0.
+	str3 := g.NewString("hello")
+	sep3 := g.NewString(",")
+	n3 := 1
+	expected3 := g.Slice[g.String]{"hello"}
+	result3 := str3.SplitN(sep3, n3)
+	if !reflect.DeepEqual(result3, expected3) {
+		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+}
+
+func TestStringFields(t *testing.T) {
+	// Test case 1: String with multiple words separated by whitespace.
+	str1 := g.NewString("hello world how are you")
+	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	result1 := str1.Fields()
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
+	}
+
+	// Test case 2: String with single word.
+	str2 := g.NewString("hello")
+	expected2 := g.Slice[g.String]{"hello"}
+	result2 := str2.Fields()
+	if !reflect.DeepEqual(result2, expected2) {
+		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+
+	// Test case 3: Empty string.
+	str3 := g.NewString("")
+	expected3 := g.Slice[g.String]{}
+	result3 := str3.Fields()
+	if !reflect.DeepEqual(result3, expected3) {
+		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+
+	// Test case 4: String with leading and trailing whitespace.
+	str4 := g.NewString("   hello   world   ")
+	expected4 := g.Slice[g.String]{"hello", "world"}
+	result4 := str4.Fields()
+	if !reflect.DeepEqual(result4, expected4) {
+		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
+	}
+}
+
+func TestStringCount(t *testing.T) {
+	// Test case 1: Count occurrences of substring in a string with multiple occurrences.
+	str1 := g.NewString("hello world hello hello")
+	substr1 := g.NewString("hello")
+	expected1 := 3
+	result1 := str1.Count(substr1)
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
+	}
+
+	// Test case 2: Count occurrences of substring in a string with no occurrences.
+	str2 := g.NewString("abcdefg")
+	substr2 := g.NewString("xyz")
+	expected2 := 0
+	result2 := str2.Count(substr2)
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
+	}
+
+	// Test case 3: Count occurrences of substring in an empty string.
+	str3 := g.NewString("")
+	substr3 := g.NewString("hello")
+	expected3 := 0
+	result3 := str3.Count(substr3)
+	if result3 != expected3 {
+		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
+	}
+}
+
+func TestStringEqFold(t *testing.T) {
+	// Test case 1: Strings are equal case-insensitively.
+	str1 := g.NewString("Hello")
+	str2 := g.NewString("hello")
+	expected1 := true
+	result1 := str1.EqFold(str2)
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %t, got %t", expected1, result1)
+	}
+
+	// Test case 2: Strings are not equal case-insensitively.
+	str3 := g.NewString("world")
+	expected2 := false
+	result2 := str1.EqFold(str3)
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %t, got %t", expected2, result2)
+	}
+
+	// Test case 3: Empty strings.
+	str4 := g.NewString("")
+	str5 := g.NewString("")
+	expected3 := true
+	result3 := str4.EqFold(str5)
+	if result3 != expected3 {
+		t.Errorf("Test case 3 failed: Expected %t, got %t", expected3, result3)
+	}
+}
+
+func TestStringLastIndex(t *testing.T) {
+	// Test case 1: Substring is present in the string.
+	str1 := g.NewString("hello world hello")
+	substr1 := g.NewString("hello")
+	expected1 := 12
+	result1 := str1.LastIndex(substr1)
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
+	}
+
+	// Test case 2: Substring is not present in the string.
+	substr2 := g.NewString("foo")
+	expected2 := -1
+	result2 := str1.LastIndex(substr2)
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
+	}
+
+	// Test case 3: Empty string.
+	str3 := g.NewString("")
+	substr3 := g.NewString("hello")
+	expected3 := -1
+	result3 := str3.LastIndex(substr3)
+	if result3 != expected3 {
+		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
+	}
+}
+
+func TestStringIndexRune(t *testing.T) {
+	// Test case 1: Rune is present in the string.
+	str1 := g.NewString("hello")
+	rune1 := 'e'
+	expected1 := 1
+	result1 := str1.IndexRune(rune1)
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
+	}
+
+	// Test case 2: Rune is not present in the string.
+	rune2 := 'x'
+	expected2 := -1
+	result2 := str1.IndexRune(rune2)
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
+	}
+
+	// Test case 3: Empty string.
+	str3 := g.NewString("")
+	rune3 := 'h'
+	expected3 := -1
+	result3 := str3.IndexRune(rune3)
+	if result3 != expected3 {
+		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
+	}
+}
+
+func TestStringNotEmpty(t *testing.T) {
+	// Test case 1: String is not empty.
+	str1 := g.NewString("hello")
+	expected1 := true
+	result1 := str1.NotEmpty()
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %t, got %t", expected1, result1)
+	}
+
+	// Test case 2: String is empty.
+	str2 := g.NewString("")
+	expected2 := false
+	result2 := str2.NotEmpty()
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %t, got %t", expected2, result2)
+	}
+}
+
+func TestRepeat(t *testing.T) {
+	// Test case 1: Repeat count is positive.
+	str := g.NewString("abc")
+	count := 3
+	expected1 := g.NewString("abcabcabc")
+	result1 := str.Repeat(count)
+	if !result1.Eq(expected1) {
+		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
+	}
+
+	// Test case 2: Repeat count is zero.
+	count = 0
+	expected2 := g.NewString("")
+	result2 := str.Repeat(count)
+	if !result2.Eq(expected2) {
+		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
+	}
+}
+
+func TestStringLeftJustify(t *testing.T) {
+	// Test case 1: Original string length is less than the specified length.
+	str1 := g.NewString("Hello")
+	length1 := 10
+	pad1 := g.NewString(".")
+	expected1 := g.NewString("Hello.....")
+	result1 := str1.LeftJustify(length1, pad1)
+	if !result1.Eq(expected1) {
+		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
+	}
+
+	// Test case 2: Original string length is equal to the specified length.
+	str2 := g.NewString("Hello")
+	length2 := 5
+	pad2 := g.NewString(".")
+	expected2 := g.NewString("Hello")
+	result2 := str2.LeftJustify(length2, pad2)
+	if !result2.Eq(expected2) {
+		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
+	}
+
+	// Test case 3: Original string length is greater than the specified length.
+	str3 := g.NewString("Hello")
+	length3 := 3
+	pad3 := g.NewString(".")
+	expected3 := g.NewString("Hello")
+	result3 := str3.LeftJustify(length3, pad3)
+	if !result3.Eq(expected3) {
+		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
+	}
+
+	// Test case 4: Empty padding string.
+	str4 := g.NewString("Hello")
+	length4 := 10
+	pad4 := g.NewString("")
+	expected4 := g.NewString("Hello")
+	result4 := str4.LeftJustify(length4, pad4)
+	if !result4.Eq(expected4) {
+		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
+	}
+}
+
+func TestStringRightJustify(t *testing.T) {
+	// Test case 1: Original string length is less than the specified length.
+	str1 := g.NewString("Hello")
+	length1 := 10
+	pad1 := g.NewString(".")
+	expected1 := g.NewString(".....Hello")
+	result1 := str1.RightJustify(length1, pad1)
+	if !result1.Eq(expected1) {
+		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
+	}
+
+	// Test case 2: Original string length is equal to the specified length.
+	str2 := g.NewString("Hello")
+	length2 := 5
+	pad2 := g.NewString(".")
+	expected2 := g.NewString("Hello")
+	result2 := str2.RightJustify(length2, pad2)
+	if !result2.Eq(expected2) {
+		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
+	}
+
+	// Test case 3: Original string length is greater than the specified length.
+	str3 := g.NewString("Hello")
+	length3 := 3
+	pad3 := g.NewString(".")
+	expected3 := g.NewString("Hello")
+	result3 := str3.RightJustify(length3, pad3)
+	if !result3.Eq(expected3) {
+		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
+	}
+
+	// Test case 4: Empty padding string.
+	str4 := g.NewString("Hello")
+	length4 := 10
+	pad4 := g.NewString("")
+	expected4 := g.NewString("Hello")
+	result4 := str4.RightJustify(length4, pad4)
+	if !result4.Eq(expected4) {
+		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
+	}
+}
+
+func TestStringCenter(t *testing.T) {
+	// Test case 1: Original string length is less than the specified length.
+	str1 := g.NewString("Hello")
+	length1 := 10
+	pad1 := g.NewString(".")
+	expected1 := g.NewString("..Hello...")
+	result1 := str1.Center(length1, pad1)
+	if !result1.Eq(expected1) {
+		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
+	}
+
+	// Test case 2: Original string length is equal to the specified length.
+	str2 := g.NewString("Hello")
+	length2 := 5
+	pad2 := g.NewString(".")
+	expected2 := g.NewString("Hello")
+	result2 := str2.Center(length2, pad2)
+	if !result2.Eq(expected2) {
+		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
+	}
+
+	// Test case 3: Original string length is greater than the specified length.
+	str3 := g.NewString("Hello")
+	length3 := 3
+	pad3 := g.NewString(".")
+	expected3 := g.NewString("Hello")
+	result3 := str3.Center(length3, pad3)
+	if !result3.Eq(expected3) {
+		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
+	}
+
+	// Test case 4: Empty padding string.
+	str4 := g.NewString("Hello")
+	length4 := 10
+	pad4 := g.NewString("")
+	expected4 := g.NewString("Hello")
+	result4 := str4.Center(length4, pad4)
+	if !result4.Eq(expected4) {
+		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
+	}
+}
+
+func TestStringEndsWith(t *testing.T) {
+	// Test case 1: String ends with one of the provided suffixes.
+	str1 := g.NewString("example.com")
+	suffixes1 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	expected1 := true
+	result1 := str1.EndsWith(suffixes1...)
+	if result1 != expected1 {
+		t.Errorf("Test case 1 failed: Expected %t, got %t", expected1, result1)
+	}
+
+	// Test case 2: String ends with multiple provided suffixes.
+	str2 := g.NewString("example.net")
+	suffixes2 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	expected2 := true
+	result2 := str2.EndsWith(suffixes2...)
+	if result2 != expected2 {
+		t.Errorf("Test case 2 failed: Expected %t, got %t", expected2, result2)
+	}
+
+	// Test case 3: String does not end with any of the provided suffixes.
+	str3 := g.NewString("example.org")
+	suffixes3 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	expected3 := false
+	result3 := str3.EndsWith(suffixes3...)
+	if result3 != expected3 {
+		t.Errorf("Test case 3 failed: Expected %t, got %t", expected3, result3)
 	}
 }

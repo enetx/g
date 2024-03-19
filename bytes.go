@@ -157,7 +157,7 @@ func (bs Bytes) Index(obs Bytes) int { return bytes.Index(bs, obs) }
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := MapSlice(pattern.FindIndex(bs), NewInt)
+	result := SliceMap(pattern.FindIndex(bs), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
 	}

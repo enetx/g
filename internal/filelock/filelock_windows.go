@@ -10,7 +10,7 @@ import (
 	"io/fs"
 	"syscall"
 
-	"gitlab.com/x0xO/g/internal/filelock/syscall/windows"
+	"github.com/enetx/g/internal/filelock/syscall/windows"
 )
 
 type lockType uint32

@@ -1,4 +1,4 @@
-module gitlab.com/x0xO/g
+module github.com/enetx/g
 
 go 1.22
 

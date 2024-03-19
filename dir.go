@@ -39,14 +39,14 @@ func (d *Dir) Stat() Result[fs.FileInfo] {
 		return Err[fs.FileInfo](d.Path().Err())
 	}
 
-	return ToResult(os.Stat(d.Path().Ok().Std()))
+	return ResultOf(os.Stat(d.Path().Ok().Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
 func (d *Dir) Lstat() Result[fs.FileInfo] {
-	return ToResult(os.Lstat(d.Path().Ok().Std()))
+	return ResultOf(os.Lstat(d.Path().Ok().Std()))
 }
 
 // IsLink checks if the directory is a symbolic link.

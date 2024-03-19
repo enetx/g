@@ -1,6 +1,6 @@
 package main
 
-import "gitlab.com/x0xO/g"
+import "github.com/enetx/g"
 
 func main() {
 	// Example 1: Map each string in the slice to its uppercase version and print the result

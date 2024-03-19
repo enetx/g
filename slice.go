@@ -3,10 +3,11 @@ package g
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
-	"gitlab.com/x0xO/g/pkg/rand"
+	"github.com/enetx/g/pkg/rand"
 )
 
 // NewSlice creates a new Slice of the given generic type T with the specified length and
@@ -46,7 +47,7 @@ func NewSlice[T any](size ...int) Slice[T] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
-// MapSlice applies the given function to each element of a Slice and returns a new Slice
+// SliceMap applies the given function to each element of a Slice and returns a new Slice
 // containing the transformed values.
 //
 // Parameters:
@@ -58,7 +59,7 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 // Returns:
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
-func MapSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return mapSlice(sl.Iter(), fn).Collect() }
+func SliceMap[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return sliceMap(sl.Iter(), fn).Collect() }
 
 // Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
@@ -86,7 +87,7 @@ func (sl Slice[T]) Iter() seqSlice[T] { return liftSlice(sl) }
 //
 // Note: AsAny is useful when you want to work with a slice of a specific type as a slice of 'any'.
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
-func (sl Slice[T]) AsAny() Slice[any] { return MapSlice(sl, func(t T) any { return any(t) }) }
+func (sl Slice[T]) AsAny() Slice[any] { return SliceMap(sl, func(t T) any { return any(t) }) }
 
 // Counter returns an unordered Map with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in an
@@ -936,26 +937,13 @@ func (sl Slice[T]) Swap(i, j int) {
 // another n elements. After Grow(n), at least n elements can be appended
 // to the slice without another allocation. If n is negative or too large to
 // allocate the memory, Grow panics.
-func (sl Slice[T]) Grow(n int) Slice[T] {
-	if n < 0 {
-		panic("cannot be negative")
-	}
-
-	if n -= sl.Cap() - sl.Len(); n > 0 {
-		sl = append(sl[:sl.Cap()], make(Slice[T], n)...)[:sl.Len()]
-	}
-
-	return sl
-}
+func (sl Slice[T]) Grow(n int) Slice[T] { return slices.Grow(sl, n) }
 
 // Clip removes unused capacity from the slice.
-func (sl Slice[T]) Clip() Slice[T] { return sl[:sl.Len():sl.Len()] }
+func (sl Slice[T]) Clip() Slice[T] { return slices.Clip(sl) }
 
 // Std returns a new slice with the same elements as the Slice[T].
 func (sl Slice[T]) Std() []T { return sl }
-
-// Clear removes all elements from the Slice and sets its length to 0.
-func (sl Slice[T]) Clear() Slice[T] { clear(sl); return sl }
 
 // Print prints the elements of the Slice to the standard output (console)
 // and returns the Slice unchanged.

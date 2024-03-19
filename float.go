@@ -9,7 +9,7 @@ import (
 	"math/bits"
 	"strconv"
 
-	"gitlab.com/x0xO/g/pkg/minmax"
+	"github.com/enetx/g/pkg/minmax"
 )
 
 // NewFloat creates a new Float with the provided value.

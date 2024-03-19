@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
 
 func TestSliceUnpack(t *testing.T) {
@@ -360,6 +360,11 @@ func TestSliceCount(t *testing.T) {
 	if sl.Count(7) != 1 {
 		t.Error("Expected 1, got ", sl.Count(7))
 	}
+
+	emptySlice := g.NewSlice[int]()
+	if emptySlice.Count(7) != 0 {
+		t.Error("Expected 0, got", emptySlice.Count(7))
+	}
 }
 
 func TestSliceSortBy(t *testing.T) {
@@ -486,13 +491,6 @@ func TestSliceLast(t *testing.T) {
 	}
 }
 
-func TestSliceLastIndex(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
-	if sl.LastIndex() != 4 {
-		t.Error("LastIndex() failed")
-	}
-}
-
 func TestSliceLen(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5}
 	if sl.Len() != 5 {
@@ -510,15 +508,6 @@ func TestSlicePop(t *testing.T) {
 
 	if sl.Len() != 4 {
 		t.Errorf("Expected 4, got %v", sl.Len())
-	}
-}
-
-func TestSliceRandom(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	for i := 0; i < 10; i++ {
-		if sl.Random() < 1 || sl.Random() > 10 {
-			t.Error("Random() should return a number between 1 and 10")
-		}
 	}
 }
 
@@ -1035,4 +1024,249 @@ func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
 		}
 	}()
 	_ = slice.SubSlice(2, 10)
+}
+
+func TestGrowSlice(t *testing.T) {
+	// Initialize a slice with some elements.
+	initialSlice := g.SliceOf(1, 2, 3)
+
+	// Check the initial capacity of the slice.
+	initialCapacity := initialSlice.Cap()
+
+	// Grow the slice to accommodate more elements.
+	newCapacity := initialCapacity + 5
+	grownSlice := initialSlice.Grow(newCapacity - initialCapacity)
+
+	// Check if the capacity of the grown slice is as expected.
+	if grownSlice.Cap() != newCapacity {
+		t.Errorf("Grow method failed: Expected capacity %d, got %d", newCapacity, grownSlice.Cap())
+	}
+
+	// Append new elements to the grown slice.
+	for i := 0; i < 5; i++ {
+		grownSlice = grownSlice.Append(i + 4)
+	}
+
+	// Check if the length of the grown slice is correct.
+	if grownSlice.Len() != newCapacity {
+		t.Errorf("Grow method failed: Expected length %d, got %d", newCapacity, grownSlice.Len())
+	}
+}
+
+func TestSliceNotEmpty(t *testing.T) {
+	// Test case 1: Slice with elements
+	sl1 := g.SliceOf(1, 2, 3)
+	if !sl1.NotEmpty() {
+		t.Errorf("Test case 1 failed: Expected slice to be not empty")
+	}
+
+	// Test case 2: Empty slice
+	sl2 := g.NewSlice[g.Int]()
+	if sl2.NotEmpty() {
+		t.Errorf("Test case 2 failed: Expected slice to be empty")
+	}
+}
+
+func TestSliceAppendInPlace(t *testing.T) {
+	// Create a slice with initial elements
+	initialSlice := g.Slice[int]{1, 2, 3}
+
+	// Append additional elements using AppendInPlace
+	initialSlice.AppendInPlace(4, 5, 6)
+
+	// Verify that the slice has the expected elements
+	expected := g.Slice[int]{1, 2, 3, 4, 5, 6}
+	if !initialSlice.Eq(expected) {
+		t.Errorf("AppendInPlace failed. Expected: %v, Got: %v", expected, initialSlice)
+	}
+}
+
+func TestSliceString(t *testing.T) {
+	// Create a slice with some elements
+	sl := g.SliceOf(1, 2, 3, 4, 5)
+
+	// Define the expected string representation
+	expected := "Slice[1, 2, 3, 4, 5]"
+
+	// Get the string representation using the String method
+	result := sl.String()
+
+	// Compare the result with the expected value
+	if result != expected {
+		t.Errorf("Slice String method failed. Expected: %s, Got: %s", expected, result)
+	}
+}
+
+func TestSliceEq(t *testing.T) {
+	// Create two slices with the same elements
+	sl1 := g.SliceOf(1, 2, 3, 4, 5)
+	sl2 := g.SliceOf(1, 2, 3, 4, 5)
+
+	// Check if the slices are equal
+	if !sl1.Eq(sl2) {
+		t.Error("Slice Eq method failed. Expected slices to be equal.")
+	}
+
+	// Create another slice with different elements
+	sl3 := g.SliceOf(1, 2, 3)
+
+	// Check if the slices are not equal
+	if sl1.Eq(sl3) {
+		t.Error("Slice Eq method failed. Expected slices to be not equal.")
+	}
+
+	// Create another slice with different elements
+	sl4 := g.SliceOf(1, 2, 3, 4, 6)
+
+	// Check if the slices are not equal
+	if sl1.Eq(sl4) {
+		t.Error("Slice Eq method failed. Expected slices to be not equal.")
+	}
+}
+
+func TestSliceLastIndex(t *testing.T) {
+	// Create a slice with some elements
+	sl := g.SliceOf(1, 2, 3, 4, 5)
+
+	// Get the last index of the slice
+	lastIndex := sl.LastIndex()
+
+	// Check if the last index is correct
+	expectedLastIndex := sl.Len() - 1
+	if lastIndex != expectedLastIndex {
+		t.Errorf("Slice LastIndex method failed. Expected: %d, Got: %d", expectedLastIndex, lastIndex)
+	}
+
+	// Create an empty slice
+	emptySlice := g.NewSlice[int]()
+
+	// Get the last index of the empty slice
+	emptyLastIndex := emptySlice.LastIndex()
+
+	// Check if the last index of an empty slice is 0
+	if emptyLastIndex != 0 {
+		t.Errorf("Slice LastIndex method failed for empty slice. Expected: 0, Got: %d", emptyLastIndex)
+	}
+}
+
+func TestSliceRandom(t *testing.T) {
+	// Create a slice with some elements
+	sl := g.SliceOf(1, 2, 3, 4, 5)
+
+	// Get a random element from the slice
+	randomElement := sl.Random()
+
+	// Check if the random element is within the slice
+	found := false
+	sl.Iter().ForEach(func(v int) {
+		if v == randomElement {
+			found = true
+		}
+	})
+
+	if !found {
+		t.Errorf("Slice Random method failed. Random element %d not found in the slice", randomElement)
+	}
+
+	// Test for an empty slice
+	emptySlice := g.NewSlice[int]()
+
+	// Get a random element from the empty slice
+	emptyRandomElement := emptySlice.Random()
+
+	// Check if the random element from an empty slice is zero value
+	if emptyRandomElement != 0 {
+		t.Errorf("Slice Random method failed for empty slice. Expected: 0, Got: %d", emptyRandomElement)
+	}
+}
+
+func TestSliceMaxMin(t *testing.T) {
+	// Test cases for Int
+	testMaxMin(t, g.SliceOf[g.Int](3, 1, 4, 1, 5), g.Int(5), g.Int(1))
+	testMaxMin(t, g.SliceOf(3, 1, 4, 1, 5), 5, 1)
+
+	// Test cases for Float
+	testMaxMin(t, g.SliceOf[g.Float](3.14, 1.23, 4.56, 1.01, 5.67), g.Float(5.67), g.Float(1.01))
+	testMaxMin(t, g.SliceOf(3.14, 1.23, 4.56, 1.01, 5.67), 5.67, 1.01)
+
+	// Test cases for String
+	testMaxMin(t, g.SliceOf[g.String]("apple", "banana", "orange", "grape"), g.String("orange"), g.String("apple"))
+	testMaxMin(t, g.SliceOf("apple", "banana", "orange", "grape"), "orange", "apple")
+
+	// Add more test cases for other types as needed
+}
+
+func testMaxMin[T comparable](t *testing.T, sl g.Slice[T], expectedMax, expectedMin T) {
+	// Test Max method
+	maxElement := sl.Max()
+	if maxElement != expectedMax {
+		t.Errorf("Slice Max method failed for type %T. Expected: %v, Got: %v", sl[0], expectedMax, maxElement)
+	}
+
+	// Test Min method
+	minElement := sl.Min()
+	if minElement != expectedMin {
+		t.Errorf("Slice Min method failed for type %T. Expected: %v, Got: %v", sl[0], expectedMin, minElement)
+	}
+
+	// Test for an empty slice
+	emptySlice := g.NewSlice[int]()
+	emptyMaxElement := emptySlice.Max()
+	if emptyMaxElement != 0 {
+		t.Errorf("Slice Max method failed for empty slice. Expected: 0, Got: %v", emptyMaxElement)
+	}
+	emptyMinElement := emptySlice.Min()
+	if emptyMinElement != 0 {
+		t.Errorf("Slice Min method failed for empty slice. Expected: 0, Got: %v", emptyMinElement)
+	}
+}
+
+func TestSliceAddUniqueInPlace(t *testing.T) {
+	// Test cases for Int
+	testAddUniqueInPlace(t, g.SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
+
+	// Test cases for Float
+	testAddUniqueInPlace(
+		t,
+		g.SliceOf(1.1, 2.2, 3.3, 4.4, 5.5),
+		[]float64{3.3, 4.4, 5.5, 6.6, 7.7},
+		[]float64{1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7},
+	)
+
+	// Test cases for String
+	testAddUniqueInPlace(
+		t,
+		g.SliceOf("apple", "banana", "orange", "grape"),
+		[]string{"orange", "grape", "kiwi"},
+		[]string{"apple", "banana", "orange", "grape", "kiwi"},
+	)
+
+	// Add more test cases for other types as needed
+}
+
+func testAddUniqueInPlace[T comparable](t *testing.T, sl g.Slice[T], elems, expected []T) {
+	sl.AddUniqueInPlace(elems...)
+	if !sl.Eq(g.SliceOf(expected...)) {
+		t.Errorf("Slice AddUniqueInPlace method failed for type %T. Expected: %v, Got: %v", sl[0], expected, sl)
+	}
+}
+
+func TestSliceAsAny(t *testing.T) {
+	// Test cases for Int
+	testSliceAsAny(t, g.SliceOf(1, 2, 3), []any{1, 2, 3})
+
+	// Test cases for Float
+	testSliceAsAny(t, g.SliceOf(1.1, 2.2, 3.3), []any{1.1, 2.2, 3.3})
+
+	// Test cases for String
+	testSliceAsAny(t, g.SliceOf("apple", "banana", "orange"), []any{"apple", "banana", "orange"})
+
+	// Add more test cases for other types as needed
+}
+
+func testSliceAsAny[T any](t *testing.T, sl g.Slice[T], expected []any) {
+	result := sl.AsAny()
+	if !result.Eq(g.SliceOf(expected...)) {
+		t.Errorf("Slice AsAny method failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
+	}
 }

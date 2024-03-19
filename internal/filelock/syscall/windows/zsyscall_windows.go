@@ -4,7 +4,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"gitlab.com/x0xO/g/internal/filelock/syscall/windows/sysdll"
+	"github.com/enetx/g/internal/filelock/syscall/windows/sysdll"
 )
 
 var _ unsafe.Pointer
@@ -139,7 +139,7 @@ func ImpersonateSelf(impersonationlevel uint32) (err error) {
 	return
 }
 
-func LookupPrivilegeValue(systemname *uint16, name *uint16, luid *LUID) (err error) {
+func LookupPrivilegeValue(systemname, name *uint16, luid *LUID) (err error) {
 	r1, _, e1 := syscall.Syscall(
 		procLookupPrivilegeValueW.Addr(),
 		3,
@@ -291,7 +291,12 @@ func GetFileInformationByHandleEx(handle syscall.Handle, class uint32, info *byt
 	return
 }
 
-func GetFinalPathNameByHandle(file syscall.Handle, filePath *uint16, filePathSize uint32, flags uint32) (n uint32, err error) {
+func GetFinalPathNameByHandle(
+	file syscall.Handle,
+	filePath *uint16,
+	filePathSize uint32,
+	flags uint32,
+) (n uint32, err error) {
 	r0, _, e1 := syscall.Syscall6(
 		procGetFinalPathNameByHandleW.Addr(),
 		4,
@@ -310,7 +315,13 @@ func GetFinalPathNameByHandle(file syscall.Handle, filePath *uint16, filePathSiz
 }
 
 func GetModuleFileName(module syscall.Handle, fn *uint16, len uint32) (n uint32, err error) {
-	r0, _, e1 := syscall.Syscall(procGetModuleFileNameW.Addr(), 3, uintptr(module), uintptr(unsafe.Pointer(fn)), uintptr(len))
+	r0, _, e1 := syscall.Syscall(
+		procGetModuleFileNameW.Addr(),
+		3,
+		uintptr(module),
+		uintptr(unsafe.Pointer(fn)),
+		uintptr(len),
+	)
 	n = uint32(r0)
 	if n == 0 {
 		err = errnoErr(e1)
@@ -343,7 +354,13 @@ func LockFileEx(
 }
 
 func Module32First(snapshot syscall.Handle, moduleEntry *ModuleEntry32) (err error) {
-	r1, _, e1 := syscall.Syscall(procModule32FirstW.Addr(), 2, uintptr(snapshot), uintptr(unsafe.Pointer(moduleEntry)), 0)
+	r1, _, e1 := syscall.Syscall(
+		procModule32FirstW.Addr(),
+		2,
+		uintptr(snapshot),
+		uintptr(unsafe.Pointer(moduleEntry)),
+		0,
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -351,22 +368,41 @@ func Module32First(snapshot syscall.Handle, moduleEntry *ModuleEntry32) (err err
 }
 
 func Module32Next(snapshot syscall.Handle, moduleEntry *ModuleEntry32) (err error) {
-	r1, _, e1 := syscall.Syscall(procModule32NextW.Addr(), 2, uintptr(snapshot), uintptr(unsafe.Pointer(moduleEntry)), 0)
+	r1, _, e1 := syscall.Syscall(
+		procModule32NextW.Addr(),
+		2,
+		uintptr(snapshot),
+		uintptr(unsafe.Pointer(moduleEntry)),
+		0,
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
 	return
 }
 
-func MoveFileEx(from *uint16, to *uint16, flags uint32) (err error) {
-	r1, _, e1 := syscall.Syscall(procMoveFileExW.Addr(), 3, uintptr(unsafe.Pointer(from)), uintptr(unsafe.Pointer(to)), uintptr(flags))
+func MoveFileEx(from, to *uint16, flags uint32) (err error) {
+	r1, _, e1 := syscall.Syscall(
+		procMoveFileExW.Addr(),
+		3,
+		uintptr(unsafe.Pointer(from)),
+		uintptr(unsafe.Pointer(to)),
+		uintptr(flags),
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
 	return
 }
 
-func MultiByteToWideChar(codePage uint32, dwFlags uint32, str *byte, nstr int32, wchar *uint16, nwchar int32) (nwrite int32, err error) {
+func MultiByteToWideChar(
+	codePage uint32,
+	dwFlags uint32,
+	str *byte,
+	nstr int32,
+	wchar *uint16,
+	nwchar int32,
+) (nwrite int32, err error) {
 	r0, _, e1 := syscall.Syscall6(
 		procMultiByteToWideChar.Addr(),
 		6,
@@ -384,7 +420,12 @@ func MultiByteToWideChar(codePage uint32, dwFlags uint32, str *byte, nstr int32,
 	return
 }
 
-func SetFileInformationByHandle(handle syscall.Handle, fileInformationClass uint32, buf uintptr, bufsize uint32) (err error) {
+func SetFileInformationByHandle(
+	handle syscall.Handle,
+	fileInformationClass uint32,
+	buf uintptr,
+	bufsize uint32,
+) (err error) {
 	r1, _, e1 := syscall.Syscall6(
 		procSetFileInformationByHandle.Addr(),
 		4,
@@ -401,7 +442,13 @@ func SetFileInformationByHandle(handle syscall.Handle, fileInformationClass uint
 	return
 }
 
-func UnlockFileEx(file syscall.Handle, reserved uint32, bytesLow uint32, bytesHigh uint32, overlapped *syscall.Overlapped) (err error) {
+func UnlockFileEx(
+	file syscall.Handle,
+	reserved uint32,
+	bytesLow uint32,
+	bytesHigh uint32,
+	overlapped *syscall.Overlapped,
+) (err error) {
 	r1, _, e1 := syscall.Syscall6(
 		procUnlockFileEx.Addr(),
 		5,
@@ -419,7 +466,13 @@ func UnlockFileEx(file syscall.Handle, reserved uint32, bytesLow uint32, bytesHi
 }
 
 func VirtualQuery(address uintptr, buffer *MemoryBasicInformation, length uintptr) (err error) {
-	r1, _, e1 := syscall.Syscall(procVirtualQuery.Addr(), 3, uintptr(address), uintptr(unsafe.Pointer(buffer)), uintptr(length))
+	r1, _, e1 := syscall.Syscall(
+		procVirtualQuery.Addr(),
+		3,
+		uintptr(address),
+		uintptr(unsafe.Pointer(buffer)),
+		uintptr(length),
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -443,7 +496,7 @@ func NetShareAdd(serverName *uint16, level uint32, buf *byte, parmErr *uint16) (
 	return
 }
 
-func NetShareDel(serverName *uint16, netName *uint16, reserved uint32) (neterr error) {
+func NetShareDel(serverName, netName *uint16, reserved uint32) (neterr error) {
 	r0, _, _ := syscall.Syscall(
 		procNetShareDel.Addr(),
 		3,
@@ -487,7 +540,13 @@ func NetUserGetLocalGroups(
 }
 
 func GetProcessMemoryInfo(handle syscall.Handle, memCounters *PROCESS_MEMORY_COUNTERS, cb uint32) (err error) {
-	r1, _, e1 := syscall.Syscall(procGetProcessMemoryInfo.Addr(), 3, uintptr(handle), uintptr(unsafe.Pointer(memCounters)), uintptr(cb))
+	r1, _, e1 := syscall.Syscall(
+		procGetProcessMemoryInfo.Addr(),
+		3,
+		uintptr(handle),
+		uintptr(unsafe.Pointer(memCounters)),
+		uintptr(cb),
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -499,7 +558,13 @@ func CreateEnvironmentBlock(block **uint16, token syscall.Token, inheritExisting
 	if inheritExisting {
 		_p0 = 1
 	}
-	r1, _, e1 := syscall.Syscall(procCreateEnvironmentBlock.Addr(), 3, uintptr(unsafe.Pointer(block)), uintptr(token), uintptr(_p0))
+	r1, _, e1 := syscall.Syscall(
+		procCreateEnvironmentBlock.Addr(),
+		3,
+		uintptr(unsafe.Pointer(block)),
+		uintptr(token),
+		uintptr(_p0),
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}
@@ -515,7 +580,13 @@ func DestroyEnvironmentBlock(block *uint16) (err error) {
 }
 
 func GetProfilesDirectory(dir *uint16, dirLen *uint32) (err error) {
-	r1, _, e1 := syscall.Syscall(procGetProfilesDirectoryW.Addr(), 2, uintptr(unsafe.Pointer(dir)), uintptr(unsafe.Pointer(dirLen)), 0)
+	r1, _, e1 := syscall.Syscall(
+		procGetProfilesDirectoryW.Addr(),
+		2,
+		uintptr(unsafe.Pointer(dir)),
+		uintptr(unsafe.Pointer(dirLen)),
+		0,
+	)
 	if r1 == 0 {
 		err = errnoErr(e1)
 	}

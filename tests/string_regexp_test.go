@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"testing"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
 
 func TestReplaceRegexp(t *testing.T) {
@@ -271,7 +271,7 @@ func TestSplitRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        g.Int
+		n        int
 	}{
 		// Test case 1: Regular split with n = 2
 		{
@@ -340,7 +340,13 @@ func TestIndexRegexp(t *testing.T) {
 	for _, tc := range testCases {
 		result := tc.input.IndexRegexp(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf("Expected %v, but got %v for input %s with pattern %s", tc.expected, result, tc.input, tc.pattern.String())
+			t.Errorf(
+				"Expected %v, but got %v for input %s with pattern %s",
+				tc.expected,
+				result,
+				tc.input,
+				tc.pattern.String(),
+			)
 		}
 	}
 }
@@ -374,7 +380,13 @@ func TestFindAllRegexp(t *testing.T) {
 	for _, tc := range testCases {
 		result := tc.input.FindAllRegexp(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf("Expected %v, but got %v for input %s with pattern %s", tc.expected, result, tc.input, tc.pattern.String())
+			t.Errorf(
+				"Expected %v, but got %v for input %s with pattern %s",
+				tc.expected,
+				result,
+				tc.input,
+				tc.pattern.String(),
+			)
 		}
 	}
 }
@@ -384,7 +396,7 @@ func TestFindAllRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        g.Int
+		n        int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{
@@ -453,7 +465,13 @@ func TestFindSubmatchRegexp(t *testing.T) {
 	for _, tc := range testCases {
 		result := tc.input.FindSubmatchRegexp(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf("Expected %v, but got %v for input %s with pattern %s", tc.expected, result, tc.input, tc.pattern.String())
+			t.Errorf(
+				"Expected %v, but got %v for input %s with pattern %s",
+				tc.expected,
+				result,
+				tc.input,
+				tc.pattern.String(),
+			)
 		}
 	}
 }
@@ -487,7 +505,13 @@ func TestFindAllSubmatchRegexp(t *testing.T) {
 	for _, tc := range testCases {
 		result := tc.input.FindAllSubmatchRegexp(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf("Expected %v, but got %v for input %s with pattern %s", tc.expected, result, tc.input, tc.pattern.String())
+			t.Errorf(
+				"Expected %v, but got %v for input %s with pattern %s",
+				tc.expected,
+				result,
+				tc.input,
+				tc.pattern.String(),
+			)
 		}
 	}
 }
@@ -497,7 +521,7 @@ func TestFindAllSubmatchRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.Slice[g.String]]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        g.Int
+		n        int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{

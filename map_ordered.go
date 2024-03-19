@@ -132,11 +132,6 @@ func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) MapOrd[K, V] {
 	return mo
 }
 
-// func (mo MapOrd[K, V]) SortBy(f func(i, j int) bool) MapOrd[K, V] {
-// 	sort.Slice(mo, f)
-// 	return mo
-// }
-
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
 	result := NewMapOrd[K, V](mo.Len())

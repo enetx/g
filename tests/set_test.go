@@ -1,10 +1,44 @@
 package g_test
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
+
+func TestSetOf(t *testing.T) {
+	// Test empty values
+	emptySet := g.SetOf[int]()
+	if emptySet.Len() != 0 {
+		t.Errorf("Expected empty set size to be 0, got %d", emptySet.Len())
+	}
+
+	// Test single value
+	singleSet := g.SetOf(42)
+	if singleSet.Len() != 1 {
+		t.Errorf("Expected single set size to be 1, got %d", singleSet.Len())
+	}
+	if !singleSet.Contains(42) {
+		t.Errorf("Expected single set to contain value 42")
+	}
+
+	// Test multiple values
+	multiSet := g.SetOf(1, 2, 3, 4, 5)
+	expectedValues := []int{1, 2, 3, 4, 5}
+	for _, v := range expectedValues {
+		if !multiSet.Contains(v) {
+			t.Errorf("Expected multi set to contain value %d", v)
+		}
+	}
+
+	// Test duplicate values
+	duplicateSet := g.SetOf(1, 1, 2, 2, 3, 3)
+	if duplicateSet.Len() != 3 {
+		t.Errorf("Expected duplicate set size to be 3, got %d", duplicateSet.Len())
+	}
+}
 
 func TestSetDifference(t *testing.T) {
 	set1 := g.SetOf(1, 2, 3, 4)
@@ -67,38 +101,6 @@ func TestSetSymmetricDifference(t *testing.T) {
 			expected,
 			result,
 		)
-	}
-}
-
-func TestSetIntersection(t *testing.T) {
-	set1 := g.Set[int]{}
-	set2 := g.Set[int]{}
-
-	set1 = set1.Add(1, 2, 3)
-	set2 = set2.Add(2, 3, 4)
-
-	set3 := set1.Intersection(set2).Collect()
-
-	if !set3.Contains(2) || !set3.Contains(3) {
-		t.Error("Intersection failed")
-	}
-}
-
-func TestSetUnion(t *testing.T) {
-	set1 := g.NewSet[int]().Add(1, 2, 3)
-	set2 := g.NewSet[int]().Add(2, 3, 4)
-	set3 := g.NewSet[int]().Add(1, 2, 3, 4)
-
-	result := set1.Union(set2).Collect()
-
-	if result.Len() != 4 {
-		t.Errorf("Union(%v, %v) returned %v; expected %v", set1, set2, result, set3)
-	}
-
-	for v := range set3 {
-		if !result.Contains(v) {
-			t.Errorf("Union(%v, %v) missing element %v", set1, set2, v)
-		}
 	}
 }
 
@@ -213,5 +215,392 @@ func TestSetEq(t *testing.T) {
 				t.Errorf("Eq() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSetRemove(t *testing.T) {
+	// Test case 1: Remove a single value
+	set := g.SetOf(1, 2, 3)
+	set.Remove(2)
+	if _, ok := set[2]; ok {
+		t.Errorf("Set should not contain value 2 after removal")
+	}
+
+	// Test case 2: Remove multiple values
+	set2 := g.SetOf("a", "b", "c")
+	set2.Remove("a", "c")
+	if _, ok := set2["a"]; ok {
+		t.Errorf("Set should not contain value 'a' after removal")
+	}
+	if _, ok := set2["c"]; ok {
+		t.Errorf("Set should not contain value 'c' after removal")
+	}
+
+	// Test case 3: Remove non-existent value
+	set3 := g.SetOf(1.1, 2.2)
+	set3.Remove(3.3)
+	if len(set3) != 2 {
+		t.Errorf("Set should not be modified when removing non-existent value")
+	}
+}
+
+func TestSetContainsAny(t *testing.T) {
+	// Test case 1: Set contains some elements from another set
+	set1 := g.SetOf(1, 2, 3)
+	set2 := g.SetOf(2, 4, 6)
+	if !set1.ContainsAny(set2) {
+		t.Errorf("Expected Set to contain at least one element from the other Set")
+	}
+
+	// Test case 2: Set doesn't contain any elements from another set
+	set3 := g.SetOf("a", "b")
+	set4 := g.SetOf("c", "d", "e")
+	if set3.ContainsAny(set4) {
+		t.Errorf("Expected Set not to contain any elements from the other Set")
+	}
+
+	// Test case 3: Empty sets
+	set5 := g.Set[float64]{}
+	set6 := g.Set[float64]{}
+	if set5.ContainsAny(set6) {
+		t.Errorf("Expected empty sets not to contain any elements from each other")
+	}
+}
+
+func TestSetContainsAll(t *testing.T) {
+	// Test case 1: Set contains all elements from another set
+	set1 := g.SetOf(1, 2, 3)
+	set2 := g.SetOf(2, 3)
+	if !set1.ContainsAll(set2) {
+		t.Errorf("Expected Set to contain all elements from the other Set")
+	}
+
+	// Test case 2: Set doesn't contain all elements from another set
+	set3 := g.SetOf("a", "b", "c")
+	set4 := g.SetOf("b", "d")
+	if set3.ContainsAll(set4) {
+		t.Errorf("Expected Set not to contain all elements from the other Set")
+	}
+
+	// Test case 3: Empty sets
+	set5 := g.SetOf[float64]()
+	set6 := g.SetOf(1.1, 2.2)
+	if set5.ContainsAll(set6) {
+		t.Errorf("Expected empty Set not to contain all elements from another non-empty Set")
+	}
+}
+
+func TestSetToSlice(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.SetOf(1, 2, 3)
+	expected1 := g.Slice[int]{1, 2, 3}
+	slice1 := set1.ToSlice()
+	if len(slice1) != len(expected1) {
+		t.Errorf("Expected length of slice to be %d, got %d", len(expected1), len(slice1))
+	}
+
+	// Test case 2: Empty Set
+	set2 := g.NewSet[string]()
+	expected2 := g.Slice[string]{}
+	slice2 := set2.ToSlice()
+	if len(slice2) != len(expected2) {
+		t.Errorf("Expected length of slice to be %d, got %d", len(expected2), len(slice2))
+	}
+}
+
+func TestSetString(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.NewSet[int]()
+	set1.Add(1)
+	expected1 := "Set{1}"
+	if str := set1.String(); str != expected1 {
+		t.Errorf("Expected string representation to be %s, got %s", expected1, str)
+	}
+
+	// Test case 2: Empty Set
+	set2 := g.NewSet[int]()
+	expected2 := "Set{}"
+	if str := set2.String(); str != expected2 {
+		t.Errorf("Expected string representation to be %s, got %s", expected2, str)
+	}
+}
+
+func TestSetClear(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.SetOf(1, 2, 3)
+	set1.Clear()
+	if len(set1) != 0 {
+		t.Errorf("Expected Set to be empty after calling Clear()")
+	}
+
+	// Test case 2: Empty Set
+	set2 := g.NewSet[int]()
+	set2.Clear()
+	if len(set2) != 0 {
+		t.Errorf("Expected Set to remain empty after calling Clear() on an empty Set")
+	}
+}
+
+func TestSetIntersection(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.SetOf(1, 2, 3, 4, 5)
+	set2 := g.SetOf(4, 5, 6, 7, 8)
+	expected := g.SetOf(4, 5)
+	intersection := set1.Intersection(set2).Collect()
+	if len(intersection) != len(expected) {
+		t.Errorf("Expected intersection to have length %d, got %d", len(expected), len(intersection))
+	}
+	for k := range intersection {
+		if _, exists := expected[k]; !exists {
+			t.Errorf("Unexpected element in intersection: %d", k)
+		}
+	}
+
+	// Test case 2: Empty Set
+	set3 := g.SetOf("a", "b")
+	set4 := g.NewSet[string]()
+	intersection2 := set3.Intersection(set4).Collect()
+	if len(intersection2) != 0 {
+		t.Errorf("Expected intersection of an empty set to be empty")
+	}
+
+	// Test case 3: Both sets empty
+	set5 := g.NewSet[int]()
+	set6 := g.NewSet[int]()
+	intersection = set5.Intersection(set6).Collect()
+	if len(intersection) != 0 {
+		t.Errorf("Expected intersection of two empty sets to be empty")
+	}
+}
+
+func TestSetUnion(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.SetOf(1, 2, 3)
+	set2 := g.SetOf(3, 4, 5)
+	expected := g.SetOf(1, 2, 3, 4, 5)
+	union := set1.Union(set2).Collect()
+	if len(union) != len(expected) {
+		t.Errorf("Expected union to have length %d, got %d", len(expected), len(union))
+	}
+	for k := range union {
+		if _, exists := expected[k]; !exists {
+			t.Errorf("Unexpected element in union: %d", k)
+		}
+	}
+
+	// Test case 2: Empty Set
+	set3 := g.SetOf("a", "b")
+	set4 := g.NewSet[string]()
+	union2 := set3.Union(set4).Collect()
+	if len(union2) != len(set3) {
+		t.Errorf("Expected union to be equal to the non-empty set")
+	}
+
+	// Test case 3: Both sets empty
+	set5 := g.NewSet[int]()
+	set6 := g.NewSet[int]()
+	union = set5.Union(set6).Collect()
+	if len(union) != 0 {
+		t.Errorf("Expected union of two empty sets to be empty")
+	}
+}
+
+func TestSetMap(t *testing.T) {
+	// Test case 1: Set with elements
+	set1 := g.SetOf(1, 2, 3)
+	expected := g.SetOf("1", "2", "3")
+	setMap := g.SetMap(set1, func(val int) string { return fmt.Sprintf("%d", val) })
+	if len(setMap) != len(expected) {
+		t.Errorf("Expected SetMap to have length %d, got %d", len(expected), len(setMap))
+	}
+	for k := range setMap {
+		if _, exists := expected[k]; !exists {
+			t.Errorf("Unexpected element in SetMap: %s", k)
+		}
+	}
+
+	// Test case 2: Empty Set
+	set2 := g.NewSet[int]()
+	setMap = g.SetMap(set2, func(val int) string { return fmt.Sprintf("%d", val) })
+	if len(setMap) != 0 {
+		t.Errorf("Expected SetMap of an empty set to be empty")
+	}
+}
+
+func TestSetIterCount(t *testing.T) {
+	// Test case 1: Counting elements in the set
+	seq := g.SetOf(1, 2, 3)
+	count := seq.Iter().Count()
+	if count != 3 {
+		t.Errorf("Expected count to be 3, got %d", count)
+	}
+
+	// Test case 2: Counting elements in an empty set
+	emptySeq := g.NewSet[int]()
+	emptyCount := emptySeq.Iter().Count()
+	if emptyCount != 0 {
+		t.Errorf("Expected count to be 0 for an empty set, got %d", emptyCount)
+	}
+}
+
+func TestSetIterRange(t *testing.T) {
+	// Test case 1: Stop iteration when function returns false
+	seq := g.SetOf(1, 2, 3, 4)
+	var result []int
+	seq.Iter().Range(func(v int) bool {
+		if v == 3 {
+			result = append(result, v)
+			return false
+		}
+		return true
+	})
+
+	expected := []int{3}
+	if len(result) != len(expected) {
+		t.Errorf("Expected %d elements, got %d", len(expected), len(result))
+	}
+
+	// Test case 2: Iterate over the entire set
+	emptySeq := g.NewSet[string]()
+	emptyResult := make([]string, 0)
+
+	emptySeq.Iter().Range(func(v string) bool {
+		emptyResult = append(emptyResult, v)
+		return true
+	})
+
+	if len(emptyResult) != 0 {
+		t.Errorf("Expected no elements in an empty set, got %d elements", len(emptyResult))
+	}
+}
+
+func TestSetIterFilter(t *testing.T) {
+	// Test case 1: Filter even numbers
+	seq := g.SetOf(1, 2, 3, 4, 5)
+
+	even := seq.Iter().Filter(func(v int) bool {
+		return v%2 == 0
+	}).Collect()
+
+	expected := g.SetOf(2, 4)
+	if len(even) != len(expected) {
+		t.Errorf("Expected %d elements, got %d", len(expected), len(even))
+	}
+	for k := range even {
+		if _, ok := expected[k]; !ok {
+			t.Errorf("Unexpected element %v in the result", k)
+		}
+	}
+
+	// Test case 2: Filter odd numbers
+	odd := seq.Iter().Filter(func(v int) bool {
+		return v%2 != 0
+	}).Collect()
+
+	oddExpected := g.SetOf(1, 3, 5)
+	if len(odd) != len(oddExpected) {
+		t.Errorf("Expected %d elements, got %d", len(oddExpected), len(odd))
+	}
+	for k := range odd {
+		if _, ok := oddExpected[k]; !ok {
+			t.Errorf("Unexpected element %v in the result", k)
+		}
+	}
+
+	// Test case 3: Filter all elements
+	all := seq.Iter().Filter(func(v int) bool {
+		return true
+	}).Collect()
+
+	if len(all) != len(seq) {
+		t.Errorf("Expected %d elements, got %d", len(seq), len(all))
+	}
+	for k := range all {
+		if _, ok := seq[k]; !ok {
+			t.Errorf("Unexpected element %v in the result", k)
+		}
+	}
+}
+
+func TestSetIterExclude(t *testing.T) {
+	// Test case 1: Exclude even numbers
+	seq := g.SetOf(1, 2, 3, 4, 5)
+	notEven := seq.Iter().Exclude(func(v int) bool {
+		return v%2 == 0
+	}).Collect()
+
+	expected := g.SetOf(1, 3, 5)
+	if len(notEven) != len(expected) {
+		t.Errorf("Expected %d elements, got %d", len(expected), len(notEven))
+	}
+	for k := range notEven {
+		if _, ok := expected[k]; !ok {
+			t.Errorf("Unexpected element %v in the result", k)
+		}
+	}
+
+	// Test case 2: Exclude odd numbers
+	notOdd := seq.Iter().Exclude(func(v int) bool {
+		return v%2 != 0
+	}).Collect()
+
+	notOddExpected := g.SetOf(2, 4)
+	if len(notOdd) != len(notOddExpected) {
+		t.Errorf("Expected %d elements, got %d", len(notOddExpected), len(notOdd))
+	}
+	for k := range notOdd {
+		if _, ok := notOddExpected[k]; !ok {
+			t.Errorf("Unexpected element %v in the result", k)
+		}
+	}
+
+	// Test case 3: Exclude all elements
+	empty := seq.Iter().Exclude(func(v int) bool {
+		return true
+	}).Collect()
+
+	if len(empty) != 0 {
+		t.Errorf("Expected 0 elements, got %d", len(empty))
+	}
+}
+
+func TestSetIterMap(t *testing.T) {
+	// Test case 1: Double each element
+	set := g.SetOf(1, 2, 3)
+	doubled := set.Iter().Map(func(val int) int {
+		return val * 2
+	}).Collect()
+
+	expected := g.SetOf(2, 4, 6)
+	if !reflect.DeepEqual(doubled, expected) {
+		t.Errorf("Expected set after doubling elements to be %v, got %v", expected, doubled)
+	}
+
+	// Test case 2: Square each element
+	set2 := g.SetOf(1, 2, 3)
+	squared := set2.Iter().Map(func(val int) int {
+		return val * val
+	}).Collect()
+
+	expected2 := g.SetOf(1, 4, 9)
+	if !reflect.DeepEqual(squared, expected2) {
+		t.Errorf("Expected set after squaring elements to be %v, got %v", expected2, squared)
+	}
+}
+
+func TestSetIterInspect(t *testing.T) {
+	// Define a set to iterate over
+	s := g.SetOf(1, 2, 3)
+
+	// Define a slice to store the inspected elements
+	inspectedElements := g.NewSet[int]()
+
+	// Create a new iterator with Inspect and collect the elements
+	s.Iter().Inspect(func(v int) {
+		inspectedElements.Add(v)
+	}).Collect()
+
+	if !inspectedElements.Eq(s) {
+		t.Errorf("Expected inspected elements to be equal to the set, got %v", inspectedElements)
 	}
 }

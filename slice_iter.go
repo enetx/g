@@ -365,7 +365,7 @@ func (seq seqSlice[V]) Inspect(fn func(v V)) seqSlice[V] { return inspectSlice(s
 // Output: [2 4 6].
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq seqSlice[V]) Map(transform func(V) V) seqSlice[V] { return mapSlice(seq, transform) }
+func (seq seqSlice[V]) Map(transform func(V) V) seqSlice[V] { return sliceMap(seq, transform) }
 
 // Partition divides the elements of the iterator into two separate slices based on a given predicate function.
 //
@@ -682,7 +682,7 @@ func chainSlice[V any](seqs ...seqSlice[V]) seqSlice[V] {
 	}
 }
 
-func mapSlice[V, W any](seq seqSlice[V], fn func(V) W) seqSlice[W] {
+func sliceMap[V, W any](seq seqSlice[V], fn func(V) W) seqSlice[W] {
 	return func(yield func(W) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/x0xO/g"
-	"gitlab.com/x0xO/g/pkg/ref"
+	"github.com/enetx/g"
+	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"gitlab.com/x0xO/g"
+	"github.com/enetx/g"
 )
 
 func main() {
