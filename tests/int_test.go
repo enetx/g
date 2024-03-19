@@ -394,3 +394,40 @@ func TestIntHashingFunctions(t *testing.T) {
 		t.Errorf("SHA512 hashing failed. Expected: %s, Got: %s", expectedSHA512, sha512Hash)
 	}
 }
+
+func TestIntRem(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		dividend int
+		divisor  int
+		expected int
+	}{
+		{10, 3, 1},    // 10 % 3 = 1
+		{15, 7, 1},    // 15 % 7 = 1
+		{20, 5, 0},    // 20 % 5 = 0
+		{100, 17, 15}, // 100 % 17 = 15
+		{35, 11, 2},   // 35 % 11 = 2
+		{7, 3, 1},     // 7 % 3 = 1
+		{8, 4, 0},     // 8 % 4 = 0
+	}
+
+	// Test each case
+	for _, tc := range testCases {
+		// Wrap the input integers
+		i := g.Int(tc.dividend)
+		b := g.Int(tc.divisor)
+
+		// Call the Rem method
+		result := i.Rem(b)
+
+		if result.Std() != tc.expected {
+			t.Errorf(
+				"Rem function incorrect for %d %% %d. Expected: %d, Got: %d",
+				tc.dividend,
+				tc.divisor,
+				tc.expected,
+				result,
+			)
+		}
+	}
+}

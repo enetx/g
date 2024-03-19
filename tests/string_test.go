@@ -1656,3 +1656,32 @@ func TestStringEndsWith(t *testing.T) {
 		t.Errorf("Test case 3 failed: Expected %t, got %t", expected3, result3)
 	}
 }
+
+func TestStringStartsWith(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		str      g.String
+		prefixes []g.String
+		expected bool
+	}{
+		{"http://example.com", []g.String{"http://", "https://"}, true},
+		{"https://example.com", []g.String{"http://", "https://"}, true},
+		{"ftp://example.com", []g.String{"http://", "https://"}, false},
+		{"", []g.String{""}, true}, // Empty string should match empty prefix
+		{"", []g.String{"non-empty"}, false},
+	}
+
+	// Test each case
+	for _, tc := range testCases {
+		// Wrap the input string
+		s := g.String(tc.str)
+
+		// Call the StartsWith method
+		result := s.StartsWith(tc.prefixes...)
+
+		// Assert the result
+		if result != tc.expected {
+			t.Errorf("StartsWith() returned %v; expected %v", result, tc.expected)
+		}
+	}
+}
