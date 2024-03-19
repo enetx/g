@@ -1,0 +1,23 @@
+name: Go
+
+on: [ push, pull_request ]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+        cache: true
+    - name: Get dependencies
+      run: go mod download
+    - name: Test
+      env:  # Adding environment variables
+        GOEXPERIMENT: "rangefunc"
+      run: go test -race -v -coverprofile=profile.cov ./tests -coverpkg=github.com/enetx/g
+    - uses: shogo82148/actions-goveralls@v1
+      with:
+        path-to-profile: profile.cov
