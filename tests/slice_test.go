@@ -1270,3 +1270,41 @@ func testSliceAsAny[T any](t *testing.T, sl g.Slice[T], expected []any) {
 		t.Errorf("Slice AsAny method failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
 	}
 }
+
+func TestSliceLess(t *testing.T) {
+	// Test 1: Comparing two Int elements
+	slice1 := g.Slice[g.Int]{1, 2, 3}
+	result1 := slice1.Less(0, 1)
+
+	expectedResult1 := true
+	if result1 != expectedResult1 {
+		t.Errorf("Test 1: Expected %t, got %t", expectedResult1, result1)
+	}
+
+	// Test 2: Comparing two string elements
+	slice2 := g.Slice[g.String]{"apple", "banana", "orange"}
+	result2 := slice2.Less(0, 1)
+
+	expectedResult2 := true
+	if result2 != expectedResult2 {
+		t.Errorf("Test 2: Expected %t, got %t", expectedResult2, result2)
+	}
+
+	// Test 3: Comparing Int and int elements
+	slice3 := g.Slice[any]{1, 2.5, 3}
+	result3 := slice3.Less(0, 1)
+
+	expectedResult3 := false
+	if result3 != expectedResult3 {
+		t.Errorf("Test 3: Expected %t, got %t", expectedResult3, result3)
+	}
+
+	// Test 4: Comparing two float elements
+	slice4 := g.Slice[g.Float]{1.2, 2.5, 3.1}
+	result4 := slice4.Less(0, 1)
+
+	expectedResult4 := true
+	if result4 != expectedResult4 {
+		t.Errorf("Test 4: Expected %t, got %t", expectedResult4, result4)
+	}
+}
