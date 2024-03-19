@@ -6,6 +6,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/enetx/g.svg)](https://pkg.go.dev/github.com/enetx/g)
 [![Go Report Card](https://goreportcard.com/badge/github.com/enetx/g)](https://goreportcard.com/report/github.com/enetx/g)
 [![Coverage Status](https://coveralls.io/repos/github/enetx/g/badge.svg?branch=main)](https://coveralls.io/github/enetx/g?branch=main)
+[![Go](https://github.com/enetx/g/actions/workflows/go.yml/badge.svg)](https://github.com/enetx/g/actions/workflows/go.yml)
 
 Introducing G, the wackiest Go package on the planet, created to make your coding experience an absolute riot! With G, you can forget about dull and monotonous code, we're all about turning the mundane into the insanely hilarious. It's not just a bicycle, it's almost a motorcycle 🤣!
 
