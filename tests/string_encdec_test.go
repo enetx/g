@@ -369,3 +369,92 @@ func TestDecStringBase64Failure(t *testing.T) {
 		)
 	}
 }
+
+func TestStringHexEncode(t *testing.T) {
+	// Test cases for Hex
+	testCases := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"Hello", "48656c6c6f"},
+		{"world", "776f726c64"},
+		{"Test123", "54657374313233"},
+		{"", ""},
+	}
+
+	for _, tc := range testCases {
+		// Encode the string to hex using your package method
+		result := tc.input.Enc().Hex()
+		// Check if the result matches the expected output
+		if result != tc.expected {
+			t.Errorf("Hex(%s) returned %s, expected %s", tc.input, result, tc.expected)
+		}
+	}
+}
+
+func TestStringHexDec(t *testing.T) {
+	// Test cases for Hex decoding
+	testCases := []struct {
+		input    g.String
+		expected g.String
+		err      error
+	}{
+		{"48656c6c6f20576f726c64", "Hello World", nil},
+		{"74657374", "test", nil},
+		{"", "", nil}, // Empty input should return empty output
+	}
+
+	for _, tc := range testCases {
+		result := tc.input.Dec().Hex().Unwrap()
+		if result != tc.expected {
+			t.Errorf("Hex(%s) returned %s, expected %s", tc.input, result, tc.expected)
+		}
+	}
+}
+
+func TestStringOctalEnc(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"hello", "150 145 154 154 157"},
+		{"world", "167 157 162 154 144"},
+		{"", ""},
+		{"123", "61 62 63"},
+	}
+
+	// Test each case
+	for _, tc := range testCases {
+		result := tc.input.Enc().Octal()
+		if result != tc.expected {
+			t.Errorf("Octal encoding is incorrect %s, exceted %s", result, tc.expected)
+		}
+	}
+}
+
+func TestStringOctalDec(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"150 145 154 154 157", "hello"},
+		{"167 157 162 154 144", "world"},
+		{"61 62 63", "123"},
+	}
+
+	// Test each case
+	for _, tc := range testCases {
+		result := tc.input.Dec().Octal()
+
+		// Assert the result
+		if result.IsErr() {
+			t.Errorf("Error occurred during Octal decoding: %s", result.Err())
+		}
+
+		if result.Ok() != tc.expected {
+			t.Errorf("Octal decoding is incorrect %s, exceted %s", result.Ok(), tc.expected)
+		}
+	}
+}
