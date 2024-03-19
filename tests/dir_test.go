@@ -390,6 +390,155 @@ func TestDir_Glob_Success(t *testing.T) {
 	}
 }
 
+func TestDir_Rename(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create a Dir instance representing the temporary directory
+	dir := g.NewDir(g.String(tempDir))
+
+	// Rename the directory
+	newpath := tempDir + "_new"
+	renamedDir := dir.Rename(g.String(newpath))
+
+	// Check if the directory has been successfully renamed
+	if renamedDir.IsErr() {
+		t.Errorf("TestDir_Rename: Failed to rename directory: %v", renamedDir.Err())
+	}
+
+	defer renamedDir.Ok().Remove()
+
+	// Verify that the old directory does not exist
+	if _, err := os.Stat(tempDir); !os.IsNotExist(err) {
+		t.Errorf("TestDir_Rename: Old directory still exists after renaming")
+	}
+
+	// Verify that the new directory exists
+	if _, err := os.Stat(newpath); os.IsNotExist(err) {
+		t.Errorf("TestDir_Rename: New directory does not exist after renaming")
+	}
+}
+
+func TestDir_Copy(t *testing.T) {
+	// Create a temporary source directory for testing
+	sourceDir := createTempDir(t)
+	defer os.RemoveAll(sourceDir)
+
+	// Create some test files in the source directory
+	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1 content"), 0644); err != nil {
+		t.Fatalf("TestDir_Copy: Failed to create test file 1 in source directory: %v", err)
+	}
+	if err := os.WriteFile(sourceDir+"/file2.txt", []byte("File 2 content"), 0644); err != nil {
+		t.Fatalf("TestDir_Copy: Failed to create test file 2 in source directory: %v", err)
+	}
+
+	// Create a temporary destination directory for testing
+	destDir := createTempDir(t)
+	defer os.RemoveAll(destDir)
+
+	// Create a Dir instance representing the source directory
+	source := g.NewDir(g.String(sourceDir))
+
+	// Copy the contents of the source directory to the destination directory
+	result := source.Copy(g.String(destDir))
+	if result.IsErr() {
+		t.Fatalf("TestDir_Copy: Failed to copy directory contents: %v", result.Err())
+	}
+
+	// Verify that the destination directory contains the same files as the source directory
+	destFiles, err := os.ReadDir(destDir)
+	if err != nil {
+		t.Fatalf("TestDir_Copy: Failed to read destination directory: %v", err)
+	}
+
+	expectedFiles := []string{"file1.txt", "file2.txt"}
+	for _, expectedFile := range expectedFiles {
+		found := false
+		for _, destFile := range destFiles {
+			if destFile.Name() == expectedFile {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("TestDir_Copy: Destination directory missing file %s", expectedFile)
+		}
+	}
+}
+
+func TestDir_Walk(t *testing.T) {
+	// Create a temporary directory for testing
+	testDir := createTempDir(t)
+	defer os.RemoveAll(testDir)
+
+	// Create some test files and directories within the test directory
+	if err := os.WriteFile(testDir+"/file1.txt", []byte("File 1 content"), 0644); err != nil {
+		t.Fatalf("TestDir_Walk: Failed to create test file 1: %v", err)
+	}
+
+	if err := os.Mkdir(testDir+"/subdir", 0755); err != nil {
+		t.Fatalf("TestDir_Walk: Failed to create test directory: %v", err)
+	}
+
+	if err := os.WriteFile(testDir+"/subdir/file2.txt", []byte("File 2 content"), 0644); err != nil {
+		t.Fatalf("TestDir_Walk: Failed to create test file 2: %v", err)
+	}
+
+	if err := os.WriteFile(testDir+"/subdir/file2.txt", []byte("File 2 content"), 0644); err != nil {
+		t.Fatalf("TestDir_Walk: Failed to create test file 2: %v", err)
+	}
+
+	if err := os.Symlink(testDir, testDir+"/link"); err != nil {
+		t.Fatalf("Failed to create symbolic link: %s", err)
+	}
+
+	// Define a slice to store the paths of visited files and directories
+	visited := make([]string, 0)
+
+	// Define the walker function
+	walker := func(f *g.File) error {
+		path := f.Path()
+		if path.IsErr() {
+			return path.Err()
+		}
+
+		if f.IsDir() && f.Dir().Ok().IsLink() {
+			return g.SkipWalk
+		}
+
+		if f.IsLink() {
+			return nil
+		}
+
+		visited = append(visited, path.Ok().Std())
+		return nil
+	}
+
+	// Create a Dir instance representing the test directory
+	testDirInstance := g.NewDir(g.String(testDir))
+
+	// Perform the walk operation
+	if err := testDirInstance.Walk(walker); err != nil {
+		t.Fatalf("TestDir_Walk: Walk operation failed: %v", err)
+	}
+
+	// Verify that the walker function was applied to all files and directories
+	expectedPaths := []string{testDir + "/file1.txt", testDir + "/subdir", testDir + "/subdir/file2.txt"}
+	for _, expectedPath := range expectedPaths {
+		found := false
+		for _, v := range visited {
+			if v == expectedPath {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("TestDir_Walk: Expected path not visited: %s", expectedPath)
+		}
+	}
+}
+
 func createTestFiles(dir string) {
 	// Create some test files and directories inside the provided directory
 	os.Mkdir(filepath.Join(dir, "subdir1"), 0755)
