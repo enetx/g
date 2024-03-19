@@ -298,3 +298,51 @@ func TestStringHTMLEncodingAndDecoding(t *testing.T) {
 		t.Errorf("Test case 2 failed: Expected decoded HTML is %s, got %s", expectedDecoded2, result2)
 	}
 }
+
+func TestStringDecBase64_Success(t *testing.T) {
+	// Input string encoded in Base64
+	encodedStr := "SGVsbG8gV29ybGQh"
+
+	// Create a dec instance wrapping the encoded string
+	dec := g.NewString(encodedStr).Dec()
+
+	// Decode the string using Base64
+	decodedResult := dec.Base64()
+
+	// Check if the result is successful
+	if decodedResult.IsErr() {
+		t.Errorf(
+			"TestDec_Base64_Success: Expected decoding to be successful, but got an error: %v",
+			decodedResult.Err(),
+		)
+	}
+
+	// Check if the decoded string is correct
+	expectedDecodedStr := "Hello World!"
+	if decodedResult.Ok().Std() != expectedDecodedStr {
+		t.Errorf(
+			"TestDec_Base64_Success: Expected decoded string %s, got %s",
+			expectedDecodedStr,
+			decodedResult.Ok().Std(),
+		)
+	}
+}
+
+func TestDecStringBase64Failure(t *testing.T) {
+	// Invalid Base64 encoded string (contains invalid character)
+	invalidEncodedStr := "SGVsbG8gV29ybGQh==="
+
+	// Create a dec instance wrapping the invalid encoded string
+	dec := g.NewString(invalidEncodedStr).Dec()
+
+	// Decode the string using Base64
+	decodedResult := dec.Base64()
+
+	// Check if the result is an error
+	if !decodedResult.IsErr() {
+		t.Errorf(
+			"TestDec_Base64_Failure: Expected decoding to fail, but got a successful result: %s",
+			decodedResult.Ok().Std(),
+		)
+	}
+}
