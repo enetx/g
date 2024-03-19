@@ -150,6 +150,29 @@ func TestStringRot13Encoding(t *testing.T) {
 	}
 }
 
+func TestStringRot13Decoding(t *testing.T) {
+	// Test cases for Rot13
+	testCases := []struct {
+		input    g.String
+		expected string
+	}{
+		{"Uryyb", "Hello"},
+		{"jbeyq", "world"},
+		{"Grfg123", "Test123"},
+		{"nopqrstuvwxyzabcdefghijklm", "abcdefghijklmnopqrstuvwxyz"},
+		{"NOPQRSTUVWXYZABCDEFGHIJKLM", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"},
+	}
+
+	for _, tc := range testCases {
+		// Apply the Rot13 transformation
+		result := tc.input.Dec().Rot13()
+		// Check if the result matches the expected output
+		if result.Std() != tc.expected {
+			t.Errorf("Rot13(%s) returned %s, expected %s", tc.input, result, tc.expected)
+		}
+	}
+}
+
 func TestStringXOR(t *testing.T) {
 	for range 100 {
 		input := g.NewString("").Random(g.NewInt(30).RandomRange(100).Std())

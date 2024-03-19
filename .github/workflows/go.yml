@@ -17,7 +17,7 @@ jobs:
     - name: Test
       env:  # Adding environment variables
         GOEXPERIMENT: "rangefunc"
-      run: go test -race -v -coverprofile=profile.cov ./tests -coverpkg=github.com/enetx/g
+      run: go test -race -v -coverprofile=profile.cov ./tests -coverpkg=./
     - uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: profile.cov
