@@ -100,7 +100,7 @@ func TestOptionThen(t *testing.T) {
 // 	option2.Unwrap()
 // }
 
-func TestMapOption(t *testing.T) {
+func TestOptionMap(t *testing.T) {
 	// Test 1: Mapping over Some value
 	option1 := g.Some(5)
 
@@ -108,7 +108,7 @@ func TestMapOption(t *testing.T) {
 		return g.Some(x * 2)
 	}
 
-	result1 := g.MapOption(option1, fn1)
+	result1 := g.OptionMap(option1, fn1)
 	expected1 := g.Some(10)
 
 	if !reflect.DeepEqual(result1, expected1) {
@@ -122,7 +122,7 @@ func TestMapOption(t *testing.T) {
 		return g.Some(x * 2)
 	}
 
-	result2 := g.MapOption(option2, fn2)
+	result2 := g.OptionMap(option2, fn2)
 
 	if result2.IsSome() {
 		t.Errorf("Test 2: Expected None, got Some")
