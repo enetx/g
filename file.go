@@ -57,6 +57,57 @@ func (f *File) Lines() Result[seqSlice[String]] {
 	}))
 }
 
+// Chunks returns a new iterator instance that can be used to read the file
+// in fixed-size chunks of the specified size in bytes.
+//
+// Parameters:
+//
+// - size (int): The size of each chunk in bytes.
+//
+// Example usage:
+//
+//	// Open a new file with the specified name "text.txt"
+//	g.NewFile("text.txt").
+//		Chunks(100).              // Read the file in chunks of 100 bytes
+//		Unwrap().                 // Unwrap the Result type to get the underlying iterator
+//		Map(g.String.Upper).      // Convert each chunk to uppercase
+//		ForEach(                  // For each chunk, print it
+//			func(s g.String) {
+//				s.Print()
+//			})
+//
+//	// Output:
+//	// UPPERCASED_CHUNK1
+//	// UPPERCASED_CHUNK2
+//	// UPPERCASED_CHUNK3
+func (f *File) Chunks(size int) Result[seqSlice[String]] {
+	if f.file == nil {
+		if err := f.Open().Err(); err != nil {
+			return Err[seqSlice[String]](err)
+		}
+	}
+
+	return Ok(seqSlice[String](func(yield func(String) bool) {
+		defer f.Close()
+
+		buffer := make([]byte, size)
+		for {
+			n, err := f.file.Read(buffer)
+			if err != nil && err != io.EOF {
+				return
+			}
+
+			if n == 0 {
+				break
+			}
+
+			if !yield(String(buffer[:n])) {
+				return
+			}
+		}
+	}))
+}
+
 // Append appends the given content to the file, with the specified mode (optional).
 // If no FileMode is provided, the default FileMode (0644) is used.
 // Don't forget to close the file!

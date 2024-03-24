@@ -163,6 +163,47 @@ func createTempFileWithData(t *testing.T, data []byte) string {
 	return tempFile.Name()
 }
 
+func TestFile_Chunks_Success(t *testing.T) {
+	// Create a temporary file for testing
+	tempFile := createTempFile(t)
+	defer os.Remove(tempFile)
+
+	// Write content to the temporary file
+	content := "abcdefghijklmnopqrstuvwxyz"
+	writeToFile(t, tempFile, content)
+
+	// Create a File instance representing the temporary file
+	file := g.NewFile(g.String(tempFile))
+
+	// Define the chunk size
+	chunkSize := 5
+
+	// Read the file in chunks
+	result := file.Chunks(chunkSize)
+
+	// Check if the result is successful
+	if result.IsErr() {
+		t.Fatalf(
+			"TestFile_Chunks_Success: Expected Chunks to return a successful result, but got an error: %v",
+			result.Err(),
+		)
+	}
+
+	// Unwrap the Result type to get the underlying iterator
+	iterator := result.Ok().Collect()
+
+	// Read chunks from the iterator and verify their content
+	expectedChunks := g.Slice[g.String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
+
+	if iterator.Ne(expectedChunks) {
+		t.Fatalf(
+			"TestFile_Chunks_Success: Expected chunks %v, got %v",
+			expectedChunks,
+			iterator,
+		)
+	}
+}
+
 func TestFile_Lines_Success(t *testing.T) {
 	// Create a temporary file for testing
 	tempFile := createTempFile(t)
