@@ -10,6 +10,50 @@ import (
 	"github.com/enetx/g/filters"
 )
 
+func TestSliceIterFromChannel(t *testing.T) {
+	// Create a channel and populate it with some test data
+	ch := make(chan int)
+	go func() {
+		defer close(ch)
+		for i := 1; i <= 5; i++ {
+			ch <- i
+		}
+	}()
+
+	// Convert the channel into an iterator
+	iter := g.FromChannel(ch)
+
+	// Create a slice to collect elements from the iterator
+	var collected []int
+
+	// Define a function to be used as a callback for iterator
+	yield := func(v int) bool {
+		if v == 3 {
+			return false // Return false when element equals 3 to test premature exit
+		}
+		collected = append(collected, v)
+		return true
+	}
+
+	// Iterate through the elements using the iterator and collect them
+	iter(yield)
+
+	// Define the expected result
+	expected := []int{1, 2}
+
+	// Compare the collected elements with the expected result
+	if len(collected) != len(expected) {
+		t.Errorf("Length mismatch: expected %d elements, got %d", len(expected), len(collected))
+		return
+	}
+
+	for i, v := range collected {
+		if v != expected[i] {
+			t.Errorf("Element mismatch at index %d: expected %d, got %d", i, expected[i], v)
+		}
+	}
+}
+
 func TestSliceIterPartition(t *testing.T) {
 	// Test case 1: Basic partitioning with integers
 	slice1 := g.Slice[int]{1, 2, 3, 4, 5}

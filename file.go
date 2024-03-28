@@ -49,6 +49,7 @@ func (f *File) Lines() Result[seqSlice[String]] {
 
 		scanner := bufio.NewScanner(f.file)
 		scanner.Split(bufio.ScanLines)
+
 		for scanner.Scan() {
 			if !yield(String(scanner.Text())) {
 				return
@@ -91,6 +92,7 @@ func (f *File) Chunks(size int) Result[seqSlice[String]] {
 		defer f.Close()
 
 		buffer := make([]byte, size)
+
 		for {
 			n, err := f.file.Read(buffer)
 			if err != nil && err != io.EOF {

@@ -662,6 +662,50 @@ func (seq seqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq,
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
 func (seq seqSlice[V]) Windows(n int) seqSlices[V] { return windows(seq, n) }
 
+// FromChannel converts a channel into an iterator.
+//
+// This function takes a channel as input and converts its elements into an iterator,
+// allowing seamless integration of channels into iterator-based processing pipelines.
+// It continuously reads from the channel until it's closed,
+// yielding each element to the provided yield function.
+//
+// Parameters:
+// - ch (<-chan V): The input channel to convert into an iterator.
+//
+// Returns:
+// - seqSlice[V]: An iterator that yields elements from the channel.
+//
+// Example usage:
+//
+//	ch := make(chan int)
+//	go func() {
+//		defer close(ch)
+//		for i := 1; i <= 5; i++ {
+//			ch <- i
+//		}
+//	}()
+//
+//	// Convert the channel into an iterator and apply filtering and mapping operations.
+//	g.FromChannel(ch).
+//		Filter(func(i int) bool { return i%2 == 0 }). // Filter even numbers.
+//		Map(func(i int) int { return i * 2 }).        // Double each element.
+//		Collect().                                    // Collect the results into a slice.
+//		Print()                                       // Print the collected results.
+//
+// Output: Slice[4, 8]
+//
+// The resulting iterator will yield elements from the provided channel, filtering out odd numbers,
+// doubling each even number, and finally collecting the results into a slice.
+func FromChannel[V any](ch <-chan V) seqSlice[V] {
+	return func(yield func(V) bool) {
+		for v := range ch {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
 func liftSlice[V any](slice []V) seqSlice[V] {
 	return func(yield func(V) bool) {
 		for _, v := range slice {
