@@ -46,7 +46,9 @@ func (m Map[K, V]) Iter() seqMap[K, V] { return liftMap(m) }
 // types are guaranteed to be comparable.
 func (m Map[K, V]) Invert() Map[any, K] {
 	result := NewMap[any, K](m.Len())
-	m.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
+	for k, v := range m {
+		result.Set(v, k)
+	}
 
 	return result
 }
@@ -86,7 +88,7 @@ func (m Map[K, V]) Std() map[K]V { return m }
 
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
-	if m.Len() != other.Len() {
+	if len(m) != len(other) {
 		return false
 	}
 
@@ -103,7 +105,9 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 func (m Map[K, V]) String() string {
 	var builder strings.Builder
 
-	m.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
+	for k, v := range m {
+		builder.WriteString(fmt.Sprintf("%v:%v, ", k, v))
+	}
 
 	return String(builder.String()).TrimRight(", ").Format("Map{%s}").Std()
 }
@@ -147,7 +151,7 @@ func (m Map[K, V]) GetOrSet(key K, defaultValue V) V {
 		return value
 	}
 
-	m.Set(key, defaultValue)
+	m[key] = defaultValue
 
 	return defaultValue
 }
@@ -156,7 +160,7 @@ func (m Map[K, V]) GetOrSet(key K, defaultValue V) V {
 func (m Map[K, V]) Clear() Map[K, V] { clear(m); return m }
 
 // Empty checks if the Map is empty.
-func (m Map[K, V]) Empty() bool { return m.Len() == 0 }
+func (m Map[K, V]) Empty() bool { return len(m) == 0 }
 
 // Get retrieves the value associated with the given key.
 func (m Map[K, V]) Get(k K) Option[V] {

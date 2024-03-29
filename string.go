@@ -95,12 +95,12 @@ func (s String) ToInt() Result[Int] {
 
 // ToFloat tries to parse the String as a float64 and returns an Float.
 func (s String) ToFloat() Result[Float] {
-	hfloat, err := strconv.ParseFloat(s.Std(), 64)
+	float, err := strconv.ParseFloat(s.Std(), 64)
 	if err != nil {
 		return Err[Float](err)
 	}
 
-	return Ok(Float(hfloat))
+	return Ok(Float(float))
 }
 
 // Title converts the String to title case.
@@ -213,7 +213,7 @@ func (s String) FindRegexp(pattern *regexp.Regexp) Option[String] {
 //
 // Output: "The quick brown dog jumped over the lazy fox.".
 func (s String) ReplaceNth(oldS, newS String, n int) String {
-	if n < -1 || oldS.Len() == 0 {
+	if n < -1 || len(oldS) == 0 {
 		return s
 	}
 
@@ -228,11 +228,11 @@ func (s String) ReplaceNth(oldS, newS String, n int) String {
 		pos += i
 		count++
 
-		if count == n || (n == -1 && s[pos+oldS.Len():].Index(oldS) == -1) {
-			return s[:pos].Add(newS).Add(s[pos+oldS.Len():])
+		if count == n || (n == -1 && s[pos+len(oldS):].Index(oldS) == -1) {
+			return s[:pos] + newS + s[pos+len(oldS):]
 		}
 
-		i = pos + oldS.Len()
+		i = pos + len(oldS)
 	}
 
 	return s
@@ -417,7 +417,7 @@ func (s String) Chunks(size int) Slice[String] {
 		return nil
 	}
 
-	if size >= s.Len() {
+	if size >= len(s) {
 		return Slice[String]{s}
 	}
 
@@ -470,20 +470,20 @@ func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
 		return s, ""
 	}
 
-	endIndex := s[startIndex+start.Len():].Index(end)
+	endIndex := s[startIndex+len(start):].Index(end)
 	if endIndex == -1 {
 		return s, ""
 	}
 
-	cut := s[startIndex+start.Len() : startIndex+start.Len()+endIndex]
+	cut := s[startIndex+len(start) : startIndex+len(start)+endIndex]
 
 	startCutIndex := startIndex
-	endCutIndex := startIndex + start.Len() + endIndex
+	endCutIndex := startIndex + len(start) + endIndex
 
 	if len(rmtags) != 0 && !rmtags[0] {
-		startCutIndex += start.Len()
+		startCutIndex += len(start)
 	} else {
-		endCutIndex += end.Len()
+		endCutIndex += len(end)
 	}
 
 	remainder := s[:startCutIndex] + s[endCutIndex:]
@@ -518,7 +518,7 @@ func (s String) Similarity(str String) Float {
 		return 100
 	}
 
-	if s.Len() == 0 || str.Len() == 0 {
+	if s.Empty() || str.Empty() {
 		return 0
 	}
 
@@ -549,8 +549,7 @@ func (s String) Similarity(str String) Float {
 		distance[lenS1] = prev
 	}
 
-	return Float(1).
-		Sub(distance[lenS1].ToFloat().Div(Int(lenS1).Max(Int(lenS2)).ToFloat())).Mul(100)
+	return Float(1).Sub(distance[lenS1].ToFloat().Div(Int(lenS1).Max(Int(lenS2)).ToFloat())).Mul(100)
 }
 
 // Compare compares two Strings and returns an Int indicating their relative order.
@@ -561,7 +560,7 @@ func (s String) Compare(str String) Int { return Int(cmp.Compare(s, str)) }
 func (s String) Add(str String) String { return s + str }
 
 // AddPrefix prepends the specified String to the current String.
-func (s String) AddPrefix(str String) String { return str.Add(s) }
+func (s String) AddPrefix(str String) String { return str + s }
 
 // ContainsRune checks if the String contains the specified rune.
 func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(), r) }
@@ -570,7 +569,7 @@ func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(),
 func (s String) Count(substr String) int { return strings.Count(s.Std(), substr.Std()) }
 
 // Empty checks if the String is empty.
-func (s String) Empty() bool { return s.Len() == 0 }
+func (s String) Empty() bool { return len(s) == 0 }
 
 // Eq checks if two Strings are equal.
 func (s String) Eq(str String) bool { return s.Compare(str).Eq(0) }
@@ -653,7 +652,7 @@ func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n int) Option[Sli
 	var result Slice[Slice[String]]
 
 	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n) {
-		result = result.Append(SliceMap(v, NewString))
+		result = append(result, SliceMap(v, NewString))
 	}
 
 	if result.Empty() {

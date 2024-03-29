@@ -63,16 +63,16 @@ func (d dec) JSON(data any) Result[String] {
 // The optional prefix and indent String values can be provided for XML indentation.
 func (enc) XML(data any, s ...String) Result[String] {
 	var (
-		prefix String
-		indent String
+		prefix string
+		indent string
 	)
 
 	if len(s) > 1 {
-		prefix = s[0]
-		indent = s[1]
+		prefix = s[0].Std()
+		indent = s[1].Std()
 	}
 
-	xmlData, err := xml.MarshalIndent(data, prefix.Std(), indent.Std())
+	xmlData, err := xml.MarshalIndent(data, prefix, indent)
 	if err != nil {
 		return Err[String](err)
 	}
@@ -109,14 +109,14 @@ func (e enc) URL(safe ...String) String {
 
 	var enc strings.Builder
 
-	e.str.ToRunes().Iter().ForEach(func(r rune) {
+	for _, r := range e.str {
 		if reserved.ContainsRune(r) {
 			enc.WriteRune(r)
-			return
+			continue
 		}
 
 		enc.WriteString(url.QueryEscape(string(r)))
-	})
+	}
 
 	return String(enc.String())
 }
@@ -167,8 +167,8 @@ func (e enc) XOR(key String) String {
 
 	encrypted := e.str.ToBytes()
 
-	for i := range e.str.Len() {
-		encrypted[i] ^= key[i%key.Len()]
+	for i := range len(e.str) {
+		encrypted[i] ^= key[i%len(key)]
 	}
 
 	return String(encrypted)
@@ -181,7 +181,7 @@ func (d dec) XOR(key String) String { return d.str.Enc().XOR(key) }
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
 func (e enc) Hex() String {
 	var result strings.Builder
-	for i := range e.str.Len() {
+	for i := range len(e.str) {
 		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToHex())
 	}
 
@@ -210,30 +210,25 @@ func (e enc) Octal() String {
 
 // Octal returns the octal representation of the decimal-encoded string.
 func (d dec) Octal() Result[String] {
-	var r Result[String]
-
 	var result strings.Builder
 
-	d.str.Split(" ").Iter().ForEach(func(oct String) {
-		n, err := strconv.ParseUint(oct.Std(), 8, 32)
+	for _, v := range d.str.Split(" ") {
+		n, err := strconv.ParseUint(v.Std(), 8, 32)
 		if err != nil {
-			r = Err[String](err)
-			return
+			return Err[String](err)
 		}
-		fmt.Fprint(&result, string(rune(n)))
-	})
 
-	if r.IsOk() {
-		r = Ok(String(result.String()))
+		fmt.Fprint(&result, string(rune(n)))
 	}
 
-	return r
+	return Ok(String(result.String()))
 }
 
 // Binary converts the wrapped String to its binary representation as an String.
 func (e enc) Binary() String {
 	var result strings.Builder
-	for i := range e.str.Len() {
+
+	for i := range len(e.str) {
 		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToBinary())
 	}
 
@@ -244,7 +239,7 @@ func (e enc) Binary() String {
 func (d dec) Binary() Result[String] {
 	var result Bytes
 
-	for i := 0; i+8 <= d.str.Len(); i += 8 {
+	for i := 0; i+8 <= len(d.str); i += 8 {
 		b, err := strconv.ParseUint(d.str[i:i+8].Std(), 2, 8)
 		if err != nil {
 			return Err[String](err)

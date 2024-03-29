@@ -107,12 +107,13 @@ func (sl Slice[T]) AsAny() Slice[any] { return SliceMap(sl, func(t T) any { retu
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
 func (sl Slice[T]) Counter() MapOrd[T, uint] {
-	result := NewMapOrd[T, uint](sl.Len())
-	sl.Iter().ForEach(func(t T) {
-		i := result.Get(t).UnwrapOrDefault()
-		i++
-		result.Set(t, i)
-	})
+	result := NewMapOrd[T, uint](len(sl))
+
+	for _, v := range sl {
+		r := result.Get(v).UnwrapOrDefault()
+		r++
+		result.Set(v, r)
+	}
 
 	return result
 }
@@ -137,37 +138,9 @@ func (sl Slice[T]) Counter() MapOrd[T, uint] {
 //
 // The modified slice will now contain: 5, 5, 5.
 func (sl Slice[T]) Fill(val T) {
-	for i := range sl.Len() {
-		sl.Set(i, val)
+	for i := range sl {
+		sl[i] = val
 	}
-}
-
-// ToMapHashed returns a map with the hashed version of each element as the key.
-func (sl Slice[T]) ToMapHashed() Map[String, T] {
-	result := NewMap[String, T](sl.Len())
-
-	sl.Iter().ForEach(func(t T) {
-		switch val := any(t).(type) {
-		case Int:
-			result.Set(val.Hash().MD5(), t)
-		case int:
-			result.Set(Int(val).Hash().MD5(), t)
-		case String:
-			result.Set(val.Hash().MD5(), t)
-		case string:
-			result.Set(String(val).Hash().MD5(), t)
-		case Bytes:
-			result.Set(val.Hash().MD5().ToString(), t)
-		case []byte:
-			result.Set(Bytes(val).Hash().MD5().ToString(), t)
-		case Float:
-			result.Set(val.Hash().MD5(), t)
-		case float64:
-			result.Set(Float(val).Hash().MD5(), t)
-		}
-	})
-
-	return result
 }
 
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
@@ -200,7 +173,7 @@ func (sl Slice[T]) Index(val T) int {
 //
 // The resulting sample will contain 3 unique elements randomly selected from the original slice.
 func (sl Slice[T]) RandomSample(sequence int) Slice[T] {
-	if sequence >= sl.Len() {
+	if sequence >= len(sl) {
 		return sl
 	}
 
@@ -217,8 +190,8 @@ func (sl Slice[T]) RandomRange(from, to int) Slice[T] {
 		from = 0
 	}
 
-	if to < 0 || to > sl.Len() {
-		to = sl.Len()
+	if to < 0 || to > len(sl) {
+		to = len(sl)
 	}
 
 	if from > to {
@@ -296,7 +269,7 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 		return NewSlice[T]()
 	}
 
-	total := sl[:i].Len() + len(values) + sl[j:].Len()
+	total := len(sl[:i]) + len(values) + len(sl[j:])
 	slice := NewSlice[T](total)
 
 	copy(slice, sl[:i])
@@ -335,7 +308,7 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 
 	if i == j {
 		if len(values) > 0 {
-			*sl = (*sl)[:i].Append(append(values, (*sl)[i:]...)...)
+			*sl = append((*sl)[:i], append(values, (*sl)[i:]...)...)
 		}
 
 		return
@@ -344,14 +317,14 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 	diff := len(values) - (j - i)
 
 	if diff > 0 {
-		*sl = (*sl).Append(NewSlice[T](diff)...)
+		*sl = append(*sl, NewSlice[T](diff)...)
 	}
 
 	copy((*sl)[i+len(values):], (*sl)[j:])
 	copy((*sl)[i:], values)
 
 	if diff < 0 {
-		*sl = (*sl)[:sl.Len()+diff]
+		*sl = (*sl)[:len(*sl)+diff]
 	}
 }
 
@@ -381,7 +354,7 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 func (sl Slice[T]) AddUnique(elems ...T) Slice[T] {
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
-			sl = sl.Append(elem)
+			sl = append(sl, elem)
 		}
 	}
 
@@ -407,7 +380,7 @@ func (sl Slice[T]) AddUnique(elems ...T) Slice[T] {
 func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
-			*sl = sl.Append(elem)
+			*sl = append(*sl, elem)
 		}
 	}
 }
@@ -427,11 +400,11 @@ func (sl Slice[T]) Count(elem T) int {
 
 	var counter int
 
-	sl.Iter().ForEach(func(t T) {
-		if reflect.DeepEqual(t, elem) {
+	for _, v := range sl {
+		if reflect.DeepEqual(v, elem) {
 			counter++
 		}
-	})
+	}
 
 	return counter
 }
@@ -521,11 +494,11 @@ func (sl Slice[T]) Min() T {
 //
 // Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
 func (sl Slice[T]) Shuffle() {
-	n := sl.Len()
+	n := len(sl)
 
 	for i := n - 1; i > 0; i-- {
 		j := rand.N(i + 1)
-		sl.Swap(i, j)
+		sl.swap(i, j)
 	}
 }
 
@@ -545,7 +518,7 @@ func (sl Slice[T]) Shuffle() {
 // Output: [5 4 3 2 1].
 func (sl Slice[T]) Reverse() {
 	for i, j := 0, sl.Len()-1; i < j; i, j = i+1, j-1 {
-		sl.Swap(i, j)
+		sl.swap(i, j)
 	}
 }
 
@@ -574,10 +547,13 @@ func (sl Slice[T]) SortBy(fn func(a, b T) bool) {
 	sort.Slice(sl, func(i, j int) bool { return fn(sl[i], sl[j]) })
 }
 
-// ToStringSlice converts the slice into a slice of strings.
+// ToStringSlice converts the Slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
-	result := NewSlice[string](0, sl.Len())
-	sl.Iter().ForEach(func(t T) { result = result.Append(fmt.Sprint(t)) })
+	result := make([]string, 0, len(sl))
+
+	for _, v := range sl {
+		result = append(result, fmt.Sprint(v))
+	}
 
 	return result
 }
@@ -645,7 +621,7 @@ func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
 	var slice Slice[T]
 
 	for i := start; loopCondition(i); i += _step {
-		slice = slice.Append(sl[i])
+		slice = append(slice, sl[i])
 	}
 
 	return slice
@@ -722,16 +698,16 @@ func (sl Slice[T]) Random() T {
 		return *new(T)
 	}
 
-	return sl.Get(rand.N(sl.Len()))
+	return sl[rand.N(len(sl))]
 }
 
 // Clone returns a copy of the slice.
-func (sl Slice[T]) Clone() Slice[T] { return append(sl[:0:0], sl...) }
+func (sl Slice[T]) Clone() Slice[T] { return slices.Clone(sl) }
 
 // LastIndex returns the last index of the slice.
 func (sl Slice[T]) LastIndex() int {
-	if !sl.Empty() {
-		return sl.Len() - 1
+	if sl.NotEmpty() {
+		return len(sl) - 1
 	}
 
 	return 0
@@ -739,12 +715,12 @@ func (sl Slice[T]) LastIndex() int {
 
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
-	if sl.Len() != other.Len() {
+	if len(sl) != len(other) {
 		return false
 	}
 
 	for index, val := range sl {
-		if !reflect.DeepEqual(val, other.Get(index)) {
+		if !reflect.DeepEqual(val, other[index]) {
 			return false
 		}
 	}
@@ -756,7 +732,9 @@ func (sl Slice[T]) Eq(other Slice[T]) bool {
 func (sl Slice[T]) String() string {
 	var builder strings.Builder
 
-	sl.Iter().ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
+	for _, v := range sl {
+		builder.WriteString(fmt.Sprintf("%v, ", v))
+	}
 
 	return String(builder.String()).TrimRight(", ").Format("Slice[%s]").Std()
 }
@@ -765,7 +743,7 @@ func (sl Slice[T]) String() string {
 func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 
 // AppendInPlace appends the provided elements to the slice and modifies the original slice.
-func (sl *Slice[T]) AppendInPlace(elems ...T) { *sl = sl.Append(elems...) }
+func (sl *Slice[T]) AppendInPlace(elems ...T) { *sl = append(*sl, elems...) }
 
 // Cap returns the capacity of the Slice.
 func (sl Slice[T]) Cap() int { return cap(sl) }
@@ -779,11 +757,13 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
-	seen := NewMap[any, struct{}](sl.Len())
-	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	seen := make(map[any]struct{}, len(sl))
+	for _, v := range sl {
+		seen[v] = struct{}{}
+	}
 
 	for _, v := range values {
-		if seen.Contains(v) {
+		if _, ok := seen[v]; ok {
 			return true
 		}
 	}
@@ -797,11 +777,13 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 		return false
 	}
 
-	seen := NewMap[any, struct{}](sl.Len())
-	sl.Iter().ForEach(func(t T) { seen.Set(t, struct{}{}) })
+	seen := make(map[any]struct{}, len(sl))
+	for _, v := range sl {
+		seen[v] = struct{}{}
+	}
 
 	for _, v := range values {
-		if !seen.Contains(v) {
+		if _, ok := seen[v]; !ok {
 			return false
 		}
 	}
@@ -822,11 +804,11 @@ func (sl Slice[T]) Delete(i int) Slice[T] {
 func (sl *Slice[T]) DeleteInPlace(i int) {
 	i = sl.normalizeIndex(i)
 	copy((*sl)[i:], (*sl)[i+1:])
-	*sl = (*sl)[:sl.Len()-1]
+	*sl = (*sl)[:len(*sl)-1]
 }
 
 // Empty returns true if the slice is empty.
-func (sl Slice[T]) Empty() bool { return sl.Len() == 0 }
+func (sl Slice[T]) Empty() bool { return len(sl) == 0 }
 
 // Last returns the last element of the slice.
 func (sl Slice[T]) Last() T { return sl.Get(-1) }
@@ -835,7 +817,7 @@ func (sl Slice[T]) Last() T { return sl.Get(-1) }
 func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
 
 // NotEmpty returns true if the slice is not empty.
-func (sl Slice[T]) NotEmpty() bool { return sl.Len() != 0 }
+func (sl Slice[T]) NotEmpty() bool { return !sl.Empty() }
 
 // Pop returns the last element of the slice and a new slice without the last element.
 func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
@@ -873,8 +855,8 @@ func (sl Slice[T]) Len() int { return len(sl) }
 // Float, and float64. The comparison is performed according to the types and their respective
 // comparison methods. If the types are not directly comparable, it returns false.
 func (sl Slice[T]) Less(i, j int) bool {
-	elemI := any(sl.Get(i))
-	elemJ := any(sl.Get(j))
+	elemI := any(sl[i])
+	elemJ := any(sl[j])
 
 	switch elemI := elemI.(type) {
 	case Int:
@@ -930,8 +912,10 @@ func (sl Slice[T]) Swap(i, j int) {
 	i = sl.normalizeIndex(i)
 	j = sl.normalizeIndex(j)
 
-	sl[i], sl[j] = sl[j], sl[i]
+	sl.swap(i, j)
 }
+
+func (sl Slice[T]) swap(i, j int) { sl[i], sl[j] = sl[j], sl[i] }
 
 // Grow increases the slice's capacity, if necessary, to guarantee space for
 // another n elements. After Grow(n), at least n elements can be appended
@@ -964,8 +948,8 @@ func (sl Slice[T]) Print() Slice[T] { fmt.Println(sl); return sl }
 //	slice.Unpack(&a, &b, &c)
 //	fmt.Println(a, b, c) // Output: 1 2 3
 func (sl Slice[T]) Unpack(vars ...*T) {
-	if len(vars) > sl.Len() {
-		vars = vars[:sl.Len()]
+	if len(vars) > len(sl) {
+		vars = vars[:len(sl)]
 	}
 
 	for i, v := range vars {
@@ -976,7 +960,7 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
 	ii := i
 	if ii < 0 {
-		ii += sl.Len()
+		ii += len(sl)
 	}
 
 	negative := 0
@@ -984,8 +968,8 @@ func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
 		negative = -1
 	}
 
-	if ii > sl.Len() || ii < negative {
-		panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", i, sl.Len()))
+	if ii > len(sl) || ii < negative {
+		panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", i, len(sl)))
 	}
 
 	return ii

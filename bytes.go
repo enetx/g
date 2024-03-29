@@ -80,7 +80,7 @@ func (bs Bytes) Split(sep ...Bytes) Slice[Bytes] {
 func sliceBytesFromStd(bb [][]byte) Slice[Bytes] {
 	result := NewSlice[Bytes](0, len(bb))
 	for _, v := range bb {
-		result = result.Append(NewBytes(v))
+		result = append(result, v)
 	}
 
 	return result
@@ -136,7 +136,7 @@ func (bs Bytes) ContainsRune(r rune) bool { return bytes.ContainsRune(bs, r) }
 func (bs Bytes) Count(obs Bytes) int { return bytes.Count(bs, obs) }
 
 // Empty checks if the Bytes is empty.
-func (bs Bytes) Empty() bool { return bs == nil || bs.Len() == 0 }
+func (bs Bytes) Empty() bool { return bs == nil || len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
 func (bs Bytes) Eq(obs Bytes) bool { return bs.Compare(obs).Eq(0) }
@@ -156,10 +156,10 @@ func (bs Bytes) Index(obs Bytes) int { return bytes.Index(bs, obs) }
 // IndexRegexp searches for the first occurrence of the regular expression pattern in the Bytes.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
-func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := SliceMap(pattern.FindIndex(bs), NewInt)
+func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[int]] {
+	result := SliceOf(pattern.FindIndex(bs)...)
 	if result.Empty() {
-		return None[Slice[Int]]()
+		return None[Slice[int]]()
 	}
 
 	return Some(result)
@@ -219,7 +219,7 @@ func (bs Bytes) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 	var result Slice[Slice[Bytes]]
 
 	for _, v := range pattern.FindAllSubmatch(bs, n.Std()) {
-		result = result.Append(sliceBytesFromStd(v))
+		result = append(result, sliceBytesFromStd(v))
 	}
 
 	if result.Empty() {
@@ -263,7 +263,7 @@ func (bs Bytes) NormalizeNFC() Bytes { return norm.NFC.Bytes(bs) }
 func (bs Bytes) Ne(obs Bytes) bool { return !bs.Eq(obs) }
 
 // NotEmpty checks if the Bytes is not empty.
-func (bs Bytes) NotEmpty() bool { return bs.Len() != 0 }
+func (bs Bytes) NotEmpty() bool { return !bs.Empty() }
 
 // Reader returns a *bytes.Reader initialized with the content of Bytes.
 func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }

@@ -72,7 +72,14 @@ func (f Float) Mul(b Float) Float { return f * b }
 func (f Float) Ne(b Float) bool { return !f.Eq(b) }
 
 // Round rounds the Float to the nearest integer and returns the result as an Int.
-func (f Float) Round() Int { return Int(math.Round(f.Std())) }
+// func (f Float) Round() Int { return Int(math.Round(f.Std())) }
+func (f Float) Round() Int {
+	if f >= 0 {
+		return Int(f + 0.5)
+	}
+
+	return Int(f - 0.5)
+}
 
 // RoundDecimal rounds the Float value to the specified number of decimal places.
 //
@@ -94,8 +101,23 @@ func (f Float) Round() Int { return Int(math.Round(f.Std())) }
 //	f := g.Float(3.14159)
 //	rounded := f.RoundDecimal(2) // rounded will be 3.14
 func (f Float) RoundDecimal(precision int) Float {
-	mult := Float(math.Pow(10, float64(precision)))
-	return f.Mul(mult).Round().ToFloat().Div(mult)
+	if precision < 0 {
+		return f
+	}
+
+	mult := 1
+	for i := 0; i < precision; i++ {
+		mult *= 10
+	}
+
+	result := f * Float(mult)
+	if result >= 0 {
+		result += 0.5
+	} else {
+		result -= 0.5
+	}
+
+	return Float(int(result)) / Float(mult)
 }
 
 // Sub subtracts two Floats and returns the result.

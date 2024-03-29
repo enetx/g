@@ -713,7 +713,7 @@ func TestBytesIndexRegexp(t *testing.T) {
 	bs := g.Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
 	idx := bs.IndexRegexp(pattern)
-	expected := g.Some(g.Slice[g.Int]{g.NewInt(6), g.NewInt(12)})
+	expected := g.Some(g.Slice[int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}
@@ -722,7 +722,7 @@ func TestBytesIndexRegexp(t *testing.T) {
 	bs = g.Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
 	idx = bs.IndexRegexp(pattern)
-	expected = g.None[g.Slice[g.Int]]()
+	expected = g.None[g.Slice[int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}

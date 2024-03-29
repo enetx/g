@@ -21,7 +21,7 @@ func (i Int) Min(b ...Int) Int { return minmax.Min(i, b...) }
 func (i Int) Max(b ...Int) Int { return minmax.Max(i, b...) }
 
 // RandomRange returns a random Int in the range [from, to].
-func (i Int) RandomRange(to Int) Int { return rand.N(to.Sub(i).Add(1)).Add(i) }
+func (i Int) RandomRange(to Int) Int { return rand.N(to-i+1) + i }
 
 // Bytes returns the Int as a byte slice.
 func (i Int) Bytes() Bytes {

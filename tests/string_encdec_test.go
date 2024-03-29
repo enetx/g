@@ -458,3 +458,85 @@ func TestStringOctalDec(t *testing.T) {
 		}
 	}
 }
+
+func TestURLEncode(t *testing.T) {
+	testCases := []struct {
+		input    g.String
+		safe     g.String
+		expected g.String
+	}{
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     "",
+			expected: "https%3A%2F%2Fwww.test.com%2F%3Fquery%3Dtest%26param%3Dvalue",
+		},
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":",
+			expected: "https:%2F%2Fwww.test.com%2F%3Fquery%3Dtest%26param%3Dvalue",
+		},
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&",
+			expected: "https://www.test.com/%3Fquery%3Dtest&param%3Dvalue",
+		},
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&?",
+			expected: "https://www.test.com/?query%3Dtest&param%3Dvalue",
+		},
+		{
+			input:    "https://www.test.com/?query=test&param=value",
+			safe:     ":/&?=",
+			expected: "https://www.test.com/?query=test&param=value",
+		},
+	}
+
+	for _, tc := range testCases {
+		encoded := tc.input.Enc().URL(tc.safe)
+		if encoded != tc.expected {
+			t.Errorf(
+				"For input: %s and safe: %s, expected: %s, but got: %s",
+				tc.input,
+				tc.safe,
+				tc.expected,
+				encoded.Std(),
+			)
+		}
+	}
+}
+
+func TestURLDecode(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{
+			input:    "hello+world",
+			expected: "hello world",
+		},
+		{
+			input:    "hello%20world",
+			expected: "hello world",
+		},
+		{
+			input:    "a%2Bb%3Dc%2Fd",
+			expected: "a+b=c/d",
+		},
+		{
+			input:    "foo%3Fbar%3Dbaz%26abc%3D123",
+			expected: "foo?bar=baz&abc=123",
+		},
+		{
+			input:    "",
+			expected: "",
+		},
+	}
+
+	for _, test := range tests {
+		actual := test.input.Dec().URL().Unwrap()
+		if actual != test.expected {
+			t.Errorf("UnEscape(%s): expected %s, but got %s", test.input, test.expected, actual)
+		}
+	}
+}

@@ -225,36 +225,6 @@ func TestSliceToSlice(t *testing.T) {
 	}
 }
 
-func TestSliceHMapHashedHnt(t *testing.T) {
-	sl := g.Slice[g.Int]{1, 2, 3, 4, 5}
-	m := sl.ToMapHashed()
-
-	if m.Len() != sl.Len() {
-		t.Errorf("Expected %d, got %d", sl.Len(), m.Len())
-	}
-
-	for _, v := range sl {
-		if !m.Contains(v.Hash().MD5()) {
-			t.Errorf("Expected %v, got %v", v, m[v.Hash().MD5()])
-		}
-	}
-}
-
-func TestSliceHMapHashedStrings(t *testing.T) {
-	sl := g.Slice[g.String]{"1", "2", "3", "4", "5"}
-	m := sl.ToMapHashed()
-
-	if m.Len() != sl.Len() {
-		t.Errorf("Expected %d, got %d", sl.Len(), m.Len())
-	}
-
-	for _, v := range sl {
-		if !m.Contains(v.Hash().MD5()) {
-			t.Errorf("Expected %v, got %v", v, m[v.Hash().MD5()])
-		}
-	}
-}
-
 func TestSliceShuffle(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	sl.Shuffle()
@@ -508,6 +478,11 @@ func TestSlicePop(t *testing.T) {
 
 	if sl.Len() != 4 {
 		t.Errorf("Expected 4, got %v", sl.Len())
+	}
+
+	r := g.Slice[int]{1, 2, 3, 4}
+	if sl.Ne(r) {
+		t.Errorf("Expected %v, got %v", r, sl)
 	}
 }
 

@@ -80,7 +80,10 @@ func (mo MapOrd[K, V]) Iter() seqMapOrd[K, V] { return liftMO(mo) }
 // Converts the standard Map 'hmap' to an ordered Map.
 func MapOrdFromMap[K comparable, V any](m Map[K, V]) MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
-	m.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
+
+	for k, v := range m {
+		mo.Set(k, v)
+	}
 
 	return mo
 }
@@ -134,7 +137,7 @@ func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) MapOrd[K, V] {
 
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
-	result := NewMapOrd[K, V](mo.Len())
+	result := NewMapOrd[K, V](len(mo))
 	mo.Iter().ForEach(func(k K, v V) { result.Set(k, v) })
 
 	return result
@@ -148,7 +151,7 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
 
 // ToMap converts the ordered Map to a standard Map.
 // func (mo MapOrd[K, V]) ToMap() Map[K, V] {
-// 	m := NewMap[K, V](mo.Len())
+// 	m := NewMap[K, V](len(mo))
 // 	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
 
 // 	return m
@@ -232,7 +235,7 @@ func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
 func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
-	result := NewMapOrd[V, K](mo.Len())
+	result := NewMapOrd[V, K](len(mo))
 	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
@@ -267,7 +270,7 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
 func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
-	if mo.Len() != other.Len() {
+	if len(mo) != len(other) {
 		return false
 	}
 
@@ -297,7 +300,7 @@ func (mo *MapOrd[K, V]) Clear() MapOrd[K, V] { return mo.Delete(mo.Keys()...) }
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }
 
 // Empty checks if the ordered Map is empty.
-func (mo MapOrd[K, V]) Empty() bool { return mo.Len() == 0 }
+func (mo MapOrd[K, V]) Empty() bool { return len(mo) == 0 }
 
 // Len returns the number of key-value pairs in the ordered Map.
 func (mo MapOrd[K, V]) Len() int { return len(mo) }

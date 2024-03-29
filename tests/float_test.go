@@ -141,6 +141,42 @@ func TestFloatLt(t *testing.T) {
 	}
 }
 
+func TestFloatRound(t *testing.T) {
+	// Test cases for positive numbers
+	positiveTests := []struct {
+		input    g.Float
+		expected g.Int
+	}{
+		{1.1, 1},
+		{1.5, 2},
+		{1.9, 2},
+	}
+
+	for _, tc := range positiveTests {
+		result := tc.input.Round()
+		if result != tc.expected {
+			t.Errorf("Round(%f) = %d; expected %d", tc.input, result, tc.expected)
+		}
+	}
+
+	// Test cases for negative numbers
+	negativeTests := []struct {
+		input    g.Float
+		expected g.Int
+	}{
+		{-1.1, -1},
+		{-1.5, -2},
+		{-1.9, -2},
+	}
+
+	for _, tc := range negativeTests {
+		result := tc.input.Round()
+		if result != tc.expected {
+			t.Errorf("Round(%f) = %d; expected %d", tc.input, result, tc.expected)
+		}
+	}
+}
+
 func TestFloatRoundDecimal(t *testing.T) {
 	testCases := []struct {
 		value    g.Float
@@ -152,6 +188,7 @@ func TestFloatRoundDecimal(t *testing.T) {
 		{100.123456789, 4, 100.1235},
 		{-5.6789, 1, -5.7},
 		{12345.6789, 0, 12346},
+		{12345.6789, -1, 12345.6789},
 	}
 
 	for _, testCase := range testCases {

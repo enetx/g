@@ -96,7 +96,7 @@ func (s Set[T]) ContainsAny(other Set[T]) bool {
 
 // ContainsAll checks if the Set contains all elements from another Set.
 func (s Set[T]) ContainsAll(other Set[T]) bool {
-	if s.Len() < other.Len() {
+	if len(s) < len(other) {
 		return false
 	}
 
@@ -114,8 +114,8 @@ func (s Set[T]) Clone() Set[T] { return s.Iter().Collect() }
 
 // ToSlice returns a new Slice with the same elements as the Set[T].
 func (s Set[T]) ToSlice() Slice[T] {
-	sl := NewSlice[T](0, s.Len())
-	s.Iter().ForEach(func(v T) { sl = sl.Append(v) })
+	sl := NewSlice[T](0, len(s))
+	s.Iter().ForEach(func(v T) { sl = append(sl, v) })
 
 	return sl
 }
@@ -139,7 +139,7 @@ func (s Set[T]) ToSlice() Slice[T] {
 //
 // The resulting intersection will be: [4, 5].
 func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
-	if s.Len() <= other.Len() {
+	if len(s) <= len(other) {
 		return intersection(s.Iter(), other)
 	}
 
@@ -186,7 +186,7 @@ func (s Set[T]) Difference(other Set[T]) seqSet[T] { return difference(s.Iter(),
 //
 // The resulting union set will be: [1, 2, 3, 4, 5].
 func (s Set[T]) Union(other Set[T]) seqSet[T] {
-	if s.Len() > other.Len() {
+	if len(s) > len(other) {
 		return s.Iter().Chain(other.Difference(s))
 	}
 
@@ -253,7 +253,7 @@ func (s Set[T]) Superset(other Set[T]) bool { return s.ContainsAll(other) }
 
 // Eq checks if two Sets are equal.
 func (s Set[T]) Eq(other Set[T]) bool {
-	if s.Len() != other.Len() {
+	if len(s) != len(other) {
 		return false
 	}
 
@@ -273,7 +273,7 @@ func (s Set[T]) Ne(other Set[T]) bool { return !s.Eq(other) }
 func (s Set[T]) Clear() Set[T] { return s.Remove(s.ToSlice()...) }
 
 // Empty checks if the Set is empty.
-func (s Set[T]) Empty() bool { return s.Len() == 0 }
+func (s Set[T]) Empty() bool { return len(s) == 0 }
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {

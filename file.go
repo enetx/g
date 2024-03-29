@@ -39,8 +39,8 @@ func NewFile(name String) *File { return &File{name: name} }
 //	// UPPERCASED_LINE6
 func (f *File) Lines() Result[seqSlice[String]] {
 	if f.file == nil {
-		if err := f.Open().Err(); err != nil {
-			return Err[seqSlice[String]](err)
+		if r := f.Open(); r.IsErr() {
+			return Err[seqSlice[String]](r.Err())
 		}
 	}
 
@@ -83,8 +83,8 @@ func (f *File) Lines() Result[seqSlice[String]] {
 //	// UPPERCASED_CHUNK3
 func (f *File) Chunks(size int) Result[seqSlice[String]] {
 	if f.file == nil {
-		if err := f.Open().Err(); err != nil {
-			return Err[seqSlice[String]](err)
+		if r := f.Open(); r.IsErr() {
+			return Err[seqSlice[String]](r.Err())
 		}
 	}
 
@@ -115,8 +115,8 @@ func (f *File) Chunks(size int) Result[seqSlice[String]] {
 // Don't forget to close the file!
 func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
 	if f.file == nil {
-		if mda := f.createAll(); mda.IsErr() {
-			return mda
+		if r := f.createAll(); r.IsErr() {
+			return r
 		}
 
 		fmode := FileDefault
@@ -124,8 +124,8 @@ func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
 			fmode = mode[0]
 		}
 
-		if err := f.OpenFile(os.O_APPEND|os.O_CREATE|os.O_WRONLY, fmode).Err(); err != nil {
-			return Err[*File](err)
+		if r := f.OpenFile(os.O_APPEND|os.O_CREATE|os.O_WRONLY, fmode); r.IsErr() {
+			return r
 		}
 	}
 
@@ -197,8 +197,8 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 // Don't forget to close the file!
 func (f *File) Seek(offset int64, whence int) Result[*File] {
 	if f.file == nil {
-		if err := f.Open().Err(); err != nil {
-			return Err[*File](err)
+		if r := f.Open(); r.IsErr() {
+			return r
 		}
 	}
 
@@ -234,9 +234,10 @@ func (f *File) Close() error {
 // Copy copies the file to the specified destination, with the specified mode (optional).
 // If no mode is provided, the default FileMode (0644) is used.
 func (f *File) Copy(dest String, mode ...os.FileMode) Result[*File] {
-	if err := f.Open().Err(); err != nil {
-		return Err[*File](err)
+	if r := f.Open(); r.IsErr() {
+		return r
 	}
+
 	defer f.Close()
 
 	return NewFile(dest).WriteFromReader(f.file, mode...)
@@ -283,9 +284,10 @@ func (f *File) Guard() *File {
 
 // MimeType returns the MIME type of the file as an String.
 func (f *File) MimeType() Result[String] {
-	if err := f.Open().Err(); err != nil {
-		return Err[String](err)
+	if r := f.Open(); r.IsErr() {
+		return Err[String](r.Err())
 	}
+
 	defer f.Close()
 
 	const bufferSize = 512
@@ -370,8 +372,8 @@ func (f *File) Print() *File { fmt.Println(f); return f }
 
 // Read opens the named file with a read-lock and returns its contents.
 func (f *File) Read() Result[String] {
-	if err := f.Open().Err(); err != nil {
-		return Err[String](err)
+	if r := f.Open(); r.IsErr() {
+		return Err[String](r.Err())
 	}
 
 	defer f.Close()
@@ -509,8 +511,8 @@ func (f *File) Write(content String, mode ...os.FileMode) Result[*File] {
 // If no FileMode is provided, the default FileMode (0644) is used.
 func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File] {
 	if f.file == nil {
-		if mda := f.createAll(); mda.IsErr() {
-			return mda
+		if r := f.createAll(); r.IsErr() {
+			return r
 		}
 	}
 
@@ -526,8 +528,8 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 
 	f = NewFile(filePath.Ok())
 
-	if err := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode).Err(); err != nil {
-		return Err[*File](err)
+	if r := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode); r.IsErr() {
+		return Err[*File](r.Err())
 	}
 
 	defer f.Close()

@@ -16,6 +16,6 @@ func main() {
 	g.NewFloat(1.3339).Print()
 	g.NewFloat(13339).Print()
 
-	fmt.Println(g.NewFloat(20).Eq(g.NewFloat(float32(20.0))))
-	fmt.Println(g.NewFloat(float64(20)).Eq(g.NewFloat(float32(20.0))))
+	fmt.Println(g.NewFloat(20).Eq(g.NewFloat(20.0)))
+	fmt.Println(g.NewFloat(20).Eq(g.NewFloat(20.0)))
 }
