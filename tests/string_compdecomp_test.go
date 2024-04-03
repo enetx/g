@@ -10,6 +10,28 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	// Test data
 	inputData := g.NewString("hello world")
 
+	// Test Zstd compression and decompression
+	zstdCompressed := inputData.Comp().Zstd()
+	zstdDecompressed := zstdCompressed.Decomp().Zstd()
+	if zstdDecompressed.IsErr() || zstdDecompressed.Unwrap().Ne(inputData) {
+		t.Errorf(
+			"Zstd compression and decompression failed. Input: %s, Decompressed: %s",
+			inputData,
+			zstdDecompressed.Unwrap(),
+		)
+	}
+
+	// Test Brotli compression and decompression
+	brotliCompressed := inputData.Comp().Brotli()
+	brotliDecompressed := brotliCompressed.Decomp().Brotli()
+	if brotliDecompressed.IsErr() || brotliDecompressed.Unwrap().Ne(inputData) {
+		t.Errorf(
+			"Brotli compression and decompression failed. Input: %s, Decompressed: %s",
+			inputData,
+			brotliDecompressed.Unwrap(),
+		)
+	}
+
 	// Test Zlib compression and decompression
 	zlibCompressed := inputData.Comp().Zlib()
 	zlibDecompressed := zlibCompressed.Decomp().Zlib()

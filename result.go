@@ -163,3 +163,11 @@ func (r Result[T]) Option() Option[T] {
 
 	return Some(r.Ok())
 }
+
+func (r Result[T]) String() string {
+	if r.IsOk() {
+		return fmt.Sprintf("Ok(%v)", r.Ok())
+	}
+
+	return fmt.Sprintf("Err(%s)", r.Err().Error())
+}

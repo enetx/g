@@ -92,3 +92,11 @@ func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 
 	return fn(o.Some())
 }
+
+func (o Option[T]) String() string {
+	if o.IsSome() {
+		return fmt.Sprintf("Some(%v)", o.Some())
+	}
+
+	return "None"
+}

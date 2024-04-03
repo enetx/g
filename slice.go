@@ -262,8 +262,8 @@ func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, 
 //
 // The original slice remains ["a", "b", "c", "d"], and the newSlice will be: ["a", "e", "f", "d"].
 func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
-	i = sl.normalizeIndex(i)
-	j = sl.normalizeIndex(j)
+	i = sl.bound(i)
+	j = sl.bound(j)
 
 	if i > j {
 		return NewSlice[T]()
@@ -298,8 +298,8 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 //
 // After the ReplaceInPlace operation, the resulting slice will be: ["a", "e", "f", "d"].
 func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
-	i = sl.normalizeIndex(i)
-	j = sl.normalizeIndex(j)
+	i = sl.bound(i)
+	j = sl.bound(j)
 
 	if i > j {
 		*sl = (*sl)[:0]
@@ -387,10 +387,7 @@ func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 
 // Get returns the element at the given index, handling negative indices as counting from the end
 // of the slice.
-func (sl Slice[T]) Get(index int) T {
-	index = sl.normalizeIndex(index)
-	return sl[index]
-}
+func (sl Slice[T]) Get(index int) T { return sl[sl.bound(index)] }
 
 // Count returns the count of the given element in the slice.
 func (sl Slice[T]) Count(elem T) int {
@@ -417,28 +414,11 @@ func (sl Slice[T]) Max() T {
 
 	maxi := sl.Get(0)
 
-	var greater func(a, b any) bool
-
-	switch any(maxi).(type) {
-	case Int:
-		greater = func(a, b any) bool { return a.(Int).Gt(b.(Int)) }
-	case int:
-		greater = func(a, b any) bool { return a.(int) > b.(int) }
-	case String:
-		greater = func(a, b any) bool { return a.(String).Gt(b.(String)) }
-	case string:
-		greater = func(a, b any) bool { return a.(string) > b.(string) }
-	case Float:
-		greater = func(a, b any) bool { return a.(Float).Gt(b.(Float)) }
-	case float64:
-		greater = func(a, b any) bool { return Float(a.(float64)).Gt(Float(b.(float64))) }
-	}
-
-	sl.Iter().ForEach(func(t T) {
-		if greater(t, maxi) {
-			maxi = t
+	for _, v := range sl {
+		if sl.Less(sl.Index(maxi), sl.Index(v)) {
+			maxi = v
 		}
-	})
+	}
 
 	return maxi
 }
@@ -451,28 +431,11 @@ func (sl Slice[T]) Min() T {
 
 	mini := sl.Get(0)
 
-	var less func(a, b any) bool
-
-	switch any(mini).(type) {
-	case Int:
-		less = func(a, b any) bool { return a.(Int).Lt(b.(Int)) }
-	case int:
-		less = func(a, b any) bool { return a.(int) < b.(int) }
-	case String:
-		less = func(a, b any) bool { return a.(String).Lt(b.(String)) }
-	case string:
-		less = func(a, b any) bool { return a.(string) < b.(string) }
-	case Float:
-		less = func(a, b any) bool { return a.(Float).Lt(b.(Float)) }
-	case float64:
-		less = func(a, b any) bool { return Float(a.(float64)).Lt(Float(b.(float64))) }
-	}
-
-	sl.Iter().ForEach(func(t T) {
-		if less(t, mini) {
-			mini = t
+	for _, v := range sl {
+		if sl.Less(sl.Index(v), sl.Index(mini)) {
+			mini = v
 		}
-	})
+	}
 
 	return mini
 }
@@ -517,7 +480,7 @@ func (sl Slice[T]) Shuffle() {
 //
 // Output: [5 4 3 2 1].
 func (sl Slice[T]) Reverse() {
-	for i, j := 0, sl.Len()-1; i < j; i, j = i+1, j-1 {
+	for i, j := 0, len(sl)-1; i < j; i, j = i+1, j-1 {
 		sl.swap(i, j)
 	}
 }
@@ -604,8 +567,8 @@ func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
 		_step = step[0]
 	}
 
-	start = sl.normalizeIndex(start, struct{}{})
-	end = sl.normalizeIndex(end, struct{}{})
+	start = sl.bound(start, struct{}{})
+	end = sl.bound(end, struct{}{})
 
 	if (start >= end && _step > 0) || (start <= end && _step < 0) || _step == 0 {
 		return NewSlice[T]()
@@ -802,7 +765,7 @@ func (sl Slice[T]) Delete(i int) Slice[T] {
 // DeleteInPlace removes the element at the specified index from the slice and modifies the
 // original slice.
 func (sl *Slice[T]) DeleteInPlace(i int) {
-	i = sl.normalizeIndex(i)
+	i = sl.bound(i)
 	copy((*sl)[i:], (*sl)[i+1:])
 	*sl = (*sl)[:len(*sl)-1]
 }
@@ -842,10 +805,7 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 // fmt.Println(slice)
 //
 // Output: [1 2 99 4 5].
-func (sl Slice[T]) Set(index int, val T) {
-	index = sl.normalizeIndex(index)
-	sl[index] = val
-}
+func (sl Slice[T]) Set(index int, val T) { sl[sl.bound(index)] = val }
 
 // Len returns the length of the slice.
 func (sl Slice[T]) Len() int { return len(sl) }
@@ -909,8 +869,8 @@ func (sl Slice[T]) Less(i, j int) bool {
 //
 // Output: [1 4 3 2 5].
 func (sl Slice[T]) Swap(i, j int) {
-	i = sl.normalizeIndex(i)
-	j = sl.normalizeIndex(j)
+	i = sl.bound(i)
+	j = sl.bound(j)
 
 	sl.swap(i, j)
 }
@@ -957,7 +917,7 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 	}
 }
 
-func (sl Slice[T]) normalizeIndex(i int, subslice ...struct{}) int {
+func (sl Slice[T]) bound(i int, subslice ...struct{}) int {
 	ii := i
 	if ii < 0 {
 		ii += len(sl)
