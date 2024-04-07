@@ -18,6 +18,9 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
+// Builder returns a new Builder initialized with the content of the String.
+func (s String) Builder() *Builder { return NewBuilder().Write(s) }
+
 // Min returns the minimum of Strings.
 func (s String) Min(b ...String) String { return minmax.Min(s, b...) }
 
@@ -556,11 +559,11 @@ func (s String) Similarity(str String) Float {
 // The result will be 0 if s==str, -1 if s < str, and +1 if s > str.
 func (s String) Compare(str String) Int { return Int(cmp.Compare(s, str)) }
 
-// Add appends the specified String to the current String.
-func (s String) Add(str String) String { return s + str }
+// Append appends the specified String to the current String.
+func (s String) Append(str String) String { return s + str }
 
-// AddPrefix prepends the specified String to the current String.
-func (s String) AddPrefix(str String) String { return str + s }
+// Prepend prepends the specified String to the current String.
+func (s String) Prepend(str String) String { return str + s }
 
 // ContainsRune checks if the String contains the specified rune.
 func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(), r) }

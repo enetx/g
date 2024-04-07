@@ -8,6 +8,20 @@ import (
 	"github.com/enetx/g"
 )
 
+func TestStringBuilder(t *testing.T) {
+	// Create a String
+	str := g.NewString("hello")
+
+	// Call the Builder method
+	builder := str.Builder()
+
+	// Check if the Builder has been properly initialized
+	expected := "hello"
+	if result := builder.String().Std(); result != expected {
+		t.Errorf("Builder() = %s; want %s", result, expected)
+	}
+}
+
 func TestStringMinMax(t *testing.T) {
 	// Test cases for Min method
 	minTestCases := []struct {
@@ -280,7 +294,7 @@ func TestStringAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.str.Add(tt.s); got != tt.want {
+			if got := tt.str.Append(tt.s); got != tt.want {
 				t.Errorf("String.Add() = %v, want %v", got, tt.want)
 			}
 		})
@@ -322,7 +336,7 @@ func TestStringAddPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.str.AddPrefix(tt.s); got != tt.want {
+			if got := tt.str.Prepend(tt.s); got != tt.want {
 				t.Errorf("String.AddPrefix() = %v, want %v", got, tt.want)
 			}
 		})

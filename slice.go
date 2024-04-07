@@ -479,11 +479,7 @@ func (sl Slice[T]) Shuffle() {
 // fmt.Println(slice)
 //
 // Output: [5 4 3 2 1].
-func (sl Slice[T]) Reverse() {
-	for i, j := 0, len(sl)-1; i < j; i, j = i+1, j-1 {
-		sl.swap(i, j)
-	}
-}
+func (sl Slice[T]) Reverse() { slices.Reverse(sl) }
 
 // Sort sorts the elements in the slice in increasing order. It modifies the original
 // slice in place. For proper functionality, the type T used in the slice must support

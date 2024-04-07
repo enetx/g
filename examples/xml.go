@@ -18,7 +18,7 @@ func main() {
 	coffee := &Plant{ID: 27, Name: "Coffee"}
 	coffee.Origin = g.SliceOf("Ethiopia", "Brazil")
 
-	s := g.NewString("").Enc().XML(coffee, "", "  ").Unwrap().Add("\n")
+	s := g.NewString("").Enc().XML(coffee, "", "  ").Unwrap().Append("\n")
 	fmt.Println(s)
 
 	var coffee2 Plant
