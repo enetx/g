@@ -7,12 +7,13 @@ import (
 	"math/bits"
 	"strconv"
 
+	"github.com/enetx/g/pkg/constraints"
 	"github.com/enetx/g/pkg/minmax"
 	"github.com/enetx/g/pkg/rand"
 )
 
 // NewInt creates a new Int with the provided int value.
-func NewInt[T ~int | rune | byte](i T) Int { return Int(i) }
+func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
 // Min returns the minimum of Ints.
 func (i Int) Min(b ...Int) Int { return minmax.Min(i, b...) }

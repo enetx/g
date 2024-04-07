@@ -9,11 +9,12 @@ import (
 	"math/bits"
 	"strconv"
 
+	"github.com/enetx/g/pkg/constraints"
 	"github.com/enetx/g/pkg/minmax"
 )
 
 // NewFloat creates a new Float with the provided value.
-func NewFloat[T float64 | float32 | ~int](float T) Float { return Float(float) }
+func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return Float(float) }
 
 // Bytes returns the Float as a byte slice.
 func (f Float) Bytes() Bytes {

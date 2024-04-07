@@ -431,3 +431,40 @@ func TestIntRem(t *testing.T) {
 		}
 	}
 }
+
+func TestIntSub(t *testing.T) {
+    // Testing subtraction with positive integers
+    result := g.Int(5).Sub(3)
+    expected := g.Int(2)
+    if result != expected {
+        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+    }
+
+    // Testing subtraction with negative integers
+    result = g.Int(-5).Sub(-3)
+    expected = g.Int(-2)
+    if result != expected {
+        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+    }
+
+    // Testing subtraction with positive and negative integers
+    result = g.Int(5).Sub(-3)
+    expected = g.Int(8)
+    if result != expected {
+        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+    }
+
+    // Testing subtraction with negative and positive integers
+    result = g.Int(-5).Sub(3)
+    expected = g.Int(-8)
+    if result != expected {
+        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+    }
+
+    // Testing subtraction with zero
+    result = g.Int(0).Sub(0)
+    expected = g.Int(0)
+    if result != expected {
+        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+    }
+}

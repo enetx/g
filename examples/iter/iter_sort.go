@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/filters"
 )
 
 func main() {
@@ -75,6 +76,7 @@ func main() {
 		Iter().
 		Sort().
 		Dedup().
+		Filter(filters.IsOdd).
 		Collect().
 		Print()
 

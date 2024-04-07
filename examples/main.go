@@ -117,8 +117,6 @@ func main() {
 	sl3 := g.Slice[g.String]{} // declaration and assignation
 	sl3 = sl3.Append("aaaaa", "bbbbb")
 
-	sl3.ToMapHashed().Print()
-
 	fmt.Println(sl3.Last().Count("b")) // 5
 
 	sl4 := g.SliceOf([]string{"root", "toor"}...).Random()
