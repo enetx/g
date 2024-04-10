@@ -270,9 +270,7 @@ func (s String) ContainsRegexpAll(patterns ...String) Result[bool] {
 }
 
 // Contains checks if the String contains the specified substring.
-func (s String) Contains(substr String) bool {
-	return strings.Contains(s.Std(), substr.Std())
-}
+func (s String) Contains(substr String) bool { return strings.Contains(s.Std(), substr.Std()) }
 
 // ContainsAny checks if the String contains any of the specified substrings.
 func (s String) ContainsAny(substrs ...String) bool {

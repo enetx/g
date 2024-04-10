@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 )
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
@@ -34,13 +33,13 @@ func NewMapOrd[K, V any](size ...int) MapOrd[K, V] {
 	return make(MapOrd[K, V], 0, size[0])
 }
 
-// Iter returns an iterator (*liftIterMO) for the ordered Map, allowing for sequential iteration
+// Iter returns an iterator (SeqMapOrd[K, V]) for the ordered Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the ordered Map.
 //
 // Returns:
 //
-// A pointer to a liftIterMO, which can be used for sequential iteration over the key-value pairs of the ordered Map.
+// A SeqMapOrd[K, V], which can be used for sequential iteration over the key-value pairs of the ordered Map.
 //
 // Example usage:
 //
@@ -57,7 +56,7 @@ func NewMapOrd[K, V any](size ...int) MapOrd[K, V] {
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
 // in a functional style, enabling operations like mapping or filtering.
-func (mo MapOrd[K, V]) Iter() seqMapOrd[K, V] { return liftMO(mo) }
+func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return ToSeqMapOrd(mo) }
 
 // MapOrdFromMap converts a standard Map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of
@@ -286,11 +285,11 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 // String returns a string representation of the ordered Map.
 func (mo MapOrd[K, V]) String() string {
-	var builder strings.Builder
+	builder := NewBuilder()
 
-	mo.Iter().ForEach(func(k K, v V) { builder.WriteString(fmt.Sprintf("%v:%v, ", k, v)) })
+	mo.Iter().ForEach(func(k K, v V) { builder.Write(Sprintf("%v:%v, ", k, v)) })
 
-	return String(builder.String()).TrimRight(", ").Format("MapOrd{%s}").Std()
+	return builder.String().TrimRight(", ").Format("MapOrd{%s}").Std()
 }
 
 // Clear removes all key-value pairs from the ordered Map.

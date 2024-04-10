@@ -1,6 +1,9 @@
 package g
 
-import "os"
+import (
+	"iter"
+	"os"
+)
 
 type (
 	// Result is a generic struct for representing a result value along with an error.
@@ -55,4 +58,19 @@ type (
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
 	MapOrd[K, V any] []Pair[K, V]
+
+	// SeqSet is an iterator over sequences of unique values.
+	SeqSet[V comparable] iter.Seq[V]
+
+	// SeqSlice is an iterator over sequences of individual values.
+	SeqSlice[V any] iter.Seq[V]
+
+	// SeqSlices is an iterator over slices of sequences of individual values.
+	SeqSlices[V any] iter.Seq[[]V]
+
+	// SeqMapOrd is an iterator over sequences of ordered pairs of values, most commonly ordered key-value pairs.
+	SeqMapOrd[K, V any] iter.Seq2[K, V]
+
+	// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
+	SeqMap[K comparable, V any] iter.Seq2[K, V]
 )

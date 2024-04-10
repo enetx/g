@@ -1,6 +1,10 @@
 package main
 
-import "github.com/enetx/g"
+import (
+	"fmt"
+
+	"github.com/enetx/g"
+)
 
 func main() {
 	// Example 1: Flatten a slice containing various types of elements
@@ -33,4 +37,15 @@ func main() {
 		Collect().
 		Join().
 		Print()
+
+	// Example 3: Check if the flattened slice contains a specific element
+	ch := g.Slice[g.Slice[string]]{{"a", "b", "c"}, {"d", "f", "g"}}.
+		AsAny(). // g.Slice[any]{g.Slice[string]{"a", "b", "c"}, g.Slice[string]{"d", "f", "g"}}
+		Iter().
+		Flatten().
+		Collect() // g.Slice[any]{"a", "b", "c", "d", "f", "g"}
+
+	fmt.Println(ch.Contains("x"))  // false
+	fmt.Println(ch.Contains("a"))  // true
+	fmt.Println(ch.Contains(4444)) // false
 }

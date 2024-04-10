@@ -2,16 +2,33 @@ package g
 
 import "iter"
 
-type seqSet[V comparable] iter.Seq[V]
-
-func (seq seqSet[V]) pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
+// Pull converts the “push-style” iterator sequence seq
+// into a “pull-style” iterator accessed by the two functions
+// next and stop.
+//
+// Next returns the next value in the sequence
+// and a boolean indicating whether the value is valid.
+// When the sequence is over, next returns the zero V and false.
+// It is valid to call next after reaching the end of the sequence
+// or after calling stop. These calls will continue
+// to return the zero V and false.
+//
+// Stop ends the iteration. It must be called when the caller is
+// no longer interested in next values and next has not yet
+// signaled that the sequence is over (with a false boolean return).
+// It is valid to call stop multiple times and when next has
+// already returned false.
+//
+// It is an error to call next or stop from multiple goroutines
+// simultaneously.
+func (seq SeqSet[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (seq seqSet[V]) Inspect(fn func(v V)) seqSet[V] { return inspectSet(seq, fn) }
+func (seq SeqSet[V]) Inspect(fn func(v V)) SeqSet[V] { return inspectSet(seq, fn) }
 
 // Collect gathers all elements from the iterator into a Set.
-func (seq seqSet[V]) Collect() Set[V] {
+func (seq SeqSet[V]) Collect() Set[V] {
 	collection := NewSet[V]()
 
 	seq(func(v V) bool {
@@ -44,12 +61,12 @@ func (seq seqSet[V]) Collect() Set[V] {
 // Output: Set{3, 4, 5, 6, 1, 2} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements from both iterators.
-func (seq seqSet[V]) Chain(seqs ...seqSet[V]) seqSet[V] {
-	return chainSet(append([]seqSet[V]{seq}, seqs...)...)
+func (seq SeqSet[V]) Chain(seqs ...SeqSet[V]) SeqSet[V] {
+	return chainSet(append([]SeqSet[V]{seq}, seqs...)...)
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq seqSet[V]) Count() int { return countSet(seq) }
+func (seq SeqSet[V]) Count() int { return countSet(seq) }
 
 // ForEach iterates through all elements and applies the given function to each.
 //
@@ -67,7 +84,7 @@ func (seq seqSet[V]) Count() int { return countSet(seq) }
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (seq seqSet[V]) ForEach(fn func(v V)) {
+func (seq SeqSet[V]) ForEach(fn func(v V)) {
 	seq(func(v V) bool {
 		fn(v)
 		return true
@@ -75,7 +92,7 @@ func (seq seqSet[V]) ForEach(fn func(v V)) {
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (seq seqSet[V]) Range(fn func(v V) bool) {
+func (seq SeqSet[V]) Range(fn func(v V) bool) {
 	seq(func(v V) bool {
 		return fn(v)
 	})
@@ -109,7 +126,7 @@ func (seq seqSet[V]) Range(fn func(v V) bool) {
 // Output: Set{2, 4} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (seq seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(seq, fn) }
+func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] { return filterSet(seq, fn) }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
 //
@@ -139,7 +156,7 @@ func (seq seqSet[V]) Filter(fn func(V) bool) seqSet[V] { return filterSet(seq, f
 // Output: Set{1, 3, 5} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (seq seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return exclude(seq, fn) }
+func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] { return exclude(seq, fn) }
 
 // Map transforms each element in the iterator using the given function.
 //
@@ -168,9 +185,9 @@ func (seq seqSet[V]) Exclude(fn func(V) bool) seqSet[V] { return exclude(seq, fn
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq seqSet[V]) Map(transform func(V) V) seqSet[V] { return mapSet(seq, transform) }
+func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return mapSet(seq, transform) }
 
-func liftSet[V comparable](slice Set[V]) seqSet[V] {
+func ToSeqSet[V comparable](slice Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		for v := range slice {
 			if !yield(v) {
@@ -180,7 +197,7 @@ func liftSet[V comparable](slice Set[V]) seqSet[V] {
 	}
 }
 
-func inspectSet[V comparable](seq seqSet[V], fn func(V)) seqSet[V] {
+func inspectSet[V comparable](seq SeqSet[V], fn func(V)) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			fn(v)
@@ -189,7 +206,7 @@ func inspectSet[V comparable](seq seqSet[V], fn func(V)) seqSet[V] {
 	}
 }
 
-func chainSet[V comparable](seqs ...seqSet[V]) seqSet[V] {
+func chainSet[V comparable](seqs ...SeqSet[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		for _, seq := range seqs {
 			seq(func(v V) bool {
@@ -199,15 +216,15 @@ func chainSet[V comparable](seqs ...seqSet[V]) seqSet[V] {
 	}
 }
 
-func mapSet[V, W comparable](seq seqSet[V], fn func(V) W) seqSet[W] {
-	return func(yield func(W) bool) {
+func mapSet[V, U comparable](seq SeqSet[V], fn func(V) U) SeqSet[U] {
+	return func(yield func(U) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))
 		})
 	}
 }
 
-func filterSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
+func filterSet[V comparable](seq SeqSet[V], fn func(V) bool) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if fn(v) {
@@ -218,11 +235,11 @@ func filterSet[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
 	}
 }
 
-func exclude[V comparable](seq seqSet[V], fn func(V) bool) seqSet[V] {
+func exclude[V comparable](seq SeqSet[V], fn func(V) bool) SeqSet[V] {
 	return filterSet(seq, func(v V) bool { return !fn(v) })
 }
 
-func difference[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if other.Contains(v) {
@@ -233,7 +250,7 @@ func difference[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 	}
 }
 
-func intersection[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
+func intersection[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if other.Contains(v) {
@@ -244,7 +261,7 @@ func intersection[V comparable](seq seqSet[V], other Set[V]) seqSet[V] {
 	}
 }
 
-func countSet[V comparable](seq seqSet[V]) int {
+func countSet[V comparable](seq SeqSet[V]) int {
 	var counter int
 	seq(func(V) bool {
 		counter++

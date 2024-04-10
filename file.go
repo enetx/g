@@ -37,14 +37,14 @@ func NewFile(name String) *File { return &File{name: name} }
 //	// UPPERCASED_LINE4
 //	// UPPERCASED_LINE5
 //	// UPPERCASED_LINE6
-func (f *File) Lines() Result[seqSlice[String]] {
+func (f *File) Lines() Result[SeqSlice[String]] {
 	if f.file == nil {
 		if r := f.Open(); r.IsErr() {
-			return Err[seqSlice[String]](r.Err())
+			return Err[SeqSlice[String]](r.Err())
 		}
 	}
 
-	return Ok(seqSlice[String](func(yield func(String) bool) {
+	return Ok(SeqSlice[String](func(yield func(String) bool) {
 		defer f.Close()
 
 		scanner := bufio.NewScanner(f.file)
@@ -81,14 +81,14 @@ func (f *File) Lines() Result[seqSlice[String]] {
 //	// UPPERCASED_CHUNK1
 //	// UPPERCASED_CHUNK2
 //	// UPPERCASED_CHUNK3
-func (f *File) Chunks(size int) Result[seqSlice[String]] {
+func (f *File) Chunks(size int) Result[SeqSlice[String]] {
 	if f.file == nil {
 		if r := f.Open(); r.IsErr() {
-			return Err[seqSlice[String]](r.Err())
+			return Err[SeqSlice[String]](r.Err())
 		}
 	}
 
-	return Ok(seqSlice[String](func(yield func(String) bool) {
+	return Ok(SeqSlice[String](func(yield func(String) bool) {
 		defer f.Close()
 
 		buffer := make([]byte, size)

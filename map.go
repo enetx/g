@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
-	"strings"
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
@@ -19,13 +18,13 @@ func NewMap[K comparable, V any](size ...int) Map[K, V] {
 // MapFromStd creates an Map from a given Go map.
 func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 
-// Iter returns an iterator (*liftIterM) for the Map, allowing for sequential iteration
+// Iter returns an iterator (SeqMap[K, V]) for the Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the Map.
 //
 // Returns:
 //
-// - seqMap[K, V], which can be used for sequential iteration over the key-value pairs of the Map.
+// - SeqMap[K, V], which can be used for sequential iteration over the key-value pairs of the Map.
 //
 // Example usage:
 //
@@ -38,8 +37,7 @@ func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-// func (m Map[K, V]) Iter() seqMap[K, V] { return liftM[K, V](m) }
-func (m Map[K, V]) Iter() seqMap[K, V] { return liftMap(m) }
+func (m Map[K, V]) Iter() SeqMap[K, V] { return ToSeqMap(m) }
 
 // Invert inverts the keys and values of the Map, returning a new Map with values as keys and
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
@@ -103,13 +101,13 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 
 // String returns a string representation of the Map.
 func (m Map[K, V]) String() string {
-	var builder strings.Builder
+	builder := NewBuilder()
 
 	for k, v := range m {
-		builder.WriteString(fmt.Sprintf("%v:%v, ", k, v))
+		builder.Write(Sprintf("%v:%v, ", k, v))
 	}
 
-	return String(builder.String()).TrimRight(", ").Format("Map{%s}").Std()
+	return builder.String().TrimRight(", ").Format("Map{%s}").Std()
 }
 
 // GetOrSet returns the value for a key. If the key exists in the Map, it returns the associated value.

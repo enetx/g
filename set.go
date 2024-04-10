@@ -2,7 +2,6 @@ package g
 
 import (
 	"fmt"
-	"strings"
 )
 
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
@@ -37,13 +36,13 @@ func SetOf[T comparable](values ...T) Set[T] {
 // A new Set containing the results of applying the function to each element of the input Set.
 func SetMap[T, U comparable](s Set[T], fn func(T) U) Set[U] { return mapSet(s.Iter(), fn).Collect() }
 
-// Iter returns an iterator (seqSet[T]) for the Set, allowing for sequential iteration
+// Iter returns an iterator (SeqSet[T]) for the Set, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
-// such as 'ForEach' or 'TransformSet', to perform operations on each element of the Set.
+// such as 'ForEach' or 'SetMap', to perform operations on each element of the Set.
 //
 // Returns:
 //
-// A pointer to a seqSet[T], which can be used for sequential iteration over the elements of the Set.
+// A SeqSet[T], which can be used for sequential iteration over the elements of the Set.
 //
 // Example usage:
 //
@@ -54,7 +53,7 @@ func SetMap[T, U comparable](s Set[T], fn func(T) U) Set[U] { return mapSet(s.It
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
-func (s Set[T]) Iter() seqSet[T] { return liftSet(s) }
+func (s Set[T]) Iter() SeqSet[T] { return ToSeqSet(s) }
 
 // Add adds the provided elements to the set and returns the modified set.
 func (s Set[T]) Add(values ...T) Set[T] {
@@ -138,7 +137,7 @@ func (s Set[T]) ToSlice() Slice[T] {
 //	intersection := s1.Intersection(s2)
 //
 // The resulting intersection will be: [4, 5].
-func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
+func (s Set[T]) Intersection(other Set[T]) SeqSet[T] {
 	if len(s) <= len(other) {
 		return intersection(s.Iter(), other)
 	}
@@ -164,7 +163,7 @@ func (s Set[T]) Intersection(other Set[T]) seqSet[T] {
 //	diff := s1.Difference(s2)
 //
 // The resulting diff will be: [1, 2, 3].
-func (s Set[T]) Difference(other Set[T]) seqSet[T] { return difference(s.Iter(), other) }
+func (s Set[T]) Difference(other Set[T]) SeqSet[T] { return difference(s.Iter(), other) }
 
 // Union returns a new set containing the unique elements of the current set and the provided
 // other set.
@@ -185,7 +184,7 @@ func (s Set[T]) Difference(other Set[T]) seqSet[T] { return difference(s.Iter(),
 //	union := s1.Union(s2)
 //
 // The resulting union set will be: [1, 2, 3, 4, 5].
-func (s Set[T]) Union(other Set[T]) seqSet[T] {
+func (s Set[T]) Union(other Set[T]) SeqSet[T] {
 	if len(s) > len(other) {
 		return s.Iter().Chain(other.Difference(s))
 	}
@@ -211,7 +210,7 @@ func (s Set[T]) Union(other Set[T]) seqSet[T] {
 //	symDiff := s1.SymmetricDifference(s2)
 //
 // The resulting symDiff will be: [1, 2, 3, 6, 7, 8].
-func (s Set[T]) SymmetricDifference(other Set[T]) seqSet[T] {
+func (s Set[T]) SymmetricDifference(other Set[T]) SeqSet[T] {
 	return s.Difference(other).Chain(other.Difference(s))
 }
 
@@ -277,11 +276,11 @@ func (s Set[T]) Empty() bool { return len(s) == 0 }
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
-	var builder strings.Builder
+	builder := NewBuilder()
 
-	s.Iter().ForEach(func(v T) { builder.WriteString(fmt.Sprintf("%v, ", v)) })
+	s.Iter().ForEach(func(v T) { builder.Write(Sprintf("%v, ", v)) })
 
-	return String(builder.String()).TrimRight(", ").Format("Set{%s}").Std()
+	return builder.String().TrimRight(", ").Format("Set{%s}").Std()
 }
 
 // Print prints the elements of the Set to the standard output (console)

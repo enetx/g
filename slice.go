@@ -61,13 +61,13 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func SliceMap[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return sliceMap(sl.Iter(), fn).Collect() }
 
-// Iter returns an iterator (*liftIter) for the Slice, allowing for sequential iteration
+// Iter returns an iterator (SeqSlice[T]) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each element of the Slice.
 //
 // Returns:
 //
-// A pointer to a liftIter, which can be used for sequential iteration over the elements of the Slice.
+// A SeqSlice[T], which can be used for sequential iteration over the elements of the Slice.
 //
 // Example usage:
 //
@@ -80,7 +80,7 @@ func SliceMap[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return sliceMap(sl
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Slice
 // in a functional style, enabling operations like mapping or filtering.
-func (sl Slice[T]) Iter() seqSlice[T] { return liftSlice(sl) }
+func (sl Slice[T]) Iter() SeqSlice[T] { return ToSeqSlice(sl) }
 
 // AsAny converts each element of the slice to the 'any' type.
 // It returns a new slice containing the elements as 'any' g.Slice[any].
@@ -689,13 +689,13 @@ func (sl Slice[T]) Eq(other Slice[T]) bool {
 
 // String returns a string representation of the slice.
 func (sl Slice[T]) String() string {
-	var builder strings.Builder
+	builder := NewBuilder()
 
 	for _, v := range sl {
-		builder.WriteString(fmt.Sprintf("%v, ", v))
+		builder.Write(Sprintf("%v, ", v))
 	}
 
-	return String(builder.String()).TrimRight(", ").Format("Slice[%s]").Std()
+	return builder.String().TrimRight(", ").Format("Slice[%s]").Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.
