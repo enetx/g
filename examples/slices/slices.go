@@ -8,6 +8,9 @@ import (
 	"github.com/enetx/g/filters"
 )
 
+func eq[T comparable](s g.Slice[T]) bool {
+}
+
 func main() {
 	slice := g.Slice[int]{1, 2, 3, 4}
 

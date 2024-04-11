@@ -2,11 +2,11 @@ package g
 
 import (
 	"fmt"
-	"reflect"
 	"slices"
 	"sort"
 	"strings"
 
+	"github.com/enetx/g/filters"
 	"github.com/enetx/g/pkg/rand"
 )
 
@@ -182,8 +182,23 @@ func (sl Slice[T]) Index(val T) int {
 	case Slice[float64]:
 		return slices.Index(s, any(val).(float64))
 	default:
-		return slices.IndexFunc(sl, func(v T) bool { return reflect.DeepEqual(v, val) })
+		return sl.IndexBy(val, filters.IsEqDeep)
 	}
+}
+
+// IndexBy returns the index of the first element in the slice
+// satisfying the custom comparison function provided by the user.
+// It iterates through the slice and applies the comparison function to each element and the target value.
+// If the comparison function returns true for any pair of elements, it returns the index of that element.
+// If no such element is found, it returns -1.
+func (sl Slice[T]) IndexBy(val T, fn func(x, y T) bool) int {
+	for i, v := range sl {
+		if fn(v, val) {
+			return i
+		}
+	}
+
+	return -1
 }
 
 // RandomSample returns a new slice containing a random sample of elements from the original slice.
@@ -428,7 +443,7 @@ func (sl Slice[T]) Max() T {
 
 	maxi := sl[0]
 
-	for _, v := range sl {
+	for _, v := range sl[1:] {
 		if sl.Less(sl.Index(maxi), sl.Index(v)) {
 			maxi = v
 		}
@@ -445,7 +460,7 @@ func (sl Slice[T]) Min() T {
 
 	mini := sl[0]
 
-	for _, v := range sl {
+	for _, v := range sl[1:] {
 		if sl.Less(sl.Index(v), sl.Index(mini)) {
 			mini = v
 		}
@@ -724,8 +739,17 @@ func (sl Slice[T]) Eq(other Slice[T]) bool {
 	case Slice[float64]:
 		return slices.Equal(any(sl).(Slice[float64]), o)
 	default:
-		return slices.EqualFunc(sl, other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
+		return sl.EqBy(other, filters.IsEqDeep)
 	}
+}
+
+// EqBy reports whether two slices are equal using an equality
+// function on each pair of elements. If the lengths are different,
+// EqBy returns false. Otherwise, the elements are compared in
+// increasing index order, and the comparison stops at the first index
+// for which eq returns false.
+func (sl Slice[T]) EqBy(other Slice[T], fn func(x, y T) bool) bool {
+	return slices.EqualFunc(sl, other, fn)
 }
 
 // String returns a string representation of the slice.
@@ -750,6 +774,9 @@ func (sl Slice[T]) Cap() int { return cap(sl) }
 
 // Contains returns true if the slice contains the provided value.
 func (sl Slice[T]) Contains(val T) bool { return sl.Index(val) >= 0 }
+
+// ContainsBy returns true if the slice contains an element that satisfies the provided function fn, false otherwise.
+func (sl Slice[T]) ContainsBy(val T, fn func(x, y T) bool) bool { return sl.IndexBy(val, fn) >= 0 }
 
 // ContainsAny checks if the Slice contains any element from another Slice.
 func (sl Slice[T]) ContainsAny(values ...T) bool {

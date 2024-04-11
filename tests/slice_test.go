@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/filters"
 )
 
 func TestSliceUnpack(t *testing.T) {
@@ -1566,5 +1567,113 @@ func TestSliceLess(t *testing.T) {
 	expectedResultFloat64 := true
 	if resultFloat64 != expectedResultFloat64 {
 		t.Errorf("Test 16: Expected %t, got %t", expectedResultFloat64, resultFloat64)
+	}
+}
+
+func TestSliceContainsBy(t *testing.T) {
+	// Test case 1: Slice contains the element that satisfies the provided function
+	sl1 := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	contains1 := sl1.ContainsBy(3, filters.IsEq)
+
+	if !contains1 {
+		t.Errorf("Test 1: Expected true, got false")
+	}
+
+	// Test case 2: Slice does not contain the element that satisfies the provided function
+	sl2 := g.Slice[g.String]{"apple", "banana", "cherry"}
+	contains2 := sl2.ContainsBy("orange", filters.IsEq)
+
+	if contains2 {
+		t.Errorf("Test 2: Expected false, got true")
+	}
+
+	// Test case 3: Slice contains the element that satisfies the provided function (using custom struct)
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	sl3 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}, {Name: "Charlie", Age: 35}}
+	contains3 := sl3.ContainsBy(Person{Name: "Bob", Age: 25}, func(x, y Person) bool {
+		return x.Name == y.Name && x.Age == y.Age
+	})
+
+	if !contains3 {
+		t.Errorf("Test 3: Expected true, got false")
+	}
+}
+
+func TestSliceEqBy(t *testing.T) {
+	// Test case 1: Slices are equal using the equality function
+	sl1 := g.Slice[g.Int]{1, 2, 3}
+	sl2 := g.Slice[g.Int]{1, 2, 3}
+
+	eq1 := sl1.EqBy(sl2, filters.IsEq)
+
+	if !eq1 {
+		t.Errorf("Test 1: Expected true, got false")
+	}
+
+	// Test case 2: Slices are not equal using the equality function
+	sl3 := g.Slice[g.String]{"apple", "banana", "cherry"}
+	sl4 := g.Slice[g.String]{"apple", "orange", "cherry"}
+
+	eq2 := sl3.EqBy(sl4, filters.IsEq)
+
+	if eq2 {
+		t.Errorf("Test 2: Expected false, got true")
+	}
+
+	// Test case 3: Slices are equal using the equality function (using custom struct)
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	sl5 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+	sl6 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+
+	eq3 := sl5.EqBy(sl6, func(x, y Person) bool {
+		return x.Name == y.Name && x.Age == y.Age
+	})
+
+	if !eq3 {
+		t.Errorf("Test 3: Expected true, got false")
+	}
+}
+
+func TestSliceIndexBy(t *testing.T) {
+	// Test case 1: Element satisfying the custom comparison function exists in the slice
+	sl1 := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	index1 := sl1.IndexBy(3, filters.IsEq)
+
+	expectedIndex1 := 2
+	if index1 != expectedIndex1 {
+		t.Errorf("Test 1: Expected index %d, got %d", expectedIndex1, index1)
+	}
+
+	// Test case 2: Element satisfying the custom comparison function doesn't exist in the slice
+	sl2 := g.Slice[g.String]{"apple", "banana", "cherry"}
+	index2 := sl2.IndexBy("orange", filters.IsEq)
+
+	expectedIndex2 := -1
+	if index2 != expectedIndex2 {
+		t.Errorf("Test 2: Expected index %d, got %d", expectedIndex2, index2)
+	}
+
+	// Test case 3: Element satisfying the custom comparison function exists in the slice (using custom struct)
+	type Person struct {
+		Name string
+		Age  int
+	}
+
+	sl3 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+	index3 := sl3.IndexBy(Person{Name: "Bob", Age: 25}, func(x, y Person) bool {
+		return x.Name == y.Name && x.Age == y.Age
+	})
+
+	expectedIndex3 := 1
+	if index3 != expectedIndex3 {
+		t.Errorf("Test 3: Expected index %d, got %d", expectedIndex3, index3)
 	}
 }
