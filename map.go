@@ -86,17 +86,7 @@ func (m Map[K, V]) Std() map[K]V { return m }
 
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
-	if len(m) != len(other) {
-		return false
-	}
-
-	for key, value := range m {
-		if value2, ok := other[key]; !ok || !reflect.DeepEqual(value, value2) {
-			return false
-		}
-	}
-
-	return true
+	return maps.EqualFunc(m, other, func(x, y V) bool { return reflect.DeepEqual(x, y) })
 }
 
 // String returns a string representation of the Map.

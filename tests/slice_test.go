@@ -244,30 +244,152 @@ func TestSliceReverse(t *testing.T) {
 }
 
 func TestSliceIndex(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
-
-	if sl.Index(1) != 0 {
-		t.Error("Index of 1 should be 0")
+	// Test case: Function returns an index for known types (Int)
+	slInt := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	index := slInt.Index(3)
+	if index != 2 {
+		t.Errorf("Expected index 2, got %d", index)
 	}
 
-	if sl.Index(2) != 1 {
-		t.Error("Index of 2 should be 1")
+	// Test case: Function returns -1 for unknown types (String)
+	slString := g.Slice[g.String]{"a", "b", "c"}
+	index = slString.Index("d")
+	if index != -1 {
+		t.Errorf("Expected index -1, got %d", index)
 	}
 
-	if sl.Index(3) != 2 {
-		t.Error("Index of 3 should be 2")
+	// Test case: Function returns an index for known types (Float)
+	slFloat := g.Slice[g.Float]{1.1, 2.2, 3.3}
+	index = slFloat.Index(2.2)
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
 	}
 
-	if sl.Index(4) != 3 {
-		t.Error("Index of 4 should be 3")
+	// Test case: Function returns -1 for empty slice (Bool)
+	emptySliceBool := g.Slice[bool]{}
+	index = emptySliceBool.Index(true)
+	if index != -1 {
+		t.Errorf("Expected index -1 for empty slice, got %d", index)
 	}
 
-	if sl.Index(5) != 4 {
-		t.Error("Index of 5 should be 4")
+	// Test case: Function returns an index for known types (Byte)
+	slByte := g.Slice[byte]{byte('a'), byte('b'), byte('c')}
+	index = slByte.Index(byte('b'))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
 	}
 
-	if sl.Index(6) != -1 {
-		t.Error("Index of 6 should be -1")
+	// Test case: Function returns an index for known types (String)
+	slString2 := g.Slice[string]{"apple", "banana", "cherry"}
+	index = slString2.Index("banana")
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Int)
+	slInt2 := g.Slice[int]{10, 20, 30}
+	index = slInt2.Index(20)
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Int8)
+	slInt8 := g.Slice[int8]{1, 2, 3}
+	index = slInt8.Index(int8(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Int16)
+	slInt16 := g.Slice[int16]{1, 2, 3}
+	index = slInt16.Index(int16(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Int32)
+	slInt32 := g.Slice[int32]{1, 2, 3}
+	index = slInt32.Index(int32(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Int64)
+	slInt64 := g.Slice[int64]{1, 2, 3}
+	index = slInt64.Index(int64(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Uint)
+	slUint := g.Slice[uint]{1, 2, 3, 4, 5}
+	index = slUint.Index(uint(3))
+	if index != 2 {
+		t.Errorf("Expected index 2, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Uint8)
+	slUint8 := g.Slice[uint8]{1, 2, 3}
+	index = slUint8.Index(uint8(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Uint16)
+	slUint16 := g.Slice[uint16]{1, 2, 3}
+	index = slUint16.Index(uint16(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Uint32)
+	slUint32 := g.Slice[uint32]{1, 2, 3}
+	index = slUint32.Index(uint32(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Uint64)
+	slUint64 := g.Slice[uint64]{1, 2, 3}
+	index = slUint64.Index(uint64(2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Float32)
+	slFloat32 := g.Slice[float32]{1.1, 2.2, 3.3}
+	index = slFloat32.Index(float32(2.2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns an index for known types (Float64)
+	slFloat64 := g.Slice[float64]{1.1, 2.2, 3.3}
+	index = slFloat64.Index(float64(2.2))
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+}
+
+func TestSliceIndexFunc(t *testing.T) {
+	// Define a custom slice type
+	type customType struct {
+		Value int
+	}
+
+	// Create a slice with custom type
+	slCustom := g.Slice[customType]{{Value: 1}, {Value: 2}, {Value: 3}}
+
+	// Test case: Function returns an index for custom types using IndexFunc
+	index := slCustom.Index(customType{Value: 2})
+	if index != 1 {
+		t.Errorf("Expected index 1, got %d", index)
+	}
+
+	// Test case: Function returns -1 for custom types not found using IndexFunc
+	index = slCustom.Index(customType{Value: 4})
+	if index != -1 {
+		t.Errorf("Expected index -1, got %d", index)
 	}
 }
 
@@ -297,43 +419,6 @@ func TestSliceAddUnique(t *testing.T) {
 	sl = sl.AddUnique(4, 5, 6)
 	if sl.Len() != 6 {
 		t.Error("AddUnique failed")
-	}
-}
-
-func TestSliceCount(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5, 6, 7}
-
-	if sl.Count(1) != 1 {
-		t.Error("Expected 1, got ", sl.Count(1))
-	}
-
-	if sl.Count(2) != 1 {
-		t.Error("Expected 1, got ", sl.Count(2))
-	}
-
-	if sl.Count(3) != 1 {
-		t.Error("Expected 1, got ", sl.Count(3))
-	}
-
-	if sl.Count(4) != 1 {
-		t.Error("Expected 1, got ", sl.Count(4))
-	}
-
-	if sl.Count(5) != 1 {
-		t.Error("Expected 1, got ", sl.Count(5))
-	}
-
-	if sl.Count(6) != 1 {
-		t.Error("Expected 1, got ", sl.Count(6))
-	}
-
-	if sl.Count(7) != 1 {
-		t.Error("Expected 1, got ", sl.Count(7))
-	}
-
-	emptySlice := g.NewSlice[int]()
-	if emptySlice.Count(7) != 0 {
-		t.Error("Expected 0, got", emptySlice.Count(7))
 	}
 }
 
@@ -1073,29 +1158,137 @@ func TestSliceString(t *testing.T) {
 }
 
 func TestSliceEq(t *testing.T) {
-	// Create two slices with the same elements
-	sl1 := g.SliceOf(1, 2, 3, 4, 5)
-	sl2 := g.SliceOf(1, 2, 3, 4, 5)
-
-	// Check if the slices are equal
-	if !sl1.Eq(sl2) {
-		t.Error("Slice Eq method failed. Expected slices to be equal.")
+	// Test case: Function returns true for equal slices of known types (Int)
+	slInt1 := g.Slice[g.Int]{1, 2, 3}
+	slInt2 := g.Slice[g.Int]{1, 2, 3}
+	if !slInt1.Eq(slInt2) {
+		t.Errorf("Test 1: Expected slices to be equal")
 	}
 
-	// Create another slice with different elements
-	sl3 := g.SliceOf(1, 2, 3)
-
-	// Check if the slices are not equal
-	if sl1.Eq(sl3) {
-		t.Error("Slice Eq method failed. Expected slices to be not equal.")
+	// Test case: Function returns false for unequal slices of known types (String)
+	slString1 := g.Slice[g.String]{"a", "b", "c"}
+	slString2 := g.Slice[g.String]{"a", "x", "c"}
+	if slString1.Eq(slString2) {
+		t.Errorf("Test 2: Expected slices to be unequal")
 	}
 
-	// Create another slice with different elements
-	sl4 := g.SliceOf(1, 2, 3, 4, 6)
+	// Test case: Function returns true for empty slices
+	emptySlice1 := g.Slice[g.Float]{}
+	emptySlice2 := g.Slice[g.Float]{}
+	if !emptySlice1.Eq(emptySlice2) {
+		t.Errorf("Test 3: Expected empty slices to be equal")
+	}
 
-	// Check if the slices are not equal
-	if sl1.Eq(sl4) {
-		t.Error("Slice Eq method failed. Expected slices to be not equal.")
+	// Test case: Function returns false for slices of different lengths
+	slFloat1 := g.Slice[g.Float]{1.1, 2.2, 3.3}
+	slFloat2 := g.Slice[g.Float]{1.1, 2.2}
+	if slFloat1.Eq(slFloat2) {
+		t.Errorf("Test 4: Expected slices of different lengths to be unequal")
+	}
+
+	// Test case: Function returns true for equal slices of string type
+	slString3 := g.Slice[string]{"apple", "banana", "cherry"}
+	slString4 := g.Slice[string]{"apple", "banana", "cherry"}
+	if !slString3.Eq(slString4) {
+		t.Errorf("Test 5: Expected slices to be equal")
+	}
+
+	// Test case: Function returns false for unequal slices of int type
+	slInt3 := g.Slice[int]{10, 20, 30}
+	slInt4 := g.Slice[int]{10, 20, 40}
+	if slInt3.Eq(slInt4) {
+		t.Errorf("Test 6: Expected slices to be unequal")
+	}
+
+	// Test case: Function returns true for equal slices of float64 type
+	slFloat64_1 := g.Slice[float64]{1.1, 2.2, 3.3}
+	slFloat64_2 := g.Slice[float64]{1.1, 2.2, 3.3}
+	if !slFloat64_1.Eq(slFloat64_2) {
+		t.Errorf("Test 7: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of bool type
+	slBool1 := g.Slice[bool]{true, false, true}
+	slBool2 := g.Slice[bool]{true, false, true}
+	if !slBool1.Eq(slBool2) {
+		t.Errorf("Test 8: Expected slices to be equal")
+	}
+
+	// Test case: Function returns false for unequal slices of byte type
+	slByte1 := g.Slice[byte]{1, 2, 3}
+	slByte2 := g.Slice[byte]{1, 2, 4}
+	if slByte1.Eq(slByte2) {
+		t.Errorf("Test 9: Expected slices to be unequal")
+	}
+
+	// Test case: Function returns true for equal slices of int8 type
+	slInt81 := g.Slice[int8]{1, 2, 3}
+	slInt82 := g.Slice[int8]{1, 2, 3}
+	if !slInt81.Eq(slInt82) {
+		t.Errorf("Test 10: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of int16 type
+	slInt161 := g.Slice[int16]{1, 2, 3}
+	slInt162 := g.Slice[int16]{1, 2, 3}
+	if !slInt161.Eq(slInt162) {
+		t.Errorf("Test 11: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of int32 type
+	slInt321 := g.Slice[int32]{1, 2, 3}
+	slInt322 := g.Slice[int32]{1, 2, 3}
+	if !slInt321.Eq(slInt322) {
+		t.Errorf("Test 12: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of int64 type
+	slInt641 := g.Slice[int64]{1, 2, 3}
+	slInt642 := g.Slice[int64]{1, 2, 3}
+	if !slInt641.Eq(slInt642) {
+		t.Errorf("Test 13: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of uint type
+	slUint1 := g.Slice[uint]{1, 2, 3}
+	slUint2 := g.Slice[uint]{1, 2, 3}
+	if !slUint1.Eq(slUint2) {
+		t.Errorf("Test 14: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of uint8 type
+	slUint81 := g.Slice[uint8]{1, 2, 3}
+	slUint82 := g.Slice[uint8]{1, 2, 3}
+	if !slUint81.Eq(slUint82) {
+		t.Errorf("Test 15: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of uint16 type
+	slUint161 := g.Slice[uint16]{1, 2, 3}
+	slUint162 := g.Slice[uint16]{1, 2, 3}
+	if !slUint161.Eq(slUint162) {
+		t.Errorf("Test 16: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of uint32 type
+	slUint321 := g.Slice[uint32]{1, 2, 3}
+	slUint322 := g.Slice[uint32]{1, 2, 3}
+	if !slUint321.Eq(slUint322) {
+		t.Errorf("Test 17: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of uint64 type
+	slUint641 := g.Slice[uint64]{1, 2, 3}
+	slUint642 := g.Slice[uint64]{1, 2, 3}
+	if !slUint641.Eq(slUint642) {
+		t.Errorf("Test 18: Expected slices to be equal")
+	}
+
+	// Test case: Function returns true for equal slices of float32 type
+	slFloat321 := g.Slice[float32]{1.1, 2.2, 3.3}
+	slFloat322 := g.Slice[float32]{1.1, 2.2, 3.3}
+	if !slFloat321.Eq(slFloat322) {
+		t.Errorf("Test 19: Expected slices to be equal")
 	}
 }
 
@@ -1247,39 +1440,131 @@ func testSliceAsAny[T any](t *testing.T, sl g.Slice[T], expected []any) {
 }
 
 func TestSliceLess(t *testing.T) {
-	// Test 1: Comparing two Int elements
-	slice1 := g.Slice[g.Int]{1, 2, 3}
-	result1 := slice1.Less(0, 1)
-
-	expectedResult1 := true
-	if result1 != expectedResult1 {
-		t.Errorf("Test 1: Expected %t, got %t", expectedResult1, result1)
+	// Test case 1: Comparing two Int elements
+	sliceInt := g.Slice[g.Int]{1, 2, 3}
+	resultInt := sliceInt.Less(0, 1)
+	expectedResultInt := true
+	if resultInt != expectedResultInt {
+		t.Errorf("Test 1: Expected %t, got %t", expectedResultInt, resultInt)
 	}
 
-	// Test 2: Comparing two string elements
-	slice2 := g.Slice[g.String]{"apple", "banana", "orange"}
-	result2 := slice2.Less(0, 1)
-
-	expectedResult2 := true
-	if result2 != expectedResult2 {
-		t.Errorf("Test 2: Expected %t, got %t", expectedResult2, result2)
+	// Test case 2: Comparing two String elements
+	sliceString := g.Slice[g.String]{"apple", "banana", "orange"}
+	resultString := sliceString.Less(0, 1)
+	expectedResultString := true
+	if resultString != expectedResultString {
+		t.Errorf("Test 2: Expected %t, got %t", expectedResultString, resultString)
 	}
 
-	// Test 3: Comparing Int and int elements
-	slice3 := g.Slice[any]{1, 2.5, 3}
-	result3 := slice3.Less(0, 1)
-
-	expectedResult3 := false
-	if result3 != expectedResult3 {
-		t.Errorf("Test 3: Expected %t, got %t", expectedResult3, result3)
+	// Test case 3: Comparing Int and int elements
+	sliceMixed := g.Slice[any]{1, 2.5, 3}
+	resultMixed := sliceMixed.Less(0, 1)
+	expectedResultMixed := false
+	if resultMixed != expectedResultMixed {
+		t.Errorf("Test 3: Expected %t, got %t", expectedResultMixed, resultMixed)
 	}
 
-	// Test 4: Comparing two float elements
-	slice4 := g.Slice[g.Float]{1.2, 2.5, 3.1}
-	result4 := slice4.Less(0, 1)
+	// Test case 4: Comparing two Float elements
+	sliceFloat := g.Slice[g.Float]{1.2, 2.5, 3.1}
+	resultFloat := sliceFloat.Less(0, 1)
+	expectedResultFloat := true
+	if resultFloat != expectedResultFloat {
+		t.Errorf("Test 4: Expected %t, got %t", expectedResultFloat, resultFloat)
+	}
 
-	expectedResult4 := true
-	if result4 != expectedResult4 {
-		t.Errorf("Test 4: Expected %t, got %t", expectedResult4, result4)
+	// Test case 5: Comparing two Bool elements
+	sliceBool := g.Slice[bool]{true, false}
+	resultBool := sliceBool.Less(0, 1)
+	expectedResultBool := false
+	if resultBool != expectedResultBool {
+		t.Errorf("Test 5: Expected %t, got %t", expectedResultBool, resultBool)
+	}
+
+	// Test case 6: Comparing two Uint elements
+	sliceUint := g.Slice[uint]{1, 2, 3}
+	resultUint := sliceUint.Less(0, 1)
+	expectedResultUint := true
+	if resultUint != expectedResultUint {
+		t.Errorf("Test 6: Expected %t, got %t", expectedResultUint, resultUint)
+	}
+
+	// Test case 7: Comparing two Uint8 elements
+	sliceUint8 := g.Slice[uint8]{1, 2, 3}
+	resultUint8 := sliceUint8.Less(0, 1)
+	expectedResultUint8 := true
+	if resultUint8 != expectedResultUint8 {
+		t.Errorf("Test 7: Expected %t, got %t", expectedResultUint8, resultUint8)
+	}
+
+	// Test case 8: Comparing two Uint16 elements
+	sliceUint16 := g.Slice[uint16]{1, 2, 3}
+	resultUint16 := sliceUint16.Less(0, 1)
+	expectedResultUint16 := true
+	if resultUint16 != expectedResultUint16 {
+		t.Errorf("Test 8: Expected %t, got %t", expectedResultUint16, resultUint16)
+	}
+
+	// Test case 9: Comparing two Uint32 elements
+	sliceUint32 := g.Slice[uint32]{1, 2, 3}
+	resultUint32 := sliceUint32.Less(0, 1)
+	expectedResultUint32 := true
+	if resultUint32 != expectedResultUint32 {
+		t.Errorf("Test 9: Expected %t, got %t", expectedResultUint32, resultUint32)
+	}
+
+	// Test case 10: Comparing two Uint64 elements
+	sliceUint64 := g.Slice[uint64]{1, 2, 3}
+	resultUint64 := sliceUint64.Less(0, 1)
+	expectedResultUint64 := true
+	if resultUint64 != expectedResultUint64 {
+		t.Errorf("Test 10: Expected %t, got %t", expectedResultUint64, resultUint64)
+	}
+
+	// Test case 11: Comparing two Int8 elements
+	sliceInt8 := g.Slice[int8]{1, 2, 3}
+	resultInt8 := sliceInt8.Less(0, 1)
+	expectedResultInt8 := true
+	if resultInt8 != expectedResultInt8 {
+		t.Errorf("Test 11: Expected %t, got %t", expectedResultInt8, resultInt8)
+	}
+
+	// Test case 12: Comparing two Int16 elements
+	sliceInt16 := g.Slice[int16]{1, 2, 3}
+	resultInt16 := sliceInt16.Less(0, 1)
+	expectedResultInt16 := true
+	if resultInt16 != expectedResultInt16 {
+		t.Errorf("Test 12: Expected %t, got %t", expectedResultInt16, resultInt16)
+	}
+
+	// Test case 13: Comparing two Int32 elements
+	sliceInt32 := g.Slice[int32]{1, 2, 3}
+	resultInt32 := sliceInt32.Less(0, 1)
+	expectedResultInt32 := true
+	if resultInt32 != expectedResultInt32 {
+		t.Errorf("Test 13: Expected %t, got %t", expectedResultInt32, resultInt32)
+	}
+
+	// Test case 14: Comparing two Int64 elements
+	sliceInt64 := g.Slice[int64]{1, 2, 3}
+	resultInt64 := sliceInt64.Less(0, 1)
+	expectedResultInt64 := true
+	if resultInt64 != expectedResultInt64 {
+		t.Errorf("Test 14: Expected %t, got %t", expectedResultInt64, resultInt64)
+	}
+
+	// Test case 15: Comparing two Float32 elements
+	sliceFloat32 := g.Slice[float32]{1.2, 2.5, 3.1}
+	resultFloat32 := sliceFloat32.Less(0, 1)
+	expectedResultFloat32 := true
+	if resultFloat32 != expectedResultFloat32 {
+		t.Errorf("Test 15: Expected %t, got %t", expectedResultFloat32, resultFloat32)
+	}
+
+	// Test case 16: Comparing two Float64 elements
+	sliceFloat64 := g.Slice[float64]{1.2, 2.5, 3.1}
+	resultFloat64 := sliceFloat64.Less(0, 1)
+	expectedResultFloat64 := true
+	if resultFloat64 != expectedResultFloat64 {
+		t.Errorf("Test 16: Expected %t, got %t", expectedResultFloat64, resultFloat64)
 	}
 }

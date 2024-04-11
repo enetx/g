@@ -89,20 +89,20 @@ func (sl Slice[T]) Iter() SeqSlice[T] { return ToSeqSlice(sl) }
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
 func (sl Slice[T]) AsAny() Slice[any] { return SliceMap(sl, func(t T) any { return any(t) }) }
 
-// Counter returns an unordered Map with the counts of each unique element in the slice.
+// Counter returns an ordered Map with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in an
 // Slice.
 //
 // Returns:
 //
-// - Map[any, int]: An unordered Map with keys representing the unique elements in the Slice
+// - MapOrd[T, uint]: An ordered Map with keys representing the unique elements in the Slice
 // and values representing the counts of those elements.
 //
 // Example usage:
 //
 //	slice := g.Slice[int]{1, 2, 3, 1, 2, 1}
 //	counts := slice.Counter()
-//	// The counts unordered Map will contain:
+//	// The counts ordered Map will contain:
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
@@ -146,13 +146,44 @@ func (sl Slice[T]) Fill(val T) {
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) int {
-	for i, v := range sl {
-		if reflect.DeepEqual(v, val) {
-			return i
-		}
+	switch s := any(sl).(type) {
+	case Slice[Int]:
+		return slices.Index(s, any(val).(Int))
+	case Slice[String]:
+		return slices.Index(s, any(val).(String))
+	case Slice[Float]:
+		return slices.Index(s, any(val).(Float))
+	case Slice[string]:
+		return slices.Index(s, any(val).(string))
+	case Slice[bool]:
+		return slices.Index(s, any(val).(bool))
+	case Slice[int]:
+		return slices.Index(s, any(val).(int))
+	case Slice[int8]:
+		return slices.Index(s, any(val).(int8))
+	case Slice[int16]:
+		return slices.Index(s, any(val).(int16))
+	case Slice[int32]:
+		return slices.Index(s, any(val).(int32))
+	case Slice[int64]:
+		return slices.Index(s, any(val).(int64))
+	case Slice[uint]:
+		return slices.Index(s, any(val).(uint))
+	case Slice[uint8]:
+		return slices.Index(s, any(val).(uint8))
+	case Slice[uint16]:
+		return slices.Index(s, any(val).(uint16))
+	case Slice[uint32]:
+		return slices.Index(s, any(val).(uint32))
+	case Slice[uint64]:
+		return slices.Index(s, any(val).(uint64))
+	case Slice[float32]:
+		return slices.Index(s, any(val).(float32))
+	case Slice[float64]:
+		return slices.Index(s, any(val).(float64))
+	default:
+		return slices.IndexFunc(sl, func(v T) bool { return reflect.DeepEqual(v, val) })
 	}
-
-	return -1
 }
 
 // RandomSample returns a new slice containing a random sample of elements from the original slice.
@@ -389,30 +420,13 @@ func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 // of the slice.
 func (sl Slice[T]) Get(index int) T { return sl[sl.bound(index)] }
 
-// Count returns the count of the given element in the slice.
-func (sl Slice[T]) Count(elem T) int {
-	if sl.Empty() {
-		return 0
-	}
-
-	var counter int
-
-	for _, v := range sl {
-		if reflect.DeepEqual(v, elem) {
-			counter++
-		}
-	}
-
-	return counter
-}
-
 // Max returns the maximum element in the slice, assuming elements are comparable.
 func (sl Slice[T]) Max() T {
 	if sl.Empty() {
 		return *new(T)
 	}
 
-	maxi := sl.Get(0)
+	maxi := sl[0]
 
 	for _, v := range sl {
 		if sl.Less(sl.Index(maxi), sl.Index(v)) {
@@ -429,7 +443,7 @@ func (sl Slice[T]) Min() T {
 		return *new(T)
 	}
 
-	mini := sl.Get(0)
+	mini := sl[0]
 
 	for _, v := range sl {
 		if sl.Less(sl.Index(v), sl.Index(mini)) {
@@ -501,7 +515,7 @@ func (sl Slice[T]) Sort() { sort.Sort(sl) }
 // Example usage:
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
-// sl.SortBy(func(a, j int) bool { return sl[i] < sl[j] }) // sorts in ascending order.
+// sl.SortBy(func(a, b int) bool { return a < b }) // sorts in ascending order.
 func (sl Slice[T]) SortBy(fn func(a, b T) bool) {
 	sort.Slice(sl, func(i, j int) bool { return fn(sl[i], sl[j]) })
 }
@@ -674,17 +688,44 @@ func (sl Slice[T]) LastIndex() int {
 
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
-	if len(sl) != len(other) {
-		return false
+	switch o := any(other).(type) {
+	case Slice[Int]:
+		return slices.Equal(any(sl).(Slice[Int]), o)
+	case Slice[String]:
+		return slices.Equal(any(sl).(Slice[String]), o)
+	case Slice[Float]:
+		return slices.Equal(any(sl).(Slice[Float]), o)
+	case Slice[int]:
+		return slices.Equal(any(sl).(Slice[int]), o)
+	case Slice[string]:
+		return slices.Equal(any(sl).(Slice[string]), o)
+	case Slice[bool]:
+		return slices.Equal(any(sl).(Slice[bool]), o)
+	case Slice[int8]:
+		return slices.Equal(any(sl).(Slice[int8]), o)
+	case Slice[int16]:
+		return slices.Equal(any(sl).(Slice[int16]), o)
+	case Slice[int32]:
+		return slices.Equal(any(sl).(Slice[int32]), o)
+	case Slice[int64]:
+		return slices.Equal(any(sl).(Slice[int64]), o)
+	case Slice[uint]:
+		return slices.Equal(any(sl).(Slice[uint]), o)
+	case Slice[uint8]:
+		return slices.Equal(any(sl).(Slice[uint8]), o)
+	case Slice[uint16]:
+		return slices.Equal(any(sl).(Slice[uint16]), o)
+	case Slice[uint32]:
+		return slices.Equal(any(sl).(Slice[uint32]), o)
+	case Slice[uint64]:
+		return slices.Equal(any(sl).(Slice[uint64]), o)
+	case Slice[float32]:
+		return slices.Equal(any(sl).(Slice[float32]), o)
+	case Slice[float64]:
+		return slices.Equal(any(sl).(Slice[float64]), o)
+	default:
+		return slices.EqualFunc(sl, other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
 	}
-
-	for index, val := range sl {
-		if !reflect.DeepEqual(val, other[index]) {
-			return false
-		}
-	}
-
-	return true
 }
 
 // String returns a string representation of the slice.
@@ -716,13 +757,8 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
-	seen := make(map[any]struct{}, len(sl))
-	for _, v := range sl {
-		seen[v] = struct{}{}
-	}
-
 	for _, v := range values {
-		if _, ok := seen[v]; ok {
+		if sl.Contains(v) {
 			return true
 		}
 	}
@@ -736,13 +772,8 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 		return false
 	}
 
-	seen := make(map[any]struct{}, len(sl))
-	for _, v := range sl {
-		seen[v] = struct{}{}
-	}
-
 	for _, v := range values {
-		if _, ok := seen[v]; !ok {
+		if !sl.Contains(v) {
 			return false
 		}
 	}
@@ -827,13 +858,57 @@ func (sl Slice[T]) Less(i, j int) bool {
 		if elemJ, ok := elemJ.(Float); ok {
 			return elemI.Lt(elemJ)
 		}
+	case string:
+		if elemJ, ok := elemJ.(string); ok {
+			return elemI < elemJ
+		}
+	case bool:
+		if elemJ, ok := elemJ.(bool); ok {
+			return !elemI && elemJ
+		}
+	case uint:
+		if elemJ, ok := elemJ.(uint); ok {
+			return elemI < elemJ
+		}
+	case uint8:
+		if elemJ, ok := elemJ.(uint8); ok {
+			return elemI < elemJ
+		}
+	case uint16:
+		if elemJ, ok := elemJ.(uint16); ok {
+			return elemI < elemJ
+		}
+	case uint32:
+		if elemJ, ok := elemJ.(uint32); ok {
+			return elemI < elemJ
+		}
+	case uint64:
+		if elemJ, ok := elemJ.(uint64); ok {
+			return elemI < elemJ
+		}
 	case int:
 		if elemJ, ok := elemJ.(int); ok {
 			return elemI < elemJ
 		}
-	case string:
-		if elemJ, ok := elemJ.(string); ok {
+	case int8:
+		if elemJ, ok := elemJ.(int8); ok {
 			return elemI < elemJ
+		}
+	case int16:
+		if elemJ, ok := elemJ.(int16); ok {
+			return elemI < elemJ
+		}
+	case int32:
+		if elemJ, ok := elemJ.(int32); ok {
+			return elemI < elemJ
+		}
+	case int64:
+		if elemJ, ok := elemJ.(int64); ok {
+			return elemI < elemJ
+		}
+	case float32:
+		if elemJ, ok := elemJ.(float32); ok {
+			return Float(elemI).Lt(Float(elemJ))
 		}
 	case float64:
 		if elemJ, ok := elemJ.(float64); ok {
