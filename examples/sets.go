@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 
 	s.Iter().
 		Filter(func(val int) bool { return val%2 == 0 }).
-		Exclude(filters.IsZero).
+		Exclude(f.IsZero).
 		Inspect(func(i int) {
 			fmt.Println(i)
 		}).

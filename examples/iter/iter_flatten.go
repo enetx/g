@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
 
 func main() {
@@ -46,8 +46,8 @@ func main() {
 		Flatten().
 		Collect() // g.Slice[any]{"a", "b", "c", "d", "f", "g"}
 
-	fmt.Println(ch.Contains("x"))                 // false
-	fmt.Println(ch.Contains("a"))                 // true
-	fmt.Println(ch.Contains(4444))                // false
-	fmt.Println(ch.ContainsBy("b", filters.IsEq)) // true
+	fmt.Println(ch.Contains("x"))              // false
+	fmt.Println(ch.Contains("a"))              // true
+	fmt.Println(ch.Contains(4444))             // false
+	fmt.Println(ch.ContainsBy(f.Eq[any]("c"))) // true
 }

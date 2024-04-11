@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
 
 func main() {
@@ -19,10 +19,10 @@ func main() {
 	switch {
 	case r.IsOk():
 		r.Ok().
-			Skip(3).                 // Skip the first 3 lines
-			Exclude(filters.IsZero). // Exclude lines that are empty or contain only whitespaces
-			Dedup().                 // Remove consecutive duplicate lines
-			Map(g.String.Upper).     // Convert each line to uppercase
+			Skip(3).             // Skip the first 3 lines
+			Exclude(f.IsZero).   // Exclude lines that are empty or contain only whitespaces
+			Dedup().             // Remove consecutive duplicate lines
+			Map(g.String.Upper). // Convert each line to uppercase
 			Range(func(s g.String) bool {
 				if s.Contains("COULD") { // Check if the line contains "COULD"
 					return false

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
 
 func TestSliceIterFromChannel(t *testing.T) {
@@ -578,7 +578,7 @@ func TestSliceIterMap(t *testing.T) {
 
 func TestSliceIterExcludeZeroValues(t *testing.T) {
 	sl := g.Slice[int]{1, 2, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10}
-	sl = sl.Iter().Exclude(filters.IsZero).Collect()
+	sl = sl.Iter().Exclude(f.IsZero).Collect()
 
 	if sl.Len() != 10 {
 		t.Errorf("Expected 10, got %d", sl.Len())

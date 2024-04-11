@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
 
 func main() {
@@ -14,12 +14,17 @@ func main() {
 		Print()
 
 	// Example 2: Chained filtering on a slice of strings and print the result
-	fi := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").Iter()
+	fi := g.SliceOf[string]("bbb", "ddd", "xxx", "aaa", "ccc").Iter()
 
-	fi = fi.Filter(func(s g.String) bool { return s.Ne("aaa") })
-	fi = fi.Filter(func(s g.String) bool { return s.Ne("xxx") })
-	fi = fi.Filter(func(s g.String) bool { return s.Ne("ddd") })
-	fi = fi.Filter(func(s g.String) bool { return s.Ne("bbb") })
+	fi = fi.Filter(f.Ne("aaa"))
+	fi = fi.Filter(f.Ne("xxx"))
+	fi = fi.Filter(f.Ne("ddd"))
+	fi = fi.Filter(f.Ne("bbb"))
+
+	// fi = fi.Filter(func(s string) bool { return s != "aaa" })
+	// fi = fi.Filter(func(s string) bool { return s != "xxx" })
+	// fi = fi.Filter(func(s string) bool { return s != "ddd" })
+	// fi = fi.Filter(func(s string) bool { return s != "bbb" })
 
 	fi.Collect().Print()
 
@@ -33,7 +38,7 @@ func main() {
 	// Example 4: Exclude empty strings from a slice and print the result
 	g.SliceOf[g.String]("", "bbb", "ddd", "", "aaa", "ccc").
 		Iter().
-		Exclude(filters.IsZero).
+		Exclude(f.IsZero).
 		Collect().
 		Print()
 }

@@ -5,14 +5,15 @@ import (
 	"strings"
 
 	"github.com/enetx/g"
-	"github.com/enetx/g/filters"
+	"github.com/enetx/g/f"
 )
-
-func eq[T comparable](s g.Slice[T]) bool {
-}
 
 func main() {
 	slice := g.Slice[int]{1, 2, 3, 4}
+
+	slice.Iter().Filter(f.Gt(2)).Collect().Print() // Slice[3, 4]
+	slice.Iter().Filter(f.Eq(2)).Collect().Print() // Slice[2]
+	slice.Iter().Filter(f.Ne(2)).Collect().Print() // Slice[1, 3, 4]
 
 	fmt.Println(slice.Iter().All(func(i int) bool { return i != 5 }))
 	fmt.Println(slice.Iter().Any(func(i int) bool { return i == 5 }))
@@ -77,7 +78,7 @@ func main() {
 	slicea.Print()
 
 	slice = g.Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
-	slice = slice.Iter().Exclude(filters.IsZero).Collect()
+	slice = slice.Iter().Exclude(f.IsZero).Collect()
 
 	slice.DeleteInPlace(0)
 	slice.Print()
