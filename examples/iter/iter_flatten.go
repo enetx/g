@@ -24,7 +24,8 @@ func main() {
 		Iter().    // creates an iterator for subsequent operations
 		Flatten(). // flattens nested slices, transforming them into a flat slice
 		Collect(). // gathers the elements of the iterator into a new slice.
-		Print()    // outputs the elements of the slice to the console.
+		Print()
+		// outputs the elements of the slice to the console. Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], {1 1}, {2 2}]
 
 	// Example 2: Flatten a slice of strings by individual characters
 	words := g.SliceOf[g.String]("alpha", "beta", "gamma", "💛💚💙💜", "世界")
@@ -37,7 +38,7 @@ func main() {
 		Flatten().
 		Collect().
 		Join().
-		Print()
+		Print() // alphabetagamma💛💚💙💜世界
 
 	// Example 3: Check if the flattened slice contains a specific element
 	ch := g.Slice[g.Slice[string]]{{"a", "b", "c"}, {"d", "f", "g"}}.

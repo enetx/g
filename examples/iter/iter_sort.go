@@ -26,7 +26,7 @@ func main() {
 				// return a.Value < b.Value
 			}).
 		Collect().
-		Print()
+		Print() // MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
 
 	// Example 2: Sort a slice of custom structs and print the result
 	type status struct {
@@ -67,7 +67,6 @@ func main() {
 	g.SliceOf(time.Now().Add(time.Second*20), time.Now()).
 		Iter().
 		SortBy(func(a, b time.Time) bool { return a.Second() < b.Second() }).
-		Dedup().
 		Collect().
 		Print()
 
@@ -76,14 +75,14 @@ func main() {
 		Iter().
 		Sort().
 		Dedup().
-		Filter(f.IsOdd).
+		Filter(f.Odd).
 		Collect().
-		Print()
+		Print() // Slice[1, 3, 5, 7, 9]
 
 	// Example 5: Sort a slice of strings in descending order and print the result
 	g.SliceOf("a", "c", "b").
 		Iter().
 		SortBy(func(a, b string) bool { return a > b }).
 		Collect().
-		Print()
+		Print() // Slice[c, b, a]
 }

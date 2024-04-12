@@ -8,7 +8,7 @@ func main() {
 		Iter().
 		Map(g.String.Upper). // Map each string to its uppercase version
 		Collect().
-		Print()
+		Print() // Slice[, BBB, DDD, , AAA, CCC]
 
 	// Example 2: Map each string in the slice, replacing empty strings with "abc", and print the result
 	g.SliceOf[g.String]("", "bbb", "ddd", "", "aaa", "ccc").
@@ -20,5 +20,5 @@ func main() {
 			return s
 		}).
 		Collect().
-		Print()
+		Print() // Slice[abc, bbb, ddd, abc, aaa, ccc]
 }

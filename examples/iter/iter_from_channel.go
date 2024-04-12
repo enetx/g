@@ -16,8 +16,8 @@ func main() {
 
 	// Convert the channel into an iterator and apply filtering and mapping operations.
 	g.FromChannel(ch).
-		Filter(f.IsEven).                      // Filter even numbers
+		Filter(f.Even).                        // Filter even numbers
 		Map(func(i int) int { return i * 2 }). // Double each element
 		Collect().                             // Collect the results into a slice
-		Print()                                // Print the collected results.
+		Print()                                // Print the collected results: Slice[4, 8]
 }

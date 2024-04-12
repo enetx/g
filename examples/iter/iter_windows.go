@@ -14,7 +14,7 @@ func main() {
 		Collect()   // Collect the resulting windows
 
 	// Print the collected windows
-	fmt.Println(windows)
+	fmt.Println(windows) // [Slice[1, 2] Slice[2, 3] Slice[3, 4]]
 
 	// Convert to iterator
 	g.SliceOf(windows...).Iter()

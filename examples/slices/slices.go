@@ -70,7 +70,7 @@ func main() {
 	slicea.Print()
 
 	slice = g.Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
-	slice = slice.Iter().Exclude(f.IsZero).Collect()
+	slice = slice.Iter().Exclude(f.Zero).Collect()
 
 	slice.DeleteInPlace(0)
 	slice.Print()

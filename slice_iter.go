@@ -5,6 +5,8 @@ import (
 	"iter"
 	"reflect"
 	"sort"
+
+	"github.com/enetx/g/f"
 )
 
 // Pull converts the “push-style” iterator sequence seq
@@ -838,13 +840,45 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
+// works slower
+// func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
+// 	var (
+// 		current V
+// 		equal   = f.Eqd[any]
+// 	)
+
+// 	if f.Comparable(current) {
+// 		equal = f.Eq
+// 	}
+
+// 	return func(yield func(V) bool) {
+// 		seq(func(v V) bool {
+// 			if equal(current)(v) {
+// 				return true
+// 			}
+
+// 			current = v
+// 			return yield(v)
+// 		})
+// 	}
+// }
+
 func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
+	var current V
+	isComparable := f.Comparable(current)
+
 	return func(yield func(V) bool) {
-		var current V
 		seq(func(v V) bool {
-			if reflect.DeepEqual(current, v) {
-				return true
+			if isComparable {
+				if f.Eq[any](current)(v) {
+					return true
+				}
+			} else {
+				if f.Eqd(current)(v) {
+					return true
+				}
 			}
+
 			current = v
 			return yield(v)
 		})

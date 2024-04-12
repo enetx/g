@@ -1570,7 +1570,7 @@ func TestSliceContainsBy(t *testing.T) {
 	}
 }
 
-func TestSliceEqBy(t *testing.T) {
+func TestSliceEqNeBy(t *testing.T) {
 	// Test case 1: Slices are equal using the equality function
 	sl1 := g.Slice[g.Int]{1, 2, 3}
 	sl2 := g.Slice[g.Int]{1, 2, 3}
@@ -1606,6 +1606,28 @@ func TestSliceEqBy(t *testing.T) {
 
 	if !eq3 {
 		t.Errorf("Test 3: Expected true, got false")
+	}
+
+	// Additional tests for NeBy
+
+	// Test case 4: Slices are not equal using the equality function
+	sl7 := g.Slice[g.Int]{1, 2, 3}
+	sl8 := g.Slice[g.Int]{1, 2, 4}
+
+	ne1 := sl7.NeBy(sl8, func(x, y g.Int) bool { return x.Eq(y) })
+
+	if !ne1 {
+		t.Errorf("Test 4: Expected true, got false")
+	}
+
+	// Test case 5: Slices are equal using the equality function
+	sl9 := g.Slice[g.String]{"apple", "banana", "cherry"}
+	sl10 := g.Slice[g.String]{"apple", "banana", "cherry"}
+
+	ne2 := sl9.NeBy(sl10, func(x, y g.String) bool { return x.Eq(y) })
+
+	if ne2 {
+		t.Errorf("Test 5: Expected false, got true")
 	}
 }
 

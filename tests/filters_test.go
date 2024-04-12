@@ -6,108 +6,130 @@ import (
 	"github.com/enetx/g/f"
 )
 
-func TestIsZero(t *testing.T) {
-	// Testing IsZero function with integers
-	if !f.IsZero(0) {
-		t.Errorf("IsZero(0) returned false, expected true")
+func TestComparable(t *testing.T) {
+	tests := []struct {
+		name  string
+		value any
+		want  bool
+	}{
+		{"Int", 10, true},
+		{"String", "Hello", true},
+		{"Slice", []int{1, 2, 3}, false},
+		{"Map", make(map[string]int), false},
+		{"Struct", struct{ X int }{}, true},
+		{"Func", (func())(nil), false},
 	}
-
-	if f.IsZero(5) {
-		t.Errorf("IsZero(5) returned true, expected false")
-	}
-
-	// Testing IsZero function with floats
-	if !f.IsZero(0.0) {
-		t.Errorf("IsZero(0.0) returned false, expected true")
-	}
-
-	if f.IsZero(3.14) {
-		t.Errorf("IsZero(3.14) returned true, expected false")
-	}
-
-	// Testing IsZero function with strings
-	if !f.IsZero("") {
-		t.Errorf("IsZero(\"\") returned false, expected true")
-	}
-
-	if f.IsZero("hello") {
-		t.Errorf("IsZero(\"hello\") returned true, expected false")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := f.Comparable(tt.value); got != tt.want {
+				t.Errorf("Comparable() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestIsEven(t *testing.T) {
-	// Testing IsEven function with positive even integers
-	if !f.IsEven(2) {
-		t.Errorf("IsEven(2) returned false, expected true")
+func TestZero(t *testing.T) {
+	// Testing Zero function with integers
+	if !f.Zero(0) {
+		t.Errorf("Zero(0) returned false, expected true")
 	}
 
-	if !f.IsEven(100) {
-		t.Errorf("IsEven(100) returned false, expected true")
+	if f.Zero(5) {
+		t.Errorf("Zero(5) returned true, expected false")
 	}
 
-	// Testing IsEven function with positive odd integers
-	if f.IsEven(3) {
-		t.Errorf("IsEven(3) returned true, expected false")
+	// Testing Zero function with floats
+	if !f.Zero(0.0) {
+		t.Errorf("Zero(0.0) returned false, expected true")
 	}
 
-	if f.IsEven(101) {
-		t.Errorf("IsEven(101) returned true, expected false")
+	if f.Zero(3.14) {
+		t.Errorf("Zero(3.14) returned true, expected false")
 	}
 
-	// Testing IsEven function with negative even integers
-	if !f.IsEven(-2) {
-		t.Errorf("IsEven(-2) returned false, expected true")
+	// Testing Zero function with strings
+	if !f.Zero("") {
+		t.Errorf("Zero(\"\") returned false, expected true")
 	}
 
-	if !f.IsEven(-100) {
-		t.Errorf("IsEven(-100) returned false, expected true")
-	}
-
-	// Testing IsEven function with negative odd integers
-	if f.IsEven(-3) {
-		t.Errorf("IsEven(-3) returned true, expected false")
-	}
-
-	if f.IsEven(-101) {
-		t.Errorf("IsEven(-101) returned true, expected false")
+	if f.Zero("hello") {
+		t.Errorf("Zero(\"hello\") returned true, expected false")
 	}
 }
 
-func TestIsOdd(t *testing.T) {
-	// Testing IsOdd function with positive odd integers
-	if !f.IsOdd(3) {
-		t.Errorf("IsOdd(3) returned false, expected true")
+func TestEven(t *testing.T) {
+	// Testing Even function with positive even integers
+	if !f.Even(2) {
+		t.Errorf("Even(2) returned false, expected true")
 	}
 
-	if !f.IsOdd(101) {
-		t.Errorf("IsOdd(101) returned false, expected true")
+	if !f.Even(100) {
+		t.Errorf("Even(100) returned false, expected true")
 	}
 
-	// Testing IsOdd function with positive even integers
-	if f.IsOdd(2) {
-		t.Errorf("IsOdd(2) returned true, expected false")
+	// Testing Even function with positive odd integers
+	if f.Even(3) {
+		t.Errorf("Even(3) returned true, expected false")
 	}
 
-	if f.IsOdd(100) {
-		t.Errorf("IsOdd(100) returned true, expected false")
+	if f.Even(101) {
+		t.Errorf("Even(101) returned true, expected false")
 	}
 
-	// Testing IsOdd function with negative odd integers
-	if !f.IsOdd(-3) {
-		t.Errorf("IsOdd(-3) returned false, expected true")
+	// Testing Even function with negative even integers
+	if !f.Even(-2) {
+		t.Errorf("Even(-2) returned false, expected true")
 	}
 
-	if !f.IsOdd(-101) {
-		t.Errorf("IsOdd(-101) returned false, expected true")
+	if !f.Even(-100) {
+		t.Errorf("Even(-100) returned false, expected true")
 	}
 
-	// Testing IsOdd function with negative even integers
-	if f.IsOdd(-2) {
-		t.Errorf("IsOdd(-2) returned true, expected false")
+	// Testing Even function with negative odd integers
+	if f.Even(-3) {
+		t.Errorf("Even(-3) returned true, expected false")
 	}
 
-	if f.IsOdd(-100) {
-		t.Errorf("IsOdd(-100) returned true, expected false")
+	if f.Even(-101) {
+		t.Errorf("Even(-101) returned true, expected false")
+	}
+}
+
+func TestOdd(t *testing.T) {
+	// Testing Odd function with positive odd integers
+	if !f.Odd(3) {
+		t.Errorf("Odd(3) returned false, expected true")
+	}
+
+	if !f.Odd(101) {
+		t.Errorf("Odd(101) returned false, expected true")
+	}
+
+	// Testing Odd function with positive even integers
+	if f.Odd(2) {
+		t.Errorf("Odd(2) returned true, expected false")
+	}
+
+	if f.Odd(100) {
+		t.Errorf("Odd(100) returned true, expected false")
+	}
+
+	// Testing Odd function with negative odd integers
+	if !f.Odd(-3) {
+		t.Errorf("Odd(-3) returned false, expected true")
+	}
+
+	if !f.Odd(-101) {
+		t.Errorf("Odd(-101) returned false, expected true")
+	}
+
+	// Testing Odd function with negative even integers
+	if f.Odd(-2) {
+		t.Errorf("Odd(-2) returned true, expected false")
+	}
+
+	if f.Odd(-100) {
+		t.Errorf("Odd(-100) returned true, expected false")
 	}
 }
 
@@ -135,27 +157,27 @@ func TestNe(t *testing.T) {
 	}
 }
 
-func TestEqDeep(t *testing.T) {
+func TestEqd(t *testing.T) {
 	// Test case 1: Test deep equality of slices
 	slice1 := []int{1, 2, 3}
 	slice2 := []int{1, 2, 3}
-	if !f.EqDeep(slice1)(slice2) {
+	if !f.Eqd(slice1)(slice2) {
 		t.Errorf("Test case 1: Expected true, got false")
 	}
 
 	// Test case 2: Test deep inequality of maps
 	map1 := map[string]int{"a": 1, "b": 2}
 	map2 := map[string]int{"a": 1, "c": 3}
-	if f.EqDeep(map1)(map2) {
+	if f.Eqd(map1)(map2) {
 		t.Errorf("Test case 2: Expected false, got true")
 	}
 }
 
-func TestNeDeep(t *testing.T) {
+func TestNed(t *testing.T) {
 	// Test case 1: Test deep inequality of slices
 	slice1 := []int{1, 2, 3}
 	slice2 := []int{1, 2, 4}
-	if !f.NeDeep(slice1)(slice2) {
+	if !f.Ned(slice1)(slice2) {
 		t.Errorf("Test case 1: Expected true, got false")
 	}
 
@@ -167,7 +189,7 @@ func TestNeDeep(t *testing.T) {
 
 	person1 := Person{Name: "Alice", Age: 30}
 	person2 := Person{Name: "Bob", Age: 25}
-	if !f.NeDeep(person1)(person2) {
+	if !f.Ned(person1)(person2) {
 		t.Errorf("Test case 2: Expected true, got false")
 	}
 }
@@ -184,14 +206,14 @@ func TestGt(t *testing.T) {
 	}
 }
 
-func TestGtEq(t *testing.T) {
+func TestGte(t *testing.T) {
 	// Test case 1: Test greater than or equal to comparison of integers
-	if !f.GtEq(10)(10) {
+	if !f.Gte(10)(10) {
 		t.Errorf("Test case 1: Expected true, got false")
 	}
 
 	// Test case 2: Test greater than or equal to comparison of floats
-	if !f.GtEq(3.14)(3.14) {
+	if !f.Gte(3.14)(3.14) {
 		t.Errorf("Test case 2: Expected true, got false")
 	}
 }
@@ -208,14 +230,14 @@ func TestLt(t *testing.T) {
 	}
 }
 
-func TestLtEq(t *testing.T) {
+func TestLte(t *testing.T) {
 	// Test case 1: Test less than or equal to comparison of integers
-	if !f.LtEq(5)(5) {
+	if !f.Lte(5)(5) {
 		t.Errorf("Test case 1: Expected true, got false")
 	}
 
 	// Test case 2: Test less than or equal to comparison of floats
-	if !f.LtEq(3.14)(3.14) {
+	if !f.Lte(3.14)(3.14) {
 		t.Errorf("Test case 2: Expected true, got false")
 	}
 }

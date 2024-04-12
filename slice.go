@@ -154,7 +154,7 @@ func (sl Slice[T]) Index(val T) int {
 	case Slice[float64]:
 		return slices.Index(s, any(val).(float64))
 	default:
-		return sl.IndexBy(f.EqDeep(val))
+		return sl.IndexBy(f.Eqd(val))
 	}
 }
 
@@ -796,6 +796,13 @@ func (sl Slice[T]) Last() T { return sl.Get(-1) }
 
 // Ne returns true if the slice is not equal to the provided other slice.
 func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
+
+// NeBy reports whether two slices are not equal using an inequality
+// function on each pair of elements. If the lengths are different,
+// NeBy returns true. Otherwise, the elements are compared in
+// increasing index order, and the comparison stops at the first index
+// for which fn returns true.
+func (sl Slice[T]) NeBy(other Slice[T], fn func(x, y T) bool) bool { return !sl.EqBy(other, fn) }
 
 // NotEmpty returns true if the slice is not empty.
 func (sl Slice[T]) NotEmpty() bool { return !sl.Empty() }

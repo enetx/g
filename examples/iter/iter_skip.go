@@ -12,5 +12,5 @@ func main() {
 		Skip(3).
 		Collect()
 
-	fmt.Println(iter)
+	fmt.Println(iter) // Slice[4, 5, 6]
 }

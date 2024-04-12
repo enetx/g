@@ -16,5 +16,5 @@ func main() {
 				// Folding function: concatenate each element in the iterator with the accumulator
 				return g.Sprintf("(%s + %s)", acc, val)
 			}).
-		Print()
+		Print() // (((((0 + 1) + 2) + 3) + 4) + 5)
 }
