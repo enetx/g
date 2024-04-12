@@ -938,3 +938,34 @@ func TestSliceIterInspect(t *testing.T) {
 		t.Errorf("Expected %v, got %v", s, inspectedElements)
 	}
 }
+
+func TestSliceIterCounter(t *testing.T) {
+	sl1 := g.Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
+	sl2 := g.Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
+
+	expected1 := g.NewMapOrd[int, uint]()
+	expected1.
+		Set(3, 1).
+		Set(5, 1).
+		Set(1, 2).
+		Set(2, 2).
+		Set(4, 3)
+
+	result1 := sl1.Iter().Counter().Collect()
+	if !result1.Eq(expected1) {
+		t.Errorf("Counter() returned %v, expected %v", result1, expected1)
+	}
+
+	// Test with string values
+	expected2 := g.NewMapOrd[string, uint]()
+	expected2.
+		Set("banana", 1).
+		Set("grape", 1).
+		Set("orange", 2).
+		Set("apple", 3)
+
+	result2 := sl2.Iter().Counter().Collect()
+	if !result2.Eq(expected2) {
+		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
+	}
+}

@@ -161,6 +161,24 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 // Count consumes the iterator, counting the number of iterations and returning it.
 func (seq SeqSlice[V]) Count() int { return countSlice(seq) }
 
+// Counter returns a SeqMapOrd[V, uint] with the counts of each unique element in the slice.
+// This function is useful when you want to count the occurrences of each unique element in a slice.
+//
+// Returns:
+//
+// - SeqMapOrd[V, uint]: with keys representing the unique elements in the slice
+// and values representing the counts of those elements.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 1, 2, 1}
+//	counts := slice.Iter().Counter().Collect()
+//	// The counts ordered Map will contain:
+//	// 1 -> 3 (since 1 appears three times)
+//	// 2 -> 2 (since 2 appears two times)
+//	// 3 -> 1 (since 3 appears once)
+func (seq SeqSlice[V]) Counter() SeqMapOrd[V, uint] { return counterSlice(seq) }
+
 // Combinations generates all combinations of length 'n' from the sequence.
 func (seq SeqSlice[V]) Combinations(n int) SeqSlices[V] { return combinations(seq, n) }
 
@@ -1119,6 +1137,18 @@ func countSlice[V any](seq SeqSlice[V]) int {
 	})
 
 	return counter
+}
+
+func counterSlice[V any](seq SeqSlice[V]) SeqMapOrd[V, uint] {
+	result := NewMapOrd[V, uint]()
+	seq(func(v V) bool {
+		r := result.Get(v).UnwrapOrDefault()
+		r++
+		result.Set(v, r)
+		return true
+	})
+
+	return result.Iter()
 }
 
 func partition[V any](seq SeqSlice[V], fn func(V) bool) (Slice[V], Slice[V]) {

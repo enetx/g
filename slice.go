@@ -90,35 +90,6 @@ func (sl Slice[T]) Iter() SeqSlice[T] { return ToSeqSlice(sl) }
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
 func (sl Slice[T]) AsAny() Slice[any] { return SliceMap(sl, func(t T) any { return any(t) }) }
 
-// Counter returns an ordered Map with the counts of each unique element in the slice.
-// This function is useful when you want to count the occurrences of each unique element in an
-// Slice.
-//
-// Returns:
-//
-// - MapOrd[T, uint]: An ordered Map with keys representing the unique elements in the Slice
-// and values representing the counts of those elements.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 1, 2, 1}
-//	counts := slice.Counter()
-//	// The counts ordered Map will contain:
-//	// 1 -> 3 (since 1 appears three times)
-//	// 2 -> 2 (since 2 appears two times)
-//	// 3 -> 1 (since 3 appears once)
-func (sl Slice[T]) Counter() MapOrd[T, uint] {
-	result := NewMapOrd[T, uint](len(sl))
-
-	for _, v := range sl {
-		r := result.Get(v).UnwrapOrDefault()
-		r++
-		result.Set(v, r)
-	}
-
-	return result
-}
-
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same
 // value.
