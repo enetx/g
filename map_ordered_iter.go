@@ -357,7 +357,7 @@ func (seq SeqMapOrd[K, V]) Range(fn func(k K, v V) bool) {
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (seq SeqMapOrd[K, V]) Take(limit uint) SeqMapOrd[K, V] { return takeMapOrd(seq, limit) }
 
-// ToChannel converts the iterator into a channel, optionally with context(s).
+// ToChan converts the iterator into a channel, optionally with context(s).
 //
 // The function converts the key-value pairs from the iterator into a channel, allowing iterative processing
 // using channels. It can be used to stream key-value pairs for concurrent or asynchronous operations.
@@ -384,13 +384,13 @@ func (seq SeqMapOrd[K, V]) Take(limit uint) SeqMapOrd[K, V] { return takeMapOrd(
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
 //
-//	ch := iter.ToChannel(ctx)
+//	ch := iter.ToChan(ctx)
 //	for pair := range ch {
 //	    // Process key-value pair from the channel
 //	}
 //
 // The function converts the iterator into a channel to allow sequential or concurrent processing of key-value pairs.
-func (seq SeqMapOrd[K, V]) ToChannel(ctxs ...context.Context) chan Pair[K, V] {
+func (seq SeqMapOrd[K, V]) ToChan(ctxs ...context.Context) chan Pair[K, V] {
 	ch := make(chan Pair[K, V])
 
 	ctx := context.Background()

@@ -3,7 +3,8 @@ package g
 import (
 	"fmt"
 	"maps"
-	"reflect"
+
+	"github.com/enetx/g/f"
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
@@ -86,7 +87,21 @@ func (m Map[K, V]) Std() map[K]V { return m }
 
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
-	return maps.EqualFunc(m, other, func(x, y V) bool { return reflect.DeepEqual(x, y) })
+	if len(m) != len(other) || m.Empty() {
+		return false
+	}
+
+	key := m.Iter().Take(1).Keys().Collect()[0]
+	comparable := f.Comparable(key) && f.Comparable(m[key])
+
+	for k, v1 := range m {
+		v2, ok := other[k]
+		if !ok || (comparable && !f.Eq[any](v1)(v2)) || (!comparable && !f.Eqd(v1)(v2)) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // String returns a string representation of the Map.

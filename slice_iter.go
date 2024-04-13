@@ -571,7 +571,7 @@ func (seq SeqSlice[V]) SortBy(fn func(a, b V) bool) SeqSlice[V] { return sortbyS
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] { return takeSlice(seq, n) }
 
-// ToChannel converts the iterator into a channel, optionally with context(s).
+// ToChan converts the iterator into a channel, optionally with context(s).
 //
 // The function converts the elements of the iterator into a channel for streaming purposes.
 // Optionally, it accepts context(s) to handle cancellation or timeout scenarios.
@@ -589,13 +589,13 @@ func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] { return takeSlice(seq, n) }
 //	iter := g.Slice[int]{1, 2, 3}.Iter()
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
-//	ch := iter.ToChannel(ctx)
+//	ch := iter.ToChan(ctx)
 //	for val := range ch {
 //	    fmt.Println(val)
 //	}
 //
 // The resulting channel allows streaming elements from the iterator with optional context handling.
-func (seq SeqSlice[V]) ToChannel(ctxs ...context.Context) chan V {
+func (seq SeqSlice[V]) ToChan(ctxs ...context.Context) chan V {
 	ch := make(chan V)
 
 	ctx := context.Background()
@@ -696,7 +696,7 @@ func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq,
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
 func (seq SeqSlice[V]) Windows(n int) SeqSlices[V] { return windows(seq, n) }
 
-// FromChannel converts a channel into an iterator.
+// FromChan converts a channel into an iterator.
 //
 // This function takes a channel as input and converts its elements into an iterator,
 // allowing seamless integration of channels into iterator-based processing pipelines.
@@ -720,7 +720,7 @@ func (seq SeqSlice[V]) Windows(n int) SeqSlices[V] { return windows(seq, n) }
 //	}()
 //
 //	// Convert the channel into an iterator and apply filtering and mapping operations.
-//	g.FromChannel(ch).
+//	g.FromChan(ch).
 //		Filter(func(i int) bool { return i%2 == 0 }). // Filter even numbers.
 //		Map(func(i int) int { return i * 2 }).        // Double each element.
 //		Collect().                                    // Collect the results into a slice.
@@ -730,7 +730,7 @@ func (seq SeqSlice[V]) Windows(n int) SeqSlices[V] { return windows(seq, n) }
 //
 // The resulting iterator will yield elements from the provided channel, filtering out odd numbers,
 // doubling each even number, and finally collecting the results into a slice.
-func FromChannel[V any](ch <-chan V) SeqSlice[V] {
+func FromChan[V any](ch <-chan V) SeqSlice[V] {
 	return func(yield func(V) bool) {
 		for v := range ch {
 			if !yield(v) {
@@ -842,18 +842,16 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 
 // works slower
 // func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
-// 	var (
-// 		current V
-// 		equal   = f.Eqd[any]
-// 	)
+// 	var current V
 
+// 	eq := f.Eqd[any]
 // 	if f.Comparable(current) {
-// 		equal = f.Eq
+// 		eq = f.Eq
 // 	}
 
 // 	return func(yield func(V) bool) {
 // 		seq(func(v V) bool {
-// 			if equal(current)(v) {
+// 			if eq(current)(v) {
 // 				return true
 // 			}
 
@@ -865,11 +863,11 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 
 func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	var current V
-	isComparable := f.Comparable(current)
+	comparable := f.Comparable(current)
 
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
-			if isComparable {
+			if comparable {
 				if f.Eq[any](current)(v) {
 					return true
 				}

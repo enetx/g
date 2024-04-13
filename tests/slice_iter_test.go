@@ -10,7 +10,7 @@ import (
 	"github.com/enetx/g/f"
 )
 
-func TestSliceIterFromChannel(t *testing.T) {
+func TestSliceIterFromChan(t *testing.T) {
 	// Create a channel and populate it with some test data
 	ch := make(chan int)
 	go func() {
@@ -21,7 +21,7 @@ func TestSliceIterFromChannel(t *testing.T) {
 	}()
 
 	// Convert the channel into an iterator
-	iter := g.FromChannel(ch)
+	iter := g.FromChan(ch)
 
 	// Create a slice to collect elements from the iterator
 	var collected []int
@@ -266,6 +266,29 @@ func TestSliceIterDedup(t *testing.T) {
 
 	if !reflect.DeepEqual(resultFloat64, expectedResultFloat64) {
 		t.Errorf("Dedup failed for float64. Expected %v, got %v", expectedResultFloat64, resultFloat64)
+	}
+
+	// Test case 4: Dedup with consecutive duplicate elements for custom non-comparable struct
+	type myStruct struct {
+		val []int
+	}
+
+	sliceStruct := g.Slice[myStruct]{
+		{val: []int{1}},
+		{val: []int{2}},
+		{val: []int{2}},
+		{val: []int{3}},
+		{val: []int{3}},
+		{val: []int{4}},
+	}
+
+	expectedResultStruct := g.Slice[myStruct]{{val: []int{1}}, {val: []int{2}}, {val: []int{3}}, {val: []int{4}}}
+
+	iterStruct := sliceStruct.Iter().Dedup()
+	resultStruct := iterStruct.Collect()
+
+	if !reflect.DeepEqual(resultStruct, expectedResultStruct) {
+		t.Errorf("Dedup failed for custom struct. Expected %v, got %v", expectedResultStruct, resultStruct)
 	}
 }
 
@@ -887,7 +910,7 @@ func TestSliceIterToChannel(t *testing.T) {
 	// Test case 1: Channel streaming without cancellation
 	seq := g.Slice[int]{1, 2, 3}
 
-	ch := seq.Iter().ToChannel()
+	ch := seq.Iter().ToChan()
 	var result []int
 	for val := range ch {
 		result = append(result, val)
@@ -907,7 +930,7 @@ func TestSliceIterToChannel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Ensure cancellation to avoid goroutine leaks.
 
-	ch = seq.Iter().ToChannel(ctx)
+	ch = seq.Iter().ToChan(ctx)
 	var result2 []int
 	for val := range ch {
 		result2 = append(result2, val)

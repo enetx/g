@@ -225,6 +225,19 @@ func TestMapEq(t *testing.T) {
 	if map1.Eq(map4) {
 		t.Errorf("Test case 3 failed: Maps with different values should not be considered equal")
 	}
+
+	// Test case 4
+	map5 := g.Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
+	map6 := g.Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
+	if map5.Ne(map6) {
+		t.Errorf("Test case 4 failed: Equal maps should be considered equal")
+	}
+
+	// Test case 5
+	map7 := g.Map[string, []int]{"a": []int{2}, "b": []int{5}, "c": []int{4}}
+	if map5.Eq(map7) {
+		t.Errorf("Test case 5 failed: Maps with different values should not be considered equal")
+	}
 }
 
 func TestMapToMap(t *testing.T) {

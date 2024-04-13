@@ -2,8 +2,9 @@ package g
 
 import (
 	"fmt"
-	"reflect"
 	"sort"
+
+	"github.com/enetx/g/f"
 )
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
@@ -241,8 +242,18 @@ func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
 }
 
 func (mo MapOrd[K, V]) index(key K) int {
+	if f.Comparable(key) {
+		for i, mp := range mo {
+			if f.Eq[any](mp.Key)(key) {
+				return i
+			}
+		}
+
+		return -1
+	}
+
 	for i, mp := range mo {
-		if reflect.DeepEqual(mp.Key, key) {
+		if f.Eqd(mp.Key)(key) {
 			return i
 		}
 	}
@@ -269,13 +280,16 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
 func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
-	if len(mo) != len(other) {
+	if len(mo) != len(other) || mo.Empty() {
 		return false
 	}
 
+	comparable := f.Comparable(mo[0].Value)
+
 	for _, mp := range mo {
 		value := other.Get(mp.Key)
-		if value.IsNone() || !reflect.DeepEqual(value.Some(), mp.Value) {
+		if value.IsNone() || (comparable && !f.Eq[any](value.Some())(mp.Value)) ||
+			(!comparable && !f.Eqd(value.Some())(mp.Value)) {
 			return false
 		}
 	}

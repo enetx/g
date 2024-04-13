@@ -15,7 +15,7 @@ func main() {
 	jobs := g.SliceOf(1, 1, 1, 3, 4, 4, 8, 8, 9, 9).
 		Iter().
 		// Dedup().
-		ToChannel(ctx)
+		ToChan(ctx)
 
 	// for job := range jobs {
 	// 	fmt.Printf("job: %v\n", job)

@@ -274,6 +274,14 @@ func TestMapOrdContains(t *testing.T) {
 	if m.Contains(2) {
 		t.Errorf("Expected map not to contain the key")
 	}
+
+	// Test case 3: Map contains the key
+	m2 := g.NewMapOrd[[]int, []int]()
+	m2.Set([]int{0}, []int{1})
+
+	if !m2.Contains([]int{0}) {
+		t.Errorf("Expected map to contain the key")
+	}
 }
 
 func TestMapOrdValues(t *testing.T) {
@@ -755,7 +763,7 @@ func TestMapOrdIterToChannel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Ensure cancellation to avoid goroutine leaks.
 
-	ch := mo.Iter().ToChannel(ctx)
+	ch := mo.Iter().ToChan(ctx)
 
 	// Collect elements from the channel
 	collected := g.NewMapOrd[int, int]()
