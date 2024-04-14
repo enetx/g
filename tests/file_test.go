@@ -176,7 +176,7 @@ func TestFile_Chunks_Success(t *testing.T) {
 	file := g.NewFile(g.String(tempFile))
 
 	// Define the chunk size
-	chunkSize := 5
+	chunkSize := g.Int(5)
 
 	// Read the file in chunks
 	result := file.Chunks(chunkSize)

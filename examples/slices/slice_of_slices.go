@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 )
 
 func main() {
@@ -13,22 +14,22 @@ func main() {
 
 	nx := g.SliceOf(ns3, ns2, ns1, ns2)
 
-	nx.SortBy(func(a, b g.Slice[g.String]) bool {
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered {
 		if a.Eq(b) {
-			return false
+			return 0
 		}
 
-		return true
+		return -1
 	})
 
 	nx.Print()
 
 	nx = nx.Iter().Dedup().Collect().Print()
 
-	nx.SortBy(func(a, b g.Slice[g.String]) bool { return a.Get(0).Lt(b.Get(0)) })
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered { return b.Get(0).Cmp(a.Get(0)) })
 	nx.Print()
 
-	nx.SortBy(func(a, b g.Slice[g.String]) bool { return a.Len() < b.Len() })
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered { return a.Len().Cmp(b.Len()) })
 	nx.Print()
 
 	nx.Reverse()

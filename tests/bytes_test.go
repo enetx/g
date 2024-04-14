@@ -368,7 +368,7 @@ func TestBytesCount(t *testing.T) {
 	bs1 := g.Bytes("hello hello hello")
 	obs1 := g.Bytes("hello")
 	count1 := bs1.Count(obs1)
-	expected1 := 3
+	expected1 := g.Int(3)
 	if count1 != expected1 {
 		t.Errorf("Count failed. Expected: %d, Got: %d", expected1, count1)
 	}
@@ -377,7 +377,7 @@ func TestBytesCount(t *testing.T) {
 	bs2 := g.Bytes("hello")
 	obs2 := g.Bytes("world")
 	count2 := bs2.Count(obs2)
-	expected2 := 0
+	expected2 := g.Int(0)
 	if count2 != expected2 {
 		t.Errorf("Count failed. Expected: %d, Got: %d", expected2, count2)
 	}
@@ -397,8 +397,8 @@ func TestBytesCompare(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.bs1.Compare(tc.bs2)
-		if !result.Eq(tc.expected) {
+		result := g.Int(tc.bs1.Cmp(tc.bs2))
+		if result != tc.expected {
 			t.Errorf(
 				"Bytes.Compare(%q, %q): expected %d, got %d",
 				tc.bs1,
@@ -713,7 +713,7 @@ func TestBytesIndexRegexp(t *testing.T) {
 	bs := g.Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
 	idx := bs.IndexRegexp(pattern)
-	expected := g.Some(g.Slice[int]{6, 12})
+	expected := g.Some(g.Slice[g.Int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}
@@ -722,7 +722,7 @@ func TestBytesIndexRegexp(t *testing.T) {
 	bs = g.Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
 	idx = bs.IndexRegexp(pattern)
-	expected = g.None[g.Slice[int]]()
+	expected = g.None[g.Slice[g.Int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}
@@ -871,7 +871,7 @@ func TestBytesLenRunes(t *testing.T) {
 	// Test case where the Bytes contain ASCII characters
 	bs := g.Bytes("hello world")
 	lenRunes := bs.LenRunes()
-	expected := 11
+	expected := g.Int(11)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
@@ -879,7 +879,7 @@ func TestBytesLenRunes(t *testing.T) {
 	// Test case where the Bytes contain Unicode characters
 	bs = g.Bytes("你好，世界")
 	lenRunes = bs.LenRunes()
-	expected = 5
+	expected = g.Int(5)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
@@ -887,7 +887,7 @@ func TestBytesLenRunes(t *testing.T) {
 	// Test case where the Bytes are empty
 	bs = g.Bytes("")
 	lenRunes = bs.LenRunes()
-	expected = 0
+	expected = g.Int(0)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
@@ -898,7 +898,7 @@ func TestBytesLastIndex(t *testing.T) {
 	bs := g.Bytes("hello world")
 	obs := g.Bytes("o")
 	lastIndex := bs.LastIndex(obs)
-	expected := 7
+	expected := g.Int(7)
 	if lastIndex != expected {
 		t.Errorf("LastIndex failed. Expected: %d, Got: %d", expected, lastIndex)
 	}
@@ -907,7 +907,7 @@ func TestBytesLastIndex(t *testing.T) {
 	bs = g.Bytes("hello world")
 	obs = g.Bytes("z")
 	lastIndex = bs.LastIndex(obs)
-	expected = -1
+	expected = g.Int(-1)
 	if lastIndex != expected {
 		t.Errorf("LastIndex failed. Expected: %d, Got: %d", expected, lastIndex)
 	}
@@ -918,7 +918,7 @@ func TestBytesIndexByte(t *testing.T) {
 	bs := g.Bytes("hello world")
 	b := byte('o')
 	indexByte := bs.IndexByte(b)
-	expected := 4
+	expected := g.Int(4)
 	if indexByte != expected {
 		t.Errorf("IndexByte failed. Expected: %d, Got: %d", expected, indexByte)
 	}
@@ -938,7 +938,7 @@ func TestBytesLastIndexByte(t *testing.T) {
 	bs := g.Bytes("hello world")
 	b := byte('o')
 	lastIndexByte := bs.LastIndexByte(b)
-	expected := 7
+	expected := g.Int(7)
 	if lastIndexByte != expected {
 		t.Errorf("LastIndexByte failed. Expected: %d, Got: %d", expected, lastIndexByte)
 	}
@@ -958,7 +958,7 @@ func TestBytesIndexRune(t *testing.T) {
 	bs := g.Bytes("hello world")
 	r := 'o'
 	indexRune := bs.IndexRune(r)
-	expected := 4
+	expected := g.Int(4)
 	if indexRune != expected {
 		t.Errorf("IndexRune failed. Expected: %d, Got: %d", expected, indexRune)
 	}

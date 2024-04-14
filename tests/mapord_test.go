@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 )
 
 func TestMapOrdIterSortBy(t *testing.T) {
@@ -27,7 +28,9 @@ func TestMapOrdIterSortBy(t *testing.T) {
 		Set(4, "a").
 		Set(5, "e")
 
-	sortedItems := data.Iter().SortBy(func(a, b g.Pair[int, string]) bool { return a.Key < b.Key }).Collect()
+	sortedItems := data.Iter().
+		SortBy(func(a, b g.Pair[int, string]) cmp.Ordered { return cmp.Cmp(a.Key, b.Key) }).
+		Collect()
 
 	// Check if the result matches the expected output
 	if !reflect.DeepEqual(sortedItems, expected) {
@@ -42,7 +45,9 @@ func TestMapOrdIterSortBy(t *testing.T) {
 		Set(1, "d").
 		Set(5, "e")
 
-	sortedItems = data.Iter().SortBy(func(a, b g.Pair[int, string]) bool { return a.Value < b.Value }).Collect()
+	sortedItems = data.Iter().
+		SortBy(func(a, b g.Pair[int, string]) cmp.Ordered { return cmp.Cmp(a.Value, b.Value) }).
+		Collect()
 
 	// Check if the result matches the expected output
 	if !reflect.DeepEqual(sortedItems, expected) {
@@ -420,7 +425,7 @@ func TestMapOrdSortBy(t *testing.T) {
 		{"c", 3},
 		{"a", 1},
 	}
-	sortedByKey := m.SortBy(func(a, b g.Pair[string, int]) bool { return a.Key < b.Key })
+	sortedByKey := m.SortBy(func(a, b g.Pair[string, int]) cmp.Ordered { return cmp.Cmp(a.Key, b.Key) })
 	expectedKeyOrder := []string{"a", "b", "c"}
 	for i, p := range sortedByKey {
 		if p.Key != expectedKeyOrder[i] {
@@ -434,7 +439,7 @@ func TestMapOrdSortBy(t *testing.T) {
 		{"b", 1},
 		{"c", 2},
 	}
-	sortedByValue := m2.SortBy(func(a, b g.Pair[string, int]) bool { return a.Value < b.Value })
+	sortedByValue := m2.SortBy(func(a, b g.Pair[string, int]) cmp.Ordered { return cmp.Cmp(a.Value, b.Value) })
 	expectedValueOrder := []int{1, 2, 3}
 	for i, p := range sortedByValue {
 		if p.Value != expectedValueOrder[i] {
@@ -450,7 +455,7 @@ func TestMapOrdFromMap(t *testing.T) {
 	m.Set("b", 2)
 	m.Set("c", 3)
 
-	mapOrd := g.MapOrdFromMap(m).SortBy(func(a, b g.Pair[string, int]) bool { return a.Value < b.Value })
+	mapOrd := g.MapOrdFromMap(m).SortBy(func(a, b g.Pair[string, int]) cmp.Ordered { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []g.Pair[string, int]{
 		{"a", 1},
@@ -476,7 +481,7 @@ func TestMapOrdFromStd(t *testing.T) {
 	// Test case 1: Map with elements
 	inputMap := map[string]int{"a": 1, "b": 2, "c": 3}
 	orderedMap := g.MapOrdFromStd(inputMap)
-	if orderedMap.Len() != len(inputMap) {
+	if len(orderedMap) != len(inputMap) {
 		t.Errorf("Expected ordered map to have length %d, got %d", len(inputMap), orderedMap.Len())
 	}
 	for key, value := range inputMap {
@@ -587,7 +592,7 @@ func TestMapOrdIterCount(t *testing.T) {
 	count := seq.Iter().Count()
 
 	// Verify the count
-	expectedCount := 3 // Since there are 3 elements in the ordered map
+	expectedCount := g.Int(3) // Since there are 3 elements in the ordered map
 	if count != expectedCount {
 		t.Errorf("Expected count to be %d, but got %d", expectedCount, count)
 	}

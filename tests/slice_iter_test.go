@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
@@ -172,44 +173,44 @@ func TestSliceIterCombinations(t *testing.T) {
 	}
 }
 
-func TestSliceIterSortInts(t *testing.T) {
-	slice := g.Slice[int]{5, 2, 8, 1, 6}
-	sorted := slice.Iter().Sort().Collect()
+// func TestSliceIterSortInts(t *testing.T) {
+// 	slice := g.Slice[int]{5, 2, 8, 1, 6}
+// 	sorted := slice.Iter().Sort().Collect()
 
-	expected := g.Slice[int]{1, 2, 5, 6, 8}
+// 	expected := g.Slice[int]{1, 2, 5, 6, 8}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
-	}
-}
+// 	if !reflect.DeepEqual(sorted, expected) {
+// 		t.Errorf("Expected %v but got %v", expected, sorted)
+// 	}
+// }
 
-func TestSliceIterSortStrings(t *testing.T) {
-	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
-	sorted := slice.Iter().Sort().Collect()
+// func TestSliceIterSortStrings(t *testing.T) {
+// 	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
+// 	sorted := slice.Iter().Sort().Collect()
 
-	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
+// 	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
-	}
-}
+// 	if !reflect.DeepEqual(sorted, expected) {
+// 		t.Errorf("Expected %v but got %v", expected, sorted)
+// 	}
+// }
 
-func TestSliceIterSortFloats(t *testing.T) {
-	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
-	sorted := slice.Iter().Sort().Collect()
+// func TestSliceIterSortFloats(t *testing.T) {
+// 	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
+// 	sorted := slice.Iter().Sort().Collect()
 
-	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
+// 	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
 
-	if !reflect.DeepEqual(sorted, expected) {
-		t.Errorf("Expected %v but got %v", expected, sorted)
-	}
-}
+// 	if !reflect.DeepEqual(sorted, expected) {
+// 		t.Errorf("Expected %v but got %v", expected, sorted)
+// 	}
+// }
 
 func TestSliceIterSortBy(t *testing.T) {
 	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
 	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
 
-	actual1 := sl1.Iter().SortBy(func(a, b int) bool { return a < b }).Collect()
+	actual1 := sl1.Iter().SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }).Collect()
 
 	if !actual1.Eq(expected1) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
@@ -218,7 +219,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl2 := g.NewSlice[string]().Append("foo", "bar", "baz")
 	expected2 := g.NewSlice[string]().Append("foo", "baz", "bar")
 
-	actual2 := sl2.Iter().SortBy(func(a, b string) bool { return a > b }).Collect()
+	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordered { return cmp.Cmp(b, a) }).Collect()
 
 	if !actual2.Eq(expected2) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected2, actual2)
@@ -227,7 +228,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl3 := g.NewSlice[int]()
 	expected3 := g.NewSlice[int]()
 
-	actual3 := sl3.Iter().SortBy(func(a, b int) bool { return a < b }).Collect()
+	actual3 := sl3.Iter().SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }).Collect()
 
 	if !actual3.Eq(expected3) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected3, actual3)
@@ -425,7 +426,7 @@ func TestSliceIterChunks(t *testing.T) {
 		name     string
 		input    g.Slice[int]
 		expected []g.Slice[int]
-		size     int
+		size     g.Int
 	}{
 		{
 			name:     "empty slice",
@@ -592,7 +593,7 @@ func TestSliceIterMap(t *testing.T) {
 		t.Errorf("Expected %d, got %d", sl.Len(), result.Len())
 	}
 
-	for i := 0; i < result.Len(); i++ {
+	for i := range result.Len() {
 		if result[i] != sl[i]*2 {
 			t.Errorf("Expected %d, got %d", sl[i]*2, result[i])
 		}
@@ -808,7 +809,7 @@ func TestSliceIterEnumerate(t *testing.T) {
 	seq := g.Slice[string]{"bbb", "ddd", "xxx", "aaa", "ccc"}
 	enumerated := seq.Iter().Enumerate().Collect()
 
-	expected := g.NewMapOrd[int, string]()
+	expected := g.NewMapOrd[g.Int, string]()
 	expected.Set(0, "bbb").Set(1, "ddd").Set(2, "xxx").Set(3, "aaa").Set(4, "ccc")
 
 	for i, v := range enumerated {
@@ -966,7 +967,7 @@ func TestSliceIterCounter(t *testing.T) {
 	sl1 := g.Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
 	sl2 := g.Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
-	expected1 := g.NewMapOrd[int, uint]()
+	expected1 := g.NewMapOrd[int, g.Int]()
 	expected1.
 		Set(3, 1).
 		Set(5, 1).
@@ -980,7 +981,7 @@ func TestSliceIterCounter(t *testing.T) {
 	}
 
 	// Test with string values
-	expected2 := g.NewMapOrd[string, uint]()
+	expected2 := g.NewMapOrd[string, g.Int]()
 	expected2.
 		Set("banana", 1).
 		Set("grape", 1).

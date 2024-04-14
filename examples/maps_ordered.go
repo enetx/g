@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/ref"
 )
 
@@ -92,10 +93,10 @@ func main() {
 
 	fmt.Println("before sort:", msstr)
 
-	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) bool { return a.Key < b.Key })
+	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordered { return a.Key.Cmp(b.Key) })
 	fmt.Println("after sort:", msstr)
 
-	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) bool { return a.Value < b.Value })
+	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordered { return a.Value.Cmp(b.Value) })
 	fmt.Println("after sort by value:", msstr)
 
 	mss := g.NewMapOrd[g.Int, g.Slice[int]]()
@@ -104,10 +105,10 @@ func main() {
 
 	fmt.Println("before sort: ", mss)
 
-	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) bool { return a.Key < b.Key })
+	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordered { return a.Key.Cmp(b.Key) })
 	fmt.Println("after sort by key: ", mss)
 
-	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) bool { return a.Value[1] < b.Value[1] })
+	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordered { return cmp.Cmp(a.Value[1], b.Value[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
 	// g.MapOrdFromStd(mss.ToMap().Std()).Print()

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
@@ -20,10 +21,10 @@ func main() {
 	}.
 		Iter().
 		SortBy(
-			func(a, b g.Pair[int, string]) bool {
-				return a.Key < b.Key
+			func(a, b g.Pair[int, string]) cmp.Ordered {
+				return cmp.Cmp(a.Key, b.Key)
 				// By value
-				// return a.Value < b.Value
+				// return cmp.Cmp(a.Value, b.Value)
 			}).
 		Collect().
 		Print() // MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
@@ -41,8 +42,8 @@ func main() {
 
 	g.SliceOf(s3, s1, s2).Iter().
 		SortBy(
-			func(a, b status) bool {
-				astatus := 5
+			func(a, b status) cmp.Ordered {
+				var astatus g.Int = 5
 				switch a.status {
 				case "good":
 					astatus = 0
@@ -50,7 +51,7 @@ func main() {
 					astatus = 1
 				}
 
-				bstatus := 5
+				var bstatus g.Int = 5
 				switch b.status {
 				case "good":
 					bstatus = 0
@@ -58,7 +59,9 @@ func main() {
 					bstatus = 1
 				}
 
-				return astatus < bstatus || astatus == bstatus && a.date.Unix() < b.date.Unix()
+				// return astatus < bstatus || astatus == bstatus && a.date.Unix() < b.date.Unix()
+				return astatus.Cmp(bstatus).
+					Then(cmp.Cmp(a.date.Unix(), b.date.Unix()))
 			}).
 		Collect().
 		Print()
@@ -66,14 +69,15 @@ func main() {
 	// Example 3: Sort a slice of time.Time, deduplicate, and print the result
 	g.SliceOf(time.Now().Add(time.Second*20), time.Now()).
 		Iter().
-		SortBy(func(a, b time.Time) bool { return a.Second() < b.Second() }).
+		// SortBy(func(a, b time.Time) bool { return a.Second() < b.Second() }).
+		SortBy(func(a, b time.Time) cmp.Ordered { return cmp.Cmp(a.Second(), b.Second()) }).
 		Collect().
 		Print()
 
 	// Example 4: Sort and deduplicate a slice of integers and print the result
 	g.SliceOf(9, 8, 9, 8, 0, 1, 1, 1, 2, 7, 2, 2, 2, 3, 4, 5).
 		Iter().
-		Sort().
+		// Sort().
 		Dedup().
 		Filter(f.Odd).
 		Collect().
@@ -82,7 +86,7 @@ func main() {
 	// Example 5: Sort a slice of strings in descending order and print the result
 	g.SliceOf("a", "c", "b").
 		Iter().
-		SortBy(func(a, b string) bool { return a > b }).
+		SortBy(func(a, b string) cmp.Ordered { return cmp.Cmp(b, a) }).
 		Collect().
 		Print() // Slice[c, b, a]
 }

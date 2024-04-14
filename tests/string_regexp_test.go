@@ -271,7 +271,7 @@ func TestSplitRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        int
+		n        g.Int
 	}{
 		// Test case 1: Regular split with n = 2
 		{
@@ -396,7 +396,7 @@ func TestFindAllRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        int
+		n        g.Int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{
@@ -521,7 +521,7 @@ func TestFindAllSubmatchRegexpN(t *testing.T) {
 		expected g.Option[g.Slice[g.Slice[g.String]]]
 		input    g.String
 		pattern  regexp.Regexp
-		n        int
+		n        g.Int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{

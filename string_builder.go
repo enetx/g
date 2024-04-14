@@ -33,13 +33,13 @@ func (b *Builder) WriteRune(r rune) *Builder {
 }
 
 // Grow increases the capacity of the builder by n bytes.
-func (b *Builder) Grow(n int) { b.builder.Grow(n) }
+func (b *Builder) Grow(n Int) { b.builder.Grow(n.Std()) }
 
 // Cap returns the current capacity of the builder.
-func (b *Builder) Cap() int { return b.builder.Cap() }
+func (b *Builder) Cap() Int { return Int(b.builder.Cap()) }
 
 // Len returns the current length of the string in the builder.
-func (b *Builder) Len() int { return b.builder.Len() }
+func (b *Builder) Len() Int { return Int(b.builder.Len()) }
 
 // Reset clears the content of the Builder, resetting it to an empty state.
 func (b *Builder) Reset() { b.builder.Reset() }

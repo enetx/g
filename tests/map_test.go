@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/ref"
 )
 
@@ -651,7 +652,7 @@ func TestMapIterCount(t *testing.T) {
 
 	count := iter.Count()
 
-	expected := 2
+	expected := g.Int(2)
 	if count != expected {
 		t.Errorf("Expected count to be %d, got %d", expected, count)
 	}
@@ -661,7 +662,7 @@ func TestMapIterCount(t *testing.T) {
 
 	emptyCount := emptyIter.Count()
 
-	emptyExpected := 0
+	emptyExpected := g.Int(0)
 	if emptyCount != emptyExpected {
 		t.Errorf("Expected count to be %d, got %d", emptyExpected, emptyCount)
 	}
@@ -754,7 +755,7 @@ func TestMapIterRange(t *testing.T) {
 		return true
 	})
 
-	keysVisited.Sort()
+	keysVisited.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) })
 
 	// Check if all keys were visited
 	expectedKeys := g.Slice[int]{1, 2, 3}

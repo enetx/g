@@ -345,9 +345,9 @@ func TestStringAddPrefix(t *testing.T) {
 
 func TestStringRandom(t *testing.T) {
 	for i := range 100 {
-		random := g.NewString("").Random(i)
+		random := g.NewString("").Random(g.Int(i))
 
-		if random.Len() != i {
+		if random.Len().Std() != i {
 			t.Errorf("Random string length %d is not equal to %d", random.Len(), i)
 		}
 	}
@@ -382,8 +382,8 @@ func TestStringChunks(t *testing.T) {
 	expectedChunks := g.Slice[g.String]{"he", "ll", "o"}
 
 	for i, c := range chunks {
-		if c != expectedChunks.Get(i) {
-			t.Errorf("Expected chunk %v to be %v, but got %v", i, expectedChunks.Get(i), c)
+		if c != expectedChunks[i] {
+			t.Errorf("Expected chunk %v to be %v, but got %v", i, expectedChunks[i], c)
 		}
 	}
 
@@ -397,8 +397,8 @@ func TestStringChunks(t *testing.T) {
 	expectedChunks = g.Slice[g.String]{"hel", "lo ", "wor", "ld"}
 
 	for i, c := range chunks {
-		if c != expectedChunks.Get(i) {
-			t.Errorf("Expected chunk %v to be %v, but got %v", i, expectedChunks.Get(i), c)
+		if c != expectedChunks[i] {
+			t.Errorf("Expected chunk %v to be %v, but got %v", i, expectedChunks[i], c)
 		}
 	}
 
@@ -473,7 +473,7 @@ func TestStringCompare(t *testing.T) {
 	testCases := []struct {
 		str1     g.String
 		str2     g.String
-		expected g.Int
+		expected int
 	}{
 		{"apple", "banana", -1},
 		{"banana", "apple", 1},
@@ -483,8 +483,8 @@ func TestStringCompare(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.str1.Compare(tc.str2)
-		if !result.Eq(tc.expected) {
+		result := tc.str1.Cmp(tc.str2)
+		if int(result) != tc.expected {
 			t.Errorf("Compare(%q, %q): expected %d, got %d", tc.str1, tc.str2, tc.expected, result)
 		}
 	}
@@ -831,7 +831,7 @@ func TestStringReplaceNth(t *testing.T) {
 		str      g.String
 		oldS     g.String
 		newS     g.String
-		n        int
+		n        g.Int
 		expected g.String
 	}{
 		{
@@ -1147,7 +1147,7 @@ func TestStringReplace(t *testing.T) {
 		input    g.String
 		oldS     g.String
 		newS     g.String
-		n        int
+		n        g.Int
 		expected g.String
 	}{
 		{"Hello, World!", "Hello", "Hi", 1, "Hi, World!"},
@@ -1222,7 +1222,7 @@ func TestStringSplitN(t *testing.T) {
 	// Test case 1: String with multiple segments, n > 0.
 	str1 := g.NewString("hello,world,how,are,you")
 	sep1 := g.NewString(",")
-	n1 := 3
+	n1 := g.Int(3)
 	expected1 := g.Slice[g.String]{"hello", "world", "how,are,you"}
 	result1 := str1.SplitN(sep1, n1)
 	if !reflect.DeepEqual(result1, expected1) {
@@ -1232,7 +1232,7 @@ func TestStringSplitN(t *testing.T) {
 	// Test case 2: String with multiple segments, n < 0.
 	str2 := g.NewString("hello,world,how,are,you")
 	sep2 := g.NewString(",")
-	n2 := -1
+	n2 := g.Int(-1)
 	expected2 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
 	result2 := str2.SplitN(sep2, n2)
 	if !reflect.DeepEqual(result2, expected2) {
@@ -1242,7 +1242,7 @@ func TestStringSplitN(t *testing.T) {
 	// Test case 3: String with single segment, n > 0.
 	str3 := g.NewString("hello")
 	sep3 := g.NewString(",")
-	n3 := 1
+	n3 := g.Int(1)
 	expected3 := g.Slice[g.String]{"hello"}
 	result3 := str3.SplitN(sep3, n3)
 	if !reflect.DeepEqual(result3, expected3) {
@@ -1288,7 +1288,7 @@ func TestStringCount(t *testing.T) {
 	// Test case 1: Count occurrences of substring in a string with multiple occurrences.
 	str1 := g.NewString("hello world hello hello")
 	substr1 := g.NewString("hello")
-	expected1 := 3
+	expected1 := g.Int(3)
 	result1 := str1.Count(substr1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
@@ -1297,7 +1297,7 @@ func TestStringCount(t *testing.T) {
 	// Test case 2: Count occurrences of substring in a string with no occurrences.
 	str2 := g.NewString("abcdefg")
 	substr2 := g.NewString("xyz")
-	expected2 := 0
+	expected2 := g.Int(0)
 	result2 := str2.Count(substr2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
@@ -1306,7 +1306,7 @@ func TestStringCount(t *testing.T) {
 	// Test case 3: Count occurrences of substring in an empty string.
 	str3 := g.NewString("")
 	substr3 := g.NewString("hello")
-	expected3 := 0
+	expected3 := g.Int(0)
 	result3 := str3.Count(substr3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1345,7 +1345,7 @@ func TestStringLastIndex(t *testing.T) {
 	// Test case 1: Substring is present in the string.
 	str1 := g.NewString("hello world hello")
 	substr1 := g.NewString("hello")
-	expected1 := 12
+	expected1 := g.Int(12)
 	result1 := str1.LastIndex(substr1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
@@ -1353,7 +1353,7 @@ func TestStringLastIndex(t *testing.T) {
 
 	// Test case 2: Substring is not present in the string.
 	substr2 := g.NewString("foo")
-	expected2 := -1
+	expected2 := g.Int(-1)
 	result2 := str1.LastIndex(substr2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
@@ -1362,7 +1362,7 @@ func TestStringLastIndex(t *testing.T) {
 	// Test case 3: Empty string.
 	str3 := g.NewString("")
 	substr3 := g.NewString("hello")
-	expected3 := -1
+	expected3 := g.Int(-1)
 	result3 := str3.LastIndex(substr3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1373,7 +1373,7 @@ func TestStringIndexRune(t *testing.T) {
 	// Test case 1: Rune is present in the string.
 	str1 := g.NewString("hello")
 	rune1 := 'e'
-	expected1 := 1
+	expected1 := g.Int(1)
 	result1 := str1.IndexRune(rune1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
@@ -1381,7 +1381,7 @@ func TestStringIndexRune(t *testing.T) {
 
 	// Test case 2: Rune is not present in the string.
 	rune2 := 'x'
-	expected2 := -1
+	expected2 := g.Int(-1)
 	result2 := str1.IndexRune(rune2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
@@ -1390,7 +1390,7 @@ func TestStringIndexRune(t *testing.T) {
 	// Test case 3: Empty string.
 	str3 := g.NewString("")
 	rune3 := 'h'
-	expected3 := -1
+	expected3 := g.Int(-1)
 	result3 := str3.IndexRune(rune3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1418,7 +1418,7 @@ func TestStringNotEmpty(t *testing.T) {
 func TestRepeat(t *testing.T) {
 	// Test case 1: Repeat count is positive.
 	str := g.NewString("abc")
-	count := 3
+	count := g.Int(3)
 	expected1 := g.NewString("abcabcabc")
 	result1 := str.Repeat(count)
 	if !result1.Eq(expected1) {
@@ -1437,7 +1437,7 @@ func TestRepeat(t *testing.T) {
 func TestStringLeftJustify(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
 	str1 := g.NewString("Hello")
-	length1 := 10
+	length1 := g.Int(10)
 	pad1 := g.NewString(".")
 	expected1 := g.NewString("Hello.....")
 	result1 := str1.LeftJustify(length1, pad1)
@@ -1447,7 +1447,7 @@ func TestStringLeftJustify(t *testing.T) {
 
 	// Test case 2: Original string length is equal to the specified length.
 	str2 := g.NewString("Hello")
-	length2 := 5
+	length2 := g.Int(5)
 	pad2 := g.NewString(".")
 	expected2 := g.NewString("Hello")
 	result2 := str2.LeftJustify(length2, pad2)
@@ -1457,7 +1457,7 @@ func TestStringLeftJustify(t *testing.T) {
 
 	// Test case 3: Original string length is greater than the specified length.
 	str3 := g.NewString("Hello")
-	length3 := 3
+	length3 := g.Int(3)
 	pad3 := g.NewString(".")
 	expected3 := g.NewString("Hello")
 	result3 := str3.LeftJustify(length3, pad3)
@@ -1467,7 +1467,7 @@ func TestStringLeftJustify(t *testing.T) {
 
 	// Test case 4: Empty padding string.
 	str4 := g.NewString("Hello")
-	length4 := 10
+	length4 := g.Int(10)
 	pad4 := g.NewString("")
 	expected4 := g.NewString("Hello")
 	result4 := str4.LeftJustify(length4, pad4)
@@ -1479,7 +1479,7 @@ func TestStringLeftJustify(t *testing.T) {
 func TestStringRightJustify(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
 	str1 := g.NewString("Hello")
-	length1 := 10
+	length1 := g.Int(10)
 	pad1 := g.NewString(".")
 	expected1 := g.NewString(".....Hello")
 	result1 := str1.RightJustify(length1, pad1)
@@ -1489,7 +1489,7 @@ func TestStringRightJustify(t *testing.T) {
 
 	// Test case 2: Original string length is equal to the specified length.
 	str2 := g.NewString("Hello")
-	length2 := 5
+	length2 := g.Int(5)
 	pad2 := g.NewString(".")
 	expected2 := g.NewString("Hello")
 	result2 := str2.RightJustify(length2, pad2)
@@ -1499,7 +1499,7 @@ func TestStringRightJustify(t *testing.T) {
 
 	// Test case 3: Original string length is greater than the specified length.
 	str3 := g.NewString("Hello")
-	length3 := 3
+	length3 := g.Int(3)
 	pad3 := g.NewString(".")
 	expected3 := g.NewString("Hello")
 	result3 := str3.RightJustify(length3, pad3)
@@ -1509,7 +1509,7 @@ func TestStringRightJustify(t *testing.T) {
 
 	// Test case 4: Empty padding string.
 	str4 := g.NewString("Hello")
-	length4 := 10
+	length4 := g.Int(10)
 	pad4 := g.NewString("")
 	expected4 := g.NewString("Hello")
 	result4 := str4.RightJustify(length4, pad4)
@@ -1521,7 +1521,7 @@ func TestStringRightJustify(t *testing.T) {
 func TestStringCenter(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
 	str1 := g.NewString("Hello")
-	length1 := 10
+	length1 := g.Int(10)
 	pad1 := g.NewString(".")
 	expected1 := g.NewString("..Hello...")
 	result1 := str1.Center(length1, pad1)
@@ -1531,7 +1531,7 @@ func TestStringCenter(t *testing.T) {
 
 	// Test case 2: Original string length is equal to the specified length.
 	str2 := g.NewString("Hello")
-	length2 := 5
+	length2 := g.Int(5)
 	pad2 := g.NewString(".")
 	expected2 := g.NewString("Hello")
 	result2 := str2.Center(length2, pad2)
@@ -1541,7 +1541,7 @@ func TestStringCenter(t *testing.T) {
 
 	// Test case 3: Original string length is greater than the specified length.
 	str3 := g.NewString("Hello")
-	length3 := 3
+	length3 := g.Int(3)
 	pad3 := g.NewString(".")
 	expected3 := g.NewString("Hello")
 	result3 := str3.Center(length3, pad3)
@@ -1551,7 +1551,7 @@ func TestStringCenter(t *testing.T) {
 
 	// Test case 4: Empty padding string.
 	str4 := g.NewString("Hello")
-	length4 := 10
+	length4 := g.Int(10)
 	pad4 := g.NewString("")
 	expected4 := g.NewString("Hello")
 	result4 := str4.Center(length4, pad4)

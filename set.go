@@ -3,7 +3,7 @@ package g
 import "fmt"
 
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
-func NewSet[T comparable](size ...int) Set[T] {
+func NewSet[T comparable](size ...Int) Set[T] {
 	if len(size) == 0 {
 		return make(Set[T], 0)
 	}
@@ -13,7 +13,7 @@ func NewSet[T comparable](size ...int) Set[T] {
 
 // SetOf creates a new generic set containing the provided elements.
 func SetOf[T comparable](values ...T) Set[T] {
-	set := NewSet[T](len(values))
+	set := NewSet[T](Int(len(values)))
 	for _, v := range values {
 		set.Add(v)
 	}
@@ -72,7 +72,7 @@ func (s Set[T]) Remove(values ...T) Set[T] {
 }
 
 // Len returns the number of values in the Set.
-func (s Set[T]) Len() int { return len(s) }
+func (s Set[T]) Len() Int { return Int(len(s)) }
 
 // Contains checks if the Set contains the specified value.
 func (s Set[T]) Contains(v T) bool {
@@ -111,7 +111,7 @@ func (s Set[T]) Clone() Set[T] { return s.Iter().Collect() }
 
 // ToSlice returns a new Slice with the same elements as the Set[T].
 func (s Set[T]) ToSlice() Slice[T] {
-	sl := NewSlice[T](0, len(s))
+	sl := NewSlice[T](0, s.Len())
 	s.Iter().ForEach(func(v T) { sl = append(sl, v) })
 
 	return sl

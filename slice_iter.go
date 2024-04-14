@@ -4,8 +4,8 @@ import (
 	"context"
 	"iter"
 	"reflect"
-	"sort"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
@@ -93,7 +93,7 @@ func (seq SeqSlice[V]) Any(fn func(V) bool) bool {
 //
 // Params:
 //
-// - seqs ([]seqSlice[V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]SeqSlice[V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
@@ -119,11 +119,11 @@ func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
 //
 // Params:
 //
-// - size (int): The size of each chunk.
+// - n (Int): The size of each chunk.
 //
 // Returns:
 //
-// - seqSlices[V]: An iterator yielding chunks of elements of the specified size.
+// - SeqSlices[V]: An iterator yielding chunks of elements of the specified size.
 //
 // Example usage:
 //
@@ -133,7 +133,7 @@ func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
 // Output: [Slice[1, 2] Slice[3, 4] Slice[5, 6]]
 //
 // The resulting iterator will yield chunks of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Chunks(n int) SeqSlices[V] { return chunks(seq, n) }
+func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] { return chunks(seq, n.Std()) }
 
 // Collect gathers all elements from the iterator into a Slice.
 func (seq SeqSlice[V]) Collect() Slice[V] {
@@ -161,7 +161,7 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSlice[V]) Count() int { return countSlice(seq) }
+func (seq SeqSlice[V]) Count() Int { return countSlice(seq) }
 
 // Counter returns a SeqMapOrd[V, uint] with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in a slice.
@@ -179,10 +179,10 @@ func (seq SeqSlice[V]) Count() int { return countSlice(seq) }
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (seq SeqSlice[V]) Counter() SeqMapOrd[V, uint] { return counterSlice(seq) }
+func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] { return counterSlice(seq) }
 
 // Combinations generates all combinations of length 'n' from the sequence.
-func (seq SeqSlice[V]) Combinations(n int) SeqSlices[V] { return combinations(seq, n) }
+func (seq SeqSlice[V]) Combinations(n Int) SeqSlices[V] { return combinations(seq, n.Std()) }
 
 // Cycle returns an iterator that endlessly repeats the elements of the current sequence.
 func (seq SeqSlice[V]) Cycle() SeqSlice[V] { return cycleSlice(seq) }
@@ -221,7 +221,7 @@ func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] { return excludeSlic
 //
 // Returns:
 //
-// - seqMapOrd[int, V] An iterator with each element of type Pair[int, V], where the first
+// - SeqMapOrd[Int, V] An iterator with each element of type Pair[Int, V], where the first
 // element of the pair is the index and the second element is the original element from the
 // iterator.
 //
@@ -235,7 +235,7 @@ func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] { return excludeSlic
 //	ps.Print()
 //
 // Output: MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
-func (seq SeqSlice[V]) Enumerate() SeqMapOrd[int, V] { return enumerate(seq) }
+func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] { return enumerate(seq) }
 
 // Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
 // leaving only one occurrence of each unique element. If the iterator is sorted, all elements will be unique.
@@ -244,7 +244,7 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[int, V] { return enumerate(seq) }
 // - None
 //
 // Returns:
-// - seqSlice[V]: A new iterator with consecutive duplicates removed.
+// - SeqSlice[V]: A new iterator with consecutive duplicates removed.
 //
 // Example usage:
 //
@@ -270,7 +270,7 @@ func (seq SeqSlice[V]) Dedup() SeqSlice[V] { return dedupSlice(seq) }
 //
 // Returns:
 //
-// - seqSlice[V]: A new iterator containing the elements that satisfy the given condition.
+// - SeqSlice[V]: A new iterator containing the elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -348,7 +348,7 @@ func (seq SeqSlice[V]) ForEach(fn func(v V)) {
 //
 // Returns:
 //
-// - seqSlice[V]: A single iterator containing elements from the sequence of iterators.
+// - SeqSlice[V]: A single iterator containing elements from the sequence of iterators.
 //
 // Example usage:
 //
@@ -382,7 +382,7 @@ func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] { return inspectSlice(s
 //
 // Returns:
 //
-// - seqSlice[V]: A iterator containing elements transformed by the provided function.
+// - SeqSlice[V]: A iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //
@@ -497,7 +497,7 @@ func (seq SeqSlice[V]) Range(fn func(v V) bool) {
 //
 // Returns:
 //
-// - seqSlice[V]: An iterator that starts after skipping the first n elements.
+// - SeqSlice[V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
@@ -516,7 +516,7 @@ func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] { return skipSlice(seq, n) }
 // - n uint: The step size, indicating how many elements to skip between each iteration.
 //
 // Returns:
-// - seqSlice[V]: A new iterator that produces elements from the original iterator with a step size of N.
+// - SeqSlice[V]: A new iterator that produces elements from the original iterator with a step size of N.
 //
 // Example usage:
 //
@@ -545,7 +545,7 @@ func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] { return stepbySlice(seq, n) }
 //
 // The returned iterator is of type sequence[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) Sort() SeqSlice[V] { return sortiSlice(seq) }
+// func (seq SeqSlice[V]) Sort() SeqSlice[V] { return sortiSlice(seq) }
 
 // SortBy applies a custom sorting function to the elements in the iterator
 // and returns a new iterator containing the sorted elements.
@@ -565,7 +565,7 @@ func (seq SeqSlice[V]) Sort() SeqSlice[V] { return sortiSlice(seq) }
 //
 // The returned iterator is of type sequence[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) SortBy(fn func(a, b V) bool) SeqSlice[V] { return sortbySlice(seq, fn) }
+func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordered) SeqSlice[V] { return sortbySlice(seq, fn) }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
@@ -625,7 +625,7 @@ func (seq SeqSlice[V]) ToChan(ctxs ...context.Context) chan V {
 //
 // Returns:
 //
-// - seqSlice[V]: An iterator containing unique elements from the original iterator.
+// - SeqSlice[V]: An iterator containing unique elements from the original iterator.
 //
 // Example usage:
 //
@@ -694,7 +694,7 @@ func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq,
 // Output: [Slice[1, 2, 3] Slice[2, 3, 4] Slice[3, 4, 5] Slice[4, 5, 6]]
 //
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Windows(n int) SeqSlices[V] { return windows(seq, n) }
+func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] { return windows(seq, n.Std()) }
 
 // FromChan converts a channel into an iterator.
 //
@@ -707,7 +707,7 @@ func (seq SeqSlice[V]) Windows(n int) SeqSlices[V] { return windows(seq, n) }
 // - ch (<-chan V): The input channel to convert into an iterator.
 //
 // Returns:
-// - seqSlice[V]: An iterator that yields elements from the channel.
+// - SeqSlice[V]: An iterator that yields elements from the channel.
 //
 // Example usage:
 //
@@ -883,19 +883,16 @@ func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
-func sortiSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
+// func sortiSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
+// 	items := seq.Collect()
+// 	items.Sort()
+
+// 	return items.Iter()
+// }
+
+func sortbySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordered) SeqSlice[V] {
 	items := seq.Collect()
-	items.Sort()
-
-	return items.Iter()
-}
-
-func sortbySlice[V any](seq SeqSlice[V], fn func(a, b V) bool) SeqSlice[V] {
-	items := seq.Collect()
-
-	sort.Slice(items, func(i, j int) bool {
-		return fn(items[i], items[j])
-	})
+	items.SortBy(cmp)
 
 	return items.Iter()
 }
@@ -921,9 +918,9 @@ func inspectSlice[V any](seq SeqSlice[V], fn func(V)) SeqSlice[V] {
 	}
 }
 
-func enumerate[V any](seq SeqSlice[V]) SeqMapOrd[int, V] {
-	return func(yield func(int, V) bool) {
-		i := -1
+func enumerate[V any](seq SeqSlice[V]) SeqMapOrd[Int, V] {
+	return func(yield func(Int, V) bool) {
+		i := Int(-1)
 		seq(func(v V) bool {
 			i++
 			return yield(i, v)
@@ -1161,8 +1158,8 @@ func flattenSlice[V any](s V, yield func(V) bool) {
 	}
 }
 
-func countSlice[V any](seq SeqSlice[V]) int {
-	var counter int
+func countSlice[V any](seq SeqSlice[V]) Int {
+	var counter Int
 	seq(func(V) bool {
 		counter++
 		return true
@@ -1171,8 +1168,8 @@ func countSlice[V any](seq SeqSlice[V]) int {
 	return counter
 }
 
-func counterSlice[V any](seq SeqSlice[V]) SeqMapOrd[V, uint] {
-	result := NewMapOrd[V, uint]()
+func counterSlice[V any](seq SeqSlice[V]) SeqMapOrd[V, Int] {
+	result := NewMapOrd[V, Int]()
 	seq(func(v V) bool {
 		r := result.Get(v).UnwrapOrDefault()
 		r++

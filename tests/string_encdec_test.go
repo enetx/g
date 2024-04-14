@@ -175,7 +175,7 @@ func TestStringRot13Decoding(t *testing.T) {
 
 func TestStringXOR(t *testing.T) {
 	for range 100 {
-		input := g.NewString("").Random(g.NewInt(30).RandomRange(100).Std())
+		input := g.NewString("").Random(g.NewInt(30).RandomRange(100))
 		key := g.NewString("").Random(10)
 		obfuscated := input.Enc().XOR(key)
 		deobfuscated := obfuscated.Dec().XOR(key)

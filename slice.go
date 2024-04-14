@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	"sort"
 	"strings"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 	"github.com/enetx/g/pkg/rand"
 )
@@ -21,7 +21,7 @@ import (
 //
 // Parameters:
 //
-// - size ...int: A variadic parameter specifying the length and/or capacity of the Slice
+// - size ...Int: A variadic parameter specifying the length and/or capacity of the Slice
 //
 // Returns:
 //
@@ -32,8 +32,11 @@ import (
 //	s1 := g.NewSlice[int]()        // Creates an empty Slice of type int
 //	s2 := g.NewSlice[int](5)       // Creates an Slice with length and capacity of 5
 //	s3 := g.NewSlice[int](3, 10)   // Creates an Slice with length of 3 and capacity of 10
-func NewSlice[T any](size ...int) Slice[T] {
-	length, capacity := 0, 0
+func NewSlice[T any](size ...Int) Slice[T] {
+	var (
+		length   Int
+		capacity Int
+	)
 
 	switch {
 	case len(size) > 1:
@@ -117,42 +120,42 @@ func (sl Slice[T]) Fill(val T) {
 
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
-func (sl Slice[T]) Index(val T) int {
+func (sl Slice[T]) Index(val T) Int {
 	switch s := any(sl).(type) {
 	case Slice[Int]:
-		return slices.Index(s, any(val).(Int))
+		return Int(slices.Index(s, any(val).(Int)))
 	case Slice[String]:
-		return slices.Index(s, any(val).(String))
+		return Int(slices.Index(s, any(val).(String)))
 	case Slice[Float]:
-		return slices.Index(s, any(val).(Float))
+		return Int(slices.Index(s, any(val).(Float)))
 	case Slice[string]:
-		return slices.Index(s, any(val).(string))
+		return Int(slices.Index(s, any(val).(string)))
 	case Slice[bool]:
-		return slices.Index(s, any(val).(bool))
+		return Int(slices.Index(s, any(val).(bool)))
 	case Slice[int]:
-		return slices.Index(s, any(val).(int))
+		return Int(slices.Index(s, any(val).(int)))
 	case Slice[int8]:
-		return slices.Index(s, any(val).(int8))
+		return Int(slices.Index(s, any(val).(int8)))
 	case Slice[int16]:
-		return slices.Index(s, any(val).(int16))
+		return Int(Int(slices.Index(s, any(val).(int16))))
 	case Slice[int32]:
-		return slices.Index(s, any(val).(int32))
+		return Int(slices.Index(s, any(val).(int32)))
 	case Slice[int64]:
-		return slices.Index(s, any(val).(int64))
+		return Int(slices.Index(s, any(val).(int64)))
 	case Slice[uint]:
-		return slices.Index(s, any(val).(uint))
+		return Int(slices.Index(s, any(val).(uint)))
 	case Slice[uint8]:
-		return slices.Index(s, any(val).(uint8))
+		return Int(slices.Index(s, any(val).(uint8)))
 	case Slice[uint16]:
-		return slices.Index(s, any(val).(uint16))
+		return Int(slices.Index(s, any(val).(uint16)))
 	case Slice[uint32]:
-		return slices.Index(s, any(val).(uint32))
+		return Int(slices.Index(s, any(val).(uint32)))
 	case Slice[uint64]:
-		return slices.Index(s, any(val).(uint64))
+		return Int(slices.Index(s, any(val).(uint64)))
 	case Slice[float32]:
-		return slices.Index(s, any(val).(float32))
+		return Int(slices.Index(s, any(val).(float32)))
 	case Slice[float64]:
-		return slices.Index(s, any(val).(float64))
+		return Int(slices.Index(s, any(val).(float64)))
 	default:
 		return sl.IndexBy(f.Eqd(val))
 	}
@@ -163,7 +166,7 @@ func (sl Slice[T]) Index(val T) int {
 // It iterates through the slice and applies the comparison function to each element and the target value.
 // If the comparison function returns true for any pair of elements, it returns the index of that element.
 // If no such element is found, it returns -1.
-func (sl Slice[T]) IndexBy(fn func(t T) bool) int { return slices.IndexFunc(sl, fn) }
+func (sl Slice[T]) IndexBy(fn func(t T) bool) Int { return Int(slices.IndexFunc(sl, fn)) }
 
 // RandomSample returns a new slice containing a random sample of elements from the original slice.
 // The sampling is done without replacement, meaning that each element can only appear once in the result.
@@ -182,8 +185,8 @@ func (sl Slice[T]) IndexBy(fn func(t T) bool) int { return slices.IndexFunc(sl, 
 //	sample := slice.RandomSample(3)
 //
 // The resulting sample will contain 3 unique elements randomly selected from the original slice.
-func (sl Slice[T]) RandomSample(sequence int) Slice[T] {
-	if sequence >= len(sl) {
+func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
+	if sequence.Gte(sl.Len()) {
 		return sl
 	}
 
@@ -195,20 +198,20 @@ func (sl Slice[T]) RandomSample(sequence int) Slice[T] {
 
 // RandomRange returns a new slice containing a random sample of elements from a subrange of the original slice.
 // The sampling is done without replacement, meaning that each element can only appear once in the result.
-func (sl Slice[T]) RandomRange(from, to int) Slice[T] {
+func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
 	if from < 0 {
 		from = 0
 	}
 
-	if to < 0 || to > len(sl) {
-		to = len(sl)
+	if to < 0 || to > sl.Len() {
+		to = sl.Len()
 	}
 
 	if from > to {
 		from = to
 	}
 
-	return sl.RandomSample(Int(from).RandomRange(Int(to)).Std())
+	return sl.RandomSample(from.RandomRange(to))
 }
 
 // Insert inserts values at the specified index in the slice and returns the resulting slice.
@@ -216,7 +219,7 @@ func (sl Slice[T]) RandomRange(from, to int) Slice[T] {
 //
 // Parameters:
 //
-// - i int: The index at which to insert the new values.
+// - i Int: The index at which to insert the new values.
 //
 // - values ...T: A variadic list of values to insert at the specified index.
 //
@@ -230,14 +233,14 @@ func (sl Slice[T]) RandomRange(from, to int) Slice[T] {
 //	newSlice := slice.Insert(2, "e", "f")
 //
 // The resulting newSlice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl Slice[T]) Insert(i int, values ...T) Slice[T] { return sl.Replace(i, i, values...) }
+func (sl Slice[T]) Insert(i Int, values ...T) Slice[T] { return sl.Replace(i, i, values...) }
 
 // InsertInPlace inserts values at the specified index in the slice and modifies the original
 // slice.
 //
 // Parameters:
 //
-// - i int: The index at which to insert the new values.
+// - i Int: The index at which to insert the new values.
 //
 // - values ...T: A variadic list of values to insert at the specified index.
 //
@@ -247,7 +250,7 @@ func (sl Slice[T]) Insert(i int, values ...T) Slice[T] { return sl.Replace(i, i,
 //	slice.InsertInPlace(2, "e", "f")
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, values...) }
+func (sl *Slice[T]) InsertInPlace(i Int, values ...T) { sl.ReplaceInPlace(i, i, values...) }
 
 // Replace replaces the elements of sl[i:j] with the given values, and returns
 // a new slice with the modifications. The original slice remains unchanged.
@@ -255,9 +258,9 @@ func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, 
 //
 // Parameters:
 //
-// - i int: The starting index of the slice to be replaced.
+// - i Int: The starting index of the slice to be replaced.
 //
-// - j int: The ending index of the slice to be replaced.
+// - j Int: The ending index of the slice to be replaced.
 //
 // - values ...T: A variadic list of values to replace the existing slice.
 //
@@ -271,7 +274,7 @@ func (sl *Slice[T]) InsertInPlace(i int, values ...T) { sl.ReplaceInPlace(i, i, 
 //	newSlice := slice.Replace(1, 3, "e", "f")
 //
 // The original slice remains ["a", "b", "c", "d"], and the newSlice will be: ["a", "e", "f", "d"].
-func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
+func (sl Slice[T]) Replace(i, j Int, values ...T) Slice[T] {
 	i = sl.bound(i)
 	j = sl.bound(j)
 
@@ -279,12 +282,12 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 		return NewSlice[T]()
 	}
 
-	total := len(sl[:i]) + len(values) + len(sl[j:])
+	total := sl[:i].Len() + Int(len(values)) + sl[j:].Len()
 	slice := NewSlice[T](total)
 
 	copy(slice, sl[:i])
 	copy(slice[i:], values)
-	copy(slice[i+len(values):], sl[j:])
+	copy(slice[i+Int(len(values)):], sl[j:])
 
 	return slice
 }
@@ -307,7 +310,7 @@ func (sl Slice[T]) Replace(i, j int, values ...T) Slice[T] {
 //	slice.ReplaceInPlace(1, 3, "e", "f")
 //
 // After the ReplaceInPlace operation, the resulting slice will be: ["a", "e", "f", "d"].
-func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
+func (sl *Slice[T]) ReplaceInPlace(i, j Int, values ...T) {
 	i = sl.bound(i)
 	j = sl.bound(j)
 
@@ -324,17 +327,17 @@ func (sl *Slice[T]) ReplaceInPlace(i, j int, values ...T) {
 		return
 	}
 
-	diff := len(values) - (j - i)
+	diff := Int(len(values)) - (j - i)
 
 	if diff > 0 {
 		*sl = append(*sl, NewSlice[T](diff)...)
 	}
 
-	copy((*sl)[i+len(values):], (*sl)[j:])
+	copy((*sl)[i+Int(len(values)):], (*sl)[j:])
 	copy((*sl)[i:], values)
 
 	if diff < 0 {
-		*sl = (*sl)[:len(*sl)+diff]
+		*sl = (*sl)[:(*sl).Len()+diff]
 	}
 }
 
@@ -397,7 +400,7 @@ func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 
 // Get returns the element at the given index, handling negative indices as counting from the end
 // of the slice.
-func (sl Slice[T]) Get(index int) T { return sl[sl.bound(index)] }
+func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
 
 // Max returns the maximum element in the slice, assuming elements are comparable.
 func (sl Slice[T]) Max() T {
@@ -450,7 +453,7 @@ func (sl Slice[T]) Min() T {
 //
 // Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
 func (sl Slice[T]) Shuffle() {
-	n := len(sl)
+	n := sl.Len()
 
 	for i := n - 1; i > 0; i-- {
 		j := rand.N(i + 1)
@@ -477,7 +480,7 @@ func (sl Slice[T]) Reverse() { slices.Reverse(sl) }
 // Sort sorts the elements in the slice in increasing order. It modifies the original
 // slice in place. For proper functionality, the type T used in the slice must support
 // comparison via the Less method.
-func (sl Slice[T]) Sort() { sort.Sort(sl) }
+// func (sl Slice[T]) Sort() { sort.Sort(sl) }
 
 // SortBy sorts the elements in the slice using the provided comparison function.
 // It modifies the original slice in place. It requires the elements to be of a type
@@ -489,14 +492,14 @@ func (sl Slice[T]) Sort() { sort.Sort(sl) }
 //
 // Parameters:
 //
-// - f func(i, j int) bool: A comparison function that takes two indices i and j and returns a bool.
+// - f func(a, b T) cmp.Ordered: A comparison function that takes two indices i and j and returns a bool.
 //
 // Example usage:
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
-// sl.SortBy(func(a, b int) bool { return a < b }) // sorts in ascending order.
-func (sl Slice[T]) SortBy(fn func(a, b T) bool) {
-	sort.Slice(sl, func(i, j int) bool { return fn(sl[i], sl[j]) })
+// sl.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }) // sorts in ascending order.
+func (sl Slice[T]) SortBy(fn func(a, b T) cmp.Ordered) {
+	slices.SortFunc(sl, func(a, b T) int { return int(fn(a, b)) })
 }
 
 // ToStringSlice converts the Slice into a slice of strings.
@@ -530,11 +533,11 @@ func (sl Slice[T]) Join(sep ...T) String {
 //
 // Parameters:
 //
-// - start (int): The start index of the range.
+// - start (Int): The start index of the range.
 //
-// - end (int): The end index of the range.
+// - end (Int): The end index of the range.
 //
-// - step (int, optional): The increment between elements. Defaults to 1 if not provided.
+// - step (Int, optional): The increment between elements. Defaults to 1 if not provided.
 // If negative, the slice is traversed in reverse order.
 //
 // Returns:
@@ -549,8 +552,8 @@ func (sl Slice[T]) Join(sep ...T) String {
 //	fmt.Println(subSlice)
 //
 // Output: [2 4 6].
-func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
-	_step := 1
+func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
+	_step := Int(1)
 
 	if len(step) != 0 {
 		_step = step[0]
@@ -563,11 +566,11 @@ func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
 		return NewSlice[T]()
 	}
 
-	var loopCondition func(int) bool
+	var loopCondition func(Int) bool
 	if _step > 0 {
-		loopCondition = func(i int) bool { return i < end }
+		loopCondition = func(i Int) bool { return i < end }
 	} else {
-		loopCondition = func(i int) bool { return i > end }
+		loopCondition = func(i Int) bool { return i > end }
 	}
 
 	var slice Slice[T]
@@ -587,9 +590,9 @@ func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
 //
 // Parameters:
 //
-// - start (int): The start index of the range to be removed.
+// - start (Int): The start index of the range to be removed.
 //
-// - end (int): The end index of the range to be removed.
+// - end (Int): The end index of the range to be removed.
 //
 // Note:
 //
@@ -607,7 +610,7 @@ func (sl Slice[T]) SubSlice(start, end int, step ...int) Slice[T] {
 //	slice := g.Slice[int]{1, 2, 3, 4, 5}
 //	newSlice := slice.Cut(1, 3)
 //	// newSlice is [1 4 5]
-func (sl Slice[T]) Cut(start, end int) Slice[T] { return sl.Replace(start, end) }
+func (sl Slice[T]) Cut(start, end Int) Slice[T] { return sl.Replace(start, end) }
 
 // CutInPlace removes a range of elements from the Slice in-place.
 // It modifies the original slice by creating two slices: one from the
@@ -618,16 +621,16 @@ func (sl Slice[T]) Cut(start, end int) Slice[T] { return sl.Replace(start, end) 
 //
 // Parameters:
 //
-// - start (int): The start index of the range to be removed.
+// - start (Int): The start index of the range to be removed.
 //
-// - end (int): The end index of the range to be removed.
+// - end (Int): The end index of the range to be removed.
 //
 // Note:
 //
 // The function also supports negative indices. Negative indices are counted
 // from the end of the slice. For example, -1 means the last element, -2
 // means the second-to-last element, and so on.
-func (sl *Slice[T]) CutInPlace(start, end int) { sl.ReplaceInPlace(start, end) }
+func (sl *Slice[T]) CutInPlace(start, end Int) { sl.ReplaceInPlace(start, end) }
 
 // Random returns a random element from the slice.
 //
@@ -650,16 +653,16 @@ func (sl Slice[T]) Random() T {
 		return *new(T)
 	}
 
-	return sl[rand.N(len(sl))]
+	return sl[rand.N(sl.Len())]
 }
 
 // Clone returns a copy of the slice.
 func (sl Slice[T]) Clone() Slice[T] { return slices.Clone(sl) }
 
 // LastIndex returns the last index of the slice.
-func (sl Slice[T]) LastIndex() int {
+func (sl Slice[T]) LastIndex() Int {
 	if sl.NotEmpty() {
-		return len(sl) - 1
+		return sl.Len() - 1
 	}
 
 	return 0
@@ -734,7 +737,7 @@ func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 func (sl *Slice[T]) AppendInPlace(elems ...T) { *sl = append(*sl, elems...) }
 
 // Cap returns the capacity of the Slice.
-func (sl Slice[T]) Cap() int { return cap(sl) }
+func (sl Slice[T]) Cap() Int { return Int(cap(sl)) }
 
 // Contains returns true if the slice contains the provided value.
 func (sl Slice[T]) Contains(val T) bool { return sl.Index(val) >= 0 }
@@ -773,7 +776,7 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 }
 
 // Delete removes the element at the specified index from the slice and returns the modified slice.
-func (sl Slice[T]) Delete(i int) Slice[T] {
+func (sl Slice[T]) Delete(i Int) Slice[T] {
 	nsl := sl.Clone()
 	nsl.DeleteInPlace(i)
 
@@ -782,7 +785,7 @@ func (sl Slice[T]) Delete(i int) Slice[T] {
 
 // DeleteInPlace removes the element at the specified index from the slice and modifies the
 // original slice.
-func (sl *Slice[T]) DeleteInPlace(i int) {
+func (sl *Slice[T]) DeleteInPlace(i Int) {
 	i = sl.bound(i)
 	copy((*sl)[i:], (*sl)[i+1:])
 	*sl = (*sl)[:len(*sl)-1]
@@ -815,7 +818,7 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 //
 // Parameters:
 //
-// - i (int): The index at which to set the new value.
+// - index (Int): The index at which to set the new value.
 //
 // - val (T): The new value to be set at the specified index.
 //
@@ -830,16 +833,16 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 // fmt.Println(slice)
 //
 // Output: [1 2 99 4 5].
-func (sl Slice[T]) Set(index int, val T) { sl[sl.bound(index)] = val }
+func (sl Slice[T]) Set(index Int, val T) { sl[sl.bound(index)] = val }
 
 // Len returns the length of the slice.
-func (sl Slice[T]) Len() int { return len(sl) }
+func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 
 // Less defines the comparison logic between two elements at indices i and j within the slice.
 // It utilizes type-based comparisons for elements of various types like Int, int, String, string,
 // Float, and float64. The comparison is performed according to the types and their respective
 // comparison methods. If the types are not directly comparable, it returns false.
-func (sl Slice[T]) Less(i, j int) bool {
+func (sl Slice[T]) Less(i, j Int) bool {
 	elemI := any(sl[i])
 	elemJ := any(sl[j])
 
@@ -922,9 +925,9 @@ func (sl Slice[T]) Less(i, j int) bool {
 //
 // Parameters:
 //
-// - i (int): The index of the first element to be swapped.
+// - i (Int): The index of the first element to be swapped.
 //
-// - j (int): The index of the second element to be swapped.
+// - j (Int): The index of the second element to be swapped.
 //
 // Returns:
 //
@@ -937,20 +940,20 @@ func (sl Slice[T]) Less(i, j int) bool {
 // fmt.Println(slice)
 //
 // Output: [1 4 3 2 5].
-func (sl Slice[T]) Swap(i, j int) {
+func (sl Slice[T]) Swap(i, j Int) {
 	i = sl.bound(i)
 	j = sl.bound(j)
 
 	sl.swap(i, j)
 }
 
-func (sl Slice[T]) swap(i, j int) { sl[i], sl[j] = sl[j], sl[i] }
+func (sl Slice[T]) swap(i, j Int) { sl[i], sl[j] = sl[j], sl[i] }
 
 // Grow increases the slice's capacity, if necessary, to guarantee space for
 // another n elements. After Grow(n), at least n elements can be appended
 // to the slice without another allocation. If n is negative or too large to
 // allocate the memory, Grow panics.
-func (sl Slice[T]) Grow(n int) Slice[T] { return slices.Grow(sl, n) }
+func (sl Slice[T]) Grow(n Int) Slice[T] { return slices.Grow(sl, n.Std()) }
 
 // Clip removes unused capacity from the slice.
 func (sl Slice[T]) Clip() Slice[T] { return slices.Clip(sl) }
@@ -986,18 +989,18 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 	}
 }
 
-func (sl Slice[T]) bound(i int, subslice ...struct{}) int {
+func (sl Slice[T]) bound(i Int, subslice ...struct{}) Int {
 	ii := i
 	if ii < 0 {
-		ii += len(sl)
+		ii += sl.Len()
 	}
 
-	negative := 0
+	negative := Int(0)
 	if len(subslice) != 0 {
 		negative = -1
 	}
 
-	if ii > len(sl) || ii < negative {
+	if ii > sl.Len() || ii < negative {
 		panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", i, len(sl)))
 	}
 

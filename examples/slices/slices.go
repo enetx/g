@@ -5,10 +5,31 @@ import (
 	"strings"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
 func main() {
+	wsl := g.SliceOf[g.String](
+		"aa a",
+		"b b",
+		"o o oo oooo",
+		"aa a a aa a",
+		"aaa aaaa",
+		"a a a aaaa",
+		"aaa aaa",
+		"three three",
+		"one",
+		"four",
+	)
+
+	wsl.SortBy(func(a, b g.String) cmp.Ordered {
+		return a.Fields().Len().Cmp(b.Fields().Len()).
+			Then(a.Len().Cmp(b.Len()))
+	})
+
+	wsl.Print() // Slice[one, four, b b, aa a, aaa aaa, aaa aaaa, three three, a a a aaaa, o o oo oooo, aa a a aa a]
+
 	slice := g.Slice[int]{1, 2, 3, 4}
 
 	slice.Iter().Filter(f.Gt(2)).Collect().Print() // Slice[3, 4]

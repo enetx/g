@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 )
 
 func main() {
@@ -88,12 +89,14 @@ func main() {
 	sl.Iter().Map(g.String.Upper).Collect().Print()
 
 	counter := sl.Append(sl...).Append("ddd").Iter().Counter().Collect()
-	counter.SortBy(func(a, b g.Pair[g.String, uint]) bool {
-		return a.Value > b.Value || a.Value == b.Value && a.Key < b.Key
+
+	counter.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered {
+		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
 	})
+
 	counter.Print() // Output: MapOrd{ddd:3, abc:2, bbb:2, ccc:2, eee:2}
 
-	counter.Iter().ForEach(func(k g.String, v uint) { fmt.Println(k.Title(), ":", v) })
+	counter.Iter().ForEach(func(k g.String, v g.Int) { fmt.Println(k.Title(), ":", v) })
 
 	sl.Iter().ForEach(func(v g.String) { v.Print() })
 

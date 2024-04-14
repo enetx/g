@@ -8,7 +8,7 @@ import (
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
-func NewMap[K comparable, V any](size ...int) Map[K, V] {
+func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 	if len(size) == 0 {
 		return make(Map[K, V], 0)
 	}
@@ -175,7 +175,7 @@ func (m Map[K, V]) Get(k K) Option[V] {
 }
 
 // Len returns the number of key-value pairs in the Map.
-func (m Map[K, V]) Len() int { return len(m) }
+func (m Map[K, V]) Len() Int { return Int(len(m)) }
 
 // Ne checks if two Maps are not equal.
 func (m Map[K, V]) Ne(other Map[K, V]) bool { return !m.Eq(other) }

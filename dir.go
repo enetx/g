@@ -396,7 +396,7 @@ func (d *Dir) Read() Result[Slice[*File]] {
 		return Err[Slice[*File]](err)
 	}
 
-	files := NewSlice[*File](0, len(entries))
+	files := NewSlice[*File](0, Int(len(entries)))
 
 	for _, entry := range entries {
 		dpath := d.Path()
@@ -433,7 +433,7 @@ func (d *Dir) Glob() Result[Slice[*File]] {
 		return Err[Slice[*File]](err)
 	}
 
-	files := NewSlice[*File](0, len(matches))
+	files := NewSlice[*File](0, Int(len(matches)))
 
 	for _, match := range matches {
 		file := NewFile(String(match)).Path()

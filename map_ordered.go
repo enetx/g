@@ -2,8 +2,9 @@ package g
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
@@ -26,7 +27,7 @@ import (
 //	mapOrd := g.NewMapOrd[string, int](10)
 //
 // Creates a new ordered Map with an initial size of 10.
-func NewMapOrd[K, V any](size ...int) MapOrd[K, V] {
+func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
 	if len(size) == 0 {
 		return make(MapOrd[K, V], 0)
 	}
@@ -110,13 +111,10 @@ func MapOrdFromMap[K comparable, V any](m Map[K, V]) MapOrd[K, V] {
 func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdFromMap(MapFromStd(m)) }
 
 // SortBy sorts the ordered Map by a custom comparison function.
-// The comparison function should return true if the element at index i should be sorted before the
-// element at index j. This function is useful when you want to sort the key-value pairs in an
-// ordered Map based on a custom comparison logic.
 //
 // Parameters:
 //
-// - f func(i, j int) bool: The custom comparison function used for sorting the ordered Map.
+// - fn func(a, b Pair[K, V]) cmp.Ordered: The custom comparison function used for sorting the ordered Map.
 //
 // Returns:
 //
@@ -125,19 +123,16 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdF
 //
 // Example usage:
 //
-//	hmapo.SortBy(func(a, b g.Pair[string, int]) bool { return a.Key < b.Key })
-//	hmapo.SortBy(func(a, b g.Pair[string, int]) bool { return a.Value < b.Value })
-func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) MapOrd[K, V] {
-	sort.Slice(mo, func(i, j int) bool {
-		return fn(mo[i], mo[j])
-	})
-
+//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered { return a.Key.Cmp(b.Key) })
+//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered { return a.Value.Cmp(b.Value) })
+func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordered) MapOrd[K, V] {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a, b)) })
 	return mo
 }
 
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
-	result := NewMapOrd[K, V](len(mo))
+	result := NewMapOrd[K, V](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { result.Set(k, v) })
 
 	return result
@@ -235,7 +230,7 @@ func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
 func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
-	result := NewMapOrd[V, K](len(mo))
+	result := NewMapOrd[V, K](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
 
 	return result
@@ -316,7 +311,7 @@ func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }
 func (mo MapOrd[K, V]) Empty() bool { return len(mo) == 0 }
 
 // Len returns the number of key-value pairs in the ordered Map.
-func (mo MapOrd[K, V]) Len() int { return len(mo) }
+func (mo MapOrd[K, V]) Len() Int { return Int(len(mo)) }
 
 // Ne compares the current ordered Map to another ordered Map and returns true if they are not
 // equal.

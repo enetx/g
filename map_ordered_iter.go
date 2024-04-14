@@ -3,7 +3,8 @@ package g
 import (
 	"context"
 	"iter"
-	"sort"
+
+	"github.com/enetx/g/cmp"
 )
 
 // Pull converts the “push-style” iterator sequence seq
@@ -46,7 +47,7 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 //
 // Example:
 //
-//	m := g.NewMapOrd[int, string]()
+//	m := g.NewMapOrd[g.Int, g.String]()
 //	m.
 //		Set(6, "bb").
 //		Set(0, "dd").
@@ -57,18 +58,18 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 //		Set(4, "zz").
 //		Iter().
 //		SortBy(
-//			func(a, b g.Pair[int, string]) bool {
-//				return a.Key < b.Key
-//				// return a.Value < b.Value
+//			func(a, b g.Pair[g.Int, g.String]) cmp.Ordered {
+//				return a.Key.Cmp(b.Key)
+//				// return a.Value.Cmp(b.Value)
 //			}).
 //		Collect().
 //		Print()
 //
 // Output: MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
 //
-// The returned iterator is of type *sortIterMO[K, V], which implements the iterator
+// The returned iterator is of type SeqMapOrd[K, V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) bool) SeqMapOrd[K, V] {
+func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordered) SeqMapOrd[K, V] {
 	return sortbyMapOrd(seq, fn)
 }
 
@@ -129,7 +130,7 @@ func (seq SeqMapOrd[K, V]) Chain(seqs ...SeqMapOrd[K, V]) SeqMapOrd[K, V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqMapOrd[K, V]) Count() int { return countMapOrd(seq) }
+func (seq SeqMapOrd[K, V]) Count() Int { return countMapOrd(seq) }
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
 func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
@@ -424,12 +425,9 @@ func ToSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
 	}
 }
 
-func sortbyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) bool) SeqMapOrd[K, V] {
+func sortbyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) cmp.Ordered) SeqMapOrd[K, V] {
 	items := seq.Collect()
-
-	sort.Slice(items, func(i, j int) bool {
-		return fn(items[i], items[j])
-	})
+	items.SortBy(fn)
 
 	return items.Iter()
 }
@@ -542,8 +540,8 @@ func findMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(K, V) bool) (r Option[Pai
 	return r
 }
 
-func countMapOrd[K, V any](seq SeqMapOrd[K, V]) int {
-	var counter int
+func countMapOrd[K, V any](seq SeqMapOrd[K, V]) Int {
+	var counter Int
 	seq(func(K, V) bool {
 		counter++
 		return true

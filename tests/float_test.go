@@ -46,7 +46,7 @@ func TestFloatCompare(t *testing.T) {
 	testCases := []struct {
 		f1       g.Float
 		f2       g.Float
-		expected g.Int
+		expected int
 	}{
 		{3.14, 6.28, -1},
 		{6.28, 3.14, 1},
@@ -55,8 +55,8 @@ func TestFloatCompare(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.f1.Compare(tc.f2)
-		if !result.Eq(tc.expected) {
+		result := int(tc.f1.Cmp(tc.f2))
+		if result != tc.expected {
 			t.Errorf("Compare(%f, %f): expected %d, got %d", tc.f1, tc.f2, tc.expected, result)
 		}
 	}
@@ -180,7 +180,7 @@ func TestFloatRound(t *testing.T) {
 func TestFloatRoundDecimal(t *testing.T) {
 	testCases := []struct {
 		value    g.Float
-		decimals int
+		decimals g.Int
 		expected g.Float
 	}{
 		{3.1415926535, 2, 3.14},

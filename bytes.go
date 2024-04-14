@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"unicode/utf8"
 
+	"github.com/enetx/g/cmp"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -21,7 +22,7 @@ func (bs Bytes) Reverse() Bytes {
 
 	for bs.Len() > 0 {
 		r, size := utf8.DecodeLastRune(bs)
-		bs = bs[:bs.Len()-size]
+		bs = bs[:bs.Len().Std()-size]
 		i += utf8.EncodeRune(reversed[i:], r)
 	}
 
@@ -29,7 +30,7 @@ func (bs Bytes) Reverse() Bytes {
 }
 
 // Replace replaces the first 'n' occurrences of 'oldB' with 'newB' in the Bytes.
-func (bs Bytes) Replace(oldB, newB Bytes, n int) Bytes { return bytes.Replace(bs, oldB, newB, n) }
+func (bs Bytes) Replace(oldB, newB Bytes, n Int) Bytes { return bytes.Replace(bs, oldB, newB, n.Std()) }
 
 // ReplaceAll replaces all occurrences of 'oldB' with 'newB' in the Bytes.
 func (bs Bytes) ReplaceAll(oldB, newB Bytes) Bytes { return bytes.ReplaceAll(bs, oldB, newB) }
@@ -74,16 +75,7 @@ func (bs Bytes) Split(sep ...Bytes) Slice[Bytes] {
 		separator = sep[0]
 	}
 
-	return sliceBytesFromStd(bytes.Split(bs, separator))
-}
-
-func sliceBytesFromStd(bb [][]byte) Slice[Bytes] {
-	result := NewSlice[Bytes](0, len(bb))
-	for _, v := range bb {
-		result = append(result, v)
-	}
-
-	return result
+	return SliceMap(bytes.Split(bs, separator), NewBytes)
 }
 
 // Add appends the given Bytes to the current Bytes.
@@ -99,7 +91,7 @@ func (bs Bytes) Std() []byte { return bs }
 func (bs Bytes) Clone() Bytes { return bytes.Clone(bs) }
 
 // Compare compares the Bytes with another Bytes and returns an Int.
-func (bs Bytes) Compare(obs Bytes) Int { return Int(bytes.Compare(bs, obs)) }
+func (bs Bytes) Cmp(obs Bytes) cmp.Ordered { return cmp.Ordered(bytes.Compare(bs, obs)) }
 
 // Contains checks if the Bytes contains the specified Bytes.
 func (bs Bytes) Contains(obs Bytes) bool { return bytes.Contains(bs, obs) }
@@ -133,19 +125,19 @@ func (bs Bytes) ContainsAnyChars(chars String) bool { return bytes.ContainsAny(b
 func (bs Bytes) ContainsRune(r rune) bool { return bytes.ContainsRune(bs, r) }
 
 // Count counts the number of occurrences of the specified Bytes in the Bytes.
-func (bs Bytes) Count(obs Bytes) int { return bytes.Count(bs, obs) }
+func (bs Bytes) Count(obs Bytes) Int { return Int(bytes.Count(bs, obs)) }
 
 // Empty checks if the Bytes is empty.
 func (bs Bytes) Empty() bool { return bs == nil || len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
-func (bs Bytes) Eq(obs Bytes) bool { return bs.Compare(obs).Eq(0) }
+func (bs Bytes) Eq(obs Bytes) bool { return bs.Cmp(obs) == 0 }
 
 // EqFold compares two Bytes slices case-insensitively.
 func (bs Bytes) EqFold(obs Bytes) bool { return bytes.EqualFold(bs, obs) }
 
 // Gt checks if the Bytes is greater than another Bytes.
-func (bs Bytes) Gt(obs Bytes) bool { return bs.Compare(obs).Gt(0) }
+func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs) > 0 }
 
 // ToString returns the Bytes as an String.
 func (bs Bytes) ToString() String { return String(bs) }
@@ -156,10 +148,10 @@ func (bs Bytes) Index(obs Bytes) int { return bytes.Index(bs, obs) }
 // IndexRegexp searches for the first occurrence of the regular expression pattern in the Bytes.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
-func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[int]] {
-	result := SliceOf(pattern.FindIndex(bs)...)
+func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
+	result := SliceMap(pattern.FindIndex(bs), NewInt)
 	if result.Empty() {
-		return None[Slice[int]]()
+		return None[Slice[Int]]()
 	}
 
 	return Some(result)
@@ -177,7 +169,7 @@ func (bs Bytes) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[Bytes]] {
 // If no matches are found, the Option[Slice[Bytes]] will be None.
 // If n is negative, all occurrences will be returned.
 func (bs Bytes) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
-	result := sliceBytesFromStd(pattern.FindAll(bs, n.Std()))
+	result := SliceMap(pattern.FindAll(bs, n.Std()), NewBytes)
 	if result.Empty() {
 		return None[Slice[Bytes]]()
 	}
@@ -191,7 +183,7 @@ func (bs Bytes) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes
 // where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Bytes]] will be None.
 func (bs Bytes) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[Bytes]] {
-	result := sliceBytesFromStd(pattern.FindSubmatch(bs))
+	result := SliceMap(pattern.FindSubmatch(bs), NewBytes)
 	if result.Empty() {
 		return None[Slice[Bytes]]()
 	}
@@ -219,7 +211,7 @@ func (bs Bytes) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 	var result Slice[Slice[Bytes]]
 
 	for _, v := range pattern.FindAllSubmatch(bs, n.Std()) {
-		result = append(result, sliceBytesFromStd(v))
+		result = append(result, SliceMap(v, NewBytes))
 	}
 
 	if result.Empty() {
@@ -230,28 +222,28 @@ func (bs Bytes) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 }
 
 // LastIndex returns the index of the last instance of obs in bs, or -1 if obs is not present in bs.
-func (bs Bytes) LastIndex(obs Bytes) int { return bytes.LastIndex(bs, obs) }
+func (bs Bytes) LastIndex(obs Bytes) Int { return Int(bytes.LastIndex(bs, obs)) }
 
 // IndexByte returns the index of the first instance of the byte b in bs, or -1 if b is not
 // present in bs.
-func (bs Bytes) IndexByte(b byte) int { return bytes.IndexByte(bs, b) }
+func (bs Bytes) IndexByte(b byte) Int { return Int(bytes.IndexByte(bs, b)) }
 
 // LastIndexByte returns the index of the last instance of the byte b in bs, or -1 if b is not
 // present in bs.
-func (bs Bytes) LastIndexByte(b byte) int { return bytes.LastIndexByte(bs, b) }
+func (bs Bytes) LastIndexByte(b byte) Int { return Int(bytes.LastIndexByte(bs, b)) }
 
 // IndexRune returns the index of the first instance of the rune r in bs, or -1 if r is not
 // present in bs.
-func (bs Bytes) IndexRune(r rune) int { return bytes.IndexRune(bs, r) }
+func (bs Bytes) IndexRune(r rune) Int { return Int(bytes.IndexRune(bs, r)) }
 
 // Len returns the length of the Bytes.
-func (bs Bytes) Len() int { return len(bs) }
+func (bs Bytes) Len() Int { return Int(len(bs)) }
 
 // LenRunes returns the number of runes in the Bytes.
-func (bs Bytes) LenRunes() int { return utf8.RuneCount(bs) }
+func (bs Bytes) LenRunes() Int { return Int(utf8.RuneCount(bs)) }
 
 // Lt checks if the Bytes is less than another Bytes.
-func (bs Bytes) Lt(obs Bytes) bool { return bs.Compare(obs).Lt(0) }
+func (bs Bytes) Lt(obs Bytes) bool { return bs.Cmp(obs) < 0 }
 
 // Map applies a function to each rune in the Bytes and returns the modified Bytes.
 func (bs Bytes) Map(fn func(rune) rune) Bytes { return bytes.Map(fn, bs) }
@@ -269,7 +261,7 @@ func (bs Bytes) NotEmpty() bool { return !bs.Empty() }
 func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }
 
 // Repeat returns a new Bytes consisting of the current Bytes repeated 'count' times.
-func (bs Bytes) Repeat(count int) Bytes { return bytes.Repeat(bs, count) }
+func (bs Bytes) Repeat(count Int) Bytes { return bytes.Repeat(bs, count.Std()) }
 
 // ToRunes returns the Bytes as a slice of runes.
 func (bs Bytes) ToRunes() []rune { return bytes.Runes(bs) }

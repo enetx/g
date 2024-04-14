@@ -62,7 +62,7 @@ func (seq SeqMap[K, V]) Chain(seqs ...SeqMap[K, V]) SeqMap[K, V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqMap[K, V]) Count() int { return countMap(seq) }
+func (seq SeqMap[K, V]) Count() Int { return countMap(seq) }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
 func (seq SeqMap[K, V]) Collect() Map[K, V] {
@@ -326,8 +326,8 @@ func takeMap[K comparable, V any](seq SeqMap[K, V], n uint) SeqMap[K, V] {
 	}
 }
 
-func countMap[K comparable, V any](seq SeqMap[K, V]) int {
-	var counter int
+func countMap[K comparable, V any](seq SeqMap[K, V]) Int {
+	var counter Int
 	seq(func(K, V) bool {
 		counter++
 		return true

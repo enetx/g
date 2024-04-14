@@ -1,7 +1,6 @@
 package g
 
 import (
-	"cmp"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -9,6 +8,7 @@ import (
 	"math/bits"
 	"strconv"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/constraints"
 	"github.com/enetx/g/pkg/minmax"
 )
@@ -40,7 +40,7 @@ func (f Float) Add(b Float) Float { return f + b }
 func (f Float) ToBigFloat() *big.Float { return big.NewFloat(f.Std()) }
 
 // Compare compares two Floats and returns an Int.
-func (f Float) Compare(b Float) Int { return Int(cmp.Compare(f, b)) }
+func (f Float) Cmp(b Float) cmp.Ordered { return cmp.Cmp(f, b) }
 
 // Div divides two Floats and returns the result.
 func (f Float) Div(b Float) Float { return f / b }
@@ -49,13 +49,13 @@ func (f Float) Div(b Float) Float { return f / b }
 func (f Float) IsZero() bool { return f.Eq(0) }
 
 // Eq checks if two Floats are equal.
-func (f Float) Eq(b Float) bool { return f.Compare(b).Eq(0) }
+func (f Float) Eq(b Float) bool { return f.Cmp(b) == 0 }
 
 // Std returns the Float as a float64.
 func (f Float) Std() float64 { return float64(f) }
 
 // Gt checks if the Float is greater than the specified Float.
-func (f Float) Gt(b Float) bool { return f.Compare(b).Gt(0) }
+func (f Float) Gt(b Float) bool { return f.Cmp(b) > 0 }
 
 // ToInt returns the Float as an Int.
 func (f Float) ToInt() Int { return Int(f) }
@@ -64,7 +64,7 @@ func (f Float) ToInt() Int { return Int(f) }
 func (f Float) ToString() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
 
 // Lt checks if the Float is less than the specified Float.
-func (f Float) Lt(b Float) bool { return f.Compare(b).Lt(0) }
+func (f Float) Lt(b Float) bool { return f.Cmp(b) < 0 }
 
 // Mul multiplies two Floats and returns the result.
 func (f Float) Mul(b Float) Float { return f * b }
@@ -73,7 +73,6 @@ func (f Float) Mul(b Float) Float { return f * b }
 func (f Float) Ne(b Float) bool { return !f.Eq(b) }
 
 // Round rounds the Float to the nearest integer and returns the result as an Int.
-// func (f Float) Round() Int { return Int(math.Round(f.Std())) }
 func (f Float) Round() Int {
 	if f >= 0 {
 		return Int(f + 0.5)
@@ -91,7 +90,7 @@ func (f Float) Round() Int {
 //
 // Parameters:
 //
-// - precision (int): The number of decimal places to round the Float value to.
+// - precision (Int): The number of decimal places to round the Float value to.
 //
 // Returns:
 //
@@ -101,13 +100,13 @@ func (f Float) Round() Int {
 //
 //	f := g.Float(3.14159)
 //	rounded := f.RoundDecimal(2) // rounded will be 3.14
-func (f Float) RoundDecimal(precision int) Float {
+func (f Float) RoundDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
 	}
 
 	mult := 1
-	for i := 0; i < precision; i++ {
+	for range precision {
 		mult *= 10
 	}
 

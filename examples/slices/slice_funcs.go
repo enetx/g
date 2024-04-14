@@ -1,11 +1,19 @@
 package main
 
-import "github.com/enetx/g"
+import (
+	"fmt"
+
+	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
+)
 
 func main() {
 	// convert std slice of strings to g.Slice of g.String
 	strslice := []string{"aa", "bb", "cc"}
-	g.SliceMap(strslice, g.NewString) // g.Slice[g.String]
+	gs := g.SliceMap(strslice, g.NewString) // g.Slice[g.String]
+
+	gs.SortBy(func(a, b g.String) cmp.Ordered { return a.Cmp(b) })
+	fmt.Println(gs)
 
 	// convert std slice of ints to g.Slice of g.Int
 	intslice := []int{1, 2, 3}

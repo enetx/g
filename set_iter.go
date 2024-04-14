@@ -66,7 +66,7 @@ func (seq SeqSet[V]) Chain(seqs ...SeqSet[V]) SeqSet[V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSet[V]) Count() int { return countSet(seq) }
+func (seq SeqSet[V]) Count() Int { return countSet(seq) }
 
 // ForEach iterates through all elements and applies the given function to each.
 //
@@ -261,8 +261,8 @@ func intersection[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	}
 }
 
-func countSet[V comparable](seq SeqSet[V]) int {
-	var counter int
+func countSet[V comparable](seq SeqSet[V]) Int {
+	var counter Int
 	seq(func(V) bool {
 		counter++
 		return true

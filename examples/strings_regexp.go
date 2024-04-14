@@ -23,7 +23,7 @@ func main() {
 	switch {
 	case o.IsSome():
 		o.Some().Print()
-	case o.IsNone():
+	default:
 		fmt.Println("not found")
 	}
 

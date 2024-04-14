@@ -38,7 +38,7 @@ func TestBuilder(t *testing.T) {
 	}
 
 	// Test Len
-	if result := builder.Len(); result != len(expected) {
+	if result := builder.Len().Std(); result != len(expected) {
 		t.Errorf("Len() = %d; want %d", result, len(expected))
 	}
 
@@ -58,7 +58,7 @@ func TestBuilderGrow(t *testing.T) {
 
 	// Check if the capacity has been increased
 	expected := 10
-	if result := builder.Cap(); result != expected {
+	if result := builder.Cap().Std(); result != expected {
 		t.Errorf("Grow(10) = %d; want %d", result, expected)
 	}
 }
@@ -69,7 +69,7 @@ func TestBuilderCap(t *testing.T) {
 
 	// Check the initial capacity
 	expected := 0
-	if result := builder.Cap(); result != expected {
+	if result := builder.Cap().Std(); result != expected {
 		t.Errorf("Initial Cap() = %d; want %d", result, expected)
 	}
 }

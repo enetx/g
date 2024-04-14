@@ -1,7 +1,6 @@
 package g
 
 import (
-	"cmp"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/minmax"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -32,7 +32,7 @@ func (s String) Max(b ...String) String { return minmax.Max(s, b...) }
 // is excluded unless explicitly provided.
 //
 // Parameters:
-// - count (int): Length of the random String to generate.
+// - count (Int): Length of the random String to generate.
 // - letters (...String): Additional character sets to consider for generating the random String (optional).
 //
 // Returns:
@@ -42,7 +42,7 @@ func (s String) Max(b ...String) String { return minmax.Max(s, b...) }
 //
 //	randomString := g.String.Random(10)
 //	randomString contains a random String with 10 characters.
-func (String) Random(count int, letters ...String) String {
+func (String) Random(count Int, letters ...String) String {
 	var chars Slice[rune]
 
 	if len(letters) != 0 {
@@ -51,13 +51,13 @@ func (String) Random(count int, letters ...String) String {
 		chars = (ASCII_LETTERS + DIGITS).ToRunes()
 	}
 
-	var result strings.Builder
+	result := NewBuilder()
 
 	for range count {
 		result.WriteRune(chars.Random())
 	}
 
-	return String(result.String())
+	return result.String()
 }
 
 // IsASCII checks if all characters in the String are ASCII bytes.
@@ -148,8 +148,8 @@ func (s String) TrimSuffix(suffix String) String {
 
 // Replace replaces the 'oldS' String with the 'newS' String for the specified number of
 // occurrences.
-func (s String) Replace(oldS, newS String, n int) String {
-	return String(strings.Replace(s.Std(), oldS.Std(), newS.Std(), n))
+func (s String) Replace(oldS, newS String, n Int) String {
+	return String(strings.Replace(s.Std(), oldS.Std(), newS.Std(), n.Std()))
 }
 
 // ReplaceAll replaces all occurrences of the 'oldS' String with the 'newS' String.
@@ -215,12 +215,12 @@ func (s String) FindRegexp(pattern *regexp.Regexp) Option[String] {
 //	fmt.Println(result)
 //
 // Output: "The quick brown dog jumped over the lazy fox.".
-func (s String) ReplaceNth(oldS, newS String, n int) String {
+func (s String) ReplaceNth(oldS, newS String, n Int) String {
 	if n < -1 || len(oldS) == 0 {
 		return s
 	}
 
-	count, i := 0, 0
+	count, i := Int(0), Int(0)
 
 	for {
 		pos := s[i:].Index(oldS)
@@ -231,11 +231,11 @@ func (s String) ReplaceNth(oldS, newS String, n int) String {
 		pos += i
 		count++
 
-		if count == n || (n == -1 && s[pos+len(oldS):].Index(oldS) == -1) {
-			return s[:pos] + newS + s[pos+len(oldS):]
+		if count == n || (n == -1 && s[pos+oldS.Len():].Index(oldS) == -1) {
+			return s[:pos] + newS + s[pos+oldS.Len():]
 		}
 
-		i = pos + len(oldS)
+		i = pos + oldS.Len()
 	}
 
 	return s
@@ -361,8 +361,8 @@ func (s String) SplitLines() Slice[String] { return s.TrimSpace().Split("\n") }
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitN(sep String, n int) Slice[String] {
-	return SliceMap(strings.SplitN(s.Std(), sep.Std(), n), NewString)
+func (s String) SplitN(sep String, n Int) Slice[String] {
+	return SliceMap(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
 }
 
 // SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
@@ -377,8 +377,8 @@ func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitRegexpN(pattern regexp.Regexp, n int) Option[Slice[String]] {
-	result := SliceMap(pattern.Split(s.Std(), n), NewString)
+func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]] {
+	result := SliceMap(pattern.Split(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -401,7 +401,7 @@ func (s String) Fields() Slice[String] {
 //
 // Parameters:
 //
-// - size (int): The size of the chunks to split the String into.
+// - size (Int): The size of the chunks to split the String into.
 //
 // Returns:
 //
@@ -413,12 +413,12 @@ func (s String) Fields() Slice[String] {
 //	chunks := text.Chunks(4)
 //
 // chunks contains {"Hell", "o, W", "orld", "!"}.
-func (s String) Chunks(size int) Slice[String] {
+func (s String) Chunks(size Int) Slice[String] {
 	if size <= 0 || s.Empty() {
 		return nil
 	}
 
-	if size >= len(s) {
+	if size >= s.Len() {
 		return Slice[String]{s}
 	}
 
@@ -471,20 +471,20 @@ func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
 		return s, ""
 	}
 
-	endIndex := s[startIndex+len(start):].Index(end)
+	endIndex := s[startIndex+start.Len():].Index(end)
 	if endIndex == -1 {
 		return s, ""
 	}
 
-	cut := s[startIndex+len(start) : startIndex+len(start)+endIndex]
+	cut := s[startIndex+start.Len() : startIndex+start.Len()+endIndex]
 
 	startCutIndex := startIndex
-	endCutIndex := startIndex + len(start) + endIndex
+	endCutIndex := startIndex + start.Len() + endIndex
 
 	if len(rmtags) != 0 && !rmtags[0] {
-		startCutIndex += len(start)
+		startCutIndex += start.Len()
 	} else {
-		endCutIndex += len(end)
+		endCutIndex += end.Len()
 	}
 
 	remainder := s[:startCutIndex] + s[endCutIndex:]
@@ -553,9 +553,9 @@ func (s String) Similarity(str String) Float {
 	return Float(1).Sub(distance[lenS1].ToFloat().Div(Int(lenS1).Max(Int(lenS2)).ToFloat())).Mul(100)
 }
 
-// Compare compares two Strings and returns an Int indicating their relative order.
+// Cmp compares two Strings and returns an cmp.Ordered (int) indicating their relative order.
 // The result will be 0 if s==str, -1 if s < str, and +1 if s > str.
-func (s String) Compare(str String) Int { return Int(cmp.Compare(s, str)) }
+func (s String) Cmp(str String) cmp.Ordered { return cmp.Cmp(s, str) }
 
 // Append appends the specified String to the current String.
 func (s String) Append(str String) String { return s + str }
@@ -567,26 +567,26 @@ func (s String) Prepend(str String) String { return str + s }
 func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(), r) }
 
 // Count returns the number of non-overlapping instances of the substring in the String.
-func (s String) Count(substr String) int { return strings.Count(s.Std(), substr.Std()) }
+func (s String) Count(substr String) Int { return Int(strings.Count(s.Std(), substr.Std())) }
 
 // Empty checks if the String is empty.
 func (s String) Empty() bool { return len(s) == 0 }
 
 // Eq checks if two Strings are equal.
-func (s String) Eq(str String) bool { return s.Compare(str).Eq(0) }
+func (s String) Eq(str String) bool { return s.Cmp(str) == 0 }
 
 // EqFold compares two String strings case-insensitively.
 func (s String) EqFold(str String) bool { return strings.EqualFold(s.Std(), str.Std()) }
 
 // Gt checks if the String is greater than the specified String.
-func (s String) Gt(str String) bool { return s.Compare(str).Gt(0) }
+func (s String) Gt(str String) bool { return s.Cmp(str) > 0 }
 
 // Bytes returns the String as an Bytes.
 func (s String) ToBytes() Bytes { return Bytes(s) }
 
 // Index returns the index of the first instance of the specified substring in the String, or -1
 // if substr is not present in s.
-func (s String) Index(substr String) int { return strings.Index(s.Std(), substr.Std()) }
+func (s String) Index(substr String) Int { return Int(strings.Index(s.Std(), substr.Std())) }
 
 // IndexRegexp searches for the first occurrence of the regular expression pattern in the String.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
@@ -611,8 +611,8 @@ func (s String) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
 // and returns an Option[Slice[String]] containing a slice of matched substrings.
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
-func (s String) FindAllRegexpN(pattern *regexp.Regexp, n int) Option[Slice[String]] {
-	result := SliceMap(pattern.FindAllString(s.Std(), n), NewString)
+func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
+	result := SliceMap(pattern.FindAllString(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -649,10 +649,10 @@ func (s String) FindAllSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[Slice
 // where each Slice[String] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Slice[String]]] will be None.
 // The 'n' parameter specifies the maximum number of matches to find. If n is negative, it finds all occurrences.
-func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n int) Option[Slice[Slice[String]]] {
+func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Slice[String]]] {
 	var result Slice[Slice[String]]
 
-	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n) {
+	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n.Std()) {
 		result = append(result, SliceMap(v, NewString))
 	}
 
@@ -665,21 +665,19 @@ func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n int) Option[Sli
 
 // LastIndex returns the index of the last instance of the specified substring in the String, or -1
 // if substr is not present in s.
-func (s String) LastIndex(substr String) int {
-	return strings.LastIndex(s.Std(), substr.Std())
-}
+func (s String) LastIndex(substr String) Int { return Int(strings.LastIndex(s.Std(), substr.Std())) }
 
 // IndexRune returns the index of the first instance of the specified rune in the String.
-func (s String) IndexRune(r rune) int { return strings.IndexRune(s.Std(), r) }
+func (s String) IndexRune(r rune) Int { return Int(strings.IndexRune(s.Std(), r)) }
 
 // Len returns the length of the String.
-func (s String) Len() int { return len(s) }
+func (s String) Len() Int { return Int(len(s)) }
 
 // LenRunes returns the number of runes in the String.
-func (s String) LenRunes() int { return utf8.RuneCountInString(s.Std()) }
+func (s String) LenRunes() Int { return Int(utf8.RuneCountInString(s.Std())) }
 
 // Lt checks if the String is less than the specified String.
-func (s String) Lt(str String) bool { return s.Compare(str).Lt(0) }
+func (s String) Lt(str String) bool { return s.Cmp(str) < 0 }
 
 // Map applies the provided function to all runes in the String and returns the resulting String.
 func (s String) Map(fn func(rune) rune) String { return String(strings.Map(fn, s.Std())) }
@@ -697,7 +695,7 @@ func (s String) NotEmpty() bool { return s.Len() != 0 }
 func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
 
 // Repeat returns a new String consisting of the specified count of the original String.
-func (s String) Repeat(count int) String { return String(strings.Repeat(s.Std(), count)) }
+func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(), count.Std())) }
 
 // Reverse reverses the String.
 func (s String) Reverse() String { return s.ToBytes().Reverse().ToString() }
@@ -734,7 +732,7 @@ func (s String) Format(format String) String { return Sprintf(format, s) }
 //	s := g.String("Hello")
 //	result := s.LeftJustify(10, "...")
 //	// result: "Hello....."
-func (s String) LeftJustify(length int, pad String) String {
+func (s String) LeftJustify(length Int, pad String) String {
 	if s.LenRunes() >= length || pad.Eq("") {
 		return s
 	}
@@ -763,7 +761,7 @@ func (s String) LeftJustify(length int, pad String) String {
 //	s := g.String("Hello")
 //	result := s.RightJustify(10, "...")
 //	// result: ".....Hello"
-func (s String) RightJustify(length int, pad String) String {
+func (s String) RightJustify(length Int, pad String) String {
 	if s.LenRunes() >= length || pad.Empty() {
 		return s
 	}
@@ -793,7 +791,7 @@ func (s String) RightJustify(length int, pad String) String {
 //	s := g.String("Hello")
 //	result := s.Center(10, "...")
 //	// result: "..Hello..."
-func (s String) Center(length int, pad String) String {
+func (s String) Center(length Int, pad String) String {
 	if s.LenRunes() >= length || pad.Empty() {
 		return s
 	}
@@ -811,7 +809,7 @@ func (s String) Center(length int, pad String) String {
 // writePadding writes the padding String to the output Builder to fill the remaining length.
 // It repeats the padding String as necessary and appends any remaining runes from the padding
 // String.
-func writePadding(output *strings.Builder, pad String, padlen, remains int) {
+func writePadding(output *strings.Builder, pad String, padlen, remains Int) {
 	if repeats := remains / padlen; repeats > 0 {
 		_, _ = output.WriteString(pad.Repeat(repeats).Std())
 	}

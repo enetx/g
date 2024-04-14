@@ -5,11 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"html"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 type (
@@ -107,7 +105,7 @@ func (e enc) URL(safe ...String) String {
 		reserved = safe[0]
 	}
 
-	var enc strings.Builder
+	enc := NewBuilder()
 
 	for _, r := range e.str {
 		if reserved.ContainsRune(r) {
@@ -115,10 +113,10 @@ func (e enc) URL(safe ...String) String {
 			continue
 		}
 
-		enc.WriteString(url.QueryEscape(string(r)))
+		enc.Write(String(url.QueryEscape(string(r))))
 	}
 
-	return String(enc.String())
+	return enc.String()
 }
 
 // URL URL-decodes the wrapped String and returns the decoded result as an String.
@@ -180,12 +178,12 @@ func (d dec) XOR(key String) String { return d.str.Enc().XOR(key) }
 
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
 func (e enc) Hex() String {
-	var result strings.Builder
+	result := NewBuilder()
 	for i := range len(e.str) {
-		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToHex())
+		result.Write(Int(e.str[i]).ToHex())
 	}
 
-	return String(result.String())
+	return result.String()
 }
 
 // Hex hex-decodes the wrapped String and returns the decoded result as an String.
@@ -202,7 +200,7 @@ func (d dec) Hex() Result[String] {
 func (e enc) Octal() String {
 	result := NewSlice[String](e.str.LenRunes())
 	for i, char := range e.str.ToRunes() {
-		result.Set(i, Int(char).ToOctal())
+		result.Set(Int(i), Int(char).ToOctal())
 	}
 
 	return result.Join(" ")
@@ -210,7 +208,7 @@ func (e enc) Octal() String {
 
 // Octal returns the octal representation of the decimal-encoded string.
 func (d dec) Octal() Result[String] {
-	var result strings.Builder
+	result := NewBuilder()
 
 	for _, v := range d.str.Split(" ") {
 		n, err := strconv.ParseUint(v.Std(), 8, 32)
@@ -218,21 +216,20 @@ func (d dec) Octal() Result[String] {
 			return Err[String](err)
 		}
 
-		fmt.Fprint(&result, string(rune(n)))
+		result.WriteRune(rune(n))
 	}
 
-	return Ok(String(result.String()))
+	return Ok(result.String())
 }
 
 // Binary converts the wrapped String to its binary representation as an String.
 func (e enc) Binary() String {
-	var result strings.Builder
-
+	result := NewBuilder()
 	for i := range len(e.str) {
-		_, _ = fmt.Fprint(&result, Int(e.str[i]).ToBinary())
+		result.Write(Int(e.str[i]).ToBinary())
 	}
 
-	return String(result.String())
+	return result.String()
 }
 
 // Binary converts the wrapped binary String back to its original String representation.

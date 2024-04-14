@@ -81,7 +81,7 @@ func (f *File) Lines() Result[SeqSlice[String]] {
 //	// UPPERCASED_CHUNK1
 //	// UPPERCASED_CHUNK2
 //	// UPPERCASED_CHUNK3
-func (f *File) Chunks(size int) Result[SeqSlice[String]] {
+func (f *File) Chunks(size Int) Result[SeqSlice[String]] {
 	if f.file == nil {
 		if r := f.Open(); r.IsErr() {
 			return Err[SeqSlice[String]](r.Err())
