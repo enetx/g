@@ -3,11 +3,9 @@ package rand
 import (
 	"crypto/rand"
 	"encoding/binary"
-)
 
-type intType interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 | ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
-}
+	"github.com/enetx/g/pkg/constraints"
+)
 
 // N generates a random non-negative integer within the range [0, max).
 // The generated integer will be less than the provided maximum value.
@@ -24,7 +22,7 @@ type intType interface {
 //
 // Returns:
 //   - int: A random non-negative integer within the specified range.
-func N[T intType](n T) T {
+func N[T constraints.Integer](n T) T {
 	// If the provided maximum value is less than or equal to 0,
 	// set it to 1 to ensure a valid range.
 	if n <= 0 {
