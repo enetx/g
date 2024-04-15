@@ -48,3 +48,24 @@ func TestCmp(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderedReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    cmp.Ordered
+		expected cmp.Ordered
+	}{
+		{"Reverse_Less", cmp.Less, cmp.Greater},
+		{"Reverse_Equal", cmp.Equal, cmp.Equal},
+		{"Reverse_Greater", cmp.Greater, cmp.Less},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.Reverse()
+			if result != tt.expected {
+				t.Errorf("Expected reverse of %v to be %v, but got %v", tt.input, tt.expected, result)
+			}
+		})
+	}
+}

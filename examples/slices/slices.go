@@ -23,6 +23,12 @@ func main() {
 		"four",
 	)
 
+	wsl.SortBy(func(a, b g.String) cmp.Ordered { return a.Cmp(b) })
+	wsl.Print() // Slice[a a a aaaa, aa a, aa a a aa a, aaa aaa, aaa aaaa, b b, four, o o oo oooo, one, three three]
+
+	wsl.SortBy(func(a, b g.String) cmp.Ordered { return a.Cmp(b).Reverse() })
+	wsl.Print() // Slice[three three, one, o o oo oooo, four, b b, aaa aaaa, aaa aaa, aa a a aa a, aa a, a a a aaaa]
+
 	wsl.SortBy(func(a, b g.String) cmp.Ordered {
 		return a.Fields().Len().Cmp(b.Fields().Len()).
 			Then(a.Len().Cmp(b.Len()))
