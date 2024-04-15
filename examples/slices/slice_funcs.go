@@ -12,7 +12,7 @@ func main() {
 	strslice := []string{"aa", "bb", "cc"}
 	gs := g.SliceMap(strslice, g.NewString) // g.Slice[g.String]
 
-	gs.SortBy(func(a, b g.String) cmp.Ordered { return a.Cmp(b) })
+	gs.SortBy(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
 	fmt.Println(gs)
 
 	// convert std slice of ints to g.Slice of g.Int

@@ -40,11 +40,11 @@ func (seq SeqMap[K, V]) Values() SeqSlice[V] { return valuesMap(seq) }
 //
 // Params:
 //
-// - seqs ([]seqMap[K, V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]SeqMap[K, V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - sequence2: A new iterator containing elements from the current iterator and the provided iterators.
+// - SeqMap[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -88,7 +88,7 @@ func (seq SeqMap[K, V]) Collect() Map[K, V] {
 //
 // Returns:
 //
-// - seqMap[K, V]: An iterator excluding elements that satisfy the given function.
+// - SeqMap[K, V]: An iterator excluding elements that satisfy the given function.
 //
 // Example usage:
 //
@@ -124,7 +124,7 @@ func (seq SeqMap[K, V]) Exclude(fn func(K, V) bool) SeqMap[K, V] { return exclud
 //
 // Returns:
 //
-// - seqMap[K, V]: An iterator containing elements that satisfy the given function.
+// - SeqMap[K, V]: An iterator containing elements that satisfy the given function.
 //
 //	m := g.NewMap[int, int]().
 //		Set(1, 1).
@@ -202,7 +202,7 @@ func (seq SeqMap[K, V]) Inspect(fn func(k K, v V)) SeqMap[K, V] { return inspect
 //
 // Returns:
 //
-// - seqMap[K, V]: A new iterator containing key-value pairs transformed by the provided function.
+// - SeqMap[K, V]: A new iterator containing key-value pairs transformed by the provided function.
 //
 // Example usage:
 //

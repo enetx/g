@@ -553,9 +553,9 @@ func (s String) Similarity(str String) Float {
 	return Float(1).Sub(distance[lenS1].ToFloat().Div(Int(lenS1).Max(Int(lenS2)).ToFloat())).Mul(100)
 }
 
-// Cmp compares two Strings and returns an cmp.Ordered (int) indicating their relative order.
-// The result will be 0 if s==str, -1 if s < str, and +1 if s > str.
-func (s String) Cmp(str String) cmp.Ordered { return cmp.Cmp(s, str) }
+// Cmp compares two Strings and returns an cmp.Ordering indicating their relative order.
+// The result will be cmp.Equal if s==str, cmp.Less if s < str, and cmp.Greater if s > str.
+func (s String) Cmp(str String) cmp.Ordering { return cmp.Cmp(s, str) }
 
 // Append appends the specified String to the current String.
 func (s String) Append(str String) String { return s + str }

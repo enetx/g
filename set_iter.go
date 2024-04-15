@@ -46,11 +46,11 @@ func (seq SeqSet[V]) Collect() Set[V] {
 //
 // Params:
 //
-// - seqs ([]seqSet[V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]SeqSet[V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - seqSet[V]: A new iterator containing elements from the current iterator and the provided iterators.
+// - SeqSet[V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -74,12 +74,12 @@ func (seq SeqSet[V]) Count() Int { return countSet(seq) }
 //
 // Params:
 //
-// - fn (func(T)): The function to apply to each element.
+// - fn (func(V)): The function to apply to each element.
 //
 // Example usage:
 //
 //	iter := g.SetOf(1, 2, 3).Iter()
-//	iter.ForEach(func(val T) {
+//	iter.ForEach(func(val V) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
 //	})
 //
@@ -105,12 +105,12 @@ func (seq SeqSet[V]) Range(fn func(v V) bool) {
 //
 // Parameters:
 //
-// - fn (func(T) bool): The function to be applied to each element of the iterator
+// - fn (func(V) bool): The function to be applied to each element of the iterator
 // to determine if it should be included in the result.
 //
 // Returns:
 //
-// - seqSet[V]: A new iterator containing the elements that satisfy the given condition.
+// - SeqSet[V]: A new iterator containing the elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -135,12 +135,12 @@ func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] { return filterSet(seq, f
 //
 // Parameters:
 //
-// - fn (func(T) bool): The function to be applied to each element of the iterator
+// - fn (func(V) bool): The function to be applied to each element of the iterator
 // to determine if it should be excluded from the result.
 //
 // Returns:
 //
-// - seqSet[V]: A new iterator containing the elements that do not satisfy the given condition.
+// - SeqSet[V]: A new iterator containing the elements that do not satisfy the given condition.
 //
 // Example usage:
 //
@@ -165,11 +165,11 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] { return exclude(seq, fn
 //
 // Params:
 //
-// - fn (func(T) T): The function used to transform elements.
+// - fn (func(V) V): The function used to transform elements.
 //
 // Returns:
 //
-// - seqSet[V]: A new iterator containing elements transformed by the provided function.
+// - SeqSet[V]: A new iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //

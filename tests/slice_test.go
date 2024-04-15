@@ -428,7 +428,7 @@ func TestSliceSortBy(t *testing.T) {
 	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
 	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
 
-	sl1.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) })
+	sl1.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
 	if !sl1.Eq(expected1) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, sl1)
@@ -437,7 +437,7 @@ func TestSliceSortBy(t *testing.T) {
 	sl2 := g.NewSlice[string]().Append("foo", "bar", "baz")
 	expected2 := g.NewSlice[string]().Append("foo", "baz", "bar")
 
-	sl2.SortBy(func(a, b string) cmp.Ordered { return cmp.Cmp(b, a) })
+	sl2.SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) })
 
 	if !sl2.Eq(expected2) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected2, sl2)
@@ -446,7 +446,7 @@ func TestSliceSortBy(t *testing.T) {
 	sl3 := g.NewSlice[int]()
 	expected3 := g.NewSlice[int]()
 
-	sl3.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) })
+	sl3.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
 	if !sl3.Eq(expected3) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected3, sl3)

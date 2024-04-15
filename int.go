@@ -63,7 +63,7 @@ func (i Int) ToString() String { return String(strconv.Itoa(int(i))) }
 // Std returns the Int as an int.
 func (i Int) Std() int { return int(i) }
 
-func (i Int) Cmp(b Int) cmp.Ordered { return cmp.Cmp(i, b) }
+func (i Int) Cmp(b Int) cmp.Ordering { return cmp.Cmp(i, b) }
 
 // AsInt16 returns the Int as an int16.
 func (i Int) AsInt16() int16 { return int16(i) }

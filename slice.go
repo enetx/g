@@ -497,8 +497,8 @@ func (sl Slice[T]) Reverse() { slices.Reverse(sl) }
 // Example usage:
 //
 // sl := NewSlice[int](1, 5, 3, 2, 4)
-// sl.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }) // sorts in ascending order.
-func (sl Slice[T]) SortBy(fn func(a, b T) cmp.Ordered) {
+// sl.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) // sorts in ascending order.
+func (sl Slice[T]) SortBy(fn func(a, b T) cmp.Ordering) {
 	slices.SortFunc(sl, func(a, b T) int { return int(fn(a, b)) })
 }
 

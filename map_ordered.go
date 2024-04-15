@@ -114,7 +114,7 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdF
 //
 // Parameters:
 //
-// - fn func(a, b Pair[K, V]) cmp.Ordered: The custom comparison function used for sorting the ordered Map.
+// - fn func(a, b Pair[K, V]) cmp.Ordering: The custom comparison function used for sorting the ordered Map.
 //
 // Returns:
 //
@@ -123,9 +123,9 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdF
 //
 // Example usage:
 //
-//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered { return a.Key.Cmp(b.Key) })
-//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered { return a.Value.Cmp(b.Value) })
-func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordered) MapOrd[K, V] {
+//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+//	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Value.Cmp(b.Value) })
+func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) MapOrd[K, V] {
 	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a, b)) })
 	return mo
 }

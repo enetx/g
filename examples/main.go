@@ -90,7 +90,7 @@ func main() {
 
 	counter := sl.Append(sl...).Append("ddd").Iter().Counter().Collect()
 
-	counter.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordered {
+	counter.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering {
 		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
 	})
 

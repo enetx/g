@@ -58,7 +58,7 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 //		Set(4, "zz").
 //		Iter().
 //		SortBy(
-//			func(a, b g.Pair[g.Int, g.String]) cmp.Ordered {
+//			func(a, b g.Pair[g.Int, g.String]) cmp.Ordering {
 //				return a.Key.Cmp(b.Key)
 //				// return a.Value.Cmp(b.Value)
 //			}).
@@ -69,7 +69,7 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 //
 // The returned iterator is of type SeqMapOrd[K, V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordered) SeqMapOrd[K, V] {
+func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
 	return sortbyMapOrd(seq, fn)
 }
 
@@ -84,7 +84,7 @@ func (seq SeqMapOrd[K, V]) Inspect(fn func(k K, v V)) SeqMapOrd[K, V] { return i
 // - n int: The step size, indicating how many elements to skip between each iteration.
 //
 // Returns:
-// - seqMapOrd[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
+// - SeqMapOrd[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
 //
 // Example usage:
 //
@@ -109,7 +109,7 @@ func (seq SeqMapOrd[K, V]) StepBy(n uint) SeqMapOrd[K, V] { return stepbyMapOrd(
 //
 // Returns:
 //
-// - seqMapOrd[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
+// - SeqMapOrd[K, V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
@@ -155,7 +155,7 @@ func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
 //
 // Returns:
 //
-// - seqMapOrd[K, V]: An iterator that starts after skipping the first n elements.
+// - SeqMapOrd[K, V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
@@ -187,7 +187,7 @@ func (seq SeqMapOrd[K, V]) Skip(n uint) SeqMapOrd[K, V] { return skipMapOrd(seq,
 //
 // Returns:
 //
-// - seqMapOrd[K, V]: A new iterator excluding elements that satisfy the given condition.
+// - SeqMapOrd[K, V]: A new iterator excluding elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -223,7 +223,7 @@ func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] { return 
 //
 // Returns:
 //
-// - seqMapOrd[K, V]: A new iterator containing elements that satisfy the given condition.
+// - SeqMapOrd[K, V]: A new iterator containing elements that satisfy the given condition.
 //
 // Example usage:
 //
@@ -294,7 +294,7 @@ func (seq SeqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
 //
 // Returns:
 //
-// - seqMapOrd[K, V]: A new iterator containing transformed key-value pairs.
+// - SeqMapOrd[K, V]: A new iterator containing transformed key-value pairs.
 //
 // Example usage:
 //
@@ -425,7 +425,7 @@ func ToSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
 	}
 }
 
-func sortbyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) cmp.Ordered) SeqMapOrd[K, V] {
+func sortbyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
 	items := seq.Collect()
 	items.SortBy(fn)
 

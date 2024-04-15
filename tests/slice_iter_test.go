@@ -210,7 +210,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
 	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
 
-	actual1 := sl1.Iter().SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }).Collect()
+	actual1 := sl1.Iter().SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }).Collect()
 
 	if !actual1.Eq(expected1) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
@@ -219,7 +219,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl2 := g.NewSlice[string]().Append("foo", "bar", "baz")
 	expected2 := g.NewSlice[string]().Append("foo", "baz", "bar")
 
-	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordered { return cmp.Cmp(b, a) }).Collect()
+	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).Collect()
 
 	if !actual2.Eq(expected2) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected2, actual2)
@@ -228,7 +228,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl3 := g.NewSlice[int]()
 	expected3 := g.NewSlice[int]()
 
-	actual3 := sl3.Iter().SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) }).Collect()
+	actual3 := sl3.Iter().SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }).Collect()
 
 	if !actual3.Eq(expected3) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected3, actual3)

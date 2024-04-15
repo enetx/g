@@ -1,26 +1,30 @@
 package cmp
 
-import "cmp"
+import (
+	"cmp"
+	"fmt"
+)
 
-// Ordered represents an ordered value.
-type Ordered int
+// Ordering is the result of a comparison between two values.
+type Ordering int
 
 const (
-	Less    Ordered = iota - 1 // Less represents an ordered value where a compared value is less than another.
-	Equal                      // Equal represents an ordered value where a compared value is equal to another.
-	Greater                    // Greater represents an ordered value where a compared value is greater than another.
+	Less    Ordering = iota - 1 // Less represents an ordered value where a compared value is less than another.
+	Equal                       // Equal represents an ordered value where a compared value is equal to another.
+	Greater                     // Greater represents an ordered value where a compared value is greater than another.
 )
 
 // Then returns the receiver if it's equal to Equal, otherwise returns the receiver.
-func (o Ordered) Then(other Ordered) Ordered {
+func (o Ordering) Then(other Ordering) Ordering {
 	if o == Equal {
-		return Ordered(other)
+		return Ordering(other)
 	}
+
 	return o
 }
 
-// Reverse returns the reverse of the ordered value.
-func (o Ordered) Reverse() Ordered {
+// Reverse reverses the ordering.
+func (o Ordering) Reverse() Ordering {
 	switch o {
 	case Less:
 		return Greater
@@ -31,5 +35,19 @@ func (o Ordered) Reverse() Ordered {
 	}
 }
 
-// Cmp compares two ordered values and returns the result as an Ordered value.
-func Cmp[T cmp.Ordered](x, y T) Ordered { return Ordered(cmp.Compare(x, y)) }
+// String returns the string representation of the Ordering value.
+func (o Ordering) String() string {
+	switch o {
+	case Less:
+		return "Less"
+	case Equal:
+		return "Equal"
+	case Greater:
+		return "Greater"
+	default:
+		return fmt.Sprintf("Unknown Ordering value: %d", int(o))
+	}
+}
+
+// Cmp compares two ordered values and returns the result as an Ordering value.
+func Cmp[T cmp.Ordered](x, y T) Ordering { return Ordering(cmp.Compare(x, y)) }

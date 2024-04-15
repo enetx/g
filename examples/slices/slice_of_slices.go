@@ -14,7 +14,7 @@ func main() {
 
 	nx := g.SliceOf(ns3, ns2, ns1, ns2)
 
-	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered {
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordering {
 		if a.Eq(b) {
 			return 0
 		}
@@ -26,10 +26,10 @@ func main() {
 
 	nx = nx.Iter().Dedup().Collect().Print()
 
-	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered { return b.Get(0).Cmp(a.Get(0)) })
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordering { return b.Get(0).Cmp(a.Get(0)) })
 	nx.Print()
 
-	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordered { return a.Len().Cmp(b.Len()) })
+	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordering { return a.Len().Cmp(b.Len()) })
 	nx.Print()
 
 	nx.Reverse()

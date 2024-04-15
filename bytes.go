@@ -90,8 +90,8 @@ func (bs Bytes) Std() []byte { return bs }
 // Clone creates a new Bytes instance with the same content as the current Bytes.
 func (bs Bytes) Clone() Bytes { return bytes.Clone(bs) }
 
-// Compare compares the Bytes with another Bytes and returns an Int.
-func (bs Bytes) Cmp(obs Bytes) cmp.Ordered { return cmp.Ordered(bytes.Compare(bs, obs)) }
+// Compare compares the Bytes with another Bytes and returns an cmp.Ordering.
+func (bs Bytes) Cmp(obs Bytes) cmp.Ordering { return cmp.Ordering(bytes.Compare(bs, obs)) }
 
 // Contains checks if the Bytes contains the specified Bytes.
 func (bs Bytes) Contains(obs Bytes) bool { return bytes.Contains(bs, obs) }

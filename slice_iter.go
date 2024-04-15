@@ -35,7 +35,7 @@ func (seq SeqSlice[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter
 // meet a specific criteria.
 //
 // Parameters:
-// - fn func(T) bool: A function that returns a boolean indicating whether the element satisfies
+// - fn func(V) bool: A function that returns a boolean indicating whether the element satisfies
 // the condition.
 //
 // Returns:
@@ -63,7 +63,7 @@ func (seq SeqSlice[V]) All(fn func(v V) bool) bool {
 // meets a specific criteria.
 //
 // Parameters:
-// - fn func(T) bool: A function that returns a boolean indicating whether the element satisfies
+// - fn func(V) bool: A function that returns a boolean indicating whether the element satisfies
 // the condition.
 //
 // Returns:
@@ -163,12 +163,12 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 // Count consumes the iterator, counting the number of iterations and returning it.
 func (seq SeqSlice[V]) Count() Int { return countSlice(seq) }
 
-// Counter returns a SeqMapOrd[V, uint] with the counts of each unique element in the slice.
+// Counter returns a SeqMapOrd[V, Int] with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in a slice.
 //
 // Returns:
 //
-// - SeqMapOrd[V, uint]: with keys representing the unique elements in the slice
+// - SeqMapOrd[V, Int]: with keys representing the unique elements in the slice
 // and values representing the counts of those elements.
 //
 // Example usage:
@@ -194,12 +194,12 @@ func (seq SeqSlice[V]) Cycle() SeqSlice[V] { return cycleSlice(seq) }
 //
 // Parameters:
 //
-// - fn (func(T) bool): The function to be applied to each element of the iterator
+// - fn (func(V) bool): The function to be applied to each element of the iterator
 // to determine if it should be excluded from the result.
 //
 // Returns:
 //
-// - seqSlice[V]: A new iterator containing the elements that do not satisfy the given condition.
+// - SeqSlice[V]: A new iterator containing the elements that do not satisfy the given condition.
 //
 // Example usage:
 //
@@ -265,7 +265,7 @@ func (seq SeqSlice[V]) Dedup() SeqSlice[V] { return dedupSlice(seq) }
 //
 // Parameters:
 //
-// - fn (func(T) bool): The function to be applied to each element of the iterator
+// - fn (func(V) bool): The function to be applied to each element of the iterator
 // to determine if it should be included in the result.
 //
 // Returns:
@@ -297,7 +297,7 @@ func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] { return filterSlice(
 //
 //   - init (V): The initial value for accumulation.
 //   - fn (func(V, V) V): The function that accumulates values; it takes two arguments
-//     of type V and returns a value of type T.
+//     of type V and returns a value of type V.
 //
 // Returns:
 //
@@ -324,12 +324,12 @@ func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V { return fold(seq, 
 //
 // Params:
 //
-// - fn (func(T)): The function to apply to each element.
+// - fn (func(V)): The function to apply to each element.
 //
 // Example usage:
 //
 //	iter := g.Slice[int]{1, 2, 3, 4, 5}.Iter()
-//	iter.ForEach(func(val T) {
+//	iter.ForEach(func(val V) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
 //	})
 //
@@ -378,7 +378,7 @@ func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] { return inspectSlice(s
 //
 // Params:
 //
-// - fn (func(T) T): The function used to transform elements.
+// - fn (func(V) V): The function used to transform elements.
 //
 // Returns:
 //
@@ -438,7 +438,7 @@ func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) { retur
 //
 // Returns:
 //
-// - seqSlices[V]: An iterator of iterators containing all possible permutations of the
+// - SeqSlices[V]: An iterator of iterators containing all possible permutations of the
 // elements in the iterator.
 //
 // Example usage:
@@ -469,7 +469,7 @@ func (seq SeqSlice[V]) Permutations() SeqSlices[V] { return permutations(seq) }
 //
 // Params:
 //
-// - fn (func(T) bool): The function that evaluates elements for continuation of iteration.
+// - fn (func(V) bool): The function that evaluates elements for continuation of iteration.
 //
 // Example usage:
 //
@@ -530,42 +530,25 @@ func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] { return skipSlice(seq, n) }
 // The resulting iterator will produce elements from the original iterator with a step size of N.
 func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] { return stepbySlice(seq, n) }
 
-// Sort returns a new iterator containing the elements from the current iterator
-// in sorted order. The elements must be of a comparable type.
-//
-// Example:
-//
-//	g.SliceOf(9, 8, 9, 8, 0, 1, 1, 1, 2, 7, 2, 2, 2, 3, 4, 5).
-//		Iter().
-//		Sort().
-//		Collect().
-//		Print()
-//
-// Output: Slice[0, 1, 1, 1, 2, 2, 2, 2, 3, 4, 5, 7, 8, 8, 9, 9]
-//
-// The returned iterator is of type sequence[V], which implements the iterator
-// interface for further iteration over the sorted elements.
-// func (seq SeqSlice[V]) Sort() SeqSlice[V] { return sortiSlice(seq) }
-
 // SortBy applies a custom sorting function to the elements in the iterator
 // and returns a new iterator containing the sorted elements.
 //
-// The sorting function 'fn' should take two arguments, 'a' and 'b' of type T,
+// The sorting function 'fn' should take two arguments, 'a' and 'b' of type V,
 // and return true if 'a' should be ordered before 'b', and false otherwise.
 //
 // Example:
 //
 //	g.SliceOf("a", "c", "b").
 //		Iter().
-//		SortBy(func(a, b string) bool { return a > b }).
+//		SortBy(func(a, b string) cmp.Ordering { return b.Cmp(a) }).
 //		Collect().
 //		Print()
 //
 // Output: Slice[c, b, a]
 //
-// The returned iterator is of type sequence[V], which implements the iterator
+// The returned iterator is of type SeqSlice[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordered) SeqSlice[V] { return sortbySlice(seq, fn) }
+func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] { return sortbySlice(seq, fn) }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
@@ -649,7 +632,7 @@ func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] { return zip(seq, tw
 //
 // Params:
 //
-// - fn (func(T) bool): The function used to test elements for a condition.
+// - fn (func(V) bool): The function used to test elements for a condition.
 //
 // Returns:
 //
@@ -680,11 +663,11 @@ func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq,
 //
 // Params:
 //
-// - size (int): The size of each window.
+// - n (int): The size of each window.
 //
 // Returns:
 //
-// - seqSlices[V]: An iterator yielding sliding windows of elements of the specified size.
+// - SeqSlices[V]: An iterator yielding sliding windows of elements of the specified size.
 //
 // Example usage:
 //
@@ -883,14 +866,7 @@ func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
-// func sortiSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
-// 	items := seq.Collect()
-// 	items.Sort()
-
-// 	return items.Iter()
-// }
-
-func sortbySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordered) SeqSlice[V] {
+func sortbySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordering) SeqSlice[V] {
 	items := seq.Collect()
 	items.SortBy(cmp)
 

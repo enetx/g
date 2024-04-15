@@ -755,7 +755,7 @@ func TestMapIterRange(t *testing.T) {
 		return true
 	})
 
-	keysVisited.SortBy(func(a, b int) cmp.Ordered { return cmp.Cmp(a, b) })
+	keysVisited.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
 	// Check if all keys were visited
 	expectedKeys := g.Slice[int]{1, 2, 3}

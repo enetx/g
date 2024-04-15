@@ -39,8 +39,8 @@ func (f Float) Add(b Float) Float { return f + b }
 // ToBigFloat returns the Float as a *big.Float.
 func (f Float) ToBigFloat() *big.Float { return big.NewFloat(f.Std()) }
 
-// Compare compares two Floats and returns an Int.
-func (f Float) Cmp(b Float) cmp.Ordered { return cmp.Cmp(f, b) }
+// Compare compares two Floats and returns an cmp.Ordering.
+func (f Float) Cmp(b Float) cmp.Ordering { return cmp.Cmp(f, b) }
 
 // Div divides two Floats and returns the result.
 func (f Float) Div(b Float) Float { return f / b }

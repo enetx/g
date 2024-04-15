@@ -6,15 +6,15 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
-func TestOrderedThen(t *testing.T) {
+func TestOrderingThen(t *testing.T) {
 	tests := []struct {
 		name     string
-		o        cmp.Ordered
-		other    cmp.Ordered
-		expected cmp.Ordered
+		o        cmp.Ordering
+		other    cmp.Ordering
+		expected cmp.Ordering
 	}{
-		{"Non-zero receiver", cmp.Ordered(2), cmp.Ordered(3), cmp.Ordered(2)},
-		{"Zero receiver", cmp.Ordered(0), cmp.Ordered(3), cmp.Ordered(3)},
+		{"Non-zero receiver", cmp.Ordering(2), cmp.Ordering(3), cmp.Ordering(2)},
+		{"Zero receiver", cmp.Ordering(0), cmp.Ordering(3), cmp.Ordering(3)},
 	}
 
 	for _, tt := range tests {
@@ -27,16 +27,16 @@ func TestOrderedThen(t *testing.T) {
 	}
 }
 
-func TestCmp(t *testing.T) {
+func TestOrderingCmp(t *testing.T) {
 	tests := []struct {
 		name     string
-		x        cmp.Ordered
-		y        cmp.Ordered
-		expected cmp.Ordered
+		x        cmp.Ordering
+		y        cmp.Ordering
+		expected cmp.Ordering
 	}{
-		{"x < y", cmp.Ordered(2), cmp.Ordered(3), cmp.Ordered(-1)},
-		{"x = y", cmp.Ordered(2), cmp.Ordered(2), cmp.Ordered(0)},
-		{"x > y", cmp.Ordered(3), cmp.Ordered(2), cmp.Ordered(1)},
+		{"x < y", cmp.Ordering(2), cmp.Ordering(3), cmp.Ordering(-1)},
+		{"x = y", cmp.Ordering(2), cmp.Ordering(2), cmp.Ordering(0)},
+		{"x > y", cmp.Ordering(3), cmp.Ordering(2), cmp.Ordering(1)},
 	}
 
 	for _, tt := range tests {
@@ -49,11 +49,11 @@ func TestCmp(t *testing.T) {
 	}
 }
 
-func TestOrderedReverse(t *testing.T) {
+func TestOrderingReverse(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    cmp.Ordered
-		expected cmp.Ordered
+		input    cmp.Ordering
+		expected cmp.Ordering
 	}{
 		{"Reverse_Less", cmp.Less, cmp.Greater},
 		{"Reverse_Equal", cmp.Equal, cmp.Equal},
@@ -65,6 +65,28 @@ func TestOrderedReverse(t *testing.T) {
 			result := tt.input.Reverse()
 			if result != tt.expected {
 				t.Errorf("Expected reverse of %v to be %v, but got %v", tt.input, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestOrderingString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    cmp.Ordering
+		expected string
+	}{
+		{"Less", cmp.Less, "Less"},
+		{"Equal", cmp.Equal, "Equal"},
+		{"Greater", cmp.Greater, "Greater"},
+		{"Unknown", 10, "Unknown Ordering value: 10"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.String()
+			if result != tt.expected {
+				t.Errorf("Expected %s for Ordering value %d, but got %s", tt.expected, tt.input, result)
 			}
 		})
 	}
