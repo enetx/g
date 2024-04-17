@@ -130,6 +130,42 @@ func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) MapOrd[K, V
 	return mo
 }
 
+// SortByKey sorts the ordered MapOrd[K, V] by the keys using a custom comparison function.
+//
+// Parameters:
+//
+// - fn func(a, b K) cmp.Ordering: The custom comparison function used for sorting the keys.
+//
+// Returns:
+//
+// - MapOrd[K, V]: The same ordered MapOrd, sorted by the keys according to the custom comparison function.
+//
+// Example usage:
+//
+//	hmapo.SortByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
+func (mo MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) MapOrd[K, V] {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Key, b.Key)) })
+	return mo
+}
+
+// SortByValue sorts the ordered MapOrd[K, V] by the values using a custom comparison function.
+//
+// Parameters:
+//
+// - fn func(a, b V) cmp.Ordering: The custom comparison function used for sorting the values.
+//
+// Returns:
+//
+// - MapOrd[K, V]: The same ordered MapOrd, sorted by the values according to the custom comparison function.
+//
+// Example usage:
+//
+//	hmapo.SortByValue(func(a, b g.Int) cmp.Ordering { return a.Cmp(b) })
+func (mo MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) MapOrd[K, V] {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Value, b.Value)) })
+	return mo
+}
+
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
 	result := NewMapOrd[K, V](mo.Len())

@@ -3,6 +3,7 @@ package g_test
 import (
 	"context"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/enetx/g"
@@ -445,6 +446,122 @@ func TestMapOrdSortBy(t *testing.T) {
 		if p.Value != expectedValueOrder[i] {
 			t.Errorf("Expected value at index %d to be %d, got %d", i, expectedValueOrder[i], p.Value)
 		}
+	}
+}
+
+func TestSortByKey(t *testing.T) {
+	// Create a sample MapOrd to test sorting by keys
+	mo := g.MapOrd[string, int]{
+		{"b", 2},
+		{"a", 1},
+		{"c", 3},
+	}
+
+	// Sort the MapOrd by keys using the custom comparison function
+	mo.SortByKey(cmp.Cmp)
+
+	// Expected sorted order by keys
+	expected := g.MapOrd[string, int]{
+		{"a", 1},
+		{"b", 2},
+		{"c", 3},
+	}
+
+	// Check if the MapOrd is sorted as expected
+	if !slices.Equal(mo, expected) {
+		t.Errorf("SortByKey failed: expected %v, got %v", expected, mo)
+	}
+}
+
+func TestSortByValue(t *testing.T) {
+	// Create a sample MapOrd to test sorting by values
+	mo := g.MapOrd[string, int]{
+		{"a", 2},
+		{"b", 1},
+		{"c", 3},
+	}
+
+	// Define a custom comparison function for integers
+	customIntCmp := func(a, b int) cmp.Ordering {
+		if a < b {
+			return cmp.Less
+		} else if a > b {
+			return cmp.Greater
+		}
+		return cmp.Equal
+	}
+
+	// Sort the MapOrd by values using the custom comparison function
+	mo.SortByValue(customIntCmp)
+
+	// Expected sorted order by values
+	expected := g.MapOrd[string, int]{
+		{"b", 1},
+		{"a", 2},
+		{"c", 3},
+	}
+
+	// Check if the MapOrd is sorted as expected
+	if !slices.Equal(mo, expected) {
+		t.Errorf("SortByValue failed: expected %v, got %v", expected, mo)
+	}
+}
+
+func TestSortIterByKey(t *testing.T) {
+	// Create a sample MapOrd to test sorting by keys
+	mo := g.MapOrd[string, int]{
+		{"b", 2},
+		{"a", 1},
+		{"c", 3},
+	}
+
+	// Sort the MapOrd by keys using the custom comparison function
+	mo = mo.Iter().SortByKey(cmp.Cmp).Collect()
+
+	// Expected sorted order by keys
+	expected := g.MapOrd[string, int]{
+		{"a", 1},
+		{"b", 2},
+		{"c", 3},
+	}
+
+	// Check if the MapOrd is sorted as expected
+	if !slices.Equal(mo, expected) {
+		t.Errorf("SortByKey failed: expected %v, got %v", expected, mo)
+	}
+}
+
+func TestSortIterByValue(t *testing.T) {
+	// Create a sample MapOrd to test sorting by values
+	mo := g.MapOrd[string, int]{
+		{"a", 2},
+		{"b", 1},
+		{"c", 3},
+	}
+
+	// Define a custom comparison function for integers
+	customIntCmp := func(a, b int) cmp.Ordering {
+		if a < b {
+			return cmp.Less
+		} else if a > b {
+			return cmp.Greater
+		}
+		return cmp.Equal
+	}
+
+	// Sort the MapOrd by values using the custom comparison function
+	mo = mo.Iter().SortByValue(customIntCmp).Collect()
+
+	// Expected sorted order by values
+	expected := g.MapOrd[string, int]{
+		{"b", 1},
+		{"a", 2},
+		{"c", 3},
+	}
+
+	// Check if the MapOrd is sorted as expected
+	if !slices.Equal(mo, expected) {
+		t.Errorf("SortByValue failed: expected %v, got %v", expected, mo)
 	}
 }
 

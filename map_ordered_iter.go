@@ -70,7 +70,61 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 // The returned iterator is of type SeqMapOrd[K, V], which implements the iterator
 // interface for further iteration over the sorted elements.
 func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
-	return sortbyMapOrd(seq, fn)
+	return sortByMapOrd(seq, fn)
+}
+
+// SortByKey applies a custom sorting function to the keys in the iterator
+// and returns a new iterator containing the sorted elements.
+//
+// The sorting function 'fn' should take two arguments, 'a' and 'b', of type K,
+// and return true if 'a' should be ordered before 'b', and false otherwise.
+//
+// Example:
+//
+//	m := g.NewMapOrd[g.Int, g.String]()
+//	m.
+//		Set(6, "bb").
+//		Set(0, "dd").
+//		Set(1, "aa").
+//		Set(5, "xx").
+//		Set(2, "cc").
+//		Set(3, "ff").
+//		Set(4, "zz").
+//		Iter().
+//		SortByKey(g.Int.Cmp).
+//		Collect().
+//		Print()
+//
+// Output: MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
+func (seq SeqMapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) SeqMapOrd[K, V] {
+	return sortByKeyMapOrd(seq, fn)
+}
+
+// SortByValue applies a custom sorting function to the values in the iterator
+// and returns a new iterator containing the sorted elements.
+//
+// The sorting function 'fn' should take two arguments, 'a' and 'b', of type V,
+// and return true if 'a' should be ordered before 'b', and false otherwise.
+//
+// Example:
+//
+//	m := g.NewMapOrd[g.Int, g.String]()
+//	m.
+//		Set(6, "bb").
+//		Set(0, "dd").
+//		Set(1, "aa").
+//		Set(5, "xx").
+//		Set(2, "cc").
+//		Set(3, "ff").
+//		Set(4, "zz").
+//		Iter().
+//		SortByValue(g.String.Cmp).
+//		Collect().
+//		Print()
+//
+// Output: MapOrd{1:aa, 6:bb, 2:cc, 0:dd, 3:ff, 5:xx, 4:zz}
+func (seq SeqMapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) SeqMapOrd[K, V] {
+	return sortByValueMapOrd(seq, fn)
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
@@ -425,9 +479,23 @@ func ToSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
 	}
 }
 
-func sortbyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
+func sortByMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
 	items := seq.Collect()
 	items.SortBy(fn)
+
+	return items.Iter()
+}
+
+func sortByKeyMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b K) cmp.Ordering) SeqMapOrd[K, V] {
+	items := seq.Collect()
+	items.SortByKey(fn)
+
+	return items.Iter()
+}
+
+func sortByValueMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(a, b V) cmp.Ordering) SeqMapOrd[K, V] {
+	items := seq.Collect()
+	items.SortByValue(fn)
 
 	return items.Iter()
 }

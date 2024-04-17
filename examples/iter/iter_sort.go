@@ -20,12 +20,15 @@ func main() {
 		{4, "zz"},
 	}.
 		Iter().
-		SortBy(
-			func(a, b g.Pair[int, string]) cmp.Ordering {
-				return cmp.Cmp(a.Key, b.Key)
-				// By value
-				// return cmp.Cmp(a.Value, b.Value)
-			}).
+		// SortBy(
+		// 	func(a, b g.Pair[int, string]) cmp.Ordering {
+		// 		return cmp.Cmp(a.Key, b.Key)
+		// 		// By value
+		// 		// return cmp.Cmp(a.Value, b.Value)
+		// 	}).
+		// or
+		SortByKey(cmp.Cmp). // By key
+		// SortByValue(cmp.Cmp). // By value
 		Collect().
 		Print() // MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
 
@@ -74,7 +77,8 @@ func main() {
 	// Example 4: Sort and deduplicate a slice of integers and print the result
 	g.SliceOf(9, 8, 9, 8, 0, 1, 1, 1, 2, 7, 2, 2, 2, 3, 4, 5).
 		Iter().
-		SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }).
+		// SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }). // or
+		SortBy(cmp.Cmp).
 		Dedup().
 		Filter(f.Odd).
 		Collect().
@@ -83,7 +87,7 @@ func main() {
 	// Example 5: Sort a slice of strings in descending order and print the result
 	g.SliceOf("a", "c", "b").
 		Iter().
-		SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).
+		SortBy(cmp.Cmp).
 		Collect().
 		Print() // Slice[c, b, a]
 }

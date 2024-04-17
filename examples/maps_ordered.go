@@ -93,10 +93,12 @@ func main() {
 
 	fmt.Println("before sort:", msstr)
 
-	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	// msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	msstr.SortByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
 	fmt.Println("after sort:", msstr)
 
-	msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Value.Cmp(b.Value) })
+	// msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Value.Cmp(b.Value) })
+	msstr.SortByValue(g.String.Cmp)
 	fmt.Println("after sort by value:", msstr)
 
 	mss := g.NewMapOrd[g.Int, g.Slice[int]]()
@@ -104,11 +106,12 @@ func main() {
 	mss.Set(11, g.Slice[int]{1, 2, 3, 4})
 
 	fmt.Println("before sort: ", mss)
-
-	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	// mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	mss.SortByKey(g.Int.Cmp)
 	fmt.Println("after sort by key: ", mss)
 
-	mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return cmp.Cmp(a.Value[1], b.Value[1]) })
+	// mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return cmp.Cmp(a.Value[1], b.Value[1]) })
+	mss.SortByValue(func(a, b g.Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
 	// g.MapOrdFromStd(mss.ToMap().Std()).Print()

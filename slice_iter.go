@@ -548,7 +548,7 @@ func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] { return stepbySlice(seq, n) }
 //
 // The returned iterator is of type SeqSlice[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] { return sortbySlice(seq, fn) }
+func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] { return sortBySlice(seq, fn) }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
@@ -866,7 +866,7 @@ func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
-func sortbySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordering) SeqSlice[V] {
+func sortBySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordering) SeqSlice[V] {
 	items := seq.Collect()
 	items.SortBy(cmp)
 
