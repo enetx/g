@@ -10,6 +10,14 @@ import (
 )
 
 func main() {
+	ws := g.SliceOf[g.String]("d", "b", "c", "a")
+
+	// ws.SortBy(g.String.Cmp)
+	// or
+	ws.SortBy(cmp.Cmp)
+
+	ws.Print()
+
 	wsl := g.SliceOf[g.String](
 		"aa a",
 		"b b",

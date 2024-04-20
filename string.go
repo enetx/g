@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/minmax"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -22,10 +21,10 @@ func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { retu
 func (s String) Builder() *Builder { return NewBuilder().Write(s) }
 
 // Min returns the minimum of Strings.
-func (s String) Min(b ...String) String { return minmax.Min(s, b...) }
+func (s String) Min(b ...String) String { return cmp.Min(s, b...) }
 
 // Max returns the maximum of Strings.
-func (s String) Max(b ...String) String { return minmax.Max(s, b...) }
+func (s String) Max(b ...String) String { return cmp.Max(s, b...) }
 
 // Random generates a random String of the specified length, selecting characters from predefined sets.
 // If additional character sets are provided, only those will be used; the default set (ASCII_LETTERS and DIGITS)

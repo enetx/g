@@ -16,10 +16,10 @@ func main() {
 
 	nx.SortBy(func(a, b g.Slice[g.String]) cmp.Ordering {
 		if a.Eq(b) {
-			return 0
+			return cmp.Equal
 		}
 
-		return -1
+		return cmp.Less
 	})
 
 	nx.Print()

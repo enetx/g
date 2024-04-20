@@ -9,7 +9,6 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/constraints"
-	"github.com/enetx/g/pkg/minmax"
 	"github.com/enetx/g/pkg/rand"
 )
 
@@ -17,10 +16,10 @@ import (
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
 // Min returns the minimum of Ints.
-func (i Int) Min(b ...Int) Int { return minmax.Min(i, b...) }
+func (i Int) Min(b ...Int) Int { return cmp.Min(i, b...) }
 
 // Max returns the maximum of Ints.
-func (i Int) Max(b ...Int) Int { return minmax.Max(i, b...) }
+func (i Int) Max(b ...Int) Int { return cmp.Max(i, b...) }
 
 // RandomRange returns a random Int in the range [from, to].
 func (i Int) RandomRange(to Int) Int { return rand.N(to-i+1) + i }

@@ -173,44 +173,11 @@ func TestSliceIterCombinations(t *testing.T) {
 	}
 }
 
-// func TestSliceIterSortInts(t *testing.T) {
-// 	slice := g.Slice[int]{5, 2, 8, 1, 6}
-// 	sorted := slice.Iter().Sort().Collect()
-
-// 	expected := g.Slice[int]{1, 2, 5, 6, 8}
-
-// 	if !reflect.DeepEqual(sorted, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, sorted)
-// 	}
-// }
-
-// func TestSliceIterSortStrings(t *testing.T) {
-// 	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
-// 	sorted := slice.Iter().Sort().Collect()
-
-// 	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
-
-// 	if !reflect.DeepEqual(sorted, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, sorted)
-// 	}
-// }
-
-// func TestSliceIterSortFloats(t *testing.T) {
-// 	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
-// 	sorted := slice.Iter().Sort().Collect()
-
-// 	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
-
-// 	if !reflect.DeepEqual(sorted, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, sorted)
-// 	}
-// }
-
 func TestSliceIterSortBy(t *testing.T) {
 	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
 	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
 
-	actual1 := sl1.Iter().SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }).Collect()
+	actual1 := sl1.Iter().SortBy(cmp.Cmp).Collect()
 
 	if !actual1.Eq(expected1) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
@@ -228,7 +195,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl3 := g.NewSlice[int]()
 	expected3 := g.NewSlice[int]()
 
-	actual3 := sl3.Iter().SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }).Collect()
+	actual3 := sl3.Iter().SortBy(cmp.Cmp).Collect()
 
 	if !actual3.Eq(expected3) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected3, actual3)

@@ -6,6 +6,30 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
+func TestMaxAndMin(t *testing.T) {
+	// Test cases for Max function
+	maxInt := cmp.Max(1, 2, 3, 4, 5)
+	if maxInt != 5 {
+		t.Errorf("cmp.Max(1, 2, 3, 4, 5) = %d; want 5", maxInt)
+	}
+
+	maxFloat := cmp.Max(1.5, 2.5, 3.5, 4.5, 5.5)
+	if maxFloat != 5.5 {
+		t.Errorf("cmp.Max(1.5, 2.5, 3.5, 4.5, 5.5) = %f; want 5.5", maxFloat)
+	}
+
+	// Test cases for Min function
+	minInt := cmp.Min(5, 4, 3, 2, 1)
+	if minInt != 1 {
+		t.Errorf("cmp.Min(5, 4, 3, 2, 1) = %d; want 1", minInt)
+	}
+
+	minFloat := cmp.Min(5.5, 4.5, 3.5, 2.5, 1.5)
+	if minFloat != 1.5 {
+		t.Errorf("cmp.Min(5.5, 4.5, 3.5, 2.5, 1.5) = %f; want 1.5", minFloat)
+	}
+}
+
 func TestOrderingThen(t *testing.T) {
 	tests := []struct {
 		name     string

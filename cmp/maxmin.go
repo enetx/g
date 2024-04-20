@@ -1,5 +1,4 @@
-// Package minmax provides functions for finding the maximum and minimum values.
-package minmax
+package cmp
 
 import "cmp"
 

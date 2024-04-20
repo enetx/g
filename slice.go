@@ -477,11 +477,6 @@ func (sl Slice[T]) Shuffle() {
 // Output: [5 4 3 2 1].
 func (sl Slice[T]) Reverse() { slices.Reverse(sl) }
 
-// Sort sorts the elements in the slice in increasing order. It modifies the original
-// slice in place. For proper functionality, the type T used in the slice must support
-// comparison via the Less method.
-// func (sl Slice[T]) Sort() { sort.Sort(sl) }
-
 // SortBy sorts the elements in the slice using the provided comparison function.
 // It modifies the original slice in place. It requires the elements to be of a type
 // that is comparable.
@@ -995,7 +990,7 @@ func (sl Slice[T]) bound(i Int, subslice ...struct{}) Int {
 		ii += sl.Len()
 	}
 
-	negative := Int(0)
+	var negative Int
 	if len(subslice) != 0 {
 		negative = -1
 	}

@@ -10,7 +10,6 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/constraints"
-	"github.com/enetx/g/pkg/minmax"
 )
 
 // NewFloat creates a new Float with the provided value.
@@ -25,10 +24,10 @@ func (f Float) Bytes() Bytes {
 }
 
 // Min returns the minimum of two Floats.
-func (f Float) Min(b ...Float) Float { return minmax.Min(f, b...) }
+func (f Float) Min(b ...Float) Float { return cmp.Min(f, b...) }
 
 // Max returns the maximum of two Floats.
-func (f Float) Max(b ...Float) Float { return minmax.Max(f, b...) }
+func (f Float) Max(b ...Float) Float { return cmp.Max(f, b...) }
 
 // Abs returns the absolute value of the Float.
 func (f Float) Abs() Float { return Float(math.Abs(f.Std())) }
