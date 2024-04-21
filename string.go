@@ -21,10 +21,10 @@ func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { retu
 func (s String) Builder() *Builder { return NewBuilder().Write(s) }
 
 // Min returns the minimum of Strings.
-func (s String) Min(b ...String) String { return cmp.Min(s, b...) }
+func (s String) Min(b ...String) String { return cmp.Min(append(b, s)...) }
 
 // Max returns the maximum of Strings.
-func (s String) Max(b ...String) String { return cmp.Max(s, b...) }
+func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 
 // Random generates a random String of the specified length, selecting characters from predefined sets.
 // If additional character sets are provided, only those will be used; the default set (ASCII_LETTERS and DIGITS)
@@ -572,13 +572,13 @@ func (s String) Count(substr String) Int { return Int(strings.Count(s.Std(), sub
 func (s String) Empty() bool { return len(s) == 0 }
 
 // Eq checks if two Strings are equal.
-func (s String) Eq(str String) bool { return s.Cmp(str) == 0 }
+func (s String) Eq(str String) bool { return s == str }
 
 // EqFold compares two String strings case-insensitively.
 func (s String) EqFold(str String) bool { return strings.EqualFold(s.Std(), str.Std()) }
 
 // Gt checks if the String is greater than the specified String.
-func (s String) Gt(str String) bool { return s.Cmp(str) > 0 }
+func (s String) Gt(str String) bool { return s > str }
 
 // Bytes returns the String as an Bytes.
 func (s String) ToBytes() Bytes { return Bytes(s) }
@@ -676,7 +676,7 @@ func (s String) Len() Int { return Int(len(s)) }
 func (s String) LenRunes() Int { return Int(utf8.RuneCountInString(s.Std())) }
 
 // Lt checks if the String is less than the specified String.
-func (s String) Lt(str String) bool { return s.Cmp(str) < 0 }
+func (s String) Lt(str String) bool { return s < str }
 
 // Map applies the provided function to all runes in the String and returns the resulting String.
 func (s String) Map(fn func(rune) rune) String { return String(strings.Map(fn, s.Std())) }

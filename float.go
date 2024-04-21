@@ -24,10 +24,10 @@ func (f Float) Bytes() Bytes {
 }
 
 // Min returns the minimum of two Floats.
-func (f Float) Min(b ...Float) Float { return cmp.Min(f, b...) }
+func (f Float) Min(b ...Float) Float { return cmp.Min(append(b, f)...) }
 
 // Max returns the maximum of two Floats.
-func (f Float) Max(b ...Float) Float { return cmp.Max(f, b...) }
+func (f Float) Max(b ...Float) Float { return cmp.Max(append(b, f)...) }
 
 // Abs returns the absolute value of the Float.
 func (f Float) Abs() Float { return Float(math.Abs(f.Std())) }
@@ -38,7 +38,7 @@ func (f Float) Add(b Float) Float { return f + b }
 // ToBigFloat returns the Float as a *big.Float.
 func (f Float) ToBigFloat() *big.Float { return big.NewFloat(f.Std()) }
 
-// Compare compares two Floats and returns an cmp.Ordering.
+// Cmp compares two Floats and returns an cmp.Ordering.
 func (f Float) Cmp(b Float) cmp.Ordering { return cmp.Cmp(f, b) }
 
 // Div divides two Floats and returns the result.
@@ -48,13 +48,13 @@ func (f Float) Div(b Float) Float { return f / b }
 func (f Float) IsZero() bool { return f.Eq(0) }
 
 // Eq checks if two Floats are equal.
-func (f Float) Eq(b Float) bool { return f.Cmp(b) == 0 }
+func (f Float) Eq(b Float) bool { return f.Cmp(b).IsEq() }
 
 // Std returns the Float as a float64.
 func (f Float) Std() float64 { return float64(f) }
 
 // Gt checks if the Float is greater than the specified Float.
-func (f Float) Gt(b Float) bool { return f.Cmp(b) > 0 }
+func (f Float) Gt(b Float) bool { return f.Cmp(b).IsGt() }
 
 // ToInt returns the Float as an Int.
 func (f Float) ToInt() Int { return Int(f) }
@@ -63,7 +63,7 @@ func (f Float) ToInt() Int { return Int(f) }
 func (f Float) ToString() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
 
 // Lt checks if the Float is less than the specified Float.
-func (f Float) Lt(b Float) bool { return f.Cmp(b) < 0 }
+func (f Float) Lt(b Float) bool { return f.Cmp(b).IsLt() }
 
 // Mul multiplies two Floats and returns the result.
 func (f Float) Mul(b Float) Float { return f * b }

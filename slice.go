@@ -402,40 +402,6 @@ func (sl *Slice[T]) AddUniqueInPlace(elems ...T) {
 // of the slice.
 func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
 
-// Max returns the maximum element in the slice, assuming elements are comparable.
-func (sl Slice[T]) Max() T {
-	if sl.Empty() {
-		return *new(T)
-	}
-
-	maxi := sl[0]
-
-	for _, v := range sl[1:] {
-		if sl.Less(sl.Index(maxi), sl.Index(v)) {
-			maxi = v
-		}
-	}
-
-	return maxi
-}
-
-// Min returns the minimum element in the slice, assuming elements are comparable.
-func (sl Slice[T]) Min() T {
-	if sl.Empty() {
-		return *new(T)
-	}
-
-	mini := sl[0]
-
-	for _, v := range sl[1:] {
-		if sl.Less(sl.Index(v), sl.Index(mini)) {
-			mini = v
-		}
-	}
-
-	return mini
-}
-
 // Shuffle shuffles the elements in the slice randomly.
 // This method modifies the original slice in place.
 //
@@ -833,88 +799,6 @@ func (sl Slice[T]) Set(index Int, val T) { sl[sl.bound(index)] = val }
 // Len returns the length of the slice.
 func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 
-// Less defines the comparison logic between two elements at indices i and j within the slice.
-// It utilizes type-based comparisons for elements of various types like Int, int, String, string,
-// Float, and float64. The comparison is performed according to the types and their respective
-// comparison methods. If the types are not directly comparable, it returns false.
-func (sl Slice[T]) Less(i, j Int) bool {
-	elemI := any(sl[i])
-	elemJ := any(sl[j])
-
-	switch elemI := elemI.(type) {
-	case Int:
-		if elemJ, ok := elemJ.(Int); ok {
-			return elemI.Lt(elemJ)
-		}
-	case String:
-		if elemJ, ok := elemJ.(String); ok {
-			return elemI.Lt(elemJ)
-		}
-	case Float:
-		if elemJ, ok := elemJ.(Float); ok {
-			return elemI.Lt(elemJ)
-		}
-	case string:
-		if elemJ, ok := elemJ.(string); ok {
-			return elemI < elemJ
-		}
-	case bool:
-		if elemJ, ok := elemJ.(bool); ok {
-			return !elemI && elemJ
-		}
-	case uint:
-		if elemJ, ok := elemJ.(uint); ok {
-			return elemI < elemJ
-		}
-	case uint8:
-		if elemJ, ok := elemJ.(uint8); ok {
-			return elemI < elemJ
-		}
-	case uint16:
-		if elemJ, ok := elemJ.(uint16); ok {
-			return elemI < elemJ
-		}
-	case uint32:
-		if elemJ, ok := elemJ.(uint32); ok {
-			return elemI < elemJ
-		}
-	case uint64:
-		if elemJ, ok := elemJ.(uint64); ok {
-			return elemI < elemJ
-		}
-	case int:
-		if elemJ, ok := elemJ.(int); ok {
-			return elemI < elemJ
-		}
-	case int8:
-		if elemJ, ok := elemJ.(int8); ok {
-			return elemI < elemJ
-		}
-	case int16:
-		if elemJ, ok := elemJ.(int16); ok {
-			return elemI < elemJ
-		}
-	case int32:
-		if elemJ, ok := elemJ.(int32); ok {
-			return elemI < elemJ
-		}
-	case int64:
-		if elemJ, ok := elemJ.(int64); ok {
-			return elemI < elemJ
-		}
-	case float32:
-		if elemJ, ok := elemJ.(float32); ok {
-			return Float(elemI).Lt(Float(elemJ))
-		}
-	case float64:
-		if elemJ, ok := elemJ.(float64); ok {
-			return Float(elemI).Lt(Float(elemJ))
-		}
-	}
-
-	return false
-}
-
 // Swap swaps the elements at the specified indices in the slice.
 // This method modifies the original slice in place.
 //
@@ -983,6 +867,28 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 		*v = sl[i]
 	}
 }
+
+// MaxBy returns the maximum value in the slice according to the provided comparison function fn.
+// It applies fn pairwise to the elements of the slice until it finds the maximum value.
+// It returns the maximum value found.
+//
+// Example:
+//
+//	s := Slice[int]{3, 1, 4, 2, 5}
+//	maxInt := s.MaxBy(cmp.Cmp)
+//	fmt.Println(maxInt) // Output: 5
+func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, sl...) }
+
+// MinBy returns the minimum value in the slice according to the provided comparison function fn.
+// It applies fn pairwise to the elements of the slice until it finds the minimum value.
+// It returns the minimum value found.
+//
+// Example:
+//
+//	s := Slice[int]{3, 1, 4, 2, 5}
+//	minInt := s.MinBy(cmp.Cmp)
+//	fmt.Println(minInt) // Output: 1
+func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
 func (sl Slice[T]) bound(i Int, subslice ...struct{}) Int {
 	ii := i

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 )
 
 func TestIntAbs(t *testing.T) {
@@ -393,6 +394,13 @@ func TestIntHashingFunctions(t *testing.T) {
 	if sha512Hash != expectedSHA512 {
 		t.Errorf("SHA512 hashing failed. Expected: %s, Got: %s", expectedSHA512, sha512Hash)
 	}
+
+	// Test case for MD5 hashing
+	expectedMD5 := "3389dae361af79b04c9c8e7057f60cc6"
+	md5Hash := input.Hash().MD5().Std()
+	if md5Hash != expectedMD5 {
+		t.Errorf("MD5 hashing failed. Expected: %s, Got: %s", expectedMD5, md5Hash)
+	}
 }
 
 func TestIntRem(t *testing.T) {
@@ -433,38 +441,59 @@ func TestIntRem(t *testing.T) {
 }
 
 func TestIntSub(t *testing.T) {
-    // Testing subtraction with positive integers
-    result := g.Int(5).Sub(3)
-    expected := g.Int(2)
-    if result != expected {
-        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
-    }
+	// Testing subtraction with positive integers
+	result := g.Int(5).Sub(3)
+	expected := g.Int(2)
+	if result != expected {
+		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+	}
 
-    // Testing subtraction with negative integers
-    result = g.Int(-5).Sub(-3)
-    expected = g.Int(-2)
-    if result != expected {
-        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
-    }
+	// Testing subtraction with negative integers
+	result = g.Int(-5).Sub(-3)
+	expected = g.Int(-2)
+	if result != expected {
+		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+	}
 
-    // Testing subtraction with positive and negative integers
-    result = g.Int(5).Sub(-3)
-    expected = g.Int(8)
-    if result != expected {
-        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
-    }
+	// Testing subtraction with positive and negative integers
+	result = g.Int(5).Sub(-3)
+	expected = g.Int(8)
+	if result != expected {
+		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+	}
 
-    // Testing subtraction with negative and positive integers
-    result = g.Int(-5).Sub(3)
-    expected = g.Int(-8)
-    if result != expected {
-        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
-    }
+	// Testing subtraction with negative and positive integers
+	result = g.Int(-5).Sub(3)
+	expected = g.Int(-8)
+	if result != expected {
+		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+	}
 
-    // Testing subtraction with zero
-    result = g.Int(0).Sub(0)
-    expected = g.Int(0)
-    if result != expected {
-        t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
-    }
+	// Testing subtraction with zero
+	result = g.Int(0).Sub(0)
+	expected = g.Int(0)
+	if result != expected {
+		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
+	}
+}
+
+func TestIntCmp(t *testing.T) {
+	tests := []struct {
+		name     string
+		i, other g.Int
+		expected cmp.Ordering
+	}{
+		{"LessThan", g.Int(5), g.Int(10), cmp.Less},
+		{"GreaterThan", g.Int(15), g.Int(10), cmp.Greater},
+		{"EqualTo", g.Int(10), g.Int(10), cmp.Equal},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := test.i.Cmp(test.other)
+			if result != test.expected {
+				t.Errorf("%s: Expected %v, Got %v", test.name, test.expected, result)
+			}
+		})
+	}
 }

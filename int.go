@@ -16,10 +16,10 @@ import (
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
 // Min returns the minimum of Ints.
-func (i Int) Min(b ...Int) Int { return cmp.Min(i, b...) }
+func (i Int) Min(b ...Int) Int { return cmp.Min(append(b, i)...) }
 
 // Max returns the maximum of Ints.
-func (i Int) Max(b ...Int) Int { return cmp.Max(i, b...) }
+func (i Int) Max(b ...Int) Int { return cmp.Max(append(b, i)...) }
 
 // RandomRange returns a random Int in the range [from, to].
 func (i Int) RandomRange(to Int) Int { return rand.N(to-i+1) + i }
@@ -62,6 +62,7 @@ func (i Int) ToString() String { return String(strconv.Itoa(int(i))) }
 // Std returns the Int as an int.
 func (i Int) Std() int { return int(i) }
 
+// Cmp compares two Ints and returns an cmp.Ordering.
 func (i Int) Cmp(b Int) cmp.Ordering { return cmp.Cmp(i, b) }
 
 // AsInt16 returns the Int as an int16.

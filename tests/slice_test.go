@@ -575,28 +575,28 @@ func TestSlicePop(t *testing.T) {
 
 func TestSliceMaxInt(t *testing.T) {
 	sl := g.Slice[g.Int]{1, 2, 3, 4, 5}
-	if max := sl.Max(); max != 5 {
+	if max := cmp.Max(sl...); max != 5 {
 		t.Errorf("Max() = %d, want: %d.", max, 5)
 	}
 }
 
 func TestSliceMaxFloats(t *testing.T) {
 	sl := g.Slice[g.Float]{2.2, 2.8, 2.1, 2.7}
-	if max := sl.Max(); max != 2.8 {
+	if max := cmp.Max(sl...); max != 2.8 {
 		t.Errorf("Max() = %f, want: %f.", max, 2.8)
 	}
 }
 
 func TestSliceMinFloat(t *testing.T) {
 	sl := g.Slice[g.Float]{2.2, 2.8, 2.1, 2.7}
-	if min := sl.Min(); min != 2.1 {
+	if min := cmp.Min(sl...); min != 2.1 {
 		t.Errorf("Min() = %f; want: %f", min, 2.1)
 	}
 }
 
 func TestSliceMinInt(t *testing.T) {
 	sl := g.Slice[g.Int]{1, 2, 3, 4, 5}
-	if min := sl.Min(); min != 1 {
+	if min := cmp.Min(sl...); min != 1 {
 		t.Errorf("Min() = %d; want: %d", min, 1)
 	}
 }
@@ -1319,47 +1319,6 @@ func TestSliceRandom(t *testing.T) {
 	}
 }
 
-func TestSliceMaxMin(t *testing.T) {
-	// Test cases for Int
-	testMaxMin(t, g.SliceOf[g.Int](3, 1, 4, 1, 5), g.Int(5), g.Int(1))
-	testMaxMin(t, g.SliceOf(3, 1, 4, 1, 5), 5, 1)
-
-	// Test cases for Float
-	testMaxMin(t, g.SliceOf[g.Float](3.14, 1.23, 4.56, 1.01, 5.67), g.Float(5.67), g.Float(1.01))
-	testMaxMin(t, g.SliceOf(3.14, 1.23, 4.56, 1.01, 5.67), 5.67, 1.01)
-
-	// Test cases for String
-	testMaxMin(t, g.SliceOf[g.String]("apple", "banana", "orange", "grape"), g.String("orange"), g.String("apple"))
-	testMaxMin(t, g.SliceOf("apple", "banana", "orange", "grape"), "orange", "apple")
-
-	// Add more test cases for other types as needed
-}
-
-func testMaxMin[T comparable](t *testing.T, sl g.Slice[T], expectedMax, expectedMin T) {
-	// Test Max method
-	maxElement := sl.Max()
-	if maxElement != expectedMax {
-		t.Errorf("Slice Max method failed for type %T. Expected: %v, Got: %v", sl[0], expectedMax, maxElement)
-	}
-
-	// Test Min method
-	minElement := sl.Min()
-	if minElement != expectedMin {
-		t.Errorf("Slice Min method failed for type %T. Expected: %v, Got: %v", sl[0], expectedMin, minElement)
-	}
-
-	// Test for an empty slice
-	emptySlice := g.NewSlice[int]()
-	emptyMaxElement := emptySlice.Max()
-	if emptyMaxElement != 0 {
-		t.Errorf("Slice Max method failed for empty slice. Expected: 0, Got: %v", emptyMaxElement)
-	}
-	emptyMinElement := emptySlice.Min()
-	if emptyMinElement != 0 {
-		t.Errorf("Slice Min method failed for empty slice. Expected: 0, Got: %v", emptyMinElement)
-	}
-}
-
 func TestSliceAddUniqueInPlace(t *testing.T) {
 	// Test cases for Int
 	testAddUniqueInPlace(t, g.SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
@@ -1407,136 +1366,6 @@ func testSliceAsAny[T any](t *testing.T, sl g.Slice[T], expected []any) {
 	result := sl.AsAny()
 	if !result.Eq(g.SliceOf(expected...)) {
 		t.Errorf("Slice AsAny method failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
-	}
-}
-
-func TestSliceLess(t *testing.T) {
-	// Test case 1: Comparing two Int elements
-	sliceInt := g.Slice[g.Int]{1, 2, 3}
-	resultInt := sliceInt.Less(0, 1)
-	expectedResultInt := true
-	if resultInt != expectedResultInt {
-		t.Errorf("Test 1: Expected %t, got %t", expectedResultInt, resultInt)
-	}
-
-	// Test case 2: Comparing two String elements
-	sliceString := g.Slice[g.String]{"apple", "banana", "orange"}
-	resultString := sliceString.Less(0, 1)
-	expectedResultString := true
-	if resultString != expectedResultString {
-		t.Errorf("Test 2: Expected %t, got %t", expectedResultString, resultString)
-	}
-
-	// Test case 3: Comparing Int and int elements
-	sliceMixed := g.Slice[any]{1, 2.5, 3}
-	resultMixed := sliceMixed.Less(0, 1)
-	expectedResultMixed := false
-	if resultMixed != expectedResultMixed {
-		t.Errorf("Test 3: Expected %t, got %t", expectedResultMixed, resultMixed)
-	}
-
-	// Test case 4: Comparing two Float elements
-	sliceFloat := g.Slice[g.Float]{1.2, 2.5, 3.1}
-	resultFloat := sliceFloat.Less(0, 1)
-	expectedResultFloat := true
-	if resultFloat != expectedResultFloat {
-		t.Errorf("Test 4: Expected %t, got %t", expectedResultFloat, resultFloat)
-	}
-
-	// Test case 5: Comparing two Bool elements
-	sliceBool := g.Slice[bool]{true, false}
-	resultBool := sliceBool.Less(0, 1)
-	expectedResultBool := false
-	if resultBool != expectedResultBool {
-		t.Errorf("Test 5: Expected %t, got %t", expectedResultBool, resultBool)
-	}
-
-	// Test case 6: Comparing two Uint elements
-	sliceUint := g.Slice[uint]{1, 2, 3}
-	resultUint := sliceUint.Less(0, 1)
-	expectedResultUint := true
-	if resultUint != expectedResultUint {
-		t.Errorf("Test 6: Expected %t, got %t", expectedResultUint, resultUint)
-	}
-
-	// Test case 7: Comparing two Uint8 elements
-	sliceUint8 := g.Slice[uint8]{1, 2, 3}
-	resultUint8 := sliceUint8.Less(0, 1)
-	expectedResultUint8 := true
-	if resultUint8 != expectedResultUint8 {
-		t.Errorf("Test 7: Expected %t, got %t", expectedResultUint8, resultUint8)
-	}
-
-	// Test case 8: Comparing two Uint16 elements
-	sliceUint16 := g.Slice[uint16]{1, 2, 3}
-	resultUint16 := sliceUint16.Less(0, 1)
-	expectedResultUint16 := true
-	if resultUint16 != expectedResultUint16 {
-		t.Errorf("Test 8: Expected %t, got %t", expectedResultUint16, resultUint16)
-	}
-
-	// Test case 9: Comparing two Uint32 elements
-	sliceUint32 := g.Slice[uint32]{1, 2, 3}
-	resultUint32 := sliceUint32.Less(0, 1)
-	expectedResultUint32 := true
-	if resultUint32 != expectedResultUint32 {
-		t.Errorf("Test 9: Expected %t, got %t", expectedResultUint32, resultUint32)
-	}
-
-	// Test case 10: Comparing two Uint64 elements
-	sliceUint64 := g.Slice[uint64]{1, 2, 3}
-	resultUint64 := sliceUint64.Less(0, 1)
-	expectedResultUint64 := true
-	if resultUint64 != expectedResultUint64 {
-		t.Errorf("Test 10: Expected %t, got %t", expectedResultUint64, resultUint64)
-	}
-
-	// Test case 11: Comparing two Int8 elements
-	sliceInt8 := g.Slice[int8]{1, 2, 3}
-	resultInt8 := sliceInt8.Less(0, 1)
-	expectedResultInt8 := true
-	if resultInt8 != expectedResultInt8 {
-		t.Errorf("Test 11: Expected %t, got %t", expectedResultInt8, resultInt8)
-	}
-
-	// Test case 12: Comparing two Int16 elements
-	sliceInt16 := g.Slice[int16]{1, 2, 3}
-	resultInt16 := sliceInt16.Less(0, 1)
-	expectedResultInt16 := true
-	if resultInt16 != expectedResultInt16 {
-		t.Errorf("Test 12: Expected %t, got %t", expectedResultInt16, resultInt16)
-	}
-
-	// Test case 13: Comparing two Int32 elements
-	sliceInt32 := g.Slice[int32]{1, 2, 3}
-	resultInt32 := sliceInt32.Less(0, 1)
-	expectedResultInt32 := true
-	if resultInt32 != expectedResultInt32 {
-		t.Errorf("Test 13: Expected %t, got %t", expectedResultInt32, resultInt32)
-	}
-
-	// Test case 14: Comparing two Int64 elements
-	sliceInt64 := g.Slice[int64]{1, 2, 3}
-	resultInt64 := sliceInt64.Less(0, 1)
-	expectedResultInt64 := true
-	if resultInt64 != expectedResultInt64 {
-		t.Errorf("Test 14: Expected %t, got %t", expectedResultInt64, resultInt64)
-	}
-
-	// Test case 15: Comparing two Float32 elements
-	sliceFloat32 := g.Slice[float32]{1.2, 2.5, 3.1}
-	resultFloat32 := sliceFloat32.Less(0, 1)
-	expectedResultFloat32 := true
-	if resultFloat32 != expectedResultFloat32 {
-		t.Errorf("Test 15: Expected %t, got %t", expectedResultFloat32, resultFloat32)
-	}
-
-	// Test case 16: Comparing two Float64 elements
-	sliceFloat64 := g.Slice[float64]{1.2, 2.5, 3.1}
-	resultFloat64 := sliceFloat64.Less(0, 1)
-	expectedResultFloat64 := true
-	if resultFloat64 != expectedResultFloat64 {
-		t.Errorf("Test 16: Expected %t, got %t", expectedResultFloat64, resultFloat64)
 	}
 }
 
@@ -1682,5 +1511,25 @@ func TestSliceSwap(t *testing.T) {
 	expected = g.Slice[int]{5, 4, 3, 2, 1}
 	if !s.Eq(expected) {
 		t.Errorf("Swap failed: got %v, want %v", s, expected)
+	}
+}
+
+func TestSliceMaxBy(t *testing.T) {
+	// Test case 1: Maximum integer
+	s := g.Slice[int]{3, 1, 4, 2, 5}
+	maxInt := s.MaxBy(cmp.Cmp)
+	expectedMaxInt := 5
+	if maxInt != expectedMaxInt {
+		t.Errorf("s.MaxBy(IntCompare) = %d; want %d", maxInt, expectedMaxInt)
+	}
+}
+
+func TestSliceMinBy(t *testing.T) {
+	// Test case 1: Minimum integer
+	s := g.Slice[int]{3, 1, 4, 2, 5}
+	minInt := s.MinBy(cmp.Cmp)
+	expectedMinInt := 1
+	if minInt != expectedMinInt {
+		t.Errorf("s.MinBy(IntCompare) = %d; want %d", minInt, expectedMinInt)
 	}
 }

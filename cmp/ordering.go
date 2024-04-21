@@ -13,7 +13,7 @@ const (
 
 // Then returns the receiver if it's equal to Equal, otherwise returns the receiver.
 func (o Ordering) Then(other Ordering) Ordering {
-	if Equal == o {
+	if o.IsEq() {
 		return Ordering(other)
 	}
 
@@ -30,6 +30,21 @@ func (o Ordering) Reverse() Ordering {
 	default:
 		return Equal
 	}
+}
+
+// IsLt returns true if the Ordering value is Less.
+func (o Ordering) IsLt() bool {
+	return Less == o
+}
+
+// IsEq returns true if the Ordering value is Equal.
+func (o Ordering) IsEq() bool {
+	return Equal == o
+}
+
+// IsGt returns true if the Ordering value is Greater.
+func (o Ordering) IsGt() bool {
+	return Greater == o
 }
 
 // String returns the string representation of the Ordering value.

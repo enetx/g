@@ -131,13 +131,13 @@ func (bs Bytes) Count(obs Bytes) Int { return Int(bytes.Count(bs, obs)) }
 func (bs Bytes) Empty() bool { return bs == nil || len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
-func (bs Bytes) Eq(obs Bytes) bool { return bs.Cmp(obs) == 0 }
+func (bs Bytes) Eq(obs Bytes) bool { return bs.Cmp(obs).IsEq() }
 
 // EqFold compares two Bytes slices case-insensitively.
 func (bs Bytes) EqFold(obs Bytes) bool { return bytes.EqualFold(bs, obs) }
 
 // Gt checks if the Bytes is greater than another Bytes.
-func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs) > 0 }
+func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs).IsGt() }
 
 // ToString returns the Bytes as an String.
 func (bs Bytes) ToString() String { return String(bs) }
@@ -243,7 +243,7 @@ func (bs Bytes) Len() Int { return Int(len(bs)) }
 func (bs Bytes) LenRunes() Int { return Int(utf8.RuneCount(bs)) }
 
 // Lt checks if the Bytes is less than another Bytes.
-func (bs Bytes) Lt(obs Bytes) bool { return bs.Cmp(obs) < 0 }
+func (bs Bytes) Lt(obs Bytes) bool { return bs.Cmp(obs).IsLt() }
 
 // Map applies a function to each rune in the Bytes and returns the modified Bytes.
 func (bs Bytes) Map(fn func(rune) rune) Bytes { return bytes.Map(fn, bs) }
