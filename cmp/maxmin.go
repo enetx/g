@@ -38,7 +38,7 @@ func MaxBy[T any](fn func(x, y T) Ordering, t ...T) T {
 	m := t[0]
 
 	for _, v := range t[1:] {
-		if fn(m, v).IsLt() {
+		if fn(v, m).IsGt() {
 			m = v
 		}
 	}

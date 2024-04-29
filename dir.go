@@ -320,7 +320,7 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 //	dir.Rename("path/to/new_directory")
 func (d *Dir) Rename(newpath String) Result[*Dir] {
 	ps := String(os.PathSeparator)
-	_, np := newpath.TrimSuffix(ps).Split(ps).Pop()
+	_, np := newpath.TrimSuffix(ps).Split(ps).Collect().Pop()
 
 	if rd := NewDir(np.Join(ps)).CreateAll(); rd.IsErr() {
 		return rd

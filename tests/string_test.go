@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 	"testing"
+	"unicode"
 
 	"github.com/enetx/g"
 )
@@ -62,7 +63,7 @@ func TestChars(t *testing.T) {
 	// Testing on a regular string with ASCII characters
 	asciiStr := g.String("Hello")
 	asciiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o"}
-	asciiResult := asciiStr.Chars()
+	asciiResult := asciiStr.Chars().Collect()
 	if !reflect.DeepEqual(asciiExpected, asciiResult) {
 		t.Errorf("Expected %v, but got %v", asciiExpected, asciiResult)
 	}
@@ -70,7 +71,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with Unicode characters (Russian)
 	unicodeStr := g.String("Привет")
 	unicodeExpected := g.Slice[g.String]{"П", "р", "и", "в", "е", "т"}
-	unicodeResult := unicodeStr.Chars()
+	unicodeResult := unicodeStr.Chars().Collect()
 	if !reflect.DeepEqual(unicodeExpected, unicodeResult) {
 		t.Errorf("Expected %v, but got %v", unicodeExpected, unicodeResult)
 	}
@@ -78,7 +79,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with Unicode characters (Chinese)
 	chineseStr := g.String("你好")
 	chineseExpected := g.Slice[g.String]{"你", "好"}
-	chineseResult := chineseStr.Chars()
+	chineseResult := chineseStr.Chars().Collect()
 	if !reflect.DeepEqual(chineseExpected, chineseResult) {
 		t.Errorf("Expected %v, but got %v", chineseExpected, chineseResult)
 	}
@@ -86,7 +87,7 @@ func TestChars(t *testing.T) {
 	// Additional test with a mix of ASCII and Unicode characters
 	mixedStr := g.String("Hello 你好")
 	mixedExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", " ", "你", "好"}
-	mixedResult := mixedStr.Chars()
+	mixedResult := mixedStr.Chars().Collect()
 	if !reflect.DeepEqual(mixedExpected, mixedResult) {
 		t.Errorf("Expected %v, but got %v", mixedExpected, mixedResult)
 	}
@@ -130,7 +131,7 @@ func TestChars(t *testing.T) {
 		"ち",
 		"は",
 	}
-	specialResult := specialStr.Chars()
+	specialResult := specialStr.Chars().Collect()
 	if !reflect.DeepEqual(specialExpected, specialResult) {
 		t.Errorf("Expected %v, but got %v", specialExpected, specialResult)
 	}
@@ -138,7 +139,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with emojis
 	emojiStr := g.String("Hello, 😊🌍🚀")
 	emojiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", ",", " ", "😊", "🌍", "🚀"}
-	emojiResult := emojiStr.Chars()
+	emojiResult := emojiStr.Chars().Collect()
 	if !reflect.DeepEqual(emojiExpected, emojiResult) {
 		t.Errorf("Expected %v, but got %v", emojiExpected, emojiResult)
 	}
@@ -146,7 +147,7 @@ func TestChars(t *testing.T) {
 	// Testing on an empty string
 	emptyStr := g.String("")
 	emptyExpected := g.Slice[g.String]{}
-	emptyResult := emptyStr.Chars()
+	emptyResult := emptyStr.Chars().Collect()
 	if !reflect.DeepEqual(emptyExpected, emptyResult) {
 		t.Errorf("Expected %v, but got %v", emptyExpected, emptyResult)
 	}
@@ -568,6 +569,48 @@ func TestStringLt(t *testing.T) {
 		result := tc.str1.Lt(tc.str2)
 		if result != tc.expected {
 			t.Errorf("Lt(%q, %q): expected %t, got %t", tc.str1, tc.str2, tc.expected, result)
+		}
+	}
+}
+
+func TestStringLte(t *testing.T) {
+	testCases := []struct {
+		str1     g.String
+		str2     g.String
+		expected bool
+	}{
+		{"apple", "banana", true},
+		{"banana", "apple", false},
+		{"Apple", "apple", true},
+		{"banana", "banana", true}, // Equal strings should return true
+		{"", "", true},             // Empty strings should return true
+	}
+
+	for _, tc := range testCases {
+		result := tc.str1.Lte(tc.str2)
+		if result != tc.expected {
+			t.Errorf("Lte(%q, %q): expected %t, got %t", tc.str1, tc.str2, tc.expected, result)
+		}
+	}
+}
+
+func TestStringGte(t *testing.T) {
+	testCases := []struct {
+		str1     g.String
+		str2     g.String
+		expected bool
+	}{
+		{"apple", "banana", false},
+		{"banana", "apple", true},
+		{"Apple", "apple", false},
+		{"banana", "banana", true}, // Equal strings should return true
+		{"", "", true},             // Empty strings should return true
+	}
+
+	for _, tc := range testCases {
+		result := tc.str1.Gte(tc.str2)
+		if result != tc.expected {
+			t.Errorf("Gte(%q, %q): expected %t, got %t", tc.str1, tc.str2, tc.expected, result)
 		}
 	}
 }
@@ -1204,7 +1247,7 @@ func TestStringSplitLines(t *testing.T) {
 	// Test case 1: String with multiple lines.
 	str1 := g.NewString("hello\nworld\nhow\nare\nyou\n")
 	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
-	result1 := str1.SplitLines()
+	result1 := str1.Lines().Collect()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
@@ -1212,7 +1255,7 @@ func TestStringSplitLines(t *testing.T) {
 	// Test case 2: String with single line.
 	str2 := g.NewString("hello")
 	expected2 := g.Slice[g.String]{"hello"}
-	result2 := str2.SplitLines()
+	result2 := str2.Lines().Collect()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
@@ -1254,7 +1297,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 1: String with multiple words separated by whitespace.
 	str1 := g.NewString("hello world how are you")
 	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
-	result1 := str1.Fields()
+	result1 := str1.Fields().Collect()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
@@ -1262,7 +1305,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 2: String with single word.
 	str2 := g.NewString("hello")
 	expected2 := g.Slice[g.String]{"hello"}
-	result2 := str2.Fields()
+	result2 := str2.Fields().Collect()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
@@ -1270,7 +1313,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 3: Empty string.
 	str3 := g.NewString("")
 	expected3 := g.Slice[g.String]{}
-	result3 := str3.Fields()
+	result3 := str3.Fields().Collect()
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
 	}
@@ -1278,7 +1321,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 4: String with leading and trailing whitespace.
 	str4 := g.NewString("   hello   world   ")
 	expected4 := g.Slice[g.String]{"hello", "world"}
-	result4 := str4.Fields()
+	result4 := str4.Fields().Collect()
 	if !reflect.DeepEqual(result4, expected4) {
 		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
 	}
@@ -1614,6 +1657,79 @@ func TestStringStartsWith(t *testing.T) {
 		// Assert the result
 		if result != tc.expected {
 			t.Errorf("StartsWith() returned %v; expected %v", result, tc.expected)
+		}
+	}
+}
+
+func TestStringSplitAfter(t *testing.T) {
+	testCases := []struct {
+		input     g.String
+		separator g.String
+		expected  g.Slice[g.String]
+	}{
+		{"hello,world,how,are,you", ",", g.Slice[g.String]{"hello,", "world,", "how,", "are,", "you"}},
+		{"apple banana cherry", " ", g.Slice[g.String]{"apple ", "banana ", "cherry"}},
+		{"a-b-c-d-e", "-", g.Slice[g.String]{"a-", "b-", "c-", "d-", "e"}},
+		{"abcd", "a", g.Slice[g.String]{"a", "bcd"}},
+		{"thisistest", "is", g.Slice[g.String]{"this", "is", "test"}},
+		{"☺☻☹", "", g.Slice[g.String]{"☺", "☻", "☹"}},
+		{"☺☻☹", "☹", g.Slice[g.String]{"☺☻☹", ""}},
+		{"123", "", g.Slice[g.String]{"1", "2", "3"}},
+	}
+
+	for _, tc := range testCases {
+		actual := tc.input.SplitAfter(tc.separator).Collect()
+
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf(
+				"Unexpected result for input: %s, separator: %s\nExpected: %v\nGot: %v",
+				tc.input,
+				tc.separator,
+				tc.expected,
+				actual,
+			)
+		}
+	}
+}
+
+func TestStringFieldsBy(t *testing.T) {
+	testCases := []struct {
+		input    g.String
+		fn       func(r rune) bool
+		expected g.Slice[g.String]
+	}{
+		{"hello world", unicode.IsSpace, g.Slice[g.String]{"hello", "world"}},
+		{"1,2,3,4,5", func(r rune) bool { return r == ',' }, g.Slice[g.String]{"1", "2", "3", "4", "5"}},
+		{"camelCcase", unicode.IsUpper, g.Slice[g.String]{"camel", "case"}},
+	}
+
+	for _, tc := range testCases {
+		actual := tc.input.FieldsBy(tc.fn).Collect()
+
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf("Unexpected result for input: %s\nExpected: %v\nGot: %v", tc.input, tc.expected, actual)
+		}
+	}
+}
+
+func TestStringTrimSpace(t *testing.T) {
+	testCases := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"   hello   ", "hello"},
+		{"   world", "world"},
+		{"foo   ", "foo"},
+		{"\tbar\t", "bar"},
+		{"", ""},
+		{"  ", ""},
+	}
+
+	for _, tc := range testCases {
+		actual := tc.input.TrimSpace()
+
+		if actual != tc.expected {
+			t.Errorf("Unexpected result for input: %s\nExpected: %s\nGot: %s", tc.input, tc.expected, actual)
 		}
 	}
 }

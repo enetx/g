@@ -342,18 +342,28 @@ func (s String) EndsWith(suffixes ...String) bool {
 	return false
 }
 
-// Split splits the String by the specified separator.
-func (s String) Split(sep ...String) Slice[String] {
-	var separator string
+// Lines splits the String by lines and returns the iterator.
+func (s String) Lines() SeqSlice[String] { return lines(s) }
+
+// Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
+func (s String) Fields() SeqSlice[String] { return fields(s) }
+
+// FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
+// and returns the iterator.
+func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] { return fieldsby(s, fn) }
+
+// Split splits the String by the specified separator and returns the iterator.
+func (s String) Split(sep ...String) SeqSlice[String] {
+	var separator String
 	if len(sep) != 0 {
-		separator = sep[0].Std()
+		separator = sep[0]
 	}
 
-	return SliceMap(strings.Split(s.Std(), separator), NewString)
+	return split(s, separator, 0)
 }
 
-// SplitLines splits the String by lines.
-func (s String) SplitLines() Slice[String] { return s.TrimSpace().Split("\n") }
+// SplitAfter splits the String after each instance of the specified separator and returns the iterator.
+func (s String) SplitAfter(sep String) SeqSlice[String] { return split(s, sep, sep.Len()) }
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
 // The n parameter controls the number of substrings to return:
@@ -383,11 +393,6 @@ func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]]
 	}
 
 	return Some(result)
-}
-
-// Fields splits the String into a slice of substrings, removing any whitespace.
-func (s String) Fields() Slice[String] {
-	return SliceMap(strings.Fields(s.Std()), NewString)
 }
 
 // Chunks splits the String into chunks of the specified size.
@@ -421,7 +426,7 @@ func (s String) Chunks(size Int) Slice[String] {
 		return Slice[String]{s}
 	}
 
-	return SliceMap(s.Split().Iter().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
+	return SliceMap(s.Split().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
 }
 
 // Cut returns two String values. The first String contains the remainder of the
@@ -580,6 +585,9 @@ func (s String) EqFold(str String) bool { return strings.EqualFold(s.Std(), str.
 // Gt checks if the String is greater than the specified String.
 func (s String) Gt(str String) bool { return s > str }
 
+// Gte checks if the String is greater than or equal to the specified String.
+func (s String) Gte(str String) bool { return s >= str }
+
 // Bytes returns the String as an Bytes.
 func (s String) ToBytes() Bytes { return Bytes(s) }
 
@@ -678,6 +686,9 @@ func (s String) LenRunes() Int { return Int(utf8.RuneCountInString(s.Std())) }
 // Lt checks if the String is less than the specified String.
 func (s String) Lt(str String) bool { return s < str }
 
+// Lte checks if the String is less than or equal to the specified String.
+func (s String) Lte(str String) bool { return s <= str }
+
 // Map applies the provided function to all runes in the String and returns the resulting String.
 func (s String) Map(fn func(rune) rune) String { return String(strings.Map(fn, s.Std())) }
 
@@ -702,9 +713,8 @@ func (s String) Reverse() String { return s.ToBytes().Reverse().ToString() }
 // ToRunes returns the String as a slice of runes.
 func (s String) ToRunes() Slice[rune] { return []rune(s) }
 
-// Chars returns the individual characters of the String as a slice of Strings.
-// Each element in the returned slice represents a single character in the original String.
-func (s String) Chars() Slice[String] { return s.Split() }
+// Chars splits the String into individual characters and returns the iterator.
+func (s String) Chars() SeqSlice[String] { return s.Split() }
 
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
@@ -736,12 +746,12 @@ func (s String) LeftJustify(length Int, pad String) String {
 		return s
 	}
 
-	var output strings.Builder
+	output := NewBuilder()
 
-	_, _ = output.WriteString(s.Std())
-	writePadding(&output, pad, pad.LenRunes(), length-s.LenRunes())
+	_ = output.Write(s)
+	writePadding(output, pad, pad.LenRunes(), length-s.LenRunes())
 
-	return String(output.String())
+	return output.String()
 }
 
 // RightJustify justifies the String to the right by adding padding to the left, up to the
@@ -765,12 +775,12 @@ func (s String) RightJustify(length Int, pad String) String {
 		return s
 	}
 
-	var output strings.Builder
+	output := NewBuilder()
 
-	writePadding(&output, pad, pad.LenRunes(), length-s.LenRunes())
-	_, _ = output.WriteString(s.Std())
+	writePadding(output, pad, pad.LenRunes(), length-s.LenRunes())
+	_ = output.Write(s)
 
-	return String(output.String())
+	return output.String()
 }
 
 // Center justifies the String by adding padding on both sides, up to the specified length.
@@ -795,27 +805,28 @@ func (s String) Center(length Int, pad String) String {
 		return s
 	}
 
-	var output strings.Builder
+	output := NewBuilder()
 
 	remains := length - s.LenRunes()
-	writePadding(&output, pad, pad.LenRunes(), remains/2)
-	_, _ = output.WriteString(s.Std())
-	writePadding(&output, pad, pad.LenRunes(), (remains+1)/2)
 
-	return String(output.String())
+	writePadding(output, pad, pad.LenRunes(), remains/2)
+	_ = output.Write(s)
+	writePadding(output, pad, pad.LenRunes(), (remains+1)/2)
+
+	return output.String()
 }
 
 // writePadding writes the padding String to the output Builder to fill the remaining length.
 // It repeats the padding String as necessary and appends any remaining runes from the padding
 // String.
-func writePadding(output *strings.Builder, pad String, padlen, remains Int) {
+func writePadding(output *Builder, pad String, padlen, remains Int) {
 	if repeats := remains / padlen; repeats > 0 {
-		_, _ = output.WriteString(pad.Repeat(repeats).Std())
+		_ = output.Write(pad.Repeat(repeats))
 	}
 
 	padrunes := pad.ToRunes()
 	for i := range remains % padlen {
-		_, _ = output.WriteRune(padrunes[i])
+		_ = output.WriteRune(padrunes[i])
 	}
 }
 

@@ -33,19 +33,13 @@ func (o Ordering) Reverse() Ordering {
 }
 
 // IsLt returns true if the Ordering value is Less.
-func (o Ordering) IsLt() bool {
-	return Less == o
-}
+func (o Ordering) IsLt() bool { return Less == o }
 
 // IsEq returns true if the Ordering value is Equal.
-func (o Ordering) IsEq() bool {
-	return Equal == o
-}
+func (o Ordering) IsEq() bool { return Equal == o }
 
 // IsGt returns true if the Ordering value is Greater.
-func (o Ordering) IsGt() bool {
-	return Greater == o
-}
+func (o Ordering) IsGt() bool { return Greater == o }
 
 // String returns the string representation of the Ordering value.
 func (o Ordering) String() string {

@@ -866,9 +866,9 @@ func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
-func sortBySlice[V any](seq SeqSlice[V], cmp func(a, b V) cmp.Ordering) SeqSlice[V] {
+func sortBySlice[V any](seq SeqSlice[V], fn func(a, b V) cmp.Ordering) SeqSlice[V] {
 	items := seq.Collect()
-	items.SortBy(cmp)
+	items.SortBy(fn)
 
 	return items.Iter()
 }

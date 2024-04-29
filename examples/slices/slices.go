@@ -40,7 +40,7 @@ func main() {
 	wsl.Print() // Slice[three three, one, o o oo oooo, four, b b, aaa aaaa, aaa aaa, aa a a aa a, aa a, a a a aaaa]
 
 	wsl.SortBy(func(a, b g.String) cmp.Ordering {
-		return a.Fields().Len().Cmp(b.Fields().Len()).
+		return a.Fields().Collect().Len().Cmp(b.Fields().Collect().Len()).
 			Then(a.Len().Cmp(b.Len()))
 	})
 

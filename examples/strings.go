@@ -1,17 +1,22 @@
 package main
 
-import "github.com/enetx/g"
+import (
+	"github.com/enetx/g"
+	"github.com/enetx/g/f"
+)
 
 func main() {
+	g.String("foo\r\nbar\n\nbaz\n").
+		Lines().
+		Exclude(f.Zero).
+		Collect().
+		Print() // Slice[foo, bar, baz]
+
 	s := g.NewString("💛💚💙💜")
 
-	s.LeftJustify(10, "*").Print()
-	s.RightJustify(10, "*").Print()
-	s.Center(10, "*").Print()
-
-	// 💛💚💙💜******
-	// ******💛💚💙💜
-	// ***💛💚💙💜***
+	s.LeftJustify(10, "*").Print()  // 💛💚💙💜******
+	s.RightJustify(10, "*").Print() // ******💛💚💙💜
+	s.Center(10, "*").Print()       // ***💛💚💙💜***
 
 	///////////////////////////////////////////////////////////////////////
 

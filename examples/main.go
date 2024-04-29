@@ -44,7 +44,7 @@ func main() {
 	d := g.NewString("ddd")
 	e := g.NewString("eee")
 
-	str3 := a.ReplaceAll("a", "zzz").Upper().Fields().Random().Split("")[0].Lower().Std()
+	str3 := a.ReplaceAll("a", "zzz").Upper().Fields().Collect().Random().Split("").Collect()[0].Lower().Std()
 
 	fmt.Println(str3)
 

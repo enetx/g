@@ -32,7 +32,8 @@ func main() {
 
 	// MapSlice applies a mapping function to each element of the source slice and returns a new slice.
 	// In this example, it maps each string in 'words' to its individual characters.
-	g.SliceMap(words, g.String.Chars).
+	g.SliceMap(words, func(w g.String) g.Slice[g.String] { return w.Chars().Collect() }).
+		// g.SliceMap(words, g.String.Chars).
 		AsAny(). // Required if the source slice is not of type g.Slice[any]
 		Iter().
 		Flatten().

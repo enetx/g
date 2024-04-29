@@ -14,7 +14,7 @@ func main() {
 	var mail, password g.String
 
 	// Split the account string by ":" and unpack the result into mail and password variables
-	account.Split(":").Unpack(&mail, &password)
+	account.Split(":").Collect().Unpack(&mail, &password)
 
 	// Print the result
 	fmt.Println(mail, password)

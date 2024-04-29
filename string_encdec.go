@@ -210,7 +210,7 @@ func (e enc) Octal() String {
 func (d dec) Octal() Result[String] {
 	result := NewBuilder()
 
-	for _, v := range d.str.Split(" ") {
+	for _, v := range d.str.Split(" ").Collect() {
 		n, err := strconv.ParseUint(v.Std(), 8, 32)
 		if err != nil {
 			return Err[String](err)
