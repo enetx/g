@@ -270,7 +270,7 @@ func TestBytesSplit(t *testing.T) {
 	// Test case where separator exists
 	bs1 := g.Bytes("hello world gopher")
 	separator1 := g.NewBytes(" ")
-	split1 := bs1.Split(separator1)
+	split1 := bs1.Split(separator1).Collect()
 	expected1 := g.SliceOf(g.NewBytes("hello"), g.NewBytes("world"), g.NewBytes("gopher"))
 	if !reflect.DeepEqual(split1, expected1) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected1, split1)
@@ -279,7 +279,7 @@ func TestBytesSplit(t *testing.T) {
 	// Test case where separator doesn't exist
 	bs2 := g.Bytes("helloworldgopher")
 	separator2 := g.NewBytes(" ")
-	split2 := bs2.Split(separator2)
+	split2 := bs2.Split(separator2).Collect()
 	expected2 := g.Slice[g.Bytes]{g.NewBytes("helloworldgopher")}
 	if !reflect.DeepEqual(split2, expected2) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected2, split2)
@@ -693,7 +693,7 @@ func TestBytesIndex(t *testing.T) {
 	bs := g.Bytes("hello world")
 	obs := g.Bytes("world")
 	idx := bs.Index(obs)
-	expected := 6
+	expected := g.Int(6)
 	if idx != expected {
 		t.Errorf("Index failed. Expected: %d, Got: %d", expected, idx)
 	}
@@ -702,7 +702,7 @@ func TestBytesIndex(t *testing.T) {
 	bs = g.Bytes("hello world")
 	obs = g.Bytes("gopher")
 	idx = bs.Index(obs)
-	expected = -1
+	expected = g.Int(-1)
 	if idx != expected {
 		t.Errorf("Index failed. Expected: %d, Got: %d", expected, idx)
 	}
@@ -1104,5 +1104,103 @@ func TestBytesHashingFunctions(t *testing.T) {
 	sha512Hash := input.Hash().SHA512()
 	if sha512Hash.Ne(expectedSHA512) {
 		t.Errorf("SHA512 hashing failed. Expected: %s, Got: %s", expectedSHA512, sha512Hash)
+	}
+}
+
+func TestBytesSplitAfter(t *testing.T) {
+	testCases := []struct {
+		input     g.Bytes
+		separator g.Bytes
+		expected  g.Slice[g.Bytes]
+	}{
+		{
+			g.Bytes("hello,world,how,are,you"),
+			g.Bytes(","),
+			g.Slice[g.Bytes]{g.Bytes("hello,"), g.Bytes("world,"), g.Bytes("how,"), g.Bytes("are,"), g.Bytes("you")},
+		},
+		{
+			g.Bytes("apple banana cherry"),
+			g.Bytes(" "),
+			g.Slice[g.Bytes]{g.Bytes("apple "), g.Bytes("banana "), g.Bytes("cherry")},
+		},
+
+		{
+			g.Bytes("a-b-c-d-e"),
+			g.Bytes("-"),
+			g.Slice[g.Bytes]{g.Bytes("a-"), g.Bytes("b-"), g.Bytes("c-"), g.Bytes("d-"), g.Bytes("e")},
+		},
+		{g.Bytes("abcd"), g.Bytes("a"), g.Slice[g.Bytes]{g.Bytes("a"), g.Bytes("bcd")}},
+		{g.Bytes("thisistest"), g.Bytes("is"), g.Slice[g.Bytes]{g.Bytes("this"), g.Bytes("is"), g.Bytes("test")}},
+		{g.Bytes("☺☻☹"), g.Bytes(""), g.Slice[g.Bytes]{g.Bytes("☺"), g.Bytes("☻"), g.Bytes("☹")}},
+		{g.Bytes("☺☻☹"), g.Bytes("☹"), g.Slice[g.Bytes]{g.Bytes("☺☻☹"), g.Bytes("")}},
+		{g.Bytes("123"), g.Bytes(""), g.Slice[g.Bytes]{g.Bytes("1"), g.Bytes("2"), g.Bytes("3")}},
+	}
+
+	for _, tc := range testCases {
+		actual := tc.input.SplitAfter(tc.separator).Collect()
+
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf(
+				"Unexpected result for input: %s, separator: %s\nExpected: %v\nGot: %v",
+				tc.input,
+				tc.separator,
+				tc.expected,
+				actual,
+			)
+		}
+	}
+}
+
+func TestBytesFields(t *testing.T) {
+	bs1 := g.NewBytes("hello world how are you")
+	expected1 := g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world"), g.Bytes("how"), g.Bytes("are"), g.Bytes("you")}
+	result1 := bs1.Fields().Collect()
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
+	}
+
+	bs2 := g.NewBytes("hello")
+	expected2 := g.Slice[g.Bytes]{g.Bytes("hello")}
+	result2 := bs2.Fields().Collect()
+	if !reflect.DeepEqual(result2, expected2) {
+		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+
+	bs3 := g.NewBytes("")
+	expected3 := g.Slice[g.Bytes]{}
+	result3 := bs3.Fields().Collect()
+	if !reflect.DeepEqual(result3, expected3) {
+		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+
+	bs4 := g.NewBytes("   hello   world   ")
+	expected4 := g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world")}
+	result4 := bs4.Fields().Collect()
+	if !reflect.DeepEqual(result4, expected4) {
+		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
+	}
+}
+
+func TestBytesFieldsBy(t *testing.T) {
+	testCases := []struct {
+		input    g.Bytes
+		fn       func(r rune) bool
+		expected g.Slice[g.Bytes]
+	}{
+		{g.Bytes("hello world"), unicode.IsSpace, g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world")}},
+		{
+			g.Bytes("1,2,3,4,5"),
+			func(r rune) bool { return r == ',' },
+			g.Slice[g.Bytes]{g.Bytes("1"), g.Bytes("2"), g.Bytes("3"), g.Bytes("4"), g.Bytes("5")},
+		},
+		{g.Bytes("camelCcase"), unicode.IsUpper, g.Slice[g.Bytes]{g.Bytes("camel"), g.Bytes("case")}},
+	}
+
+	for _, tc := range testCases {
+		actual := tc.input.FieldsBy(tc.fn).Collect()
+
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf("Unexpected result for input: %s\nExpected: %v\nGot: %v", tc.input, tc.expected, actual)
+		}
 	}
 }

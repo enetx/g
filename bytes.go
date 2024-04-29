@@ -68,15 +68,25 @@ func (bs Bytes) TrimPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cut
 // TrimSuffix trims the specified Bytes suffix from the Bytes.
 func (bs Bytes) TrimSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cutset) }
 
-// Split splits the Bytes at each occurrence of the specified Bytes separator.
-func (bs Bytes) Split(sep ...Bytes) Slice[Bytes] {
+// Split splits the Bytes by the specified separator and returns the iterator.
+func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
 	var separator []byte
 	if len(sep) != 0 {
 		separator = sep[0]
 	}
 
-	return SliceMap(bytes.Split(bs, separator), NewBytes)
+	return splitBytes(bs, separator, 0)
 }
+
+// SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
+func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] { return splitBytes(bs, sep, sep.Len()) }
+
+// Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
+func (bs Bytes) Fields() SeqSlice[Bytes] { return fieldsBytes(bs) }
+
+// FieldsBy splits the Bytes into a slice of substrings using a custom function to determine the field boundaries,
+// and returns the iterator.
+func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] { return fieldsbyBytes(bs, fn) }
 
 // Add appends the given Bytes to the current Bytes.
 func (bs Bytes) Add(obs Bytes) Bytes { return append(bs, obs...) }
@@ -143,7 +153,7 @@ func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs).IsGt() }
 func (bs Bytes) ToString() String { return String(bs) }
 
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
-func (bs Bytes) Index(obs Bytes) int { return bytes.Index(bs, obs) }
+func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
 
 // IndexRegexp searches for the first occurrence of the regular expression pattern in the Bytes.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
