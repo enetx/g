@@ -14,7 +14,7 @@ const (
 // Then returns the receiver if it's equal to Equal, otherwise returns the receiver.
 func (o Ordering) Then(other Ordering) Ordering {
 	if o.IsEq() {
-		return Ordering(other)
+		return other
 	}
 
 	return o

@@ -176,8 +176,36 @@ func (s String) ReplaceAll(oldS, newS String) String {
 //	)
 //	// replaced contains "Greetings, universe! This is an example."
 func (s String) ReplaceMulti(oldnew ...String) String {
-	on := SliceOf(oldnew...).ToStringSlice()
+	on := Slice[String](oldnew).ToStringSlice()
 	return String(strings.NewReplacer(on...).Replace(s.Std()))
+}
+
+// Remove removes all occurrences of specified substrings from the String.
+//
+// Parameters:
+//
+// - matches ...String: Substrings to be removed from the string. Specify as many substrings as needed.
+//
+// Returns:
+//
+// - String: A new string with all specified substrings removed.
+//
+// Example usage:
+//
+//	original := g.String("Hello, world! This is a test.")
+//	modified := original.Remove(
+//	    "Hello",
+//	    "test",
+//	)
+//	// modified contains ", world! This is a ."
+func (s String) Remove(matches ...String) String {
+	oldnew := NewSlice[String](Int(len(matches) * 2))
+
+	for _, match := range matches {
+		oldnew = oldnew.Append(match).Append("")
+	}
+
+	return s.ReplaceMulti(oldnew...)
 }
 
 // ReplaceRegexp replaces all occurrences of the regular expression matches in the String
@@ -343,14 +371,14 @@ func (s String) EndsWith(suffixes ...String) bool {
 }
 
 // Lines splits the String by lines and returns the iterator.
-func (s String) Lines() SeqSlice[String] { return lines(s) }
+func (s String) Lines() SeqSlice[String] { return linesString(s) }
 
 // Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
-func (s String) Fields() SeqSlice[String] { return fields(s) }
+func (s String) Fields() SeqSlice[String] { return fieldsString(s) }
 
 // FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
-func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] { return fieldsby(s, fn) }
+func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] { return fieldsbyString(s, fn) }
 
 // Split splits the String by the specified separator and returns the iterator.
 func (s String) Split(sep ...String) SeqSlice[String] {
@@ -359,11 +387,11 @@ func (s String) Split(sep ...String) SeqSlice[String] {
 		separator = sep[0]
 	}
 
-	return split(s, separator, 0)
+	return splitString(s, separator, 0)
 }
 
 // SplitAfter splits the String after each instance of the specified separator and returns the iterator.
-func (s String) SplitAfter(sep String) SeqSlice[String] { return split(s, sep, sep.Len()) }
+func (s String) SplitAfter(sep String) SeqSlice[String] { return splitString(s, sep, sep.Len()) }
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
 // The n parameter controls the number of substrings to return:
@@ -540,12 +568,12 @@ func (s String) Similarity(str String) Float {
 	distance := NewSlice[Int](lenS1 + 1)
 
 	for i, r2 := range s2 {
-		prev := Int(i).Add(1)
+		prev := Int(i) + 1
 
 		for j, r1 := range s1 {
 			current := distance[j]
 			if r2 != r1 {
-				current = distance[j].Add(1).Min(prev.Add(1)).Min(distance[j+1].Add(1))
+				current = distance[j].Add(1).Min(prev + 1).Min(distance[j+1] + 1)
 			}
 
 			distance[j], prev = prev, current
@@ -554,7 +582,7 @@ func (s String) Similarity(str String) Float {
 		distance[lenS1] = prev
 	}
 
-	return Float(1).Sub(distance[lenS1].ToFloat().Div(Int(lenS1).Max(Int(lenS2)).ToFloat())).Mul(100)
+	return Float(1).Sub(distance[lenS1].ToFloat() / lenS1.Max(lenS2).ToFloat()).Mul(100)
 }
 
 // Cmp compares two Strings and returns an cmp.Ordering indicating their relative order.

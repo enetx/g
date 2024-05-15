@@ -7,7 +7,7 @@ import (
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
 
-func explode(s String) SeqSlice[String] {
+func explodeString(s String) SeqSlice[String] {
 	return func(yield func(String) bool) {
 		for len(s) > 0 {
 			_, size := utf8.DecodeRuneInString(s.Std())
@@ -20,9 +20,9 @@ func explode(s String) SeqSlice[String] {
 	}
 }
 
-func split(s, sep String, sepSave Int) SeqSlice[String] {
+func splitString(s, sep String, sepSave Int) SeqSlice[String] {
 	if len(sep) == 0 {
-		return explode(s)
+		return explodeString(s)
 	}
 
 	return func(yield func(String) bool) {
@@ -45,7 +45,7 @@ func split(s, sep String, sepSave Int) SeqSlice[String] {
 	}
 }
 
-func fields(s String) SeqSlice[String] {
+func fieldsString(s String) SeqSlice[String] {
 	return func(yield func(String) bool) {
 		start := -1
 
@@ -79,7 +79,7 @@ func fields(s String) SeqSlice[String] {
 	}
 }
 
-func fieldsby(s String, fn func(rune) bool) SeqSlice[String] {
+func fieldsbyString(s String, fn func(rune) bool) SeqSlice[String] {
 	return func(yield func(String) bool) {
 		start := -1
 
@@ -111,7 +111,7 @@ func fieldsby(s String, fn func(rune) bool) SeqSlice[String] {
 	}
 }
 
-func lines(s String) SeqSlice[String] {
+func linesString(s String) SeqSlice[String] {
 	return func(yield func(String) bool) {
 		for s != "" {
 			var line String

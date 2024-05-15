@@ -1733,3 +1733,35 @@ func TestStringTrimSpace(t *testing.T) {
 		}
 	}
 }
+
+func TestStringRemove(t *testing.T) {
+	tests := []struct {
+		original g.String
+		matches  g.Slice[g.String]
+		expected g.String
+	}{
+		{
+			original: "Hello, world! This is a test.",
+			matches:  g.Slice[g.String]{"Hello", "test"},
+			expected: ", world! This is a .",
+		},
+		{
+			original: "This is a test string. This is a test string.",
+			matches:  g.Slice[g.String]{"test", "string"},
+			expected: "This is a  . This is a  .",
+		},
+		{
+			original: "I love ice cream. Ice cream is delicious.",
+			matches:  g.Slice[g.String]{"Ice", "cream"},
+			expected: "I love ice .   is delicious.",
+		},
+	}
+
+	for _, test := range tests {
+		original := test.original
+		modified := original.Remove(test.matches...)
+		if modified != test.expected {
+			t.Errorf("Remove(%q, %q) = %q, expected %q", test.original, test.matches, modified.Std(), test.expected)
+		}
+	}
+}

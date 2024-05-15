@@ -49,4 +49,12 @@ func main() {
 
 	g.String("Hellö Wörld@Golang").Enc().URL().Print()   // Hell%C3%B6+W%C3%B6rld@Golang
 	g.String("Hellö Wörld@Golang").Enc().URL("").Print() // Hell%C3%B6+W%C3%B6rld%40Golang
+
+	original := g.String("Hello, world! This is a test.")
+	modified := original.Remove(
+		"Hello",
+		"test",
+	)
+
+	modified.Print()
 }

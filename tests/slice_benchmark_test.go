@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/f"
 )
 
 // go test -bench=. -benchmem -count=4
@@ -15,6 +16,24 @@ func genSlice() g.Slice[g.String] {
 	}
 
 	return slice
+}
+
+func BenchmarkContains(b *testing.B) {
+	slice := genSlice()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		slice.Iter().Find(f.Eq(g.String("1000"))).IsSome()
+	}
+}
+
+func BenchmarkContains2(b *testing.B) {
+	slice := genSlice()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		slice.Contains("10000")
+	}
 }
 
 func BenchmarkForEach(b *testing.B) {

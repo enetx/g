@@ -407,15 +407,11 @@ func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
 //
 // The function uses the crypto/rand package to generate random indices.
 //
-// Returns:
-//
-// - Slice[T]: The modified slice with the elements shuffled randomly.
-//
 // Example usage:
 //
 // slice := g.Slice[int]{1, 2, 3, 4, 5}
-// shuffled := slice.Shuffle()
-// fmt.Println(shuffled)
+// slice.Shuffle()
+// fmt.Println(slice)
 //
 // Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
 func (sl Slice[T]) Shuffle() {
