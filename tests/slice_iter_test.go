@@ -960,3 +960,32 @@ func TestSliceIterCounter(t *testing.T) {
 		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
 	}
 }
+
+func TestSliceIntersperse(t *testing.T) {
+	// Test case 1: Intersperse strings with a comma
+	testSlice := g.Slice[string]{"apple", "banana", "orange"}
+	expected := g.Slice[string]{"apple", ", ", "banana", ", ", "orange"}
+	interspersed := testSlice.Iter().Intersperse(", ").Collect()
+
+	if interspersed.Ne(expected) {
+		t.Errorf("Test case 1 failed. Expected: %v, Got: %v", expected, interspersed)
+	}
+
+	// Test case 2: Intersperse strings with a dash
+	testSlice = g.Slice[string]{"apple", "banana", "orange"}
+	expected = g.Slice[string]{"apple", "-", "banana", "-", "orange"}
+	interspersed = testSlice.Iter().Intersperse("-").Collect()
+
+	if interspersed.Ne(expected) {
+		t.Errorf("Test case 2 failed. Expected: %v, Got: %v", expected, interspersed)
+	}
+
+	// Test case 3: Intersperse empty slice
+	emptySlice := g.Slice[string]{}    // Create an empty slice of strings
+	expectedEmpty := g.Slice[string]{} // Expected empty slice
+	interspersedEmpty := emptySlice.Iter().Intersperse(", ").Collect()
+
+	if interspersedEmpty.Ne(expectedEmpty) {
+		t.Errorf("Test case 3 failed. Expected: %v, Got: %v", expectedEmpty, interspersedEmpty)
+	}
+}

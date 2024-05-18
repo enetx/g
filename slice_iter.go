@@ -371,6 +371,33 @@ func (seq SeqSlice[V]) Flatten() SeqSlice[V] { return flatten(seq) }
 // and allows inspecting each element as it passes through.
 func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] { return inspectSlice(seq, fn) }
 
+// Intersperse inserts the provided separator between elements of the iterator.
+//
+// The function creates a new iterator that inserts the given separator between each
+// consecutive pair of elements in the original iterator.
+//
+// Params:
+//
+// - sep (V): The separator to intersperse between elements.
+//
+// Returns:
+//
+// - SeqSlice[V]: An iterator containing elements with the separator interspersed.
+//
+// Example usage:
+//
+//	g.Slice[string]{"Hello", "World", "!"}.
+//		Iter().
+//		Intersperse(" ").
+//		Collect().
+//		Join().
+//		Print()
+//
+// Output: "Hello World !".
+//
+// The resulting iterator will contain elements with the separator interspersed.
+func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] { return intersperse(seq, sep) }
+
 // Map transforms each element in the iterator using the given function.
 //
 // The function creates a new iterator by applying the provided function to each element
@@ -1168,4 +1195,23 @@ func partition[V any](seq SeqSlice[V], fn func(V) bool) (Slice[V], Slice[V]) {
 	})
 
 	return left, right
+}
+
+func intersperse[V any](seq SeqSlice[V], sep V) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		first := true
+
+		seq(func(v V) bool {
+			if !first && !yield(sep) {
+				return false
+			}
+
+			first = false
+			if !yield(v) {
+				return false
+			}
+
+			return true
+		})
+	}
 }

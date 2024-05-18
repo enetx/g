@@ -106,19 +106,13 @@ func (s String) ToFloat() Result[Float] {
 }
 
 // Title converts the String to title case.
-func (s String) Title() String {
-	return String(cases.Title(language.English).String(s.Std()))
-}
+func (s String) Title() String { return String(cases.Title(language.English).String(s.Std())) }
 
 // Lower returns the String in lowercase.
-func (s String) Lower() String {
-	return String(cases.Lower(language.English).String(s.Std()))
-}
+func (s String) Lower() String { return String(cases.Lower(language.English).String(s.Std())) }
 
 // Upper returns the String in uppercase.
-func (s String) Upper() String {
-	return String(cases.Upper(language.English).String(s.Std()))
-}
+func (s String) Upper() String { return String(cases.Upper(language.English).String(s.Std())) }
 
 // Trim trims characters in the cutset from the beginning and end of the String.
 func (s String) Trim(cutset String) String {
@@ -199,13 +193,11 @@ func (s String) ReplaceMulti(oldnew ...String) String {
 //	)
 //	// modified contains ", world! This is a ."
 func (s String) Remove(matches ...String) String {
-	oldnew := NewSlice[String](Int(len(matches) * 2))
-
 	for _, match := range matches {
-		oldnew = oldnew.Append(match).Append("")
+		s = s.ReplaceAll(match, "")
 	}
 
-	return s.ReplaceMulti(oldnew...)
+	return s
 }
 
 // ReplaceRegexp replaces all occurrences of the regular expression matches in the String
