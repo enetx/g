@@ -117,7 +117,7 @@ func linesString(s String) SeqSlice[String] {
 			var line String
 
 			if i := s.Index("\n"); i >= 0 {
-				line, s = s[:i+1].TrimRight("\r\n"), s[i+1:]
+				line, s = s[:i+1].TrimEnd("\r\n"), s[i+1:]
 			} else {
 				line, s = s, ""
 			}

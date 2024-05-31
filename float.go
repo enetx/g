@@ -18,9 +18,9 @@ func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return
 // Bytes returns the Float as a byte slice.
 func (f Float) Bytes() Bytes {
 	buffer := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffer, f.ToUInt64())
+	binary.BigEndian.PutUint64(buffer, f.UInt64())
 
-	return buffer[bits.LeadingZeros64(f.ToUInt64())>>3:]
+	return buffer[bits.LeadingZeros64(f.UInt64())>>3:]
 }
 
 // Min returns the minimum of two Floats.
@@ -35,8 +35,8 @@ func (f Float) Abs() Float { return Float(math.Abs(f.Std())) }
 // Add adds two Floats and returns the result.
 func (f Float) Add(b Float) Float { return f + b }
 
-// ToBigFloat returns the Float as a *big.Float.
-func (f Float) ToBigFloat() *big.Float { return big.NewFloat(f.Std()) }
+// BigFloat returns the Float as a *big.Float.
+func (f Float) BigFloat() *big.Float { return big.NewFloat(f.Std()) }
 
 // Cmp compares two Floats and returns an cmp.Ordering.
 func (f Float) Cmp(b Float) cmp.Ordering { return cmp.Cmp(f, b) }
@@ -56,11 +56,11 @@ func (f Float) Std() float64 { return float64(f) }
 // Gt checks if the Float is greater than the specified Float.
 func (f Float) Gt(b Float) bool { return f.Cmp(b).IsGt() }
 
-// ToInt returns the Float as an Int.
-func (f Float) ToInt() Int { return Int(f) }
+// Int returns the Float as an Int.
+func (f Float) Int() Int { return Int(f) }
 
-// ToString returns the Float as an String.
-func (f Float) ToString() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
+// String returns the Float as an String.
+func (f Float) String() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
 
 // Lt checks if the Float is less than the specified Float.
 func (f Float) Lt(b Float) bool { return f.Cmp(b).IsLt() }
@@ -122,11 +122,11 @@ func (f Float) RoundDecimal(precision Int) Float {
 // Sub subtracts two Floats and returns the result.
 func (f Float) Sub(b Float) Float { return f - b }
 
-// ToUInt64 returns the Float as a uint64.
-func (f Float) ToUInt64() uint64 { return math.Float64bits(f.Std()) }
+// UInt64 returns the Float as a uint64.
+func (f Float) UInt64() uint64 { return math.Float64bits(f.Std()) }
 
-// AsFloat32 returns the Float as a float32.
-func (f Float) AsFloat32() float32 { return float32(f) }
+// Float32 returns the Float as a float32.
+func (f Float) Float32() float32 { return float32(f) }
 
 // Print prints the value of the Float to the standard output (console)
 // and returns the Float unchanged.

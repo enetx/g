@@ -263,11 +263,11 @@ func TestFloatAdd(t *testing.T) {
 	}
 }
 
-func TestFloatToBigFloat(t *testing.T) {
+func TestFloatBigFloat(t *testing.T) {
 	// Test case for converting positive float to *big.Float
 	f := g.Float(3.14)
 	expected := big.NewFloat(3.14)
-	actual := f.ToBigFloat()
+	actual := f.BigFloat()
 	if actual.Cmp(expected) != 0 {
 		t.Errorf("Conversion of positive float to *big.Float incorrect. Expected: %v, Got: %v", expected, actual)
 	}
@@ -275,7 +275,7 @@ func TestFloatToBigFloat(t *testing.T) {
 	// Test case for converting negative float to *big.Float
 	f = g.Float(-3.14)
 	expected = big.NewFloat(-3.14)
-	actual = f.ToBigFloat()
+	actual = f.BigFloat()
 	if actual.Cmp(expected) != 0 {
 		t.Errorf("Conversion of negative float to *big.Float incorrect. Expected: %v, Got: %v", expected, actual)
 	}
@@ -283,7 +283,7 @@ func TestFloatToBigFloat(t *testing.T) {
 	// Test case for converting zero float to *big.Float
 	f = g.Float(0)
 	expected = big.NewFloat(0)
-	actual = f.ToBigFloat()
+	actual = f.BigFloat()
 	if actual.Cmp(expected) != 0 {
 		t.Errorf("Conversion of zero float to *big.Float incorrect. Expected: %v, Got: %v", expected, actual)
 	}
@@ -309,11 +309,11 @@ func TestFloatIsZero(t *testing.T) {
 	}
 }
 
-func TestFloatToInt(t *testing.T) {
+func TestFloatInt(t *testing.T) {
 	// Test case for positive float
 	f := g.Float(3.14)
 	expected := g.Int(3)
-	actual := f.ToInt()
+	actual := f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert positive float. Expected: %d, Got: %d", expected, actual)
 	}
@@ -321,7 +321,7 @@ func TestFloatToInt(t *testing.T) {
 	// Test case for negative float
 	f = g.Float(-3.14)
 	expected = g.Int(-3)
-	actual = f.ToInt()
+	actual = f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert negative float. Expected: %d, Got: %d", expected, actual)
 	}
@@ -329,17 +329,17 @@ func TestFloatToInt(t *testing.T) {
 	// Test case for zero float
 	f = g.Float(0)
 	expected = g.Int(0)
-	actual = f.ToInt()
+	actual = f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert zero float. Expected: %d, Got: %d", expected, actual)
 	}
 }
 
-func TestFloatToString(t *testing.T) {
+func TestFloatString(t *testing.T) {
 	// Test case for positive float
 	f := g.Float(3.14)
 	expected := g.String("3.14")
-	actual := f.ToString()
+	actual := f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert positive float. Expected: %s, Got: %s", expected, actual)
 	}
@@ -347,7 +347,7 @@ func TestFloatToString(t *testing.T) {
 	// Test case for negative float
 	f = g.Float(-3.14)
 	expected = g.String("-3.14")
-	actual = f.ToString()
+	actual = f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert negative float. Expected: %s, Got: %s", expected, actual)
 	}
@@ -355,17 +355,17 @@ func TestFloatToString(t *testing.T) {
 	// Test case for zero float
 	f = g.Float(0)
 	expected = g.String("0")
-	actual = f.ToString()
+	actual = f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert zero float. Expected: %s, Got: %s", expected, actual)
 	}
 }
 
-func TestFloatAsFloat32(t *testing.T) {
+func TestFloatFloat32(t *testing.T) {
 	// Test case for positive float
 	f := g.Float(3.14)
 	expected := float32(3.14)
-	actual := f.AsFloat32()
+	actual := f.Float32()
 	if actual != expected {
 		t.Errorf("AsFloat32 method failed to convert positive float. Expected: %f, Got: %f", expected, actual)
 	}
@@ -373,7 +373,7 @@ func TestFloatAsFloat32(t *testing.T) {
 	// Test case for negative float
 	f = g.Float(-3.14)
 	expected = float32(-3.14)
-	actual = f.AsFloat32()
+	actual = f.Float32()
 	if actual != expected {
 		t.Errorf("AsFloat32 method failed to convert negative float. Expected: %f, Got: %f", expected, actual)
 	}
@@ -381,7 +381,7 @@ func TestFloatAsFloat32(t *testing.T) {
 	// Test case for zero float
 	f = g.Float(0)
 	expected = float32(0)
-	actual = f.AsFloat32()
+	actual = f.Float32()
 	if actual != expected {
 		t.Errorf("AsFloat32 method failed to convert zero float. Expected: %f, Got: %f", expected, actual)
 	}

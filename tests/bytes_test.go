@@ -153,86 +153,11 @@ func TestBytesFindRegexp(t *testing.T) {
 	}
 }
 
-func TestBytesTrim(t *testing.T) {
-	// Test case where cutset matches characters at the beginning and end
-	bs1 := g.Bytes("!!hello world!!")
-	cutset1 := g.String("! ")
-	trimmed1 := bs1.Trim(cutset1)
-	expected1 := g.Bytes("hello world")
-	if !bytes.Equal(trimmed1, expected1) {
-		t.Errorf("Trimming failed. Expected: %s, Got: %s", expected1, trimmed1)
-	}
-
-	// Test case where cutset matches characters only at the beginning
-	bs2 := g.Bytes("!!!hello world")
-	cutset2 := g.String("!")
-	trimmed2 := bs2.Trim(cutset2)
-	expected2 := g.Bytes("hello world")
-	if !bytes.Equal(trimmed2, expected2) {
-		t.Errorf("Trimming failed. Expected: %s, Got: %s", expected2, trimmed2)
-	}
-
-	// Test case where cutset matches characters only at the end
-	bs3 := g.Bytes("hello world!!!")
-	cutset3 := g.String("!")
-	trimmed3 := bs3.Trim(cutset3)
-	expected3 := g.Bytes("hello world")
-	if !bytes.Equal(trimmed3, expected3) {
-		t.Errorf("Trimming failed. Expected: %s, Got: %s", expected3, trimmed3)
-	}
-
-	// Test case where cutset doesn't match any characters
-	bs4 := g.Bytes("hello world")
-	cutset4 := g.String("-")
-	trimmed4 := bs4.Trim(cutset4)
-	if !bytes.Equal(trimmed4, bs4) {
-		t.Errorf("Expected no change when cutset doesn't match any characters. Got: %s", trimmed4)
-	}
-}
-
-func TestBytesTrimLeft(t *testing.T) {
-	// Test case where cutset matches characters at the beginning
-	bs1 := g.Bytes("!!hello world!!")
-	cutset1 := g.String("! ")
-	trimmed1 := bs1.TrimLeft(cutset1)
-	expected1 := g.Bytes("hello world!!")
-	if !bytes.Equal(trimmed1, expected1) {
-		t.Errorf("Trimming left failed. Expected: %s, Got: %s", expected1, trimmed1)
-	}
-
-	// Test case where cutset doesn't match any characters at the beginning
-	bs2 := g.Bytes("hello world")
-	cutset2 := g.String("-")
-	trimmed2 := bs2.TrimLeft(cutset2)
-	if !bytes.Equal(trimmed2, bs2) {
-		t.Errorf("Expected no change when cutset doesn't match any characters. Got: %s", trimmed2)
-	}
-}
-
-func TestBytesTrimRight(t *testing.T) {
-	// Test case where cutset matches characters at the end
-	bs1 := g.Bytes("!!hello world!!")
-	cutset1 := g.String("! ")
-	trimmed1 := bs1.TrimRight(cutset1)
-	expected1 := g.Bytes("!!hello world")
-	if !bytes.Equal(trimmed1, expected1) {
-		t.Errorf("Trimming right failed. Expected: %s, Got: %s", expected1, trimmed1)
-	}
-
-	// Test case where cutset doesn't match any characters at the end
-	bs2 := g.Bytes("hello world")
-	cutset2 := g.String("-")
-	trimmed2 := bs2.TrimRight(cutset2)
-	if !bytes.Equal(trimmed2, bs2) {
-		t.Errorf("Expected no change when cutset doesn't match any characters. Got: %s", trimmed2)
-	}
-}
-
-func TestBytesTrimPrefix(t *testing.T) {
+func TestBytesStripPrefix(t *testing.T) {
 	// Test case where cutset matches the prefix
 	bs1 := g.Bytes("prefix_hello world")
 	cutset1 := g.Bytes("prefix_")
-	trimmed1 := bs1.TrimPrefix(cutset1)
+	trimmed1 := bs1.StripPrefix(cutset1)
 	expected1 := g.Bytes("hello world")
 	if !bytes.Equal(trimmed1, expected1) {
 		t.Errorf("Trimming prefix failed. Expected: %s, Got: %s", expected1, trimmed1)
@@ -241,17 +166,17 @@ func TestBytesTrimPrefix(t *testing.T) {
 	// Test case where cutset doesn't match the prefix
 	bs2 := g.Bytes("hello world")
 	cutset2 := g.Bytes("nonexistent_")
-	trimmed2 := bs2.TrimPrefix(cutset2)
+	trimmed2 := bs2.StripPrefix(cutset2)
 	if !bytes.Equal(trimmed2, bs2) {
 		t.Errorf("Expected no change when cutset doesn't match the prefix. Got: %s", trimmed2)
 	}
 }
 
-func TestBytesTrimSuffix(t *testing.T) {
+func TestBytesStripSuffix(t *testing.T) {
 	// Test case where cutset matches the suffix
 	bs1 := g.Bytes("hello world_suffix")
 	cutset1 := g.Bytes("_suffix")
-	trimmed1 := bs1.TrimSuffix(cutset1)
+	trimmed1 := bs1.StripSuffix(cutset1)
 	expected1 := g.Bytes("hello world")
 	if !bytes.Equal(trimmed1, expected1) {
 		t.Errorf("Trimming suffix failed. Expected: %s, Got: %s", expected1, trimmed1)
@@ -260,7 +185,7 @@ func TestBytesTrimSuffix(t *testing.T) {
 	// Test case where cutset doesn't match the suffix
 	bs2 := g.Bytes("hello world")
 	cutset2 := g.Bytes("_nonexistent")
-	trimmed2 := bs2.TrimSuffix(cutset2)
+	trimmed2 := bs2.StripSuffix(cutset2)
 	if !bytes.Equal(trimmed2, bs2) {
 		t.Errorf("Expected no change when cutset doesn't match the suffix. Got: %s", trimmed2)
 	}
@@ -749,7 +674,7 @@ func TestBytesRepeat(t *testing.T) {
 func TestToRunes(t *testing.T) {
 	// Test case where the Bytes are converted to runes
 	bs := g.Bytes("hello")
-	runes := bs.ToRunes()
+	runes := bs.Runes()
 	expected := []rune{'h', 'e', 'l', 'l', 'o'}
 	if !reflect.DeepEqual(runes, expected) {
 		t.Errorf("ToRunes failed. Expected: %v, Got: %v", expected, runes)
@@ -779,7 +704,7 @@ func TestBytesUpper(t *testing.T) {
 func TestBytesTrimSpace(t *testing.T) {
 	// Test case where white space characters are trimmed from the beginning and end
 	bs := g.Bytes("  hello world  ")
-	trimmed := bs.TrimSpace()
+	trimmed := bs.Trim()
 	expected := g.Bytes("hello world")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
@@ -787,7 +712,7 @@ func TestBytesTrimSpace(t *testing.T) {
 
 	// Test case where there are no white space characters
 	bs = g.Bytes("hello world")
-	trimmed = bs.TrimSpace()
+	trimmed = bs.Trim()
 	expected = g.Bytes("hello world")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
@@ -795,7 +720,7 @@ func TestBytesTrimSpace(t *testing.T) {
 
 	// Test case where the Bytes is empty
 	bs = g.Bytes("")
-	trimmed = bs.TrimSpace()
+	trimmed = bs.Trim()
 	expected = g.Bytes("")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
@@ -1201,6 +1126,75 @@ func TestBytesFieldsBy(t *testing.T) {
 
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf("Unexpected result for input: %s\nExpected: %v\nGot: %v", tc.input, tc.expected, actual)
+		}
+	}
+}
+
+func TestBytesTrim(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		cutset   []g.String
+		expected g.Bytes
+	}{
+		{[]byte(" \t\nHello, world! \t\n"), nil, []byte("Hello, world!")},
+		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("Hello, world!")},
+	}
+
+	for _, test := range tests {
+		var result g.Bytes
+		if test.cutset == nil {
+			result = test.input.Trim()
+		} else {
+			result = test.input.Trim(test.cutset...)
+		}
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("Trim(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestBytesTrimStart(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		cutset   []g.String
+		expected g.Bytes
+	}{
+		{[]byte(" \t\nHello, world! \t\n"), nil, []byte("Hello, world! \t\n")},
+		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("Hello, world!##")},
+	}
+
+	for _, test := range tests {
+		var result g.Bytes
+		if test.cutset == nil {
+			result = test.input.TrimStart()
+		} else {
+			result = test.input.TrimStart(test.cutset...)
+		}
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("TrimStart(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestBytesTrimEnd(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		cutset   []g.String
+		expected g.Bytes
+	}{
+		{[]byte(" \t\nHello, world! \t\n"), nil, []byte(" \t\nHello, world!")},
+		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("##Hello, world!")},
+	}
+
+	for _, test := range tests {
+		var result g.Bytes
+		if test.cutset == nil {
+			result = test.input.TrimEnd()
+		} else {
+			result = test.input.TrimEnd(test.cutset...)
+		}
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("TrimEnd(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
 		}
 	}
 }

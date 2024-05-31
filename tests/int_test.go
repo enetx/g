@@ -31,13 +31,12 @@ func TestIntAbs(t *testing.T) {
 	}
 }
 
-func TestIntToInt(t *testing.T) {
-	// Test ToBigInt
+func TestIntBigInt(t *testing.T) {
 	intVal := g.Int(123)
-	bigInt := intVal.ToBigInt()
+	bigInt := intVal.BigInt()
 	expectedBigInt := big.NewInt(123)
 	if bigInt.Cmp(expectedBigInt) != 0 {
-		t.Errorf("ToBigInt function incorrect. Expected: %s, Got: %s", expectedBigInt, bigInt)
+		t.Errorf("BigInt function incorrect. Expected: %s, Got: %s", expectedBigInt, bigInt)
 	}
 
 	// Test Div
@@ -50,84 +49,84 @@ func TestIntToInt(t *testing.T) {
 	}
 }
 
-func TestIntToString(t *testing.T) {
+func TestIntString(t *testing.T) {
 	// Test positive integer
 	posInt := g.Int(123)
-	posStr := posInt.ToString()
+	posStr := posInt.String()
 	expectedPosStr := g.NewString("123")
 	if posStr != expectedPosStr {
-		t.Errorf("ToString function incorrect for positive integer. Expected: %s, Got: %s", expectedPosStr, posStr)
+		t.Errorf("String function incorrect for positive integer. Expected: %s, Got: %s", expectedPosStr, posStr)
 	}
 
 	// Test negative integer
 	negInt := g.Int(-123)
-	negStr := negInt.ToString()
+	negStr := negInt.String()
 	expectedNegStr := g.NewString("-123")
 	if negStr != expectedNegStr {
-		t.Errorf("ToString function incorrect for negative integer. Expected: %s, Got: %s", expectedNegStr, negStr)
+		t.Errorf("String function incorrect for negative integer. Expected: %s, Got: %s", expectedNegStr, negStr)
 	}
 
 	// Test zero
 	zero := g.Int(0)
-	zeroStr := zero.ToString()
+	zeroStr := zero.String()
 	expectedZeroStr := g.NewString("0")
 	if zeroStr != expectedZeroStr {
 		t.Errorf("ToString function incorrect for zero. Expected: %s, Got: %s", expectedZeroStr, zeroStr)
 	}
 }
 
-func TestIntAsInt16(t *testing.T) {
+func TestIntInt16(t *testing.T) {
 	// Test positive integer within int16 range
 	posInt := g.Int(123)
-	posInt16 := posInt.AsInt16()
+	posInt16 := posInt.Int16()
 	expectedPosInt16 := int16(123)
 	if posInt16 != expectedPosInt16 {
-		t.Errorf("AsInt16 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt16, posInt16)
+		t.Errorf("Int16 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt16, posInt16)
 	}
 }
 
-func TestIntAsInt32(t *testing.T) {
+func TestIntInt32(t *testing.T) {
 	// Test positive integer within int32 range
 	posInt := g.Int(123)
-	posInt32 := posInt.AsInt32()
+	posInt32 := posInt.Int32()
 	expectedPosInt32 := int32(123)
 	if posInt32 != expectedPosInt32 {
-		t.Errorf("AsInt32 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt32, posInt32)
+		t.Errorf("Int32 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt32, posInt32)
 	}
 
 	// Test negative integer within int32 range
 	negInt := g.Int(-123)
-	negInt32 := negInt.AsInt32()
+	negInt32 := negInt.Int32()
 	expectedNegInt32 := int32(-123)
 	if negInt32 != expectedNegInt32 {
-		t.Errorf("AsInt32 function incorrect for negative integer. Expected: %d, Got: %d", expectedNegInt32, negInt32)
+		t.Errorf("Int32 function incorrect for negative integer. Expected: %d, Got: %d", expectedNegInt32, negInt32)
 	}
 }
 
-func TestIntAsInt8(t *testing.T) {
+func TestIntInt8(t *testing.T) {
 	// Test positive integer within int8 range
 	posInt := g.Int(123)
-	posInt8 := posInt.AsInt8()
+	posInt8 := posInt.Int8()
 	expectedPosInt8 := int8(123)
 	if posInt8 != expectedPosInt8 {
-		t.Errorf("AsInt8 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt8, posInt8)
+		t.Errorf("Int8 function incorrect for positive integer. Expected: %d, Got: %d", expectedPosInt8, posInt8)
 	}
 
 	// Test negative integer within int8 range
 	negInt := g.Int(-123)
-	negInt8 := negInt.AsInt8()
+	negInt8 := negInt.Int8()
 	expectedNegInt8 := int8(-123)
 	if negInt8 != expectedNegInt8 {
-		t.Errorf("AsInt8 function incorrect for negative integer. Expected: %d, Got: %d", expectedNegInt8, negInt8)
+		t.Errorf("Int8 function incorrect for negative integer. Expected: %d, Got: %d", expectedNegInt8, negInt8)
 	}
 
 	// Test integer outside int8 range
 	bigInt := g.Int(2000) // larger than int8 max value
-	bigInt8 := bigInt.AsInt8()
+	bigInt8 := bigInt.Int8()
 	expectedBigInt8 := int8(-48) // expected value after overflow
 	if bigInt8 != expectedBigInt8 {
 		t.Errorf(
-			"AsInt8 function incorrect for integer outside int8 range. Expected: %d, Got: %d",
+			"Int8 function incorrect for integer outside int8 range. Expected: %d, Got: %d",
 			expectedBigInt8,
 			bigInt8,
 		)
@@ -276,10 +275,10 @@ func TestIntNe(t *testing.T) {
 	}
 }
 
-func TestIntToBinary(t *testing.T) {
+func TestIntBinary(t *testing.T) {
 	// Test for positive integer
 	posInt := g.Int(10)
-	binary := posInt.ToBinary()
+	binary := posInt.Binary()
 	expected := g.String("00001010")
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for positive integer. Expected: %s, Got: %s", expected, binary)
@@ -287,7 +286,7 @@ func TestIntToBinary(t *testing.T) {
 
 	// Test for negative integer
 	negInt := g.Int(-10)
-	binary = negInt.ToBinary()
+	binary = negInt.Binary()
 	expected = g.String("-0001010") // Two's complement representation
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for negative integer. Expected: %s, Got: %s", expected, binary)
@@ -295,57 +294,57 @@ func TestIntToBinary(t *testing.T) {
 
 	// Test for zero
 	zeroInt := g.Int(0)
-	binary = zeroInt.ToBinary()
+	binary = zeroInt.Binary()
 	expected = g.String("00000000")
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for zero. Expected: %s, Got: %s", expected, binary)
 	}
 }
 
-func TestIntAsUInt16(t *testing.T) {
+func TestIntUInt16(t *testing.T) {
 	// Test for positive integer
 	posInt := g.Int(100)
-	uint16Val := posInt.AsUInt16()
+	uint16Val := posInt.UInt16()
 	expected := uint16(100)
 	if uint16Val != expected {
-		t.Errorf("AsUInt16 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint16Val)
+		t.Errorf("UInt16 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint16Val)
 	}
 
 	// Test for negative integer
 	negInt := g.Int(-100)
-	uint16Val = negInt.AsUInt16()
+	uint16Val = negInt.UInt16()
 	expected = 65436 // Conversion to uint16 of negative number results in 0
 	if uint16Val != expected {
-		t.Errorf("AsUInt16 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint16Val)
+		t.Errorf("UInt16 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint16Val)
 	}
 }
 
-func TestIntAsUInt32(t *testing.T) {
+func TestIntUInt32(t *testing.T) {
 	// Test for positive integer
 	posInt := g.Int(100)
-	uint32Val := posInt.AsUInt32()
+	uint32Val := posInt.UInt32()
 	expected := uint32(100)
 	if uint32Val != expected {
-		t.Errorf("AsUInt32 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint32Val)
+		t.Errorf("UInt32 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint32Val)
 	}
 
 	// Test for negative integer
 	negInt := g.Int(-100)
-	uint32Val = negInt.AsUInt32()
+	uint32Val = negInt.UInt32()
 	expected = 4294967196 // Conversion to uint32 of negative number results in 0
 	if uint32Val != expected {
-		t.Errorf("AsUInt32 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint32Val)
+		t.Errorf("UInt32 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint32Val)
 	}
 }
 
-func TestIntAsUInt8(t *testing.T) {
+func TestIntUInt8(t *testing.T) {
 	// Test for positive integer within range
 	posInt := g.Int(100)
-	uint8Val := posInt.AsUInt8()
+	uint8Val := posInt.UInt8()
 	expected := uint8(100)
 	if uint8Val != expected {
 		t.Errorf(
-			"AsUInt8 function incorrect for positive integer within range. Expected: %d, Got: %d",
+			"UInt8 function incorrect for positive integer within range. Expected: %d, Got: %d",
 			expected,
 			uint8Val,
 		)
@@ -353,11 +352,11 @@ func TestIntAsUInt8(t *testing.T) {
 
 	// Test for positive integer outside range
 	posInt = g.Int(300)
-	uint8Val = posInt.AsUInt8()
+	uint8Val = posInt.UInt8()
 	expected = 44 // Overflow results in 44
 	if uint8Val != expected {
 		t.Errorf(
-			"AsUInt8 function incorrect for positive integer outside range. Expected: %d, Got: %d",
+			"UInt8 function incorrect for positive integer outside range. Expected: %d, Got: %d",
 			expected,
 			uint8Val,
 		)
@@ -365,10 +364,10 @@ func TestIntAsUInt8(t *testing.T) {
 
 	// Test for negative integer
 	negInt := g.Int(-100)
-	uint8Val = negInt.AsUInt8()
+	uint8Val = negInt.UInt8()
 	expected = 156 // Conversion to uint8 of negative number results in 156
 	if uint8Val != expected {
-		t.Errorf("AsUInt8 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint8Val)
+		t.Errorf("UInt8 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint8Val)
 	}
 }
 

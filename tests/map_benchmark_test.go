@@ -11,7 +11,7 @@ import (
 func genM() g.Map[g.String, int] {
 	mo := g.NewMap[g.String, int](10000)
 	for i := range 10000 {
-		mo.Set(g.NewInt(i).ToString(), i)
+		mo.Set(g.NewInt(i).String(), i)
 	}
 
 	return mo

@@ -30,6 +30,6 @@ func (sh shash) SHA512() String { return stringHasher(sha512.New(), sh.str) }
 // stringHasher a helper function that computes the hash of the given String using the specified
 // hash.Hash algorithm and returns the hash as an String.
 func stringHasher(algorithm hash.Hash, hstr String) String {
-	_, _ = algorithm.Write(hstr.ToBytes())
+	_, _ = algorithm.Write(hstr.Bytes())
 	return String(hex.EncodeToString(algorithm.Sum(nil)))
 }

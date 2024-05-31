@@ -112,7 +112,7 @@ func (m Map[K, V]) String() string {
 		builder.Write(Sprintf("%v:%v, ", k, v))
 	}
 
-	return builder.String().TrimRight(", ").Format("Map{%s}").Std()
+	return builder.String().StripSuffix(", ").Format("Map{%s}").Std()
 }
 
 // GetOrSet returns the value for a key. If the key exists in the Map, it returns the associated value.

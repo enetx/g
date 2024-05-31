@@ -561,7 +561,7 @@ func TestRandomRangeMapEmpty(t *testing.T) {
 	testMap := g.NewMap[string, int]()
 
 	// Attempt to randomize a range
-	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).AsUInt()).Collect()
+	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).UInt()).Collect()
 
 	// Check if the result is an empty map
 	if subrangeMap.Len() != 0 {
@@ -577,7 +577,7 @@ func TestRandomRangeMapInvalidRange(t *testing.T) {
 
 	// Test an invalid range
 
-	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).AsUInt()).Collect()
+	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).UInt()).Collect()
 
 	// Check if the result is the same as the original map
 	if subrangeMap.Len() != 2 {

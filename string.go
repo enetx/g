@@ -45,9 +45,9 @@ func (String) Random(count Int, letters ...String) String {
 	var chars Slice[rune]
 
 	if len(letters) != 0 {
-		chars = letters[0].ToRunes()
+		chars = letters[0].Runes()
 	} else {
-		chars = (ASCII_LETTERS + DIGITS).ToRunes()
+		chars = (ASCII_LETTERS + DIGITS).Runes()
 	}
 
 	result := NewBuilder()
@@ -114,28 +114,43 @@ func (s String) Lower() String { return String(cases.Lower(language.English).Str
 // Upper returns the String in uppercase.
 func (s String) Upper() String { return String(cases.Upper(language.English).String(s.Std())) }
 
-// Trim trims characters in the cutset from the beginning and end of the String.
-func (s String) Trim(cutset String) String {
-	return String(strings.Trim(s.Std(), cutset.Std()))
+// Trim trims the specified characters from the beginning and end of the String.
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (s String) Trim(cutset ...String) String {
+	if len(cutset) == 0 {
+		return String(strings.TrimSpace(s.Std()))
+	}
+
+	return String(strings.Trim(s.Std(), cutset[0].Std()))
 }
 
-// TrimLeft trims characters in the cutset from the beginning of the String.
-func (s String) TrimLeft(cutset String) String {
-	return String(strings.TrimLeft(s.Std(), cutset.Std()))
+// TrimStart trims the specified characters from the beginning of the String.
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (s String) TrimStart(cutset ...String) String {
+	if len(cutset) == 0 {
+		return String(trimStringStart(s))
+	}
+
+	return String(strings.TrimLeft(s.Std(), cutset[0].Std()))
 }
 
-// TrimRight trims characters in the cutset from the end of the String.
-func (s String) TrimRight(cutset String) String {
-	return String(strings.TrimRight(s.Std(), cutset.Std()))
+// TrimEnd trims the specified characters from the end of the String.
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (s String) TrimEnd(cutset ...String) String {
+	if len(cutset) == 0 {
+		return String(trimStringEnd(s))
+	}
+
+	return String(strings.TrimRight(s.Std(), cutset[0].Std()))
 }
 
-// TrimPrefix trims the specified prefix from the String.
-func (s String) TrimPrefix(prefix String) String {
+// StripPrefix trims the specified prefix from the String.
+func (s String) StripPrefix(prefix String) String {
 	return String(strings.TrimPrefix(s.Std(), prefix.Std()))
 }
 
-// TrimSuffix trims the specified suffix from the String.
-func (s String) TrimSuffix(suffix String) String {
+// StripSuffix trims the specified suffix from the String.
+func (s String) StripSuffix(suffix String) String {
 	return String(strings.TrimSuffix(s.Std(), suffix.Std()))
 }
 
@@ -547,8 +562,8 @@ func (s String) Similarity(str String) Float {
 		return 0
 	}
 
-	s1 := s.ToRunes()
-	s2 := str.ToRunes()
+	s1 := s.Runes()
+	s2 := str.Runes()
 
 	lenS1 := s.LenRunes()
 	lenS2 := str.LenRunes()
@@ -574,7 +589,7 @@ func (s String) Similarity(str String) Float {
 		distance[lenS1] = prev
 	}
 
-	return Float(1).Sub(distance[lenS1].ToFloat() / lenS1.Max(lenS2).ToFloat()).Mul(100)
+	return Float(1).Sub(distance[lenS1].Float() / lenS1.Max(lenS2).Float()).Mul(100)
 }
 
 // Cmp compares two Strings and returns an cmp.Ordering indicating their relative order.
@@ -609,7 +624,7 @@ func (s String) Gt(str String) bool { return s > str }
 func (s String) Gte(str String) bool { return s >= str }
 
 // Bytes returns the String as an Bytes.
-func (s String) ToBytes() Bytes { return Bytes(s) }
+func (s String) Bytes() Bytes { return Bytes(s) }
 
 // Index returns the index of the first instance of the specified substring in the String, or -1
 // if substr is not present in s.
@@ -728,19 +743,16 @@ func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
 func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(), count.Std())) }
 
 // Reverse reverses the String.
-func (s String) Reverse() String { return s.ToBytes().Reverse().ToString() }
+func (s String) Reverse() String { return s.Bytes().Reverse().String() }
 
-// ToRunes returns the String as a slice of runes.
-func (s String) ToRunes() Slice[rune] { return []rune(s) }
+// Runes returns the String as a slice of runes.
+func (s String) Runes() Slice[rune] { return []rune(s) }
 
 // Chars splits the String into individual characters and returns the iterator.
 func (s String) Chars() SeqSlice[String] { return s.Split() }
 
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
-
-// TrimSpace trims whitespace from the beginning and end of the String.
-func (s String) TrimSpace() String { return String(strings.TrimSpace(s.Std())) }
 
 // Format applies a specified format to the String object.
 func (s String) Format(format String) String { return Sprintf(format, s) }
@@ -844,7 +856,7 @@ func writePadding(output *Builder, pad String, padlen, remains Int) {
 		_ = output.Write(pad.Repeat(repeats))
 	}
 
-	padrunes := pad.ToRunes()
+	padrunes := pad.Runes()
 	for i := range remains % padlen {
 		_ = output.WriteRune(padrunes[i])
 	}
@@ -853,3 +865,73 @@ func writePadding(output *Builder, pad String, padlen, remains Int) {
 // Print prints the content of the String to the standard output (console)
 // and returns the String unchanged.
 func (s String) Print() String { fmt.Println(s); return s }
+
+// trimStringStart returns a slice of the string s, with all leading
+// white space removed, as defined by Unicode.
+func trimStringStart(s String) String {
+	start := 0
+
+	for ; start < len(s); start++ {
+		c := s[start]
+		if c >= utf8.RuneSelf {
+			return trimStringFuncStart(s[start:], unicode.IsSpace)
+		}
+
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	return s[start:]
+}
+
+// trimStringEnd returns a slice of the string s, with all trailing
+// white space removed, as defined by Unicode.
+func trimStringEnd(s String) String {
+	stop := len(s)
+
+	for ; stop > 0; stop-- {
+		c := s[stop-1]
+		if c >= utf8.RuneSelf {
+			return trimStringFuncEnd(s[:stop], unicode.IsSpace)
+		}
+
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	return s[:stop]
+}
+
+// Helper function to trim leading characters using a unicode function.
+func trimStringFuncStart(s String, fn func(rune) bool) String {
+	start := 0
+
+	for start < len(s) {
+		r, size := utf8.DecodeRuneInString(s[start:].Std())
+		if !fn(r) {
+			break
+		}
+
+		start += size
+	}
+
+	return s[start:]
+}
+
+// Helper function to trim trailing characters using a unicode function.
+func trimStringFuncEnd(s String, fn func(rune) bool) String {
+	stop := len(s)
+
+	for stop > 0 {
+		r, size := utf8.DecodeLastRuneInString(s[:stop].Std())
+		if !fn(r) {
+			break
+		}
+
+		stop -= size
+	}
+
+	return s[:stop]
+}

@@ -25,7 +25,7 @@ func (s String) Enc() enc { return enc{s} }
 func (s String) Dec() dec { return dec{s} }
 
 // Base64 encodes the wrapped String using Base64 and returns the encoded result as an String.
-func (e enc) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.ToBytes())) }
+func (e enc) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.Bytes())) }
 
 // Base64 decodes the wrapped String using Base64 and returns the decoded result as an String.
 func (d dec) Base64() Result[String] {
@@ -49,7 +49,7 @@ func (enc) JSON(data any) Result[String] {
 
 // JSON decodes the wrapped String using JSON and unmarshals it into the provided data object.
 func (d dec) JSON(data any) Result[String] {
-	err := json.Unmarshal(d.str.ToBytes(), data)
+	err := json.Unmarshal(d.str.Bytes(), data)
 	if err != nil {
 		return Err[String](err)
 	}
@@ -80,7 +80,7 @@ func (enc) XML(data any, s ...String) Result[String] {
 
 // XML decodes the wrapped String using XML and unmarshals it into the provided data object.
 func (d dec) XML(data any) Result[String] {
-	err := xml.Unmarshal(d.str.ToBytes(), data)
+	err := xml.Unmarshal(d.str.Bytes(), data)
 	if err != nil {
 		return Err[String](err)
 	}
@@ -163,7 +163,7 @@ func (e enc) XOR(key String) String {
 		return e.str
 	}
 
-	encrypted := e.str.ToBytes()
+	encrypted := e.str.Bytes()
 
 	for i := range len(e.str) {
 		encrypted[i] ^= key[i%len(key)]
@@ -180,7 +180,7 @@ func (d dec) XOR(key String) String { return d.str.Enc().XOR(key) }
 func (e enc) Hex() String {
 	result := NewBuilder()
 	for i := range len(e.str) {
-		result.Write(Int(e.str[i]).ToHex())
+		result.Write(Int(e.str[i]).Hex())
 	}
 
 	return result.String()
@@ -199,8 +199,8 @@ func (d dec) Hex() Result[String] {
 // Octal returns the octal representation of the encoded string.
 func (e enc) Octal() String {
 	result := NewSlice[String](e.str.LenRunes())
-	for i, char := range e.str.ToRunes() {
-		result.Set(Int(i), Int(char).ToOctal())
+	for i, char := range e.str.Runes() {
+		result.Set(Int(i), Int(char).Octal())
 	}
 
 	return result.Join(" ")
@@ -226,7 +226,7 @@ func (d dec) Octal() Result[String] {
 func (e enc) Binary() String {
 	result := NewBuilder()
 	for i := range len(e.str) {
-		result.Write(Int(e.str[i]).ToBinary())
+		result.Write(Int(e.str[i]).Binary())
 	}
 
 	return result.String()
@@ -245,5 +245,5 @@ func (d dec) Binary() Result[String] {
 		result = append(result, byte(b))
 	}
 
-	return Ok(result.ToString())
+	return Ok(result.String())
 }

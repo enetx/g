@@ -1076,63 +1076,8 @@ func TestStringLower(t *testing.T) {
 	}
 }
 
-func TestStringTrim(t *testing.T) {
-	// Test cases for Trim
-	trimCases := []struct {
-		input    g.String
-		cutset   g.String
-		expected g.String
-	}{
-		{"   Hello, World!   ", " ", "Hello, World!"},
-		{"Hello, World!", ",! ", "Hello, World"},
-		{"  Golang  ", " Go", "lang"},
-		{"", "", ""},
-	}
-
-	for _, testCase := range trimCases {
-		result := testCase.input.Trim(testCase.cutset)
-		if !result.Eq(testCase.expected) {
-			t.Errorf(
-				"Trim test failed for %s with cutset %s. Expected: %s, Got: %s",
-				testCase.input,
-				testCase.cutset,
-				testCase.expected,
-				result,
-			)
-		}
-	}
-}
-
-func TestStringTrimLeft(t *testing.T) {
-	// Test cases for TrimLeft
-	trimLeftCases := []struct {
-		input    g.String
-		cutset   g.String
-		expected g.String
-	}{
-		{"   Hello, World!   ", " ", "Hello, World!   "},
-		{"Hello, World!", ",! ", "Hello, World!"},
-		{"  Golang  ", " Go", "lang  "},
-		{"", "", ""},
-	}
-
-	for _, testCase := range trimLeftCases {
-		result := testCase.input.TrimLeft(testCase.cutset)
-		if !result.Eq(testCase.expected) {
-			t.Errorf(
-				"TrimLeft test failed for %s with cutset %s. Expected: %s, Got: %s",
-				testCase.input,
-				testCase.cutset,
-				testCase.expected,
-				result,
-			)
-		}
-	}
-}
-
-func TestStringTrimPrefix(t *testing.T) {
-	// Test cases for TrimPrefix
-	trimPrefixCases := []struct {
+func TestStringStripPrefix(t *testing.T) {
+	stripPrefixCases := []struct {
 		input    g.String
 		prefix   g.String
 		expected g.String
@@ -1143,11 +1088,11 @@ func TestStringTrimPrefix(t *testing.T) {
 		{"", "prefix-", ""},
 	}
 
-	for _, testCase := range trimPrefixCases {
-		result := testCase.input.TrimPrefix(testCase.prefix)
+	for _, testCase := range stripPrefixCases {
+		result := testCase.input.StripPrefix(testCase.prefix)
 		if !result.Eq(testCase.expected) {
 			t.Errorf(
-				"TrimPrefix test failed for %s with prefix %s. Expected: %s, Got: %s",
+				"StripPrefix test failed for %s with prefix %s. Expected: %s, Got: %s",
 				testCase.input,
 				testCase.prefix,
 				testCase.expected,
@@ -1157,9 +1102,8 @@ func TestStringTrimPrefix(t *testing.T) {
 	}
 }
 
-func TestStringTrimSuffix(t *testing.T) {
-	// Test cases for TrimSuffix
-	trimSuffixCases := []struct {
+func TestStringStripSuffix(t *testing.T) {
+	stripSuffixCases := []struct {
 		input    g.String
 		suffix   g.String
 		expected g.String
@@ -1170,11 +1114,11 @@ func TestStringTrimSuffix(t *testing.T) {
 		{"", "-suffix", ""},
 	}
 
-	for _, testCase := range trimSuffixCases {
-		result := testCase.input.TrimSuffix(testCase.suffix)
+	for _, testCase := range stripSuffixCases {
+		result := testCase.input.StripSuffix(testCase.suffix)
 		if !result.Eq(testCase.expected) {
 			t.Errorf(
-				"TrimSuffix test failed for %s with suffix %s. Expected: %s, Got: %s",
+				"StripSuffix test failed for %s with suffix %s. Expected: %s, Got: %s",
 				testCase.input,
 				testCase.suffix,
 				testCase.expected,
@@ -1712,28 +1656,6 @@ func TestStringFieldsBy(t *testing.T) {
 	}
 }
 
-func TestStringTrimSpace(t *testing.T) {
-	testCases := []struct {
-		input    g.String
-		expected g.String
-	}{
-		{"   hello   ", "hello"},
-		{"   world", "world"},
-		{"foo   ", "foo"},
-		{"\tbar\t", "bar"},
-		{"", ""},
-		{"  ", ""},
-	}
-
-	for _, tc := range testCases {
-		actual := tc.input.TrimSpace()
-
-		if actual != tc.expected {
-			t.Errorf("Unexpected result for input: %s\nExpected: %s\nGot: %s", tc.input, tc.expected, actual)
-		}
-	}
-}
-
 func TestStringRemove(t *testing.T) {
 	tests := []struct {
 		original g.String
@@ -1762,6 +1684,60 @@ func TestStringRemove(t *testing.T) {
 		modified := original.Remove(test.matches...)
 		if modified != test.expected {
 			t.Errorf("Remove(%q, %q) = %q, expected %q", test.original, test.matches, modified.Std(), test.expected)
+		}
+	}
+}
+
+func TestStringTrim(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		cutset   []g.String
+		expected g.String
+	}{
+		{" \t\nHello, world! \t\n", nil, "Hello, world!"},
+		{"##Hello, world!##", []g.String{"#"}, "Hello, world!"},
+	}
+
+	for _, test := range tests {
+		result := test.input.Trim(test.cutset...)
+		if result != test.expected {
+			t.Errorf("Trim(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestStringTrimStart(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		cutset   []g.String
+		expected g.String
+	}{
+		{" \t\nHello, world! \t\n", nil, "Hello, world! \t\n"},
+		{"##Hello, world!##", []g.String{"#"}, "Hello, world!##"},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimStart(test.cutset...)
+		if result != test.expected {
+			t.Errorf("TrimStart(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestStringTrimEnd(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		cutset   []g.String
+		expected g.String
+	}{
+		{" \t\nHello, world! \t\n", nil, " \t\nHello, world!"},
+		{"##Hello, world!##", []g.String{"#"}, "##Hello, world!"},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimEnd(test.cutset...)
+		if result != test.expected {
+			t.Errorf("TrimEnd(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
 		}
 	}
 }

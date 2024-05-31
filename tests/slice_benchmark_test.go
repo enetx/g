@@ -12,7 +12,7 @@ import (
 func genSlice() g.Slice[g.String] {
 	slice := g.NewSlice[g.String](0, 10000)
 	for i := range 10000 {
-		slice = slice.Append(g.NewInt(i).ToString())
+		slice = slice.Append(g.NewInt(i).String())
 	}
 
 	return slice

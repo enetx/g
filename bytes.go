@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/enetx/g/cmp"
@@ -54,19 +55,40 @@ func (bs Bytes) FindRegexp(pattern *regexp.Regexp) Option[Bytes] {
 }
 
 // Trim trims the specified characters from the beginning and end of the Bytes.
-func (bs Bytes) Trim(cutset String) Bytes { return bytes.Trim(bs, cutset.Std()) }
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (bs Bytes) Trim(cutset ...String) Bytes {
+	if len(cutset) == 0 {
+		return bytes.TrimSpace(bs)
+	}
 
-// TrimLeft trims the specified characters from the beginning of the Bytes.
-func (bs Bytes) TrimLeft(cutset String) Bytes { return bytes.TrimLeft(bs, cutset.Std()) }
+	return bytes.Trim(bs, cutset[0].Std())
+}
 
-// TrimRight trims the specified characters from the end of the Bytes.
-func (bs Bytes) TrimRight(cutset String) Bytes { return bytes.TrimRight(bs, cutset.Std()) }
+// TrimStart trims the specified characters from the beginning of the Bytes.
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (bs Bytes) TrimStart(cutset ...String) Bytes {
+	if len(cutset) == 0 {
+		return trimBytesStart(bs)
+	}
 
-// TrimPrefix trims the specified Bytes prefix from the Bytes.
-func (bs Bytes) TrimPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }
+	return bytes.TrimLeft(bs, cutset[0].Std())
+}
 
-// TrimSuffix trims the specified Bytes suffix from the Bytes.
-func (bs Bytes) TrimSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cutset) }
+// TrimEnd trims the specified characters from the end of the Bytes.
+// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
+func (bs Bytes) TrimEnd(cutset ...String) Bytes {
+	if len(cutset) == 0 {
+		return trimBytesEnd(bs)
+	}
+
+	return bytes.TrimRight(bs, cutset[0].Std())
+}
+
+// StripPrefix trims the specified Bytes prefix from the Bytes.
+func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }
+
+// StripSuffix trims the specified Bytes suffix from the Bytes.
+func (bs Bytes) StripSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cutset) }
 
 // Split splits the Bytes by the specified separator and returns the iterator.
 func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
@@ -149,8 +171,8 @@ func (bs Bytes) EqFold(obs Bytes) bool { return bytes.EqualFold(bs, obs) }
 // Gt checks if the Bytes is greater than another Bytes.
 func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs).IsGt() }
 
-// ToString returns the Bytes as an String.
-func (bs Bytes) ToString() String { return String(bs) }
+// String returns the Bytes as an String.
+func (bs Bytes) String() String { return String(bs) }
 
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
@@ -273,8 +295,8 @@ func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }
 // Repeat returns a new Bytes consisting of the current Bytes repeated 'count' times.
 func (bs Bytes) Repeat(count Int) Bytes { return bytes.Repeat(bs, count.Std()) }
 
-// ToRunes returns the Bytes as a slice of runes.
-func (bs Bytes) ToRunes() []rune { return bytes.Runes(bs) }
+// Runes returns the Bytes as a slice of runes.
+func (bs Bytes) Runes() []rune { return bytes.Runes(bs) }
 
 // Title converts the Bytes to title case.
 func (bs Bytes) Title() Bytes { return cases.Title(language.English).Bytes(bs) }
@@ -285,9 +307,82 @@ func (bs Bytes) Lower() Bytes { return cases.Lower(language.English).Bytes(bs) }
 // Upper converts the Bytes to uppercase.
 func (bs Bytes) Upper() Bytes { return cases.Upper(language.English).Bytes(bs) }
 
-// TrimSpace trims white space characters from the beginning and end of the Bytes.
-func (bs Bytes) TrimSpace() Bytes { return bytes.TrimSpace(bs) }
-
 // Print prints the content of the Bytes to the standard output (console)
 // and returns the Bytes unchanged.
 func (bs Bytes) Print() Bytes { fmt.Println(bs); return bs }
+
+// trimBytesStart trims the leading whitespace characters from the byte slice.
+func trimBytesStart(s []byte) []byte {
+	start := 0
+
+	for ; start < len(s); start++ {
+		c := s[start]
+		if c >= utf8.RuneSelf {
+			return trimBytesFuncStart(s[start:], unicode.IsSpace)
+		}
+
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	if start == len(s) {
+		return nil
+	}
+
+	return s[start:]
+}
+
+// trimBytesEnd trims the trailing whitespace characters from the byte slice.
+func trimBytesEnd(s []byte) []byte {
+	stop := len(s)
+
+	for ; stop > 0; stop-- {
+		c := s[stop-1]
+		if c >= utf8.RuneSelf {
+			return trimBytesFuncEnd(s[:stop], unicode.IsSpace)
+		}
+
+		if asciiSpace[c] == 0 {
+			break
+		}
+	}
+
+	if stop == 0 {
+		return nil
+	}
+
+	return s[:stop]
+}
+
+// Helper function to trim leading characters using a unicode function
+func trimBytesFuncStart(s []byte, fn func(rune) bool) []byte {
+	start := 0
+
+	for start < len(s) {
+		r, size := utf8.DecodeRune(s[start:])
+		if !fn(r) {
+			break
+		}
+
+		start += size
+	}
+
+	return s[start:]
+}
+
+// Helper function to trim trailing characters using a unicode function
+func trimBytesFuncEnd(s []byte, fn func(rune) bool) []byte {
+	stop := len(s)
+
+	for stop > 0 {
+		r, size := utf8.DecodeLastRune(s[:stop])
+		if !fn(r) {
+			break
+		}
+
+		stop -= size
+	}
+
+	return s[:stop]
+}

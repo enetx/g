@@ -684,7 +684,7 @@ func (sl Slice[T]) String() string {
 		builder.Write(Sprintf("%v, ", v))
 	}
 
-	return builder.String().TrimRight(", ").Format("Slice[%s]").Std()
+	return builder.String().StripSuffix(", ").Format("Slice[%s]").Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.
