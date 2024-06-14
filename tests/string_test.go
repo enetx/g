@@ -1688,20 +1688,85 @@ func TestStringRemove(t *testing.T) {
 	}
 }
 
-func TestStringTrim(t *testing.T) {
+func TestStringTrimSet(t *testing.T) {
 	tests := []struct {
 		input    g.String
-		cutset   []g.String
+		cutset   g.String
 		expected g.String
 	}{
-		{" \t\nHello, world! \t\n", nil, "Hello, world!"},
-		{"##Hello, world!##", []g.String{"#"}, "Hello, world!"},
+		{"##Hello, world!##", "#", "Hello, world!"},
+		{"**Magic**String**", "*", "Magic**String"},
+		{"  trim spaces  ", " ", "trim spaces"},
+		{"!@##@@!!SpecialChars!!@@##@!", "@#!", "SpecialChars"},
+		{"NoChangeNeeded", "z", "NoChangeNeeded"},
 	}
 
 	for _, test := range tests {
-		result := test.input.Trim(test.cutset...)
+		result := test.input.TrimSet(test.cutset)
 		if result != test.expected {
-			t.Errorf("Trim(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimSet(%q, %q) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestStringTrimStartSet(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		cutset   g.String
+		expected g.String
+	}{
+		{"##Hello, world!##", "#", "Hello, world!##"},
+		{"**Magic**String**", "*", "Magic**String**"},
+		{"  trim spaces  ", " ", "trim spaces  "},
+		{"!@##@@!!SpecialChars!!@@##@!", "@#!", "SpecialChars!!@@##@!"},
+		{"NoChangeNeeded", "z", "NoChangeNeeded"},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimStartSet(test.cutset)
+		if result != test.expected {
+			t.Errorf("TrimStartSet(%q, %q) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestStringTrimEndSet(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		cutset   g.String
+		expected g.String
+	}{
+		{"##Hello, world!##", "#", "##Hello, world!"},
+		{"**Magic**String**", "*", "**Magic**String"},
+		{"  trim spaces  ", " ", "  trim spaces"},
+		{"!@##@@!!SpecialChars!!@@##@!", "@#!", "!@##@@!!SpecialChars"},
+		{"NoChangeNeeded", "z", "NoChangeNeeded"},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimEndSet(test.cutset)
+		if result != test.expected {
+			t.Errorf("TrimEndSet(%q, %q) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestStringTrim(t *testing.T) {
+	tests := []struct {
+		input    g.String
+		expected g.String
+	}{
+		{"  Hello, world!  ", "Hello, world!"},
+		{"\t\tTabs\t\t", "Tabs"},
+		{"\nNewLine\n", "NewLine"},
+		{"NoTrimNeeded", "NoTrimNeeded"},
+		{"   Multiple   Spaces   ", "Multiple   Spaces"},
+	}
+
+	for _, test := range tests {
+		result := test.input.Trim()
+		if result != test.expected {
+			t.Errorf("Trim(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }
@@ -1709,17 +1774,19 @@ func TestStringTrim(t *testing.T) {
 func TestStringTrimStart(t *testing.T) {
 	tests := []struct {
 		input    g.String
-		cutset   []g.String
 		expected g.String
 	}{
-		{" \t\nHello, world! \t\n", nil, "Hello, world! \t\n"},
-		{"##Hello, world!##", []g.String{"#"}, "Hello, world!##"},
+		{"  Hello, world!  ", "Hello, world!  "},
+		{"\t\tTabs\t\t", "Tabs\t\t"},
+		{"\nNewLine\n", "NewLine\n"},
+		{"NoTrimNeeded", "NoTrimNeeded"},
+		{"   Multiple   Spaces   ", "Multiple   Spaces   "},
 	}
 
 	for _, test := range tests {
-		result := test.input.TrimStart(test.cutset...)
+		result := test.input.TrimStart()
 		if result != test.expected {
-			t.Errorf("TrimStart(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimStart(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }
@@ -1727,17 +1794,19 @@ func TestStringTrimStart(t *testing.T) {
 func TestStringTrimEnd(t *testing.T) {
 	tests := []struct {
 		input    g.String
-		cutset   []g.String
 		expected g.String
 	}{
-		{" \t\nHello, world! \t\n", nil, " \t\nHello, world!"},
-		{"##Hello, world!##", []g.String{"#"}, "##Hello, world!"},
+		{"  Hello, world!  ", "  Hello, world!"},
+		{"\t\tTabs\t\t", "\t\tTabs"},
+		{"\nNewLine\n", "\nNewLine"},
+		{"NoTrimNeeded", "NoTrimNeeded"},
+		{"   Multiple   Spaces   ", "   Multiple   Spaces"},
 	}
 
 	for _, test := range tests {
-		result := test.input.TrimEnd(test.cutset...)
+		result := test.input.TrimEnd()
 		if result != test.expected {
-			t.Errorf("TrimEnd(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimEnd(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }

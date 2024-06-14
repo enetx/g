@@ -57,8 +57,8 @@ func main() {
 	n.Hash().SHA1().Print()
 	n.Hash().SHA256().Print()
 
-	n.ToBinary().Print()
-	n.ToString().Print()
+	n.Binary().Print()
+	n.String().Print()
 
 	rn := g.NewInt(10).Random()
 	fmt.Println("random number: ", rn)
@@ -163,11 +163,11 @@ func main() {
 	l.Similarity("world").Print()
 
 	hbs := g.Bytes("Hello, 世界!")
-	hbs.Reverse().ToString().Print() // "!界世 ,olleH"
+	hbs.Reverse().String().Print() // "!界世 ,olleH"
 
 	hbs = g.Bytes("hello, world!")
 
-	hbs.Replace([]byte("l"), []byte("L"), 2).ToString().Print() // "heLLo, world!"
+	hbs.Replace([]byte("l"), []byte("L"), 2).String().Print() // "heLLo, world!"
 
 	hs1 := g.String("kitten")
 	hs2 := g.String("sitting")
@@ -190,9 +190,9 @@ func main() {
 
 	toi := g.Int(1234567890)
 
-	toi.ToBinary().Print()
-	toi.ToOctal().Print()
-	toi.ToHex().Print()
+	toi.Binary().Print()
+	toi.Octal().Print()
+	toi.Hex().Print()
 
 	ascii := g.String("💛💚💙💜")
 	fmt.Println(ascii.IsASCII())

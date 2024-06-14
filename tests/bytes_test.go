@@ -1130,25 +1130,89 @@ func TestBytesFieldsBy(t *testing.T) {
 	}
 }
 
-func TestBytesTrim(t *testing.T) {
+func TestBytesTrimSet(t *testing.T) {
 	tests := []struct {
 		input    g.Bytes
-		cutset   []g.String
+		cutset   g.String
 		expected g.Bytes
 	}{
-		{[]byte(" \t\nHello, world! \t\n"), nil, []byte("Hello, world!")},
-		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("Hello, world!")},
+		{[]byte("##Hello, world!##"), "#", []byte("Hello, world!")},
+		{[]byte("!!!Amazing!!!"), "!", []byte("Amazing")},
+		{[]byte("Spaces    "), " ", []byte("Spaces")},
+		{[]byte("--Dashes--"), "-", []byte("Dashes")},
+		{[]byte("NoTrimNeeded"), "x", []byte("NoTrimNeeded")},
+		{[]byte("123Numbers123"), "123", []byte("Numbers")},
 	}
 
 	for _, test := range tests {
-		var result g.Bytes
-		if test.cutset == nil {
-			result = test.input.Trim()
-		} else {
-			result = test.input.Trim(test.cutset...)
-		}
+		result := test.input.TrimSet(test.cutset)
 		if !bytes.Equal(result, test.expected) {
-			t.Errorf("Trim(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimSet(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestBytesTrimStartSet(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		cutset   g.String
+		expected g.Bytes
+	}{
+		{[]byte("##Hello, world!##"), "#", []byte("Hello, world!##")},
+		{[]byte("!!!Amazing!!!"), "!", []byte("Amazing!!!")},
+		{[]byte("Spaces    "), " ", []byte("Spaces    ")},
+		{[]byte("--Dashes--"), "-", []byte("Dashes--")},
+		{[]byte("NoTrimNeeded"), "x", []byte("NoTrimNeeded")},
+		{[]byte("123Numbers123"), "123", []byte("Numbers123")},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimStartSet(test.cutset)
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("TrimStartSet(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestBytesTrimEndSet(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		cutset   g.String
+		expected g.Bytes
+	}{
+		{[]byte("##Hello, world!##"), "#", []byte("##Hello, world!")},
+		{[]byte("!!!Amazing!!!"), "!", []byte("!!!Amazing")},
+		{[]byte("Spaces    "), " ", []byte("Spaces")},
+		{[]byte("--Dashes--"), "-", []byte("--Dashes")},
+		{[]byte("NoTrimNeeded"), "x", []byte("NoTrimNeeded")},
+		{[]byte("123Numbers123"), "123", []byte("123Numbers")},
+	}
+
+	for _, test := range tests {
+		result := test.input.TrimEndSet(test.cutset)
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("TrimEndSet(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+		}
+	}
+}
+
+func TestBytesTrim(t *testing.T) {
+	tests := []struct {
+		input    g.Bytes
+		expected g.Bytes
+	}{
+		{[]byte("  Hello, world!  "), []byte("Hello, world!")},
+		{[]byte("\t\tTabbed\t\t"), []byte("Tabbed")},
+		{[]byte("\nNewLine\n"), []byte("NewLine")},
+		{[]byte("NoTrimNeeded"), []byte("NoTrimNeeded")},
+		{[]byte("   Multiple   Spaces   "), []byte("Multiple   Spaces")},
+		{[]byte(" \t \n Mixed \r\n "), []byte("Mixed")},
+	}
+
+	for _, test := range tests {
+		result := test.input.Trim()
+		if !bytes.Equal(result, test.expected) {
+			t.Errorf("Trim(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }
@@ -1156,22 +1220,20 @@ func TestBytesTrim(t *testing.T) {
 func TestBytesTrimStart(t *testing.T) {
 	tests := []struct {
 		input    g.Bytes
-		cutset   []g.String
 		expected g.Bytes
 	}{
-		{[]byte(" \t\nHello, world! \t\n"), nil, []byte("Hello, world! \t\n")},
-		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("Hello, world!##")},
+		{[]byte("  Hello, world!  "), []byte("Hello, world!  ")},
+		{[]byte("\t\tTabbed\t\t"), []byte("Tabbed\t\t")},
+		{[]byte("\nNewLine\n"), []byte("NewLine\n")},
+		{[]byte("NoTrimNeeded"), []byte("NoTrimNeeded")},
+		{[]byte("   Multiple   Spaces   "), []byte("Multiple   Spaces   ")},
+		{[]byte(" \t \n Mixed \r\n "), []byte("Mixed \r\n ")},
 	}
 
 	for _, test := range tests {
-		var result g.Bytes
-		if test.cutset == nil {
-			result = test.input.TrimStart()
-		} else {
-			result = test.input.TrimStart(test.cutset...)
-		}
+		result := test.input.TrimStart()
 		if !bytes.Equal(result, test.expected) {
-			t.Errorf("TrimStart(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimStart(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }
@@ -1179,22 +1241,20 @@ func TestBytesTrimStart(t *testing.T) {
 func TestBytesTrimEnd(t *testing.T) {
 	tests := []struct {
 		input    g.Bytes
-		cutset   []g.String
 		expected g.Bytes
 	}{
-		{[]byte(" \t\nHello, world! \t\n"), nil, []byte(" \t\nHello, world!")},
-		{[]byte("##Hello, world!##"), []g.String{"#"}, []byte("##Hello, world!")},
+		{[]byte("  Hello, world!  "), []byte("  Hello, world!")},
+		{[]byte("\t\tTabbed\t\t"), []byte("\t\tTabbed")},
+		{[]byte("\nNewLine\n"), []byte("\nNewLine")},
+		{[]byte("NoTrimNeeded"), []byte("NoTrimNeeded")},
+		{[]byte("   Multiple   Spaces   "), []byte("   Multiple   Spaces")},
+		{[]byte(" \t \n Mixed \r\n "), []byte(" \t \n Mixed")},
 	}
 
 	for _, test := range tests {
-		var result g.Bytes
-		if test.cutset == nil {
-			result = test.input.TrimEnd()
-		} else {
-			result = test.input.TrimEnd(test.cutset...)
-		}
+		result := test.input.TrimEnd()
 		if !bytes.Equal(result, test.expected) {
-			t.Errorf("TrimEnd(%q, %v) = %q; want %q", test.input, test.cutset, result, test.expected)
+			t.Errorf("TrimEnd(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }

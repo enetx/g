@@ -44,7 +44,7 @@ func main() {
 		Chunks(3).                       // Read the file in chunks of 3 bytes
 		Unwrap().                        // Unwrap the Result type to get the underlying iterator
 		Inspect(func(s g.String) {       // Update the offset based on the length of each chunk
-			offset += int64(s.ToBytes().Len())
+			offset += int64(s.Bytes().Len())
 		}).
 		ForEach(func(s g.String) { // For each chunk, print it
 			fmt.Print(s)

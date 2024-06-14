@@ -54,35 +54,23 @@ func (bs Bytes) FindRegexp(pattern *regexp.Regexp) Option[Bytes] {
 	return Some(result)
 }
 
-// Trim trims the specified characters from the beginning and end of the Bytes.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (bs Bytes) Trim(cutset ...String) Bytes {
-	if len(cutset) == 0 {
-		return bytes.TrimSpace(bs)
-	}
+// Trim trims leading and trailing white space from the Bytes.
+func (bs Bytes) Trim() Bytes { return bytes.TrimSpace(bs) }
 
-	return bytes.Trim(bs, cutset[0].Std())
-}
+// TrimStart removes leading white space from the Bytes.
+func (bs Bytes) TrimStart() Bytes { return trimBytesStart(bs) }
 
-// TrimStart trims the specified characters from the beginning of the Bytes.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (bs Bytes) TrimStart(cutset ...String) Bytes {
-	if len(cutset) == 0 {
-		return trimBytesStart(bs)
-	}
+// TrimEnd removes trailing white space from the Bytes.
+func (bs Bytes) TrimEnd() Bytes { return trimBytesEnd(bs) }
 
-	return bytes.TrimLeft(bs, cutset[0].Std())
-}
+// TrimSet trims the specified set of characters from both the beginning and end of the Bytes.
+func (bs Bytes) TrimSet(cutset String) Bytes { return bytes.Trim(bs, cutset.Std()) }
 
-// TrimEnd trims the specified characters from the end of the Bytes.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (bs Bytes) TrimEnd(cutset ...String) Bytes {
-	if len(cutset) == 0 {
-		return trimBytesEnd(bs)
-	}
+// TrimStartSet removes the specified set of characters from the beginning of the Bytes.
+func (bs Bytes) TrimStartSet(cutset String) Bytes { return bytes.TrimLeft(bs, cutset.Std()) }
 
-	return bytes.TrimRight(bs, cutset[0].Std())
-}
+// TrimEndSet removes the specified set of characters from the end of the Bytes.
+func (bs Bytes) TrimEndSet(cutset String) Bytes { return bytes.TrimRight(bs, cutset.Std()) }
 
 // StripPrefix trims the specified Bytes prefix from the Bytes.
 func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }

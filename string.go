@@ -114,34 +114,28 @@ func (s String) Lower() String { return String(cases.Lower(language.English).Str
 // Upper returns the String in uppercase.
 func (s String) Upper() String { return String(cases.Upper(language.English).String(s.Std())) }
 
-// Trim trims the specified characters from the beginning and end of the String.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (s String) Trim(cutset ...String) String {
-	if len(cutset) == 0 {
-		return String(strings.TrimSpace(s.Std()))
-	}
+// Trim removes leading and trailing white space from the String.
+func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
 
-	return String(strings.Trim(s.Std(), cutset[0].Std()))
+// TrimStart removes leading white space from the String.
+func (s String) TrimStart() String { return trimStringStart(s) }
+
+// TrimEnd removes trailing white space from the String.
+func (s String) TrimEnd() String { return trimStringEnd(s) }
+
+// TrimSet removes the specified set of characters from both the beginning and end of the String.
+func (s String) TrimSet(cutset String) String {
+	return String(strings.Trim(s.Std(), cutset.Std()))
 }
 
-// TrimStart trims the specified characters from the beginning of the String.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (s String) TrimStart(cutset ...String) String {
-	if len(cutset) == 0 {
-		return String(trimStringStart(s))
-	}
-
-	return String(strings.TrimLeft(s.Std(), cutset[0].Std()))
+// TrimStartSet removes the specified set of characters from the beginning of the String.
+func (s String) TrimStartSet(cutset String) String {
+	return String(strings.TrimLeft(s.Std(), cutset.Std()))
 }
 
-// TrimEnd trims the specified characters from the end of the String.
-// If no cutset is provided, it trims whitespace (spaces, tabs, newlines, and carriage returns) by default.
-func (s String) TrimEnd(cutset ...String) String {
-	if len(cutset) == 0 {
-		return String(trimStringEnd(s))
-	}
-
-	return String(strings.TrimRight(s.Std(), cutset[0].Std()))
+// TrimEndSet removes the specified set of characters from the end of the String.
+func (s String) TrimEndSet(cutset String) String {
+	return String(strings.TrimRight(s.Std(), cutset.Std()))
 }
 
 // StripPrefix trims the specified prefix from the String.

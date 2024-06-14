@@ -27,7 +27,7 @@ func main() {
 
 	s := g.SliceOf[g.Int](1, 2, 3, 4, 5)
 
-	ss := g.SliceMap(s, g.Int.ToString) // g.Slice[g.String]
+	ss := g.SliceMap(s, g.Int.String) // g.Slice[g.String]
 	ss.Get(0).Format("hello %s").Print()
 
 	is := g.SliceMap(ss, func(s g.String) g.Int { return s.ToInt().Unwrap() }) // g.Slice[g.Int]
