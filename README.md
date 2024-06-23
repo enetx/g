@@ -232,5 +232,3 @@ func main() {
 </td>
 </tr>
 </table>
-
-## Requires GOEXPERIMENT=rangefunc.

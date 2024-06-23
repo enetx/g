@@ -853,18 +853,18 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 // works slower
 // func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 // 	var current V
-
+//
 // 	eq := f.Eqd[any]
 // 	if f.Comparable(current) {
 // 		eq = f.Eq
 // 	}
-
+//
 // 	return func(yield func(V) bool) {
 // 		seq(func(v V) bool {
 // 			if eq(current)(v) {
 // 				return true
 // 			}
-
+//
 // 			current = v
 // 			return yield(v)
 // 		})
@@ -1207,11 +1207,7 @@ func intersperse[V any](seq SeqSlice[V], sep V) SeqSlice[V] {
 			}
 
 			first = false
-			if !yield(v) {
-				return false
-			}
-
-			return true
+			return yield(v)
 		})
 	}
 }

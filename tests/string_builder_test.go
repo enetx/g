@@ -54,12 +54,12 @@ func TestBuilderGrow(t *testing.T) {
 	builder := g.NewBuilder()
 
 	// Grow the builder
-	builder.Grow(10)
+	builder.Grow(16)
 
 	// Check if the capacity has been increased
-	expected := 10
+	expected := 16
 	if result := builder.Cap().Std(); result != expected {
-		t.Errorf("Grow(10) = %d; want %d", result, expected)
+		t.Errorf("Grow(16) = %d; want %d", result, expected)
 	}
 }
 
