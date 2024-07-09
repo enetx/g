@@ -2,6 +2,7 @@ package g
 
 import (
 	"fmt"
+	"math/big"
 	"regexp"
 	"strconv"
 	"strings"
@@ -93,6 +94,28 @@ func (s String) ToInt() Result[Int] {
 	}
 
 	return Ok(Int(hint))
+}
+
+// ToBigInt attempts to convert the String receiver into an Option containing a *big.Int.
+// This function assumes the string represents a numerical value, which can be in decimal,
+// hexadecimal (prefixed with "0x"), or octal (prefixed with "0") format. The function
+// leverages the SetString method of the math/big package, automatically detecting the
+// numeric base when set to 0.
+//
+// If the string is correctly formatted and represents a valid number, ToBigInt returns
+// a Some containing the *big.Int parsed from the string. If the string is empty, contains
+// invalid characters, or does not conform to a recognizable numeric format, ToBigInt
+// returns a None, indicating that the conversion was unsuccessful.
+//
+// Returns:
+//   - An Option[*big.Int] encapsulating the conversion result. It returns Some[*big.Int]
+//     with the parsed value if successful, otherwise None[*big.Int] if the parsing fails.
+func (s String) ToBigInt() Option[*big.Int] {
+	if bigInt, ok := new(big.Int).SetString(s.Std(), 0); ok {
+		return Some(bigInt)
+	}
+
+	return None[*big.Int]()
 }
 
 // ToFloat tries to parse the String as a float64 and returns an Float.

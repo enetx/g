@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"io"
+	"math/big"
 	"reflect"
 	"testing"
 	"unicode"
@@ -1808,5 +1809,48 @@ func TestStringTrimEnd(t *testing.T) {
 		if result != test.expected {
 			t.Errorf("TrimEnd(%q) = %q; want %q", test.input, result, test.expected)
 		}
+	}
+}
+
+func TestStringToBigInt(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    g.String
+		expected *big.Int
+	}{
+		{
+			name:     "Decimal",
+			input:    "12345",
+			expected: big.NewInt(12345),
+		},
+		{
+			name:     "Hexadecimal",
+			input:    "0x1abc",
+			expected: big.NewInt(6844),
+		},
+		{
+			name:     "Octal",
+			input:    "071",
+			expected: big.NewInt(57),
+		},
+		{
+			name:     "Invalid format",
+			input:    "abc123",
+			expected: nil,
+		},
+		{
+			name:     "Empty string",
+			input:    "",
+			expected: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.input.ToBigInt()
+			if result.UnwrapOrDefault().Cmp(tc.expected) != 0 {
+				t.Errorf("Failed %s: expected %v, got %v", tc.name, tc.expected, result)
+			}
+		})
 	}
 }
