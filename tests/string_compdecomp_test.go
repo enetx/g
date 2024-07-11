@@ -11,8 +11,8 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	inputData := g.NewString("hello world")
 
 	// Test Zstd compression and decompression
-	zstdCompressed := inputData.Comp().Zstd()
-	zstdDecompressed := zstdCompressed.Decomp().Zstd()
+	zstdCompressed := inputData.Compress().Zstd()
+	zstdDecompressed := zstdCompressed.Decompress().Zstd()
 	if zstdDecompressed.IsErr() || zstdDecompressed.Unwrap().Ne(inputData) {
 		t.Errorf(
 			"Zstd compression and decompression failed. Input: %s, Decompressed: %s",
@@ -22,8 +22,8 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	}
 
 	// Test Brotli compression and decompression
-	brotliCompressed := inputData.Comp().Brotli()
-	brotliDecompressed := brotliCompressed.Decomp().Brotli()
+	brotliCompressed := inputData.Compress().Brotli()
+	brotliDecompressed := brotliCompressed.Decompress().Brotli()
 	if brotliDecompressed.IsErr() || brotliDecompressed.Unwrap().Ne(inputData) {
 		t.Errorf(
 			"Brotli compression and decompression failed. Input: %s, Decompressed: %s",
@@ -33,8 +33,8 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	}
 
 	// Test Zlib compression and decompression
-	zlibCompressed := inputData.Comp().Zlib()
-	zlibDecompressed := zlibCompressed.Decomp().Zlib()
+	zlibCompressed := inputData.Compress().Zlib()
+	zlibDecompressed := zlibCompressed.Decompress().Zlib()
 	if zlibDecompressed.IsErr() || zlibDecompressed.Unwrap().Ne(inputData) {
 		t.Errorf(
 			"Zlib compression and decompression failed. Input: %s, Decompressed: %s",
@@ -44,8 +44,8 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	}
 
 	// Test Gzip compression and decompression
-	gzipCompressed := inputData.Comp().Gzip()
-	gzipDecompressed := gzipCompressed.Decomp().Gzip()
+	gzipCompressed := inputData.Compress().Gzip()
+	gzipDecompressed := gzipCompressed.Decompress().Gzip()
 	if gzipDecompressed.IsErr() || gzipDecompressed.Unwrap().Ne(inputData) {
 		t.Errorf(
 			"Gzip compression and decompression failed. Input: %s, Decompressed: %s",
@@ -55,8 +55,8 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	}
 
 	// Test Flate compression and decompression
-	flateCompressed := inputData.Comp().Flate()
-	flateDecompressed := flateCompressed.Decomp().Flate()
+	flateCompressed := inputData.Compress().Flate()
+	flateDecompressed := flateCompressed.Decompress().Flate()
 	if flateDecompressed.IsErr() || flateDecompressed.Unwrap().Ne(inputData) {
 		t.Errorf(
 			"Flate compression and decompression failed. Input: %s, Decompressed: %s",

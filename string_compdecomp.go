@@ -13,21 +13,21 @@ import (
 
 type (
 	// A struct that wraps a String for compression.
-	comp struct{ str String }
+	compress struct{ str String }
 
 	// A struct that wraps a String for decompression.
-	decomp struct{ str String }
+	decompress struct{ str String }
 )
 
-// Comp returns a comp struct wrapping the given String.
-func (s String) Comp() comp { return comp{s} }
+// Compress returns a compress struct wrapping the given String.
+func (s String) Compress() compress { return compress{s} }
 
-// Decomp returns a decomp struct wrapping the given String.
-func (s String) Decomp() decomp { return decomp{s} }
+// Decompress returns a decompress struct wrapping the given String.
+func (s String) Decompress() decompress { return decompress{s} }
 
 // Zstd compresses the wrapped String using the zstd compression algorithm and
 // returns the compressed data as a String.
-func (c comp) Zstd() String {
+func (c compress) Zstd() String {
 	buffer := new(bytes.Buffer)
 	writer, _ := zstd.NewWriter(buffer)
 
@@ -40,7 +40,7 @@ func (c comp) Zstd() String {
 
 // Zstd decompresses the wrapped String using the zstd compression algorithm and
 // returns the decompressed data as a Result[String].
-func (d decomp) Zstd() Result[String] {
+func (d decompress) Zstd() Result[String] {
 	reader, err := zstd.NewReader(d.str.Reader())
 	if err != nil {
 		reader.Close()
@@ -59,7 +59,7 @@ func (d decomp) Zstd() Result[String] {
 
 // Brotli compresses the wrapped String using the Brotli compression algorithm and
 // returns the compressed data as a String.
-func (c comp) Brotli() String {
+func (c compress) Brotli() String {
 	buffer := new(bytes.Buffer)
 	writer := brotli.NewWriter(buffer)
 
@@ -72,7 +72,7 @@ func (c comp) Brotli() String {
 
 // Brotli decompresses the wrapped String using the Brotli compression algorithm and
 // returns the decompressed data as a Result[String].
-func (d decomp) Brotli() Result[String] {
+func (d decompress) Brotli() Result[String] {
 	reader := brotli.NewReader(d.str.Reader())
 
 	buffer := new(bytes.Buffer)
@@ -85,7 +85,7 @@ func (d decomp) Brotli() Result[String] {
 
 // Zlib compresses the wrapped String using the zlib compression algorithm and
 // returns the compressed data as a String.
-func (c comp) Zlib() String {
+func (c compress) Zlib() String {
 	// gzcompress() php
 	buffer := new(bytes.Buffer)
 	writer := zlib.NewWriter(buffer)
@@ -99,7 +99,7 @@ func (c comp) Zlib() String {
 
 // Zlib decompresses the wrapped String using the zlib compression algorithm and
 // returns the decompressed data as a Result[String].
-func (d decomp) Zlib() Result[String] {
+func (d decompress) Zlib() Result[String] {
 	// gzuncompress() php
 	reader, err := zlib.NewReader(d.str.Reader())
 	if err != nil {
@@ -118,7 +118,7 @@ func (d decomp) Zlib() Result[String] {
 
 // Gzip compresses the wrapped String using the gzip compression format and
 // returns the compressed data as a String.
-func (c comp) Gzip() String {
+func (c compress) Gzip() String {
 	// gzencode() php
 	buffer := new(bytes.Buffer)
 	writer := gzip.NewWriter(buffer)
@@ -132,7 +132,7 @@ func (c comp) Gzip() String {
 
 // Gzip decompresses the wrapped String using the gzip compression format and
 // returns the decompressed data as a Result[String].
-func (d decomp) Gzip() Result[String] {
+func (d decompress) Gzip() Result[String] {
 	// gzdecode() php
 	reader, err := gzip.NewReader(d.str.Reader())
 	if err != nil {
@@ -152,7 +152,7 @@ func (d decomp) Gzip() Result[String] {
 // Flate compresses the wrapped String using the flate (zlib) compression algorithm
 // and returns the compressed data as a String.
 // It accepts an optional compression level. If no level is provided, it defaults to 7.
-func (c comp) Flate(level ...int) String {
+func (c compress) Flate(level ...int) String {
 	// gzdeflate() php
 	buffer := new(bytes.Buffer)
 
@@ -172,7 +172,7 @@ func (c comp) Flate(level ...int) String {
 
 // Flate decompresses the wrapped String using the flate (zlib) compression algorithm
 // and returns the decompressed data as a Result[String].
-func (d decomp) Flate() Result[String] {
+func (d decompress) Flate() Result[String] {
 	// gzinflate() php
 	reader := flate.NewReader(d.str.Reader())
 	defer reader.Close()

@@ -16,14 +16,14 @@ func TestGobEncodingDecoding(t *testing.T) {
 
 	// Encode data to the file
 	dataToEncode := g.SliceOf(1, 2, 3, 4, 5)
-	result := file.Enc().Gob(dataToEncode)
+	result := file.Encode().Gob(dataToEncode)
 	if result.IsErr() {
 		t.Fatalf("Gob encoding failed: %v", result.Err())
 	}
 
 	// Decode data from the file
 	var decodedData g.Slice[int]
-	result = file.Dec().Gob(&decodedData)
+	result = file.Decode().Gob(&decodedData)
 	if result.IsErr() {
 		t.Fatalf("Gob decoding failed: %v", result.Err())
 	}
@@ -43,14 +43,14 @@ func TestJSONEncodingDecoding(t *testing.T) {
 
 	// Encode data to the file
 	dataToEncode := g.SliceOf(1, 2, 3, 4, 5)
-	result := file.Enc().JSON(dataToEncode)
+	result := file.Encode().JSON(dataToEncode)
 	if result.IsErr() {
 		t.Fatalf("JSON encoding failed: %v", result.Err())
 	}
 
 	// Decode data from the file
 	var decodedData g.Slice[int]
-	result = file.Dec().JSON(&decodedData)
+	result = file.Decode().JSON(&decodedData)
 	if result.IsErr() {
 		t.Fatalf("JSON decoding failed: %v", result.Err())
 	}

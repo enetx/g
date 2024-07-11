@@ -43,12 +43,12 @@ func main() {
 	g.NewString("").Random(10, g.PUNCTUATION).Print()
 
 	g.String("https://www.test.com/?query=Hellö Wörld&param=value").
-		Enc().
+		Encode().
 		URL().
 		Print() // https://www.test.com/?query=Hell%C3%B6+W%C3%B6rld&param=value
 
-	g.String("Hellö Wörld@Golang").Enc().URL().Print()   // Hell%C3%B6+W%C3%B6rld@Golang
-	g.String("Hellö Wörld@Golang").Enc().URL("").Print() // Hell%C3%B6+W%C3%B6rld%40Golang
+	g.String("Hellö Wörld@Golang").Encode().URL().Print()   // Hell%C3%B6+W%C3%B6rld@Golang
+	g.String("Hellö Wörld@Golang").Encode().URL("").Print() // Hell%C3%B6+W%C3%B6rld%40Golang
 
 	original := g.String("Hello, world! This is a test.")
 	modified := original.Remove(

@@ -14,10 +14,10 @@ func main() {
 
 	res := response{Page: 1, Fruits: g.SliceOf("apple", "peach", "pear")}
 
-	s := g.NewString("").Enc().JSON(res).Unwrap().Append("\n").Print()
+	s := g.NewString("").Encode().JSON(res).Unwrap().Append("\n").Print()
 
 	var res2 response
 
-	s.Dec().JSON(&res2)
+	s.Decode().JSON(&res2)
 	fmt.Println(res.Page, res.Fruits.Get(-2))
 }

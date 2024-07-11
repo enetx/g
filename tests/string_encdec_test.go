@@ -16,7 +16,7 @@ func TestStringJSON(t *testing.T) {
 
 	person := Person{Name: "John", Age: 30}
 	expectedResult1 := g.String(`{"Name":"John","Age":30}`)
-	result1 := g.String("").Enc().JSON(person).Ok()
+	result1 := g.String("").Encode().JSON(person).Ok()
 	if !result1.Eq(expectedResult1) {
 		t.Errorf("Test case 1 failed: Expected result is %v, got %v", expectedResult1, result1)
 	}
@@ -24,7 +24,7 @@ func TestStringJSON(t *testing.T) {
 	// Test case 2: Encoding a map
 	data2 := map[string]any{"Name": "Alice", "Age": 25}
 	expectedResult2 := g.String(`{"Age":25,"Name":"Alice"}`)
-	result2 := g.String("").Enc().JSON(data2).Ok()
+	result2 := g.String("").Encode().JSON(data2).Ok()
 	if !result2.Eq(expectedResult2) {
 		t.Errorf("Test case 2 failed: Expected result is %v, got %v", expectedResult2, result2)
 	}
@@ -32,14 +32,14 @@ func TestStringJSON(t *testing.T) {
 	// Test case 3: Encoding an array
 	data3 := []int{1, 2, 3}
 	expectedResult3 := g.String("[1,2,3]")
-	result3 := g.String("").Enc().JSON(data3).Ok()
+	result3 := g.String("").Encode().JSON(data3).Ok()
 	if !result3.Eq(expectedResult3) {
 		t.Errorf("Test case 3 failed: Expected result is %v, got %v", expectedResult3, result3)
 	}
 
 	// Test case 4: Encoding a nil value
 	expectedResult4 := g.String("null")
-	result4 := g.String("").Enc().JSON(nil).Ok()
+	result4 := g.String("").Encode().JSON(nil).Ok()
 	if !result4.Eq(expectedResult4) {
 		t.Errorf("Test case 4 failed: Expected result is %v, got %v", expectedResult4, result4)
 	}
@@ -55,7 +55,7 @@ func TestStringJSONDecode(t *testing.T) {
 	inputJSON1 := `{"Name":"John","Age":30}`
 	var person1 Person
 	expectedResult1 := g.String(inputJSON1)
-	result1 := g.String(inputJSON1).Dec().JSON(&person1).Ok()
+	result1 := g.String(inputJSON1).Decode().JSON(&person1).Ok()
 	if !result1.Eq(expectedResult1) {
 		t.Errorf("Test case 1 failed: Expected result is %v, got %v", expectedResult1, result1)
 	}
@@ -68,7 +68,7 @@ func TestStringJSONDecode(t *testing.T) {
 	inputJSON2 := `{"Name":"Alice","Age":25}`
 	var data2 map[string]any
 	expectedResult2 := g.String(inputJSON2)
-	result2 := g.String(inputJSON2).Dec().JSON(&data2).Ok()
+	result2 := g.String(inputJSON2).Decode().JSON(&data2).Ok()
 	if !result2.Eq(expectedResult2) {
 		t.Errorf("Test case 2 failed: Expected result is %v, got %v", expectedResult2, result2)
 	}
@@ -91,7 +91,7 @@ func TestStringBase64Encode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.e.Enc().Base64(); got != tt.want {
+			if got := tt.e.Encode().Base64(); got != tt.want {
 				t.Errorf("enc.Base64Encode() = %v, want %v", got, tt.want)
 			}
 		})
@@ -109,7 +109,7 @@ func TestStringBase64Decode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.d.Dec().Base64().Unwrap(); got != tt.want {
+			if got := tt.d.Decode().Base64().Unwrap(); got != tt.want {
 				t.Errorf("dec.Base64Decode() = %v, want %v", got, tt.want)
 			}
 		})
@@ -120,7 +120,7 @@ func TestStringRot13Encoding(t *testing.T) {
 	// Test case 1: Encoding uppercase letters
 	inputData1 := g.NewString("HELLO")
 	expectedEncoded1 := g.NewString("URYYB")
-	result1 := inputData1.Enc().Rot13()
+	result1 := inputData1.Encode().Rot13()
 	if !result1.Eq(expectedEncoded1) {
 		t.Errorf("Test case 1 failed: Expected encoded string is %s, got %s", expectedEncoded1, result1)
 	}
@@ -128,7 +128,7 @@ func TestStringRot13Encoding(t *testing.T) {
 	// Test case 2: Encoding lowercase letters
 	inputData2 := g.NewString("hello")
 	expectedEncoded2 := g.NewString("uryyb")
-	result2 := inputData2.Enc().Rot13()
+	result2 := inputData2.Encode().Rot13()
 	if !result2.Eq(expectedEncoded2) {
 		t.Errorf("Test case 2 failed: Expected encoded string is %s, got %s", expectedEncoded2, result2)
 	}
@@ -136,7 +136,7 @@ func TestStringRot13Encoding(t *testing.T) {
 	// Test case 3: Encoding mixed case letters
 	inputData3 := g.NewString("Hello, World!")
 	expectedEncoded3 := g.NewString("Uryyb, Jbeyq!")
-	result3 := inputData3.Enc().Rot13()
+	result3 := inputData3.Encode().Rot13()
 	if !result3.Eq(expectedEncoded3) {
 		t.Errorf("Test case 3 failed: Expected encoded string is %s, got %s", expectedEncoded3, result3)
 	}
@@ -144,7 +144,7 @@ func TestStringRot13Encoding(t *testing.T) {
 	// Test case 4: Encoding non-alphabetic characters
 	inputData4 := g.NewString("12345 !@#$")
 	expectedEncoded4 := g.NewString("12345 !@#$")
-	result4 := inputData4.Enc().Rot13()
+	result4 := inputData4.Encode().Rot13()
 	if !result4.Eq(expectedEncoded4) {
 		t.Errorf("Test case 4 failed: Expected encoded string is %s, got %s", expectedEncoded4, result4)
 	}
@@ -165,7 +165,7 @@ func TestStringRot13Decoding(t *testing.T) {
 
 	for _, tc := range testCases {
 		// Apply the Rot13 transformation
-		result := tc.input.Dec().Rot13()
+		result := tc.input.Decode().Rot13()
 		// Check if the result matches the expected output
 		if result.Std() != tc.expected {
 			t.Errorf("Rot13(%s) returned %s, expected %s", tc.input, result, tc.expected)
@@ -177,8 +177,8 @@ func TestStringXOR(t *testing.T) {
 	for range 100 {
 		input := g.NewString("").Random(g.NewInt(30).RandomRange(100))
 		key := g.NewString("").Random(10)
-		obfuscated := input.Enc().XOR(key)
-		deobfuscated := obfuscated.Dec().XOR(key)
+		obfuscated := input.Encode().XOR(key)
+		deobfuscated := obfuscated.Decode().XOR(key)
 
 		if input != deobfuscated {
 			t.Errorf("expected %s, but got %s", input, deobfuscated)
@@ -205,7 +205,7 @@ func TestXOR(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := g.NewString(tt.input).Enc().XOR(g.String(tt.key))
+		got := g.NewString(tt.input).Encode().XOR(g.String(tt.key))
 		if got != g.String(tt.want) {
 			t.Errorf("XOR(%q, %q) = %q; want %q", tt.input, tt.key, got, tt.want)
 		}
@@ -223,7 +223,7 @@ func TestGzFlateDecode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.input.Dec().Base64().Unwrap().Decomp().Flate().Unwrap()
+			result := tc.input.Decode().Base64().Unwrap().Decompress().Flate().Unwrap()
 			if result.Ne(tc.expected) {
 				t.Errorf("GzFlateDecode, expected: %s, got: %s", tc.expected, result)
 			}
@@ -243,7 +243,7 @@ func TestGzFlateEncode(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.input.Comp().Flate().Enc().Base64()
+			result := tc.input.Compress().Flate().Encode().Base64()
 			if result.Ne(tc.expected) {
 				t.Errorf("GzFlateEncode, expected: %s, got: %s", tc.expected, result)
 			}
@@ -255,7 +255,7 @@ func TestStringBinaryEncodingAndDecoding(t *testing.T) {
 	// Test case 1: Encoding a string to binary
 	inputStr1 := g.NewString("Hello")
 	expectedBinary1 := g.NewString("0100100001100101011011000110110001101111")
-	result1 := inputStr1.Enc().Binary()
+	result1 := inputStr1.Encode().Binary()
 	if !result1.Eq(expectedBinary1) {
 		t.Errorf("Test case 1 failed: Expected binary string is %s, got %s", expectedBinary1, result1)
 	}
@@ -263,7 +263,7 @@ func TestStringBinaryEncodingAndDecoding(t *testing.T) {
 	// Test case 2: Decoding a binary string back to the original string
 	inputBinary2 := g.NewString("0100100001100101011011000110110001101111")
 	expectedStr2 := g.NewString("Hello")
-	result2 := inputBinary2.Dec().Binary()
+	result2 := inputBinary2.Decode().Binary()
 	if result2.IsErr() {
 		t.Errorf("Test case 2 failed: Error occurred during decoding: %v", result2.Err())
 	} else if result2.Ok().Ne(expectedStr2) {
@@ -285,7 +285,7 @@ func TestXMLEncodingAndDecoding(t *testing.T) {
 	expectedXML1 := g.NewString(
 		"<Person><name>John</name><age>30</age><city>New York</city><email>john@example.com</email></Person>",
 	)
-	result1 := g.NewString("").Enc().XML(inputData1)
+	result1 := g.NewString("").Encode().XML(inputData1)
 	if !result1.Ok().Eq(expectedXML1) {
 		t.Errorf("Test case 1 failed: Expected XML is %s, got %s", expectedXML1, result1.Ok())
 	}
@@ -296,7 +296,7 @@ func TestXMLEncodingAndDecoding(t *testing.T) {
 	)
 	var decodedData2 Person
 	expectedData2 := Person{Name: "Alice", Age: 25, City: "London", Email: "alice@example.com"}
-	result2 := xmlData2.Dec().XML(&decodedData2)
+	result2 := xmlData2.Decode().XML(&decodedData2)
 	if result2.IsErr() {
 		t.Errorf("Test case 2 failed: Error occurred during XML decoding: %v", result2.Err())
 	} else if decodedData2 != expectedData2 {
@@ -308,7 +308,7 @@ func TestStringHTMLEncodingAndDecoding(t *testing.T) {
 	// Test case 1: Encoding HTML
 	inputData1 := g.NewString("<p>Hello, <b>World</b>!</p>")
 	expectedEncoded1 := g.NewString("&lt;p&gt;Hello, &lt;b&gt;World&lt;/b&gt;!&lt;/p&gt;")
-	result1 := inputData1.Enc().HTML()
+	result1 := inputData1.Encode().HTML()
 	if !result1.Eq(expectedEncoded1) {
 		t.Errorf("Test case 1 failed: Expected encoded HTML is %s, got %s", expectedEncoded1, result1)
 	}
@@ -316,7 +316,7 @@ func TestStringHTMLEncodingAndDecoding(t *testing.T) {
 	// Test case 2: Decoding HTML
 	htmlData2 := g.NewString("&lt;a href=&quot;https://example.com&quot;&gt;Link&lt;/a&gt;")
 	expectedDecoded2 := g.NewString("<a href=\"https://example.com\">Link</a>")
-	result2 := htmlData2.Dec().HTML()
+	result2 := htmlData2.Decode().HTML()
 	if !result2.Eq(expectedDecoded2) {
 		t.Errorf("Test case 2 failed: Expected decoded HTML is %s, got %s", expectedDecoded2, result2)
 	}
@@ -327,7 +327,7 @@ func TestStringDecBase64_Success(t *testing.T) {
 	encodedStr := "SGVsbG8gV29ybGQh"
 
 	// Create a dec instance wrapping the encoded string
-	dec := g.NewString(encodedStr).Dec()
+	dec := g.NewString(encodedStr).Decode()
 
 	// Decode the string using Base64
 	decodedResult := dec.Base64()
@@ -356,7 +356,7 @@ func TestDecStringBase64Failure(t *testing.T) {
 	invalidEncodedStr := "SGVsbG8gV29ybGQh==="
 
 	// Create a dec instance wrapping the invalid encoded string
-	dec := g.NewString(invalidEncodedStr).Dec()
+	dec := g.NewString(invalidEncodedStr).Decode()
 
 	// Decode the string using Base64
 	decodedResult := dec.Base64()
@@ -384,7 +384,7 @@ func TestStringHexEncode(t *testing.T) {
 
 	for _, tc := range testCases {
 		// Encode the string to hex using your package method
-		result := tc.input.Enc().Hex()
+		result := tc.input.Encode().Hex()
 		// Check if the result matches the expected output
 		if result != tc.expected {
 			t.Errorf("Hex(%s) returned %s, expected %s", tc.input, result, tc.expected)
@@ -405,7 +405,7 @@ func TestStringHexDec(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Dec().Hex().Unwrap()
+		result := tc.input.Decode().Hex().Unwrap()
 		if result != tc.expected {
 			t.Errorf("Hex(%s) returned %s, expected %s", tc.input, result, tc.expected)
 		}
@@ -426,7 +426,7 @@ func TestStringOctalEnc(t *testing.T) {
 
 	// Test each case
 	for _, tc := range testCases {
-		result := tc.input.Enc().Octal()
+		result := tc.input.Encode().Octal()
 		if result != tc.expected {
 			t.Errorf("Octal encoding is incorrect %s, exceted %s", result, tc.expected)
 		}
@@ -446,7 +446,7 @@ func TestStringOctalDec(t *testing.T) {
 
 	// Test each case
 	for _, tc := range testCases {
-		result := tc.input.Dec().Octal()
+		result := tc.input.Decode().Octal()
 
 		// Assert the result
 		if result.IsErr() {
@@ -493,7 +493,7 @@ func TestURLEncode(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		encoded := tc.input.Enc().URL(tc.safe)
+		encoded := tc.input.Encode().URL(tc.safe)
 		if encoded != tc.expected {
 			t.Errorf(
 				"For input: %s and safe: %s, expected: %s, but got: %s",
@@ -534,7 +534,7 @@ func TestURLDecode(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := test.input.Dec().URL().Unwrap()
+		actual := test.input.Decode().URL().Unwrap()
 		if actual != test.expected {
 			t.Errorf("UnEscape(%s): expected %s, but got %s", test.input, test.expected, actual)
 		}

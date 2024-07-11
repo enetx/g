@@ -12,23 +12,23 @@ import (
 
 type (
 	// A struct that wraps an String for encoding.
-	enc struct{ str String }
+	encode struct{ str String }
 
 	// A struct that wraps an String for decoding.
-	dec struct{ str String }
+	decode struct{ str String }
 )
 
-// Enc returns an enc struct wrapping the given String.
-func (s String) Enc() enc { return enc{s} }
+// Encode returns an encode struct wrapping the given String.
+func (s String) Encode() encode { return encode{s} }
 
-// Dec returns a dec struct wrapping the given String.
-func (s String) Dec() dec { return dec{s} }
+// Decode returns a decode struct wrapping the given String.
+func (s String) Decode() decode { return decode{s} }
 
 // Base64 encodes the wrapped String using Base64 and returns the encoded result as an String.
-func (e enc) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.Bytes())) }
+func (e encode) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.Bytes())) }
 
 // Base64 decodes the wrapped String using Base64 and returns the decoded result as an String.
-func (d dec) Base64() Result[String] {
+func (d decode) Base64() Result[String] {
 	decoded, err := base64.StdEncoding.DecodeString(d.str.Std())
 	if err != nil {
 		return Err[String](err)
@@ -38,7 +38,7 @@ func (d dec) Base64() Result[String] {
 }
 
 // JSON encodes the provided data as JSON and returns the result as an String.
-func (enc) JSON(data any) Result[String] {
+func (encode) JSON(data any) Result[String] {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return Err[String](err)
@@ -48,7 +48,7 @@ func (enc) JSON(data any) Result[String] {
 }
 
 // JSON decodes the wrapped String using JSON and unmarshals it into the provided data object.
-func (d dec) JSON(data any) Result[String] {
+func (d decode) JSON(data any) Result[String] {
 	err := json.Unmarshal(d.str.Bytes(), data)
 	if err != nil {
 		return Err[String](err)
@@ -59,7 +59,7 @@ func (d dec) JSON(data any) Result[String] {
 
 // XML encodes the provided data as XML and returns the result as an String.
 // The optional prefix and indent String values can be provided for XML indentation.
-func (enc) XML(data any, s ...String) Result[String] {
+func (encode) XML(data any, s ...String) Result[String] {
 	var (
 		prefix string
 		indent string
@@ -79,7 +79,7 @@ func (enc) XML(data any, s ...String) Result[String] {
 }
 
 // XML decodes the wrapped String using XML and unmarshals it into the provided data object.
-func (d dec) XML(data any) Result[String] {
+func (d decode) XML(data any) Result[String] {
 	err := xml.Unmarshal(d.str.Bytes(), data)
 	if err != nil {
 		return Err[String](err)
@@ -99,7 +99,7 @@ func (d dec) XML(data any) Result[String] {
 // Returns:
 //
 // - String: Encoded URL string.
-func (e enc) URL(safe ...String) String {
+func (e encode) URL(safe ...String) String {
 	reserved := String(";/?:@&=+$,") // Reserved characters as per RFC 2396
 	if len(safe) != 0 {
 		reserved = safe[0]
@@ -120,7 +120,7 @@ func (e enc) URL(safe ...String) String {
 }
 
 // URL URL-decodes the wrapped String and returns the decoded result as an String.
-func (d dec) URL() Result[String] {
+func (d decode) URL() Result[String] {
 	result, err := url.QueryUnescape(d.str.Std())
 	if err != nil {
 		return Err[String](err)
@@ -130,14 +130,14 @@ func (d dec) URL() Result[String] {
 }
 
 // HTML HTML-encodes the wrapped String and returns the encoded result as an String.
-func (e enc) HTML() String { return String(html.EscapeString(e.str.Std())) }
+func (e encode) HTML() String { return String(html.EscapeString(e.str.Std())) }
 
 // HTML HTML-decodes the wrapped String and returns the decoded result as an String.
-func (d dec) HTML() String { return String(html.UnescapeString(d.str.Std())) }
+func (d decode) HTML() String { return String(html.UnescapeString(d.str.Std())) }
 
 // Rot13 encodes the wrapped String using ROT13 cipher and returns the encoded result as an
 // String.
-func (e enc) Rot13() String {
+func (e encode) Rot13() String {
 	rot := func(r rune) rune {
 		switch {
 		case r >= 'A' && r <= 'Z':
@@ -154,11 +154,11 @@ func (e enc) Rot13() String {
 
 // Rot13 decodes the wrapped String using ROT13 cipher and returns the decoded result as an
 // String.
-func (d dec) Rot13() String { return d.str.Enc().Rot13() }
+func (d decode) Rot13() String { return d.str.Encode().Rot13() }
 
 // XOR encodes the wrapped String using XOR cipher with the given key and returns the encoded
 // result as an String.
-func (e enc) XOR(key String) String {
+func (e encode) XOR(key String) String {
 	if key.Empty() {
 		return e.str
 	}
@@ -174,10 +174,10 @@ func (e enc) XOR(key String) String {
 
 // XOR decodes the wrapped String using XOR cipher with the given key and returns the decoded
 // result as an String.
-func (d dec) XOR(key String) String { return d.str.Enc().XOR(key) }
+func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
 
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
-func (e enc) Hex() String {
+func (e encode) Hex() String {
 	result := NewBuilder()
 	for i := range len(e.str) {
 		result.Write(Int(e.str[i]).Hex())
@@ -187,7 +187,7 @@ func (e enc) Hex() String {
 }
 
 // Hex hex-decodes the wrapped String and returns the decoded result as an String.
-func (d dec) Hex() Result[String] {
+func (d decode) Hex() Result[String] {
 	result, err := hex.DecodeString(d.str.Std())
 	if err != nil {
 		return Err[String](err)
@@ -197,7 +197,7 @@ func (d dec) Hex() Result[String] {
 }
 
 // Octal returns the octal representation of the encoded string.
-func (e enc) Octal() String {
+func (e encode) Octal() String {
 	result := NewSlice[String](e.str.LenRunes())
 	for i, char := range e.str.Runes() {
 		result.Set(Int(i), Int(char).Octal())
@@ -207,7 +207,7 @@ func (e enc) Octal() String {
 }
 
 // Octal returns the octal representation of the decimal-encoded string.
-func (d dec) Octal() Result[String] {
+func (d decode) Octal() Result[String] {
 	result := NewBuilder()
 
 	for _, v := range d.str.Split(" ").Collect() {
@@ -223,7 +223,7 @@ func (d dec) Octal() Result[String] {
 }
 
 // Binary converts the wrapped String to its binary representation as an String.
-func (e enc) Binary() String {
+func (e encode) Binary() String {
 	result := NewBuilder()
 	for i := range len(e.str) {
 		result.Write(Int(e.str[i]).Binary())
@@ -233,7 +233,7 @@ func (e enc) Binary() String {
 }
 
 // Binary converts the wrapped binary String back to its original String representation.
-func (d dec) Binary() Result[String] {
+func (d decode) Binary() Result[String] {
 	var result Bytes
 
 	for i := 0; i+8 <= len(d.str); i += 8 {

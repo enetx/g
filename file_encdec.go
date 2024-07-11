@@ -6,18 +6,18 @@ import (
 )
 
 type (
-	// fenc represents a wrapper for file encoding.
-	fenc struct{ f *File }
+	// fencode represents a wrapper for file encoding.
+	fencode struct{ f *File }
 
-	// fdec represents a wrapper for file decoding.
-	fdec struct{ f *File }
+	// fdecode represents a wrapper for file decoding.
+	fdecode struct{ f *File }
 )
 
-// Enc returns an fenc struct wrapping the given file for encoding.
-func (f *File) Enc() fenc { return fenc{f} }
+// Encode returns an fencode struct wrapping the given file for encoding.
+func (f *File) Encode() fencode { return fencode{f} }
 
-// Dec returns an fdec struct wrapping the given file for decoding.
-func (f *File) Dec() fdec { return fdec{f} }
+// Decode returns an fdecode struct wrapping the given file for decoding.
+func (f *File) Decode() fdecode { return fdecode{f} }
 
 // Gob encodes the provided data using the encoding/gob package and writes it to the file.
 // It returns a Result[*File] indicating the success or failure of the encoding operation.
@@ -34,7 +34,7 @@ func (f *File) Dec() fdec { return fdec{f} }
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fe fenc) Gob(data any) Result[*File] {
+func (fe fencode) Gob(data any) Result[*File] {
 	r := fe.f.Create()
 	if r.IsErr() {
 		return r
@@ -64,7 +64,7 @@ func (fe fenc) Gob(data any) Result[*File] {
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fd fdec) Gob(data any) Result[*File] {
+func (fd fdecode) Gob(data any) Result[*File] {
 	r := fd.f.Open()
 	if r.IsErr() {
 		return r
@@ -94,7 +94,7 @@ func (fd fdec) Gob(data any) Result[*File] {
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fe fenc) JSON(data any) Result[*File] {
+func (fe fencode) JSON(data any) Result[*File] {
 	r := fe.f.Create()
 	if r.IsErr() {
 		return r
@@ -124,7 +124,7 @@ func (fe fenc) JSON(data any) Result[*File] {
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fd fdec) JSON(data any) Result[*File] {
+func (fd fdecode) JSON(data any) Result[*File] {
 	r := fd.f.Open()
 	if r.IsErr() {
 		return r

@@ -15,24 +15,24 @@ func main() {
 	str.Hash().MD5().Print()
 
 	str = "test"
-	str.Comp().Flate().Decomp().Flate().Unwrap().Print()
+	str.Compress().Flate().Decompress().Flate().Unwrap().Print()
 
 	g.NewString("12").ToInt().Ok().Print()
 
 	var jsonSet g.Set[int]
 
-	str.Enc().JSON(g.SetOf(1, 2, 3, 4)).Unwrap().Dec().JSON(&jsonSet).Unwrap()
+	str.Encode().JSON(g.SetOf(1, 2, 3, 4)).Unwrap().Decode().JSON(&jsonSet).Unwrap()
 
-	fmt.Println(str.Decomp().Flate().Err())
-	fmt.Println(str.Decomp().Flate().UnwrapOr("some value"))
-	// fmt.Println(str.Dec().Flate().Expect("some custom message on error"))
-	// fmt.Println(str.Dec().Flate().Unwrap())
+	fmt.Println(str.Decompress().Flate().Err())
+	fmt.Println(str.Decompress().Flate().UnwrapOr("some value"))
+	// fmt.Println(str.Decompress().Flate().Expect("some custom message on error"))
+	// fmt.Println(str.Decompress().Flate().Unwrap())
 
 	str = "*(&()&)(*&(*))"
-	fmt.Println(str.Dec().Base64().Err())
-	fmt.Println(str.Dec().Base64().UnwrapOr("some value"))
-	// fmt.Println(str.Dec().Base64().Expect("some custom message on error"))
-	// fmt.Println(str.Dec().Base64().Unwrap())
+	fmt.Println(str.Decode().Base64().Err())
+	fmt.Println(str.Decode().Base64().UnwrapOr("some value"))
+	// fmt.Println(str.Decode().Base64().Expect("some custom message on error"))
+	// fmt.Println(str.Decode().Base64().Unwrap())
 
 	var str2 g.String = "rest" // declaration and assignation
 
@@ -175,18 +175,18 @@ func main() {
 
 	similarity.Print()
 
-	g.NewString("&aacute;").Dec().HTML().Print()
+	g.NewString("&aacute;").Decode().HTML().Print()
 
 	to := g.String("Hello, 世界!")
 
-	to.Enc().Hex().Print()
-	to.Enc().Hex().Dec().Hex().Unwrap().Print()
+	to.Encode().Hex().Print()
+	to.Encode().Hex().Decode().Hex().Unwrap().Print()
 
-	to.Enc().Octal().Print()
-	to.Enc().Octal().Dec().Octal().Unwrap().Print()
+	to.Encode().Octal().Print()
+	to.Encode().Octal().Decode().Octal().Unwrap().Print()
 
-	to.Enc().Binary().Chunks(8).Join(" ").Print()
-	to.Enc().Binary().Dec().Binary().Unwrap().Print()
+	to.Encode().Binary().Chunks(8).Join(" ").Print()
+	to.Encode().Binary().Decode().Binary().Unwrap().Print()
 
 	toi := g.Int(1234567890)
 

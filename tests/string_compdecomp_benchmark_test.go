@@ -16,7 +16,7 @@ func BenchmarkGzip(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		alice.Comp().Gzip()
+		alice.Compress().Gzip()
 	}
 }
 
@@ -24,7 +24,7 @@ func BenchmarkFlate(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		alice.Comp().Flate()
+		alice.Compress().Flate()
 	}
 }
 
@@ -32,6 +32,6 @@ func BenchmarkZlib(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		alice.Comp().Zlib()
+		alice.Compress().Zlib()
 	}
 }

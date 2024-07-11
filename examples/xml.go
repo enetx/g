@@ -18,11 +18,11 @@ func main() {
 	coffee := &Plant{ID: 27, Name: "Coffee"}
 	coffee.Origin = g.SliceOf("Ethiopia", "Brazil")
 
-	s := g.NewString("").Enc().XML(coffee, "", "  ").Unwrap().Append("\n")
+	s := g.NewString("").Encode().XML(coffee, "", "  ").Unwrap().Append("\n")
 	fmt.Println(s)
 
 	var coffee2 Plant
 
-	s.Dec().XML(&coffee2)
+	s.Decode().XML(&coffee2)
 	fmt.Println(coffee2.Origin.Get(-1))
 }
