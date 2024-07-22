@@ -177,7 +177,7 @@ func TestDir_Temp(t *testing.T) {
 	tmpDir := g.NewDir("").Temp()
 
 	// Check if the returned directory exists
-	if _, err := os.Stat(tmpDir.ToString().Std()); os.IsNotExist(err) {
+	if _, err := os.Stat(tmpDir.String().Std()); os.IsNotExist(err) {
 		t.Errorf("TestDir_Temp: Temporary directory does not exist")
 	}
 }
@@ -354,7 +354,7 @@ func TestDir_Read_Success(t *testing.T) {
 	// Check if the returned slice of File instances is accurate
 	files := result.Ok()
 	expectedFileNames := []string{"file1.txt", "file2.txt", "subdir1", "subdir2"}
-	for i, file := range files {
+	for i, file := range files.Enumerate() {
 		if file.Name().Std() != expectedFileNames[i] {
 			t.Errorf("TestDir_Read_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
 		}
@@ -383,7 +383,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	// Check if the returned slice of File instances is accurate
 	files := result.Ok()
 	expectedFileNames := []string{"file1.txt", "file2.txt"}
-	for i, file := range files {
+	for i, file := range files.Enumerate() {
 		if file.Name().Std() != expectedFileNames[i] {
 			t.Errorf("TestDir_Glob_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
 		}

@@ -6,9 +6,7 @@ import "fmt"
 type ErrFileNotExist struct{ Msg string }
 
 // Error returns the error message for ErrFileNotExist.
-func (e *ErrFileNotExist) Error() string {
-	return fmt.Sprintf("no such file: %s", e.Msg)
-}
+func (e *ErrFileNotExist) Error() string { return fmt.Sprintf("no such file: %s", e.Msg) }
 
 // ErrFileClosed represents an error for when a file is already closed.
 type ErrFileClosed struct{ Msg string }
