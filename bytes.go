@@ -148,7 +148,7 @@ func (bs Bytes) ContainsRune(r rune) bool { return bytes.ContainsRune(bs, r) }
 func (bs Bytes) Count(obs Bytes) Int { return Int(bytes.Count(bs, obs)) }
 
 // Empty checks if the Bytes is empty.
-func (bs Bytes) Empty() bool { return bs == nil || len(bs) == 0 }
+func (bs Bytes) Empty() bool { return len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
 func (bs Bytes) Eq(obs Bytes) bool { return bs.Cmp(obs).IsEq() }
