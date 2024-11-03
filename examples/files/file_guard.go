@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
@@ -12,10 +12,10 @@ func main() {
 	exit := make(chan struct{})
 
 	// Specify the file name
-	fname := g.String("test_file.txt")
+	fname := String("test_file.txt")
 
 	// Create and guard the file
-	f := g.NewFile(fname).Guard()
+	f := NewFile(fname).Guard()
 
 	// Append data to the original file
 	f.Append("test string")
@@ -24,7 +24,7 @@ func main() {
 	go func() {
 		fmt.Println("Waiting for guard release")
 		// Create a new file and guard it for reading
-		g.NewFile(fname).Guard().Read().Unwrap().Print()
+		NewFile(fname).Guard().Read().Unwrap().Print()
 		// Signal the main goroutine that the reading is complete
 		exit <- struct{}{}
 	}()

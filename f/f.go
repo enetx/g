@@ -14,10 +14,10 @@ func Comparable[T any](v T) bool { return reflect.ValueOf(v).Comparable() }
 func Zero[T cmp.Ordered](v T) bool { return v == *new(T) }
 
 // Even is a generic function that checks if the provided integer is even.
-func Even[T constraints.Integer](int T) bool { return int%2 == 0 }
+func Even[T constraints.Integer](i T) bool { return i%2 == 0 }
 
 // Odd is a generic function that checks if the provided integer is odd.
-func Odd[T constraints.Integer](int T) bool { return int%2 != 0 }
+func Odd[T constraints.Integer](i T) bool { return i%2 != 0 }
 
 // Eq returns a comparison function that evaluates to true when a value is equal to the provided threshold.
 func Eq[T comparable](t T) func(T) bool {

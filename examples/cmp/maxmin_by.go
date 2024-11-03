@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
@@ -21,14 +21,14 @@ func main() {
 	fmt.Println("maximum string:", maxs)
 
 	// cmp function
-	ord := func(a, b []g.Int) cmp.Ordering { return a[0].Cmp(b[0]) }
+	ord := func(a, b []Int) cmp.Ordering { return a[0].Cmp(b[0]) }
 
-	maxsis := cmp.MaxBy(ord, [][]g.Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...)
+	maxsis := cmp.MaxBy(ord, [][]Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...)
 	fmt.Printf("maximum []g.Int: %v\n", maxsis)
 
-	maxgis := g.SliceOf([][]g.Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...).MaxBy(ord)
+	maxgis := SliceOf([][]Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...).MaxBy(ord)
 	fmt.Printf("maximum []g.Int: %v\n", maxgis)
 
-	maxgsi := g.SliceOf(1, 2, 3, 4, 5).MaxBy(cmp.Cmp)
+	maxgsi := SliceOf(1, 2, 3, 4, 5).MaxBy(cmp.Cmp)
 	fmt.Printf("maximum int: %v\n", maxgsi)
 }

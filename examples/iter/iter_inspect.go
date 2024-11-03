@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Create a new ordered map with integer keys and string values
-	mo := g.NewMapOrd[int, string]()
+	mo := NewMapOrd[int, string]()
 	mo.Set(0, "aa").
 		Set(1, "bb").
 		Set(2, "cc").

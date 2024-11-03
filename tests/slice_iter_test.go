@@ -940,9 +940,10 @@ func TestSliceIterCounter(t *testing.T) {
 		Set(5, 1).
 		Set(1, 2).
 		Set(2, 2).
-		Set(4, 3)
+		Set(4, 3).
+		SortByKey(cmp.Cmp)
 
-	result1 := sl1.Iter().Counter().Collect()
+	result1 := sl1.Iter().Counter().Collect().SortByKey(cmp.Cmp)
 	if !result1.Eq(expected1) {
 		t.Errorf("Counter() returned %v, expected %v", result1, expected1)
 	}
@@ -953,9 +954,10 @@ func TestSliceIterCounter(t *testing.T) {
 		Set("banana", 1).
 		Set("grape", 1).
 		Set("orange", 2).
-		Set("apple", 3)
+		Set("apple", 3).
+		SortByKey(cmp.Cmp)
 
-	result2 := sl2.Iter().Counter().Collect()
+	result2 := sl2.Iter().Counter().Collect().SortByKey(cmp.Cmp)
 	if !result2.Eq(expected2) {
 		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
 	}

@@ -3,15 +3,15 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Example 1: Using the Split method
-	account := g.String("e@mail.com:password")
+	account := String("e@mail.com:password")
 
 	// Define variables to store the result of splitting
-	var mail, password g.String
+	var mail, password String
 
 	// Split the account string by ":" and unpack the result into mail and password variables
 	account.Split(":").Collect().Unpack(&mail, &password)
@@ -20,7 +20,7 @@ func main() {
 	fmt.Println(mail, password)
 
 	// Example 2: Using the Unpack method with a slice
-	numbers := g.Slice[int]{1, 2, 3, 4, 5}
+	numbers := Slice[int]{1, 2, 3, 4, 5}
 
 	// Define variables to store the unpacked values
 	var a, b, c int
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Create a slice of custom struct
-	characters := g.Slice[character]{
+	characters := Slice[character]{
 		{Name: "Tom", Age: 6},
 		{Name: "Jerry", Age: 2},
 	}

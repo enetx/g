@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
 func main() {
-	evens, odds := g.SliceOf(1, 2, 3, 4, 5).
+	evens, odds := SliceOf(1, 2, 3, 4, 5).
 		Iter().
 		Partition(f.Even)
 

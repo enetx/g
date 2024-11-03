@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/ref"
 )
@@ -13,16 +13,18 @@ func main() {
 	// mo := g.MapOrd[int, string]{}
 	// mo := make(g.MapOrd[int, string], 0)
 
-	gos := g.NewMapOrd[int, *g.Slice[int]]()
+	gos := NewMapOrd[int, *Slice[int]]()
 
 	for i := range 5 {
-		gos.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
+		gos.GetOrSet(i, ref.Of(NewSlice[int]())).AppendInPlace(i)
 	}
 
 	for i := range 10 {
-		gos.GetOrSet(i, ref.Of(g.NewSlice[int]())).AppendInPlace(i)
+		gos.GetOrSet(i, ref.Of(NewSlice[int]())).AppendInPlace(i)
 	}
 
+	gos.Print()
+	gos.Shuffle()
 	gos.Print()
 
 	//////////////////////////////////////////////////////////////////////////
@@ -33,7 +35,7 @@ func main() {
 
 	//////////////////////////////////////////////////////////////////////////
 
-	god := g.NewMapOrd[int, g.Slice[int]]()
+	god := NewMapOrd[int, Slice[int]]()
 
 	for i := range 5 {
 		god.Set(i, god.Get(i).UnwrapOrDefault().Append(i))
@@ -47,7 +49,7 @@ func main() {
 
 	//////////////////////////////////////////////////////////////////////////
 
-	ms := g.NewMapOrd[g.Int, g.Int]()
+	ms := NewMapOrd[Int, Int]()
 	ms.
 		Set(11, 99).
 		Set(12, 2).
@@ -76,15 +78,15 @@ func main() {
 	fmt.Println(ms.Eq(ms1))
 	fmt.Println(ms.Contains(12))
 
-	ms.Iter().ForEach(func(k, v g.Int) { fmt.Println(k, v) })
+	ms.Iter().ForEach(func(k, v Int) { fmt.Println(k, v) })
 
-	ms = ms.Iter().Map(func(k, v g.Int) (g.Int, g.Int) { return k.Mul(2), v.Mul(2) }).Collect()
+	ms = ms.Iter().Map(func(k, v Int) (Int, Int) { return k.Mul(2), v.Mul(2) }).Collect()
 	ms.Print()
 
 	ms.Delete(22)
 	fmt.Println(ms.Contains(22))
 
-	msstr := g.NewMapOrd[g.String, g.String]()
+	msstr := NewMapOrd[String, String]()
 	msstr.
 		Set("aaa", "CCC").
 		Set("ccc", "AAA").
@@ -93,26 +95,26 @@ func main() {
 
 	fmt.Println("before sort:", msstr)
 
-	// msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Key.Cmp(b.Key) })
-	msstr.SortByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
+	// msstr.SortBy(func(a, b Pair[String, String]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	msstr.SortByKey(func(a, b String) cmp.Ordering { return a.Cmp(b) })
 	fmt.Println("after sort:", msstr)
 
-	// msstr.SortBy(func(a, b g.Pair[g.String, g.String]) cmp.Ordering { return a.Value.Cmp(b.Value) })
-	msstr.SortByValue(g.String.Cmp)
+	// msstr.SortBy(func(a, b Pair[String, String]) cmp.Ordering { return a.Value.Cmp(b.Value) })
+	msstr.SortByValue(String.Cmp)
 	fmt.Println("after sort by value:", msstr)
 
-	mss := g.NewMapOrd[g.Int, g.Slice[int]]()
-	mss.Set(22, g.Slice[int]{4, 0, 9, 6, 7})
-	mss.Set(11, g.Slice[int]{1, 2, 3, 4})
+	mss := NewMapOrd[Int, Slice[int]]()
+	mss.Set(22, Slice[int]{4, 0, 9, 6, 7})
+	mss.Set(11, Slice[int]{1, 2, 3, 4})
 
 	fmt.Println("before sort: ", mss)
-	// mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return a.Key.Cmp(b.Key) })
-	mss.SortByKey(g.Int.Cmp)
+	// mss.SortBy(func(a, b Pair[Int, Slice[int]]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+	mss.SortByKey(Int.Cmp)
 	fmt.Println("after sort by key: ", mss)
 
 	// mss.SortBy(func(a, b g.Pair[g.Int, g.Slice[int]]) cmp.Ordering { return cmp.Cmp(a.Value[1], b.Value[1]) })
-	mss.SortByValue(func(a, b g.Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
+	mss.SortByValue(func(a, b Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
-	// g.MapOrdFromStd(mss.ToMap().Std()).Print()
+	// MapOrdFromStd(mss.ToMap().Std()).Print()
 }

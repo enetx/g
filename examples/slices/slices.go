@@ -2,23 +2,24 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
 
 func main() {
-	ws := g.SliceOf[g.String]("d", "b", "c", "a")
+	ws := SliceOf[String]("d", "b", "c", "a")
 
-	// ws.SortBy(g.String.Cmp)
+	// ws.SortBy(String.Cmp)
 	// or
 	ws.SortBy(cmp.Cmp)
 
 	ws.Print()
 
-	wsl := g.SliceOf[g.String](
+	wsl := SliceOf[String](
 		"aa a",
 		"b b",
 		"o o oo oooo",
@@ -31,22 +32,22 @@ func main() {
 		"four",
 	)
 
-	// wsl.SortBy(func(a, b g.String) cmp.Ordering { return a.Cmp(b) }) // or
-	// wsl.SortBy(g.String.Cmp) // or
+	// wsl.SortBy(func(a, b String) cmp.Ordering { return a.Cmp(b) }) // or
+	// wsl.SortBy(String.Cmp) // or
 	wsl.SortBy(cmp.Cmp)
 	wsl.Print() // Slice[a a a aaaa, aa a, aa a a aa a, aaa aaa, aaa aaaa, b b, four, o o oo oooo, one, three three]
 
-	wsl.SortBy(func(a, b g.String) cmp.Ordering { return a.Cmp(b).Reverse() })
+	wsl.SortBy(func(a, b String) cmp.Ordering { return a.Cmp(b).Reverse() })
 	wsl.Print() // Slice[three three, one, o o oo oooo, four, b b, aaa aaaa, aaa aaa, aa a a aa a, aa a, a a a aaaa]
 
-	wsl.SortBy(func(a, b g.String) cmp.Ordering {
+	wsl.SortBy(func(a, b String) cmp.Ordering {
 		return a.Fields().Collect().Len().Cmp(b.Fields().Collect().Len()).
 			Then(a.Len().Cmp(b.Len()))
 	})
 
 	wsl.Print() // Slice[one, four, b b, aa a, aaa aaa, aaa aaaa, three three, a a a aaaa, o o oo oooo, aa a a aa a]
 
-	slice := g.Slice[int]{1, 2, 3, 4}
+	slice := Slice[int]{1, 2, 3, 4}
 
 	slice.Iter().Filter(f.Gt(2)).Collect().Print() // Slice[3, 4]
 	slice.Iter().Filter(f.Eq(2)).Collect().Print() // Slice[2]
@@ -60,7 +61,7 @@ func main() {
 		return val != 3
 	})
 
-	result := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	result := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 	result.Delete(1).Print()  // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 	result.Delete(-9).Print() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -76,19 +77,19 @@ func main() {
 	result.Print()
 	fmt.Printf("%#v\n", result.Std())
 
-	filled := g.NewSlice[int](10)
+	filled := NewSlice[int](10)
 	filled.Fill(88)
 
 	filled.Print()
 
-	slice = g.Slice[int]{1, 2, 3, 4, 5}.Print()
+	slice = Slice[int]{1, 2, 3, 4, 5}.Print()
 
 	slice.Cut(1, 3).Print()  // Slice[1, 4, 5]
 	slice.Cut(-4, 3).Print() // Slice[1, 4, 5]
 	slice.Cut(-3, 4).Print() // Slice[1, 2, 5]
 
 	// InPlace Methods
-	sipl := g.NewSlice[int]()
+	sipl := NewSlice[int]()
 
 	sipl.AppendInPlace(1)
 	sipl.AppendInPlace(2)
@@ -102,31 +103,35 @@ func main() {
 
 	sipl.Print()
 
-	slicea := g.Slice[string]{"a", "b", "c", "d"}
+	slicea := Slice[string]{"a", "b", "c", "d"}
 	slicea.InsertInPlace(2, "e", "f")
 	slicea.Print()
 
-	slice = g.Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
+	slice = Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
 	slice = slice.Iter().Exclude(f.Zero).Collect()
 
 	slice.DeleteInPlace(0)
 	slice.Print()
 
-	sll := g.NewSlice[int](0, 100000)
+	sll := NewSlice[int](0, 100000)
 	sll = sll.Append(1).Clip()
 
 	fmt.Println(sll.Cap())
 
-	g.SliceMap([]string{"AAA", "BBB"}, g.NewString).Iter().Map(g.String.Lower).Collect().Print()
-	g.SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Print()
+	SliceMap([]string{"AAA", "BBB"}, NewString).Iter().Map(String.Lower).Collect().Print()
+	SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Print()
 
-	g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).Iter().
+	SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).Iter().
 		Filter(isPrime).
 		ForEach(func(n int) { fmt.Printf("%d is a prime number\n", n) })
 }
 
 func isPrime(n int) bool {
-	for i := 2; i < n/2; i++ {
+	if n <= 1 {
+		return false
+	}
+
+	for i := 2; i <= int(math.Sqrt(float64(n))); i++ {
 		if n%i == 0 {
 			return false
 		}

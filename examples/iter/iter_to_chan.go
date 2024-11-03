@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	jobs := g.SliceOf(1, 1, 1, 3, 4, 4, 8, 8, 9, 9).
+	jobs := SliceOf(1, 1, 1, 3, 4, 4, 8, 8, 9, 9).
 		Iter().
 		// Dedup().
 		ToChan(ctx)

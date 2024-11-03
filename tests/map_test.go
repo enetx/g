@@ -239,6 +239,11 @@ func TestMapEq(t *testing.T) {
 	if map5.Eq(map7) {
 		t.Errorf("Test case 5 failed: Maps with different values should not be considered equal")
 	}
+
+	// Test case 6
+	if !g.NewMap[int, int]().Eq(g.NewMap[int, int]()) {
+		t.Errorf("Test case 6 failed: Empty maps should be considered equal")
+	}
 }
 
 func TestMapToMap(t *testing.T) {

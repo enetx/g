@@ -3,18 +3,18 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func main() {
 	type Order struct {
-		Product  g.String
-		Customer g.String
-		Price    g.Float
+		Product  String
+		Customer String
+		Price    Float
 	}
 
-	orders := g.Slice[Order]{
+	orders := Slice[Order]{
 		{"foo", "alice", 1.00},
 		{"bar", "bob", 3.00},
 		{"baz", "carol", 4.00},

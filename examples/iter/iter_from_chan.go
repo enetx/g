@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	}()
 
 	// Convert the channel into an iterator and apply filtering and mapping operations.
-	g.FromChan(ch).
+	FromChan(ch).
 		Filter(f.Even).                        // Filter even numbers
 		Map(func(i int) int { return i * 2 }). // Double each element
 		Collect().                             // Collect the results into a slice

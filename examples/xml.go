@@ -4,21 +4,21 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	type Plant struct {
-		XMLName xml.Name        `xml:"plant"`
-		ID      g.Int           `xml:"id,attr"`
-		Name    g.String        `xml:"name"`
-		Origin  g.Slice[string] `xml:"origin"`
+		XMLName xml.Name      `xml:"plant"`
+		ID      Int           `xml:"id,attr"`
+		Name    String        `xml:"name"`
+		Origin  Slice[string] `xml:"origin"`
 	}
 
 	coffee := &Plant{ID: 27, Name: "Coffee"}
-	coffee.Origin = g.SliceOf("Ethiopia", "Brazil")
+	coffee.Origin = SliceOf("Ethiopia", "Brazil")
 
-	s := g.NewString("").Encode().XML(coffee, "", "  ").Unwrap().Append("\n")
+	s := NewString("").Encode().XML(coffee, "", "  ").Unwrap().Append("\n")
 	fmt.Println(s)
 
 	var coffee2 Plant

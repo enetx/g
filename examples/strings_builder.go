@@ -1,9 +1,11 @@
 package main
 
-import "github.com/enetx/g"
+import (
+	. "github.com/enetx/g"
+)
 
 func main() {
-	builder := g.NewString("builder\n").Builder()
+	builder := NewString("builder\n").Builder()
 
 	for range 10 {
 		builder.

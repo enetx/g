@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Example 1
-	g.Slice[string]{"Hello", "World", "!"}.Iter().
+	Slice[string]{"Hello", "World", "!"}.Iter().
 		Intersperse(" ").
 		Collect().
 		Join().
 		Print() // Hello World !
 
 		// Example 2
-	str := g.String("I love ice cream. Ice cream is delicious.")
-	matches := g.Slice[g.String]{"Ice", "cream"}.Iter().Intersperse("").Collect().Append("")
+	str := String("I love ice cream. Ice cream is delicious.")
+	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect().Append("")
 
 	str = str.ReplaceMulti(matches...)
 	str.Print() // I love ice .   is delicious.

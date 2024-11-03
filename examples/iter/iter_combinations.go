@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Create a slice of integers
-	slice := g.Slice[int]{0, 1, 2, 3}
+	slice := Slice[int]{0, 1, 2, 3}
 
 	// Get an iterator for the slice, generate combinations, and collect the result
 	perms := slice.Iter().Combinations(3).Collect()
@@ -20,14 +20,14 @@ func main() {
 	}
 
 	// Create two slices of strings
-	p1 := g.SliceOf[g.String]("a", "b")
-	p2 := g.SliceOf[g.String]("c", "d")
+	p1 := SliceOf[String]("a", "b")
+	p2 := SliceOf[String]("c", "d")
 
 	// Chain the two slices, convert to uppercase, generate combinations, and collect the result
 	pp := p1.
 		Iter().
 		Chain(p2.Iter()).
-		Map(g.String.Upper).
+		Map(String.Upper).
 		Combinations(2).
 		Collect()
 

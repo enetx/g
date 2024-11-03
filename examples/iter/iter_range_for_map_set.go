@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Example 1: Map key-value pairs in a map, print the result, and close the iterator at a specific condition
-	m := g.NewMap[int, string]().Set(88, "aa").Set(99, "bb").Set(199, "ii").Iter()
+	m := NewMap[int, string]().Set(88, "aa").Set(99, "bb").Set(199, "ii").Iter()
 
 	m.
 		Map(func(k int, v string) (int, string) { return k + k, v }).
@@ -23,7 +23,7 @@ func main() {
 		})
 
 	// Example 2: Iterate over a set of integers, print each value, and stop the iteration at a specific condition
-	set := g.NewSet[int]().Add(1, 2, 3, 4, 5).Iter()
+	set := NewSet[int]().Add(1, 2, 3, 4, 5).Iter()
 
 	set.
 		Map(func(v int) int { return v + v }).

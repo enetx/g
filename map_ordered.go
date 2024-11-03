@@ -6,6 +6,7 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
+	"github.com/enetx/g/pkg/rand"
 )
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
@@ -230,6 +231,17 @@ func (mo MapOrd[K, V]) Get(key K) Option[V] {
 	return None[V]()
 }
 
+// Shuffle randomly reorders the elements of the ordered Map.
+// It operates in place and affects the original order of the map's entries.
+//
+// The function uses the crypto/rand package to generate random indices.
+func (mo MapOrd[K, V]) Shuffle() {
+	for i := mo.Len() - 1; i > 0; i-- {
+		j := rand.N(i + 1)
+		mo[i], mo[j] = mo[j], mo[i]
+	}
+}
+
 // GetOrSet returns the value for a key. If the key does not exist, it returns the default value
 // instead and also sets the default value for the key in the ordered Map. This function is useful
 // when you want to access the value associated with a key in the ordered Map, and if the key does
@@ -311,16 +323,26 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
 func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
-	if len(mo) != len(other) || mo.Empty() {
+	n := len(mo)
+
+	if n != len(other) {
 		return false
+	}
+
+	if n == 0 {
+		return true
 	}
 
 	comparable := f.Comparable(mo[0].Value)
 
-	for _, mp := range mo {
-		value := other.Get(mp.Key)
-		if value.IsNone() || (comparable && !f.Eq[any](value.Some())(mp.Value)) ||
-			(!comparable && !f.Eqd(value.Some())(mp.Value)) {
+	for i, mp := range mo {
+		if other.index(mp.Key) != i {
+			return false
+		}
+
+		value := other[i].Value
+
+		if comparable && !f.Eq[any](value)(mp.Value) || !comparable && !f.Eqd(value)(mp.Value) {
 			return false
 		}
 	}

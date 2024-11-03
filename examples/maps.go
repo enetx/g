@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
-	gos := g.NewMap[string, *int]()
+	gos := NewMap[string, *int]()
 
 	gos.GetOrSet("root", ref.Of(3))
 	fmt.Println(*gos.Get("root").Some() == 3)
@@ -18,7 +18,7 @@ func main() {
 
 	//////////////////////////////////////////////////////////////////////////
 
-	gos2 := g.NewMap[int, g.Slice[int]]()
+	gos2 := NewMap[int, Slice[int]]()
 
 	for i := range 5 {
 		gos2.Set(i, gos2.Get(i).UnwrapOrDefault().Append(i))
@@ -32,7 +32,7 @@ func main() {
 
 	//////////////////////////////////////////////////////////////////////////
 
-	god := g.NewMap[int, g.Slice[int]]()
+	god := NewMap[int, Slice[int]]()
 
 	for i := range 10 {
 		god[i] = god.Get(i).UnwrapOrDefault().Append(i)

@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Create a slice of integers
-	windows := g.SliceOf(1, 2, 3, 4).
+	windows := SliceOf(1, 2, 3, 4).
 		Iter().
 		Windows(2). // Create windows of size 2
 		Collect()   // Collect the resulting windows
@@ -17,5 +17,5 @@ func main() {
 	fmt.Println(windows) // [Slice[1, 2] Slice[2, 3] Slice[3, 4]]
 
 	// Convert to iterator
-	g.SliceOf(windows...).Iter()
+	SliceOf(windows...).Iter()
 }

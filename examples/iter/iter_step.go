@@ -1,10 +1,10 @@
 package main
 
-import "github.com/enetx/g"
+import . "github.com/enetx/g"
 
 func main() {
 	// Create a new ordered map with integer keys and string values
-	m := g.NewMapOrd[int, string]()
+	m := NewMapOrd[int, string]()
 	m.
 		Set(0, "aa").
 		Set(1, "bb").

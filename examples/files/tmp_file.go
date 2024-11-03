@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Create a temporary file in the current directory with a ".txt" extension
-	f := g.NewFile("").CreateTemp("./", "*.txt").Unwrap().Write("some text").Unwrap()
+	f := NewFile("").CreateTemp("./", "*.txt").Unwrap().Write("some text").Unwrap()
 
 	// Alternatively, create a temporary file without specifying the extension
 	// f := g.NewFile("").CreateTemp().Unwrap().Write("some text").Unwrap()

@@ -5,14 +5,14 @@ import (
 	"log"
 	"os"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	fn := RedirectLogOutput()
 	defer fn()
 
-	g.NewFile("file_not_exist.txt").Stat().Unwrap()
+	NewFile("file_not_exist.txt").Stat().Unwrap()
 }
 
 func RedirectLogOutput() func() {

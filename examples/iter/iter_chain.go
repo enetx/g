@@ -1,13 +1,11 @@
 package main
 
-import (
-	"github.com/enetx/g"
-)
+import . "github.com/enetx/g"
 
 func main() {
 	// Create two slices of strings, p1 and p2
-	p1 := g.SliceOf[g.String]("bbb", "ddd")
-	p2 := g.SliceOf[g.String]("xxx", "aaa")
+	p1 := SliceOf[String]("bbb", "ddd")
+	p2 := SliceOf[String]("xxx", "aaa")
 
 	// Chain the iterators of p1 and p2 and collect the results into a new slice pp
 	pp := p1.

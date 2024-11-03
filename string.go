@@ -42,7 +42,7 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 //
 //	randomString := g.String.Random(10)
 //	randomString contains a random String with 10 characters.
-func (String) Random(count Int, letters ...String) String {
+func (String) Random(length Int, letters ...String) String {
 	var chars Slice[rune]
 
 	if len(letters) != 0 {
@@ -53,7 +53,7 @@ func (String) Random(count Int, letters ...String) String {
 
 	result := NewBuilder()
 
-	for range count {
+	for range length {
 		result.WriteRune(chars.Random())
 	}
 

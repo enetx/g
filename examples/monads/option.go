@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	// Creating Some and None Options
-	someOption := g.Some(42)
-	noneOption := g.None[int]()
+	someOption := Some(42)
+	noneOption := None[int]()
 
 	// Checking if Option is Some or None
 	fmt.Println(someOption.IsSome()) // Output: true
@@ -21,15 +21,15 @@ func main() {
 	fmt.Println(noneOption.UnwrapOr(10)) // Output: 10
 
 	// Mapping over Options
-	doubledOption := someOption.Then(func(val int) g.Option[int] {
-		return g.Some(val * 2)
+	doubledOption := someOption.Then(func(val int) Option[int] {
+		return Some(val * 2)
 	})
 
 	fmt.Println(doubledOption.Unwrap()) // Output: 84
 
 	// Using OptionMap to transform the value inside Option
-	addTwoOption := g.OptionMap(someOption, func(val int) g.Option[string] {
-		return g.Some("result: " + strconv.Itoa(val+2))
+	addTwoOption := OptionMap(someOption, func(val int) Option[string] {
+		return Some("result: " + strconv.Itoa(val+2))
 	})
 
 	fmt.Println(addTwoOption.Unwrap()) // Output: "result: 44"
@@ -41,15 +41,15 @@ func main() {
 	// Using Then to chain operations on Option
 	resultOption := someOption.
 		Then(
-			func(val int) g.Option[int] {
+			func(val int) Option[int] {
 				if val > 10 {
-					return g.Some(val * 2)
+					return Some(val * 2)
 				}
-				return g.None[int]()
+				return None[int]()
 			}).
 		Then(
-			func(val int) g.Option[int] {
-				return g.Some(val + 5)
+			func(val int) Option[int] {
+				return Some(val + 5)
 			})
 
 	fmt.Println(resultOption.Unwrap()) // Output: 89

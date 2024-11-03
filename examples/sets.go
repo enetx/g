@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
 func main() {
-	sl := g.SliceOf(1, 2, 3, 4, 4, 2, 5, 0)
-	s := g.SetOf(sl...) // convert Slice to Set
+	sl := SliceOf(1, 2, 3, 4, 4, 2, 5, 0)
+	s := SetOf(sl...) // convert Slice to Set
 
 	s.Iter().ForEach(func(i int) {
 		fmt.Println(i)
@@ -26,18 +26,18 @@ func main() {
 		Collect().
 		Print()
 
-	s2 := g.SetOf(4, 5, 6, 7, 8)
+	s2 := SetOf(4, 5, 6, 7, 8)
 	s.SymmetricDifference(s2).Collect().Print()
 
-	set5 := g.SetOf(1, 2)
-	set6 := g.SetOf(2, 3, 4, 9)
+	set5 := SetOf(1, 2)
+	set6 := SetOf(2, 3, 4, 9)
 
 	s.Iter().Chain(set5.Iter(), set6.Iter()).Map(func(i int) int { return i + i }).Collect().Print()
 
 	set7 := set5.Difference(set6).Collect()
 	set7.Print()
 
-	s = g.SetOf(1, 2, 3, 4, 5)
+	s = SetOf(1, 2, 3, 4, 5)
 	even = s.Iter().Filter(f.Even).Collect()
 	even.Print()
 
@@ -49,6 +49,6 @@ func main() {
 		fmt.Println(value)
 	}
 
-	s = g.SetOf(1, 2, 3)
-	g.SetMap(s, g.NewInt) // g.Set[g.Int]
+	s = SetOf(1, 2, 3)
+	SetMap(s, NewInt) // Set[g.Int]
 }

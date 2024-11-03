@@ -650,6 +650,11 @@ func TestMapOrdEq(t *testing.T) {
 	if m1.Eq(m4) {
 		t.Errorf("Expected maps to be unequal")
 	}
+
+	// Test case 4
+	if !g.NewMapOrd[int, int]().Eq(g.NewMapOrd[int, int]()) {
+		t.Errorf("Empty ordered maps should be considered equal")
+	}
 }
 
 func TestMapOrdIterInspect(t *testing.T) {
@@ -927,5 +932,19 @@ func TestMapOrdIterUnzip(t *testing.T) {
 	expectedValues := g.SliceOf(1, 2, 3)
 	if values.Collect().Ne(expectedValues) {
 		t.Errorf("Expected values %v, but got %v", expectedValues, values)
+	}
+}
+
+func TestMapOrdShuffle(t *testing.T) {
+	mo := g.NewMapOrd[int, int]()
+	for i := 1; i <= 5; i++ {
+		mo.Set(i, i)
+	}
+
+	clone := mo.Clone()
+	mo.Shuffle()
+
+	if mo.Eq(clone) {
+		t.Errorf("The order of elements has not changed after shuffle")
 	}
 }

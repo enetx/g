@@ -1,10 +1,10 @@
 package main
 
-import "github.com/enetx/g"
+import . "github.com/enetx/g"
 
 func main() {
 	// Create a slice of strings
-	g.SliceOf("bbb", "ddd", "bbb", "aaa", "xxx", "bbb", "bbb", "xxx", "ddd", "bbb", "aaa", "bbb").
+	SliceOf("bbb", "ddd", "bbb", "aaa", "xxx", "bbb", "bbb", "xxx", "ddd", "bbb", "aaa", "bbb").
 		Iter().
 		Unique().  // Filter out duplicate elements
 		Collect(). // Collect the unique elements

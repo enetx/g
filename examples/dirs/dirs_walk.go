@@ -1,15 +1,15 @@
 package main
 
-import "github.com/enetx/g"
+import . "github.com/enetx/g"
 
 func main() {
-	g.NewDir(".").Walk(walker)
+	NewDir(".").Walk(walker)
 }
 
-func walker(f *g.File) error {
+func walker(f *File) error {
 	// Skip symbolic link directories
 	if f.IsDir() && f.Dir().Ok().IsLink() {
-		return g.SkipWalk
+		return SkipWalk
 	}
 
 	// Skip symbolic link files

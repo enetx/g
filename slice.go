@@ -415,9 +415,7 @@ func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
 //
 // Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
 func (sl Slice[T]) Shuffle() {
-	n := sl.Len()
-
-	for i := n - 1; i > 0; i-- {
+	for i := sl.Len() - 1; i > 0; i-- {
 		j := rand.N(i + 1)
 		sl.swap(i, j)
 	}

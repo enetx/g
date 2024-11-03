@@ -3,18 +3,18 @@ package main
 import (
 	"fmt"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func main() {
 	type response struct {
-		Page   g.Int           `json:"page"`
-		Fruits g.Slice[string] `json:"fruits"`
+		Page   Int           `json:"page"`
+		Fruits Slice[String] `json:"fruits"`
 	}
 
-	res := response{Page: 1, Fruits: g.SliceOf("apple", "peach", "pear")}
+	res := response{Page: 1, Fruits: Slice[String]{"apple", "peach", "pear"}}
 
-	s := g.NewString("").Encode().JSON(res).Unwrap().Append("\n").Print()
+	s := String("").Encode().JSON(res).Unwrap().Append("\n").Print()
 
 	var res2 response
 

@@ -87,8 +87,14 @@ func (m Map[K, V]) Std() map[K]V { return m }
 
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
-	if len(m) != len(other) || m.Empty() {
+	n := len(m)
+
+	if n != len(other) {
 		return false
+	}
+
+	if n == 0 {
+		return true
 	}
 
 	key := m.Iter().Take(1).Keys().Collect()[0]
