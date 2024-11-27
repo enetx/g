@@ -18,6 +18,8 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
+func (s String) Transform(fn func(String) String) String { return fn(s) }
+
 // Builder returns a new Builder initialized with the content of the String.
 func (s String) Builder() *Builder { return NewBuilder().Write(s) }
 
@@ -423,13 +425,13 @@ func (s String) SplitAfter(sep String) SeqSlice[String] { return splitString(s, 
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (s String) SplitN(sep String, n Int) Slice[String] {
-	return SliceMap(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
+	return TransformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
 }
 
 // SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
 func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
-	return SliceMap(pattern.Split(s.Std(), -1), NewString)
+	return TransformSlice(pattern.Split(s.Std(), -1), NewString)
 }
 
 // SplitRegexpN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
@@ -439,7 +441,7 @@ func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]] {
-	result := SliceMap(pattern.Split(s.Std(), n.Std()), NewString)
+	result := TransformSlice(pattern.Split(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -478,7 +480,7 @@ func (s String) Chunks(size Int) Slice[String] {
 		return Slice[String]{s}
 	}
 
-	return SliceMap(s.Split().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
+	return TransformSlice(s.Split().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
 }
 
 // Cut returns two String values. The first String contains the remainder of the
@@ -651,7 +653,7 @@ func (s String) Index(substr String) Int { return Int(strings.Index(s.Std(), sub
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (s String) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := SliceMap(pattern.FindStringIndex(s.Std()), NewInt)
+	result := TransformSlice(pattern.FindStringIndex(s.Std()), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
 	}
@@ -671,7 +673,7 @@ func (s String) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
 func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
-	result := SliceMap(pattern.FindAllString(s.Std(), n.Std()), NewString)
+	result := TransformSlice(pattern.FindAllString(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -684,7 +686,7 @@ func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Strin
 // The Option will contain an Slice[String] with the full match at index 0, followed by any captured submatches.
 // If no match is found, it returns None.
 func (s String) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
-	result := SliceMap(pattern.FindStringSubmatch(s.Std()), NewString)
+	result := TransformSlice(pattern.FindStringSubmatch(s.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
 	}
@@ -712,7 +714,7 @@ func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 	var result Slice[Slice[String]]
 
 	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n.Std()) {
-		result = append(result, SliceMap(v, NewString))
+		result = append(result, TransformSlice(v, NewString))
 	}
 
 	if result.Empty() {

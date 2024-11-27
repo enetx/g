@@ -16,6 +16,8 @@ import (
 // NewBytes creates a new Bytes value.
 func NewBytes[T ~string | ~[]byte](bs T) Bytes { return Bytes(bs) }
 
+func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
+
 // Reverse returns a new Bytes with the order of its runes reversed.
 func (bs Bytes) Reverse() Bytes {
 	reversed := make(Bytes, bs.Len())
@@ -169,7 +171,7 @@ func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (bs Bytes) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := SliceMap(pattern.FindIndex(bs), NewInt)
+	result := TransformSlice(pattern.FindIndex(bs), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
 	}
@@ -189,7 +191,7 @@ func (bs Bytes) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[Bytes]] {
 // If no matches are found, the Option[Slice[Bytes]] will be None.
 // If n is negative, all occurrences will be returned.
 func (bs Bytes) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
-	result := SliceMap(pattern.FindAll(bs, n.Std()), NewBytes)
+	result := TransformSlice(pattern.FindAll(bs, n.Std()), NewBytes)
 	if result.Empty() {
 		return None[Slice[Bytes]]()
 	}
@@ -203,7 +205,7 @@ func (bs Bytes) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes
 // where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Bytes]] will be None.
 func (bs Bytes) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[Bytes]] {
-	result := SliceMap(pattern.FindSubmatch(bs), NewBytes)
+	result := TransformSlice(pattern.FindSubmatch(bs), NewBytes)
 	if result.Empty() {
 		return None[Slice[Bytes]]()
 	}
@@ -231,7 +233,7 @@ func (bs Bytes) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Sli
 	var result Slice[Slice[Bytes]]
 
 	for _, v := range pattern.FindAllSubmatch(bs, n.Std()) {
-		result = append(result, SliceMap(v, NewBytes))
+		result = append(result, TransformSlice(v, NewBytes))
 	}
 
 	if result.Empty() {

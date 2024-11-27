@@ -36,6 +36,8 @@ func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
 	return make(MapOrd[K, V], 0, size[0])
 }
 
+func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
+
 // Iter returns an iterator (SeqMapOrd[K, V]) for the ordered Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the ordered Map.

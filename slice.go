@@ -48,10 +48,7 @@ func NewSlice[T any](size ...Int) Slice[T] {
 	return make(Slice[T], length, capacity)
 }
 
-// SliceOf creates a new generic slice containing the provided elements.
-func SliceOf[T any](slice ...T) Slice[T] { return slice }
-
-// SliceMap applies the given function to each element of a Slice and returns a new Slice
+// TransformSlice applies the given function to each element of a Slice and returns a new Slice
 // containing the transformed values.
 //
 // Parameters:
@@ -63,7 +60,14 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 // Returns:
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
-func SliceMap[T, U any](sl Slice[T], fn func(T) U) Slice[U] { return sliceMap(sl.Iter(), fn).Collect() }
+func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
+	return transformSlice(sl.Iter(), fn).Collect()
+}
+
+// SliceOf creates a new generic slice containing the provided elements.
+func SliceOf[T any](slice ...T) Slice[T] { return slice }
+
+func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl) }
 
 // Iter returns an iterator (SeqSlice[T]) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
@@ -91,7 +95,7 @@ func (sl Slice[T]) Iter() SeqSlice[T] { return ToSeqSlice(sl) }
 //
 // Note: AsAny is useful when you want to work with a slice of a specific type as a slice of 'any'.
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
-func (sl Slice[T]) AsAny() Slice[any] { return SliceMap(sl, func(t T) any { return any(t) }) }
+func (sl Slice[T]) AsAny() Slice[any] { return TransformSlice(sl, func(t T) any { return any(t) }) }
 
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same

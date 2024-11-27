@@ -426,7 +426,7 @@ func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] { return intersperse(seq, 
 // Output: [2 4 6].
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return sliceMap(seq, transform) }
+func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return transformSlice(seq, transform) }
 
 // Partition divides the elements of the iterator into two separate slices based on a given predicate function.
 //
@@ -770,7 +770,7 @@ func chainSlice[V any](seqs ...SeqSlice[V]) SeqSlice[V] {
 	}
 }
 
-func sliceMap[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
+func transformSlice[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
 	return func(yield func(U) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))

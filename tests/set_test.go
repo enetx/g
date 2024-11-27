@@ -405,11 +405,11 @@ func TestSetUnion(t *testing.T) {
 	}
 }
 
-func TestSetMap(t *testing.T) {
+func TestTransformSet(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := g.SetOf(1, 2, 3)
 	expected := g.SetOf("1", "2", "3")
-	setMap := g.SetMap(set1, func(val int) string { return fmt.Sprintf("%d", val) })
+	setMap := g.TransformSet(set1, func(val int) string { return fmt.Sprintf("%d", val) })
 	if len(setMap) != len(expected) {
 		t.Errorf("Expected SetMap to have length %d, got %d", len(expected), len(setMap))
 	}
@@ -421,7 +421,7 @@ func TestSetMap(t *testing.T) {
 
 	// Test case 2: Empty Set
 	set2 := g.NewSet[int]()
-	setMap = g.SetMap(set2, func(val int) string { return fmt.Sprintf("%d", val) })
+	setMap = g.TransformSet(set2, func(val int) string { return fmt.Sprintf("%d", val) })
 	if len(setMap) != 0 {
 		t.Errorf("Expected SetMap of an empty set to be empty")
 	}

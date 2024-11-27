@@ -11,17 +11,7 @@ func NewSet[T comparable](size ...Int) Set[T] {
 	return make(Set[T], size[0])
 }
 
-// SetOf creates a new generic set containing the provided elements.
-func SetOf[T comparable](values ...T) Set[T] {
-	set := NewSet[T](Int(len(values)))
-	for _, v := range values {
-		set.Add(v)
-	}
-
-	return set
-}
-
-// SetMap applies the given function to each element of a Set and returns a new Set
+// TransformSet applies the given function to each element of a Set and returns a new Set
 // containing the transformed values.
 //
 // Parameters:
@@ -32,7 +22,21 @@ func SetOf[T comparable](values ...T) Set[T] {
 // Returns:
 //
 // A new Set containing the results of applying the function to each element of the input Set.
-func SetMap[T, U comparable](s Set[T], fn func(T) U) Set[U] { return mapSet(s.Iter(), fn).Collect() }
+func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
+	return transformSet(s.Iter(), fn).Collect()
+}
+
+// SetOf creates a new generic set containing the provided elements.
+func SetOf[T comparable](values ...T) Set[T] {
+	set := NewSet[T](Int(len(values)))
+	for _, v := range values {
+		set.Add(v)
+	}
+
+	return set
+}
+
+func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 
 // Iter returns an iterator (SeqSet[T]) for the Set, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,

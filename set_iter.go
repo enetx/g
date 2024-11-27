@@ -185,7 +185,7 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] { return exclude(seq, fn
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return mapSet(seq, transform) }
+func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return transformSet(seq, transform) }
 
 func ToSeqSet[V comparable](slice Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
@@ -216,7 +216,7 @@ func chainSet[V comparable](seqs ...SeqSet[V]) SeqSet[V] {
 	}
 }
 
-func mapSet[V, U comparable](seq SeqSet[V], fn func(V) U) SeqSet[U] {
+func transformSet[V, U comparable](seq SeqSet[V], fn func(V) U) SeqSet[U] {
 	return func(yield func(U) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))

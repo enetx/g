@@ -19,6 +19,8 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 // MapFromStd creates an Map from a given Go map.
 func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
 
+func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
+
 // Iter returns an iterator (SeqMap[K, V]) for the Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the Map.

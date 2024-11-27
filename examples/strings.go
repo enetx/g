@@ -57,4 +57,8 @@ func main() {
 	)
 
 	modified.Print()
+
+	num := String("hello")
+
+	num.Transform(String.Title).Print() // String type
 }
