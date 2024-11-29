@@ -19,7 +19,7 @@ func main() {
 
 	s.Iter().
 		Filter(func(val int) bool { return val%2 == 0 }).
-		Exclude(f.Zero).
+		Exclude(f.IsZero).
 		Inspect(func(i int) {
 			fmt.Println(i)
 		}).
@@ -38,7 +38,7 @@ func main() {
 	set7.Print()
 
 	s = SetOf(1, 2, 3, 4, 5)
-	even = s.Iter().Filter(f.Even).Collect()
+	even = s.Iter().Filter(f.IsEven).Collect()
 	even.Print()
 
 	s = s.Remove(1)

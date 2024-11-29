@@ -36,6 +36,7 @@ func SetOf[T comparable](values ...T) Set[T] {
 	return set
 }
 
+// Transform applies a transformation function to the Set and returns the result.
 func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 
 // Iter returns an iterator (SeqSet[T]) for the Set, allowing for sequential iteration

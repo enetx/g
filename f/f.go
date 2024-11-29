@@ -3,6 +3,7 @@ package f
 import (
 	"cmp"
 	"reflect"
+	"strings"
 
 	"github.com/enetx/g/pkg/constraints"
 )
@@ -10,14 +11,42 @@ import (
 // Comparable reports whether the value v is comparable.
 func Comparable[T any](v T) bool { return reflect.ValueOf(v).Comparable() }
 
-// Zero is a generic function designed to check if a value is considered zero.
-func Zero[T cmp.Ordered](v T) bool { return v == *new(T) }
+// IsZero is a generic function designed to check if a value is considered zero.
+func IsZero[T cmp.Ordered](v T) bool { return v == *new(T) }
 
-// Even is a generic function that checks if the provided integer is even.
-func Even[T constraints.Integer](i T) bool { return i%2 == 0 }
+// IsEven is a generic function that checks if the provided integer is even.
+func IsEven[T constraints.Integer](i T) bool { return i%2 == 0 }
 
-// Odd is a generic function that checks if the provided integer is odd.
-func Odd[T constraints.Integer](i T) bool { return i%2 != 0 }
+// IsOdd is a generic function that checks if the provided integer is odd.
+func IsOdd[T constraints.Integer](i T) bool { return i%2 != 0 }
+
+// Contains returns a function that checks whether a string contains a given substring.
+func Contains[T ~string](t T) func(T) bool {
+	return func(s T) bool {
+		return strings.Contains(string(s), string(t))
+	}
+}
+
+// ContainsAnyChars returns a function that checks whether a string contains any of the characters from a given set.
+func ContainsAnyChars[T ~string](t T) func(T) bool {
+	return func(s T) bool {
+		return strings.ContainsAny(string(s), string(t))
+	}
+}
+
+// StartsWith returns a function that checks whether a string starts with a given prefix.
+func StartsWith[T ~string](t T) func(T) bool {
+	return func(s T) bool {
+		return strings.HasPrefix(string(s), string(t))
+	}
+}
+
+// EndsWith returns a function that checks whether a string ends with a given suffix.
+func EndsWith[T ~string](t T) func(T) bool {
+	return func(s T) bool {
+		return strings.HasSuffix(string(s), string(t))
+	}
+}
 
 // Eq returns a comparison function that evaluates to true when a value is equal to the provided threshold.
 func Eq[T comparable](t T) func(T) bool {

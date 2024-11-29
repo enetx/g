@@ -200,7 +200,7 @@ func main() {
 	reg := NewString("some text")
 	fmt.Println(reg.ContainsRegexp(`\w+`).Unwrap())
 
-	fmt.Println(String("example.com").EndsWith(".com", ".net"))
+	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 
 	NewString("Hello").Format("%s world").Print()
 }

@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/f"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -18,6 +19,7 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
+// Transform applies a transformation function to the String and returns the result.
 func (s String) Transform(fn func(String) String) String { return fn(s) }
 
 // Builder returns a new Builder initialized with the content of the String.
@@ -323,36 +325,31 @@ func (s String) ContainsRegexpAll(patterns ...String) Result[bool] {
 }
 
 // Contains checks if the String contains the specified substring.
-func (s String) Contains(substr String) bool { return strings.Contains(s.Std(), substr.Std()) }
+// func (s String) Contains(substr String) bool { return strings.Contains(s.Std(), substr.Std()) }
+func (s String) Contains(substr String) bool { return f.Contains(substr)(s) }
 
 // ContainsAny checks if the String contains any of the specified substrings.
 func (s String) ContainsAny(substrs ...String) bool {
-	for _, substr := range substrs {
-		if s.Contains(substr) {
-			return true
-		}
-	}
-
-	return false
+	return Slice[String](substrs).
+		Iter().
+		Any(func(substr String) bool { return s.Contains(substr) })
 }
 
 // ContainsAll checks if the given String contains all the specified substrings.
 func (s String) ContainsAll(substrs ...String) bool {
-	for _, substr := range substrs {
-		if !s.Contains(substr) {
-			return false
-		}
-	}
-
-	return true
+	return Slice[String](substrs).
+		Iter().
+		All(func(substr String) bool { return s.Contains(substr) })
 }
 
 // ContainsAnyChars checks if the String contains any characters from the specified String.
-func (s String) ContainsAnyChars(chars String) bool {
-	return strings.ContainsAny(s.Std(), chars.Std())
-}
+func (s String) ContainsAnyChars(chars String) bool { return f.ContainsAnyChars(chars)(s) }
 
-// StartsWith checks if the String starts with any of the provided prefixes.
+// StartsWith checks if the String starts with the specified prefix.
+// It uses a higher-order function to perform the check.
+func (s String) StartsWith(prefix String) bool { return f.StartsWith(prefix)(s) }
+
+// StartsWithAny checks if the String starts with any of the provided prefixes.
 // The method accepts a variable number of arguments, allowing for checking against multiple
 // prefixes at once. It iterates over the provided prefixes and uses the HasPrefix function from
 // the strings package to check if the String starts with each prefix.
@@ -361,20 +358,20 @@ func (s String) ContainsAnyChars(chars String) bool {
 // Example usage:
 //
 //	s := g.String("http://example.com")
-//	if s.StartsWith("http://", "https://") {
+//	if s.StartsWithAny("http://", "https://") {
 //	   // do something
 //	}
-func (s String) StartsWith(prefixes ...String) bool {
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(string(s), prefix.Std()) {
-			return true
-		}
-	}
-
-	return false
+func (s String) StartsWithAny(prefixes ...String) bool {
+	return Slice[String](prefixes).
+		Iter().
+		Any(func(prefix String) bool { return s.StartsWith(prefix) })
 }
 
-// EndsWith checks if the String ends with any of the provided suffixes.
+// EndsWith checks if the String ends with the specified suffix.
+// It uses a higher-order function to perform the check.
+func (s String) EndsWith(suffix String) bool { return f.EndsWith(suffix)(s) }
+
+// EndsWithAny checks if the String ends with any of the provided suffixes.
 // The method accepts a variable number of arguments, allowing for checking against multiple
 // suffixes at once. It iterates over the provided suffixes and uses the HasSuffix function from
 // the strings package to check if the String ends with each suffix.
@@ -383,17 +380,13 @@ func (s String) StartsWith(prefixes ...String) bool {
 // Example usage:
 //
 //	s := g.String("example.com")
-//	if s.EndsWith(".com", ".net") {
+//	if s.EndsWithAny(".com", ".net") {
 //	   // do something
 //	}
-func (s String) EndsWith(suffixes ...String) bool {
-	for _, suffix := range suffixes {
-		if strings.HasSuffix(string(s), suffix.Std()) {
-			return true
-		}
-	}
-
-	return false
+func (s String) EndsWithAny(suffixes ...String) bool {
+	return Slice[String](suffixes).
+		Iter().
+		Any(func(suffix String) bool { return s.EndsWith(suffix) })
 }
 
 // Lines splits the String by lines and returns the iterator.

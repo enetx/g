@@ -80,7 +80,7 @@ func main() {
 		// SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }). // or
 		SortBy(cmp.Cmp).
 		Dedup().
-		Filter(f.Odd).
+		Filter(f.IsOdd).
 		Collect().
 		Print() // Slice[1, 3, 5, 7, 9]
 

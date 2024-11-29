@@ -15,6 +15,7 @@ import (
 // NewFloat creates a new Float with the provided value.
 func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return Float(float) }
 
+// Transform applies a transformation function to the Float and returns the result.
 func (f Float) Transform(fn func(Float) Float) Float { return fn(f) }
 
 // Bytes returns the Float as a byte slice.

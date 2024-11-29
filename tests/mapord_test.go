@@ -948,3 +948,48 @@ func TestMapOrdShuffle(t *testing.T) {
 		t.Errorf("The order of elements has not changed after shuffle")
 	}
 }
+
+func TestMapOrdTransform(t *testing.T) {
+	// Исходные данные
+	original := g.MapOrd[string, int]{
+		{"a", 1},
+		{"b", 2},
+	}
+
+	addEntry := func(mo g.MapOrd[string, int]) g.MapOrd[string, int] {
+		return append(mo, g.Pair[string, int]{"c", 3})
+	}
+
+	expected := g.MapOrd[string, int]{
+		{"a", 1},
+		{"b", 2},
+		{"c", 3},
+	}
+
+	result := original.Transform(addEntry)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Transform failed: expected %v, got %v", expected, result)
+	}
+
+	removeEntry := func(mo g.MapOrd[string, int]) g.MapOrd[string, int] {
+		filtered := g.MapOrd[string, int]{}
+		for _, pair := range mo {
+			if pair.Key != "a" {
+				filtered = append(filtered, pair)
+			}
+		}
+		return filtered
+	}
+
+	expectedAfterRemoval := g.MapOrd[string, int]{
+		{"b", 2},
+		{"c", 3},
+	}
+
+	resultAfterRemoval := result.Transform(removeEntry)
+
+	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {
+		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
+	}
+}

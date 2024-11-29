@@ -422,3 +422,23 @@ func TestFloatHashing(t *testing.T) {
 		t.Errorf("SHA512 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA512, actualSHA512)
 	}
 }
+
+func TestFloatTransform(t *testing.T) {
+	original := g.Float(3.14)
+
+	multiplyByTwo := func(f g.Float) g.Float { return f * 2 }
+	expected := g.Float(6.28)
+	result := original.Transform(multiplyByTwo)
+
+	if result != expected {
+		t.Errorf("Transform failed: expected %f, got %f", expected, result)
+	}
+
+	addConstant := func(f g.Float) g.Float { return f + 1.86 }
+	expectedWithAddition := g.Float(5.00)
+	resultWithAddition := original.Transform(addConstant)
+
+	if resultWithAddition != expectedWithAddition {
+		t.Errorf("Transform with addition failed: expected %f, got %f", expectedWithAddition, resultWithAddition)
+	}
+}

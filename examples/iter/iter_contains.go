@@ -19,5 +19,6 @@ func main() {
 	fmt.Println(containsAll)
 
 	containsAny := p2.Iter().Any(func(v string) bool { return p1.Contains(v) })
+
 	fmt.Println(containsAny)
 }

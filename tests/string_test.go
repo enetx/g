@@ -1548,12 +1548,12 @@ func TestStringCenter(t *testing.T) {
 	}
 }
 
-func TestStringEndsWith(t *testing.T) {
+func TestStringEndsWithAny(t *testing.T) {
 	// Test case 1: String ends with one of the provided suffixes.
 	str1 := g.NewString("example.com")
 	suffixes1 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
 	expected1 := true
-	result1 := str1.EndsWith(suffixes1...)
+	result1 := str1.EndsWithAny(suffixes1...)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %t, got %t", expected1, result1)
 	}
@@ -1562,7 +1562,7 @@ func TestStringEndsWith(t *testing.T) {
 	str2 := g.NewString("example.net")
 	suffixes2 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
 	expected2 := true
-	result2 := str2.EndsWith(suffixes2...)
+	result2 := str2.EndsWithAny(suffixes2...)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %t, got %t", expected2, result2)
 	}
@@ -1571,13 +1571,13 @@ func TestStringEndsWith(t *testing.T) {
 	str3 := g.NewString("example.org")
 	suffixes3 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
 	expected3 := false
-	result3 := str3.EndsWith(suffixes3...)
+	result3 := str3.EndsWithAny(suffixes3...)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %t, got %t", expected3, result3)
 	}
 }
 
-func TestStringStartsWith(t *testing.T) {
+func TestStringStartsWithAny(t *testing.T) {
 	// Test cases
 	testCases := []struct {
 		str      g.String
@@ -1597,7 +1597,7 @@ func TestStringStartsWith(t *testing.T) {
 		s := g.String(tc.str)
 
 		// Call the StartsWith method
-		result := s.StartsWith(tc.prefixes...)
+		result := s.StartsWithAny(tc.prefixes...)
 
 		// Assert the result
 		if result != tc.expected {
@@ -1852,5 +1852,15 @@ func TestStringToBigInt(t *testing.T) {
 				t.Errorf("Failed %s: expected %v, got %v", tc.name, tc.expected, result)
 			}
 		})
+	}
+}
+
+func TestStringTransform(t *testing.T) {
+	original := g.String("hello world")
+	expected := g.String("HELLO WORLD")
+	result := original.Transform(g.String.Upper)
+
+	if result != expected {
+		t.Errorf("Transform failed: expected %q, got %q", expected, result)
 	}
 }

@@ -16,6 +16,7 @@ import (
 // NewBytes creates a new Bytes value.
 func NewBytes[T ~string | ~[]byte](bs T) Bytes { return Bytes(bs) }
 
+// Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
 
 // Reverse returns a new Bytes with the order of its runes reversed.

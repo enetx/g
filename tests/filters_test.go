@@ -28,107 +28,107 @@ func TestComparable(t *testing.T) {
 	}
 }
 
-func TestZero(t *testing.T) {
+func TestIsZero(t *testing.T) {
 	// Testing Zero function with integers
-	if !f.Zero(0) {
+	if !f.IsZero(0) {
 		t.Errorf("Zero(0) returned false, expected true")
 	}
 
-	if f.Zero(5) {
+	if f.IsZero(5) {
 		t.Errorf("Zero(5) returned true, expected false")
 	}
 
 	// Testing Zero function with floats
-	if !f.Zero(0.0) {
+	if !f.IsZero(0.0) {
 		t.Errorf("Zero(0.0) returned false, expected true")
 	}
 
-	if f.Zero(3.14) {
+	if f.IsZero(3.14) {
 		t.Errorf("Zero(3.14) returned true, expected false")
 	}
 
 	// Testing Zero function with strings
-	if !f.Zero("") {
+	if !f.IsZero("") {
 		t.Errorf("Zero(\"\") returned false, expected true")
 	}
 
-	if f.Zero("hello") {
+	if f.IsZero("hello") {
 		t.Errorf("Zero(\"hello\") returned true, expected false")
 	}
 }
 
-func TestEven(t *testing.T) {
+func TestIsEven(t *testing.T) {
 	// Testing Even function with positive even integers
-	if !f.Even(2) {
+	if !f.IsEven(2) {
 		t.Errorf("Even(2) returned false, expected true")
 	}
 
-	if !f.Even(100) {
+	if !f.IsEven(100) {
 		t.Errorf("Even(100) returned false, expected true")
 	}
 
 	// Testing Even function with positive odd integers
-	if f.Even(3) {
+	if f.IsEven(3) {
 		t.Errorf("Even(3) returned true, expected false")
 	}
 
-	if f.Even(101) {
+	if f.IsEven(101) {
 		t.Errorf("Even(101) returned true, expected false")
 	}
 
 	// Testing Even function with negative even integers
-	if !f.Even(-2) {
+	if !f.IsEven(-2) {
 		t.Errorf("Even(-2) returned false, expected true")
 	}
 
-	if !f.Even(-100) {
+	if !f.IsEven(-100) {
 		t.Errorf("Even(-100) returned false, expected true")
 	}
 
 	// Testing Even function with negative odd integers
-	if f.Even(-3) {
+	if f.IsEven(-3) {
 		t.Errorf("Even(-3) returned true, expected false")
 	}
 
-	if f.Even(-101) {
+	if f.IsEven(-101) {
 		t.Errorf("Even(-101) returned true, expected false")
 	}
 }
 
-func TestOdd(t *testing.T) {
+func TestIsOdd(t *testing.T) {
 	// Testing Odd function with positive odd integers
-	if !f.Odd(3) {
+	if !f.IsOdd(3) {
 		t.Errorf("Odd(3) returned false, expected true")
 	}
 
-	if !f.Odd(101) {
+	if !f.IsOdd(101) {
 		t.Errorf("Odd(101) returned false, expected true")
 	}
 
 	// Testing Odd function with positive even integers
-	if f.Odd(2) {
+	if f.IsOdd(2) {
 		t.Errorf("Odd(2) returned true, expected false")
 	}
 
-	if f.Odd(100) {
+	if f.IsOdd(100) {
 		t.Errorf("Odd(100) returned true, expected false")
 	}
 
 	// Testing Odd function with negative odd integers
-	if !f.Odd(-3) {
+	if !f.IsOdd(-3) {
 		t.Errorf("Odd(-3) returned false, expected true")
 	}
 
-	if !f.Odd(-101) {
+	if !f.IsOdd(-101) {
 		t.Errorf("Odd(-101) returned false, expected true")
 	}
 
 	// Testing Odd function with negative even integers
-	if f.Odd(-2) {
+	if f.IsOdd(-2) {
 		t.Errorf("Odd(-2) returned true, expected false")
 	}
 
-	if f.Odd(-100) {
+	if f.IsOdd(-100) {
 		t.Errorf("Odd(-100) returned true, expected false")
 	}
 }
@@ -239,5 +239,108 @@ func TestLte(t *testing.T) {
 	// Test case 2: Test less than or equal to comparison of floats
 	if !f.Lte(3.14)(3.14) {
 		t.Errorf("Test case 2: Expected true, got false")
+	}
+}
+
+func TestContains(t *testing.T) {
+	substr := "world"
+	containsFunc := f.Contains(substr)
+
+	input := "hello world"
+
+	if !containsFunc(input) {
+		t.Errorf("Expected %q to contain %q, but it did not.", input, substr)
+	}
+
+	missingInput := "hello universe"
+	if containsFunc(missingInput) {
+		t.Errorf("Expected %q not to contain %q, but it did.", missingInput, substr)
+	}
+
+	emptySubstring := f.Contains("")
+	if !emptySubstring(input) {
+		t.Errorf("Expected any string to contain an empty substring, but %q did not.", input)
+	}
+
+	if !emptySubstring("") {
+		t.Errorf("Expected an empty string to contain an empty substring, but it did not.")
+	}
+}
+
+func TestContainsAnyChars(t *testing.T) {
+	charSet := "abc"
+	containsAny := f.ContainsAnyChars(charSet)
+
+	inputWithChars := "hello cat"
+	if !containsAny(inputWithChars) {
+		t.Errorf("Expected %q to contain at least one of %q, but it did not.", inputWithChars, charSet)
+	}
+
+	inputWithoutChars := "hello dog"
+	if containsAny(inputWithoutChars) {
+		t.Errorf("Expected %q not to contain any of %q, but it did.", inputWithoutChars, charSet)
+	}
+
+	exactMatch := "abc"
+	if !containsAny(exactMatch) {
+		t.Errorf("Expected %q to contain characters from %q, but it did not.", exactMatch, charSet)
+	}
+}
+
+func TestStartsWith(t *testing.T) {
+	prefix := "hello"
+	startsWith := f.StartsWith(prefix)
+
+	inputWithPrefix := "hello world"
+	if !startsWith(inputWithPrefix) {
+		t.Errorf("Expected %q to start with %q, but it did not.", inputWithPrefix, prefix)
+	}
+
+	inputWithoutPrefix := "world hello"
+	if startsWith(inputWithoutPrefix) {
+		t.Errorf("Expected %q not to start with %q, but it did.", inputWithoutPrefix, prefix)
+	}
+
+	emptyPrefix := f.StartsWith("")
+	if !emptyPrefix(inputWithPrefix) {
+		t.Errorf("Expected any string to start with an empty prefix, but %q did not.", inputWithPrefix)
+	}
+
+	if !emptyPrefix("") {
+		t.Errorf("Expected an empty string to start with an empty prefix, but it did not.")
+	}
+
+	exactMatch := "hello"
+	if !startsWith(exactMatch) {
+		t.Errorf("Expected %q to start with %q, but it did not.", exactMatch, prefix)
+	}
+}
+
+func TestEndsWith(t *testing.T) {
+	suffix := "world"
+	endsWith := f.EndsWith(suffix)
+
+	inputWithSuffix := "hello world"
+	if !endsWith(inputWithSuffix) {
+		t.Errorf("Expected %q to end with %q, but it did not.", inputWithSuffix, suffix)
+	}
+
+	inputWithoutSuffix := "world hello"
+	if endsWith(inputWithoutSuffix) {
+		t.Errorf("Expected %q not to end with %q, but it did.", inputWithoutSuffix, suffix)
+	}
+
+	emptySuffix := f.EndsWith("")
+	if !emptySuffix(inputWithSuffix) {
+		t.Errorf("Expected any string to end with an empty suffix, but %q did not.", inputWithSuffix)
+	}
+
+	if !emptySuffix("") {
+		t.Errorf("Expected an empty string to end with an empty suffix, but it did not.")
+	}
+
+	exactMatch := "world"
+	if !endsWith(exactMatch) {
+		t.Errorf("Expected %q to end with %q, but it did not.", exactMatch, suffix)
 	}
 }

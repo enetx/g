@@ -496,3 +496,27 @@ func TestIntCmp(t *testing.T) {
 		})
 	}
 }
+
+func TestIntTransform(t *testing.T) {
+	original := g.Int(10)
+
+	multiplyByThree := func(i g.Int) g.Int { return i * 3 }
+	expected := g.Int(30)
+	result := original.Transform(multiplyByThree)
+
+	if result != expected {
+		t.Errorf("Transform failed: expected %d, got %d", expected, result)
+	}
+
+	subtractFive := func(i g.Int) g.Int { return i - 5 }
+	expectedWithSubtraction := g.Int(5)
+	resultWithSubtraction := original.Transform(subtractFive)
+
+	if resultWithSubtraction != expectedWithSubtraction {
+		t.Errorf(
+			"Transform with subtraction failed: expected %d, got %d",
+			expectedWithSubtraction,
+			resultWithSubtraction,
+		)
+	}
+}

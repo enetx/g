@@ -8,7 +8,7 @@ import (
 func main() {
 	String("foo\r\nbar\n\nbaz\n").
 		Lines().
-		Exclude(f.Zero).
+		Exclude(f.IsZero).
 		Collect().
 		Print() // Slice[foo, bar, baz]
 
@@ -21,9 +21,7 @@ func main() {
 	///////////////////////////////////////////////////////////////////////
 
 	ss := String("Hello, [world]! How [are] you?")
-
 	cuted := NewSlice[String]()
-
 	for ss.ContainsAll("[", "]") {
 		var cut String
 		ss, cut = ss.Cut("[", "]")
@@ -31,6 +29,10 @@ func main() {
 	}
 
 	cuted.Print()
+
+	ss.Print()
+
+	println(ss.Contains("Hello"))
 
 	NewString(byte('g')).Print()
 	NewString(rune('g')).Print()
@@ -61,4 +63,11 @@ func main() {
 	num := String("hello")
 
 	num.Transform(String.Title).Print() // String type
+
+	String("a1b2c3d4e5").
+		Chars().
+		Filter(String.IsDigit).
+		Collect().
+		Join().
+		Print()
 }

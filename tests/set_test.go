@@ -604,3 +604,32 @@ func TestSetIterInspect(t *testing.T) {
 		t.Errorf("Expected inspected elements to be equal to the set, got %v", inspectedElements)
 	}
 }
+
+func TestSetTransform(t *testing.T) {
+	original := g.Set[int]{1: {}, 2: {}, 3: {}}
+
+	addElement := func(s g.Set[int]) g.Set[int] {
+		s[4] = struct{}{}
+		return s
+	}
+
+	expected := g.Set[int]{1: {}, 2: {}, 3: {}, 4: {}}
+
+	result := original.Transform(addElement)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Transform failed: expected %v, got %v", expected, result)
+	}
+
+	removeElement := func(s g.Set[int]) g.Set[int] {
+		delete(s, 2)
+		return s
+	}
+
+	expectedAfterRemoval := g.Set[int]{1: {}, 3: {}, 4: {}}
+	resultAfterRemoval := result.Transform(removeElement)
+
+	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {
+		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
+	}
+}

@@ -1258,3 +1258,13 @@ func TestBytesTrimEnd(t *testing.T) {
 		}
 	}
 }
+
+func TestBytesTransform(t *testing.T) {
+	original := g.Bytes("hello world")
+	expected := g.Bytes("HELLO WORLD")
+	result := original.Transform(g.Bytes.Upper)
+
+	if !bytes.Equal(result, expected) {
+		t.Errorf("Transform failed: expected %q, got %q", expected, result)
+	}
+}

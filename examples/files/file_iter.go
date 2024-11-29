@@ -19,7 +19,7 @@ func main() {
 	case r.IsOk():
 		r.Ok().
 			Skip(3).           // Skip the first 3 lines
-			Exclude(f.Zero).   // Exclude lines that are empty or contain only whitespaces
+			Exclude(f.IsZero). // Exclude lines that are empty or contain only whitespaces
 			Dedup().           // Remove consecutive duplicate lines
 			Map(String.Upper). // Convert each line to uppercase
 			Range(func(s String) bool {

@@ -9,7 +9,7 @@ func main() {
 	// Create a slice of strings with empty and non-empty values
 	SliceOf("", "bbb", "ddd", "", "aaa", "ccc").
 		Iter().
-		Exclude(f.Zero).
+		Exclude(f.IsZero).
 		Cycle().   // Cycle through the elements in the slice
 		Take(10).  // Take the first 10 elements from the cycled sequence
 		Collect(). // Collect the resulting sequence

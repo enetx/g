@@ -1533,3 +1533,29 @@ func TestSliceMinBy(t *testing.T) {
 		t.Errorf("s.MinBy(IntCompare) = %d; want %d", minInt, expectedMinInt)
 	}
 }
+
+func TestSliceTransform(t *testing.T) {
+	original := g.Slice[int]{1, 2, 3}
+
+	addElement := func(sl g.Slice[int]) g.Slice[int] {
+		return append(sl, 4)
+	}
+
+	expected := g.Slice[int]{1, 2, 3, 4}
+	result := original.Transform(addElement)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Transform failed: expected %v, got %v", expected, result)
+	}
+
+	removeLast := func(sl g.Slice[int]) g.Slice[int] {
+		return sl[:len(sl)-1]
+	}
+
+	expectedAfterRemoval := g.Slice[int]{1, 2, 3}
+	resultAfterRemoval := result.Transform(removeLast)
+
+	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {
+		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
+	}
+}

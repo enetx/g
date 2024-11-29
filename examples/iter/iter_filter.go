@@ -10,7 +10,6 @@ func main() {
 	SliceOf(1, 2).
 		Iter().
 		// Filter(func(i int) bool { return i != 1 }).
-		// Filter(f.Ne(1)).
 		Filter(f.Ne(1)).
 		Collect().
 		Print() // Slice[2]
@@ -40,7 +39,7 @@ func main() {
 		// Example 4: Exclude empty strings from a slice and print the result
 	SliceOf[String]("", "bbb", "ddd", "", "aaa", "ccc").
 		Iter().
-		Exclude(f.Zero).
+		Exclude(f.IsZero).
 		Collect().
 		Print() // Slice[bbb, ddd, aaa, ccc]
 }

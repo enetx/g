@@ -1,15 +1,21 @@
 package main
 
 import (
+	"strings"
+
 	. "github.com/enetx/g"
+	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/f"
 )
 
-func main() {
-	fruits := SliceOf[String]("banana", "avocado", "apple", "kiwifruit").Iter()
+// https://kotlinlang.org/docs/basic-syntax.html#collections
 
+func main() {
+
+	fruits := SliceOf("banana", "avocado", "apple", "kiwifruit").Iter()
 	fruits.
-		Filter(func(s String) bool { return s.StartsWith("a") }).
-		SortBy(String.Cmp).
-		Map(String.Upper).
-		ForEach(func(v String) { v.Print() })
+		Filter(f.StartsWith("a")).
+		SortBy(cmp.Cmp).
+		Map(strings.ToUpper).
+		ForEach(func(v string) { println(v) })
 }

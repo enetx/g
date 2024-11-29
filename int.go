@@ -15,6 +15,7 @@ import (
 // NewInt creates a new Int with the provided int value.
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
+// Transform applies a transformation function to the Int and returns the result.
 func (i Int) Transform(fn func(Int) Int) Int { return fn(i) }
 
 // Min returns the minimum of Ints.

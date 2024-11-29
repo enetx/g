@@ -789,3 +789,32 @@ func TestMapIterInspect(t *testing.T) {
 		t.Errorf("Expected inspected map to be %v, got %v", m, inspected)
 	}
 }
+
+func TestMapTransform(t *testing.T) {
+	// Исходные данные
+	original := g.Map[string, int]{"a": 1, "b": 2}
+
+	addEntry := func(m g.Map[string, int]) g.Map[string, int] {
+		m["c"] = 3
+		return m
+	}
+
+	expected := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	result := original.Transform(addEntry)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Transform failed: expected %v, got %v", expected, result)
+	}
+
+	removeEntry := func(m g.Map[string, int]) g.Map[string, int] {
+		delete(m, "a")
+		return m
+	}
+
+	expectedAfterRemoval := g.Map[string, int]{"b": 2, "c": 3}
+	resultAfterRemoval := result.Transform(removeEntry)
+
+	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {
+		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
+	}
+}
