@@ -55,23 +55,26 @@ func main() {
 	String("some post-55 not found post-31 post-22").FindAllSubmatchRegexpN(pattern, 2).Some().Print()
 	// Output: Slice[Slice[post-55, post-], Slice[post-31, post-]]
 
+	patterns := regexp.MustCompile(`\s`)
+	patternd := regexp.MustCompile(`\d`)
+
 	// Split the string using the regular expression pattern
-	String("some test for split n").SplitRegexp(*regexp.MustCompile(`\s`)).Print()
+	String("some test for split n").SplitRegexp(patterns).Print()
 	// Output: Slice[some, test, for, split, n]
 
 	// Split the string using the regular expression pattern, limiting the number of splits
-	String("some test for split n").SplitRegexpN(*regexp.MustCompile(`\s`), 2).Some().Print()
+	String("some test for split n").SplitRegexpN(patterns, 2).Some().Print()
 	// Output: Slice[some, test for split n]
 
 	// Check if the string contains a match of the regular expression
-	fmt.Println(String("some test").ContainsRegexp(`\s`).Unwrap())
+	fmt.Println(String("some test").ContainsRegexp(patterns))
 	// Output: true
 
 	// Check if the string contains matches for all the provided regular expressions
-	fmt.Println(String("some test 1").ContainsRegexpAll(`\s`, `\d`).Unwrap())
+	fmt.Println(String("some test 1").ContainsRegexpAll(patterns, patternd))
 	// Output: true
 
 	// Check if the string contains a match for any of the provided regular expressions
-	fmt.Println(String("some test").ContainsRegexpAny(`\s`, `\d`).Unwrap())
+	fmt.Println(String("some test").ContainsRegexpAny(patterns, patternd))
 	// Output: true
 }

@@ -297,31 +297,29 @@ func (s String) ReplaceNth(oldS, newS String, n Int) String {
 }
 
 // ContainsRegexp checks if the String contains a match for the specified regular expression pattern.
-func (s String) ContainsRegexp(pattern String) Result[bool] {
-	return ResultOf(regexp.MatchString(pattern.Std(), s.Std()))
-}
+func (s String) ContainsRegexp(pattern *regexp.Regexp) bool { return pattern.MatchString(s.Std()) }
 
 // ContainsRegexpAny checks if the String contains a match for any of the specified regular
 // expression patterns.
-func (s String) ContainsRegexpAny(patterns ...String) Result[bool] {
+func (s String) ContainsRegexpAny(patterns ...*regexp.Regexp) bool {
 	for _, pattern := range patterns {
-		if r := s.ContainsRegexp(pattern); r.IsErr() || r.Ok() {
-			return r
+		if s.ContainsRegexp(pattern) {
+			return true
 		}
 	}
 
-	return Ok(false)
+	return false
 }
 
 // ContainsRegexpAll checks if the String contains a match for all of the specified regular expression patterns.
-func (s String) ContainsRegexpAll(patterns ...String) Result[bool] {
+func (s String) ContainsRegexpAll(patterns ...*regexp.Regexp) bool {
 	for _, pattern := range patterns {
-		if r := s.ContainsRegexp(pattern); r.IsErr() || !r.Ok() {
-			return r
+		if !s.ContainsRegexp(pattern) {
+			return false
 		}
 	}
 
-	return Ok(true)
+	return true
 }
 
 // Contains checks if the String contains the specified substring.
@@ -423,7 +421,7 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 
 // SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
-func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
+func (s String) SplitRegexp(pattern *regexp.Regexp) Slice[String] {
 	return TransformSlice(pattern.Split(s.Std(), -1), NewString)
 }
 
@@ -433,7 +431,7 @@ func (s String) SplitRegexp(pattern regexp.Regexp) Slice[String] {
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitRegexpN(pattern regexp.Regexp, n Int) Option[Slice[String]] {
+func (s String) SplitRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	result := TransformSlice(pattern.Split(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()

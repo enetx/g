@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
@@ -132,7 +133,7 @@ func main() {
 	fmt.Println(empsl.Empty())
 
 	// maps
-	m1 := MapFromStd(map[int]string{1: "root", 22: "toor"}) // declaration and assignation
+	m1 := Map[int, string](map[int]string{1: "root", 22: "toor"}) // declaration and assignation
 	m1.Iter().Values().Collect().Print()
 	m1.Iter().Keys().Collect().Print()
 
@@ -198,7 +199,7 @@ func main() {
 	fmt.Println(ascii.IsASCII())
 
 	reg := NewString("some text")
-	fmt.Println(reg.ContainsRegexp(`\w+`).Unwrap())
+	fmt.Println(reg.ContainsRegexp(regexp.MustCompile(`\w+`)))
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 

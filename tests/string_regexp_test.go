@@ -108,38 +108,38 @@ func TestFindRegexp(t *testing.T) {
 
 func TestContainsRegexp(t *testing.T) {
 	testCases := []struct {
-		pattern  g.String
+		pattern  *regexp.Regexp
 		input    g.String
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			pattern:  `\bworld\b`,
+			pattern:  regexp.MustCompile(`\bworld\b`),
 			expected: true,
 		},
 		// Test case 2: Match with special characters
 		{
 			input:    "Hello, 12345!",
-			pattern:  `\d+`,
+			pattern:  regexp.MustCompile(`\d+`),
 			expected: true,
 		},
 		// Test case 3: No match
 		{
 			input:    "Hello, world!",
-			pattern:  `\buniverse\b`,
+			pattern:  regexp.MustCompile(`\buniverse\b`),
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			pattern:  `\d`,
+			pattern:  regexp.MustCompile(`\d`),
 			expected: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexp(tc.pattern).Ok()
+		result := tc.input.ContainsRegexp(tc.pattern)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -149,37 +149,37 @@ func TestContainsRegexp(t *testing.T) {
 func TestContainsRegexpAny(t *testing.T) {
 	testCases := []struct {
 		input    g.String
-		patterns g.Slice[g.String]
+		patterns g.Slice[*regexp.Regexp]
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[g.String]{`\bworld\b`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, one matches
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[g.String]{`\bworld\b`, `\d+`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d+`)},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, none matches
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[g.String]{`\buniverse\b`, `\d`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\buniverse\b`), regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: g.Slice[g.String]{`\d`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexpAny(tc.patterns...).Ok()
+		result := tc.input.ContainsRegexpAny(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -189,37 +189,37 @@ func TestContainsRegexpAny(t *testing.T) {
 func TestContainsRegexpAll(t *testing.T) {
 	testCases := []struct {
 		input    g.String
-		patterns g.Slice[g.String]
+		patterns g.Slice[*regexp.Regexp]
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[g.String]{`\bworld\b`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, all match
 		{
 			input:    "Hello, 12345!",
-			patterns: g.Slice[g.String]{`\bHello\b`, `\d+`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bHello\b`), regexp.MustCompile(`\d+`)},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, some match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[g.String]{`\bworld\b`, `\d`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: g.Slice[g.String]{`\d`},
+			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexpAll(tc.patterns...).Ok()
+		result := tc.input.ContainsRegexpAll(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -230,30 +230,30 @@ func TestSplitRegexp(t *testing.T) {
 	testCases := []struct {
 		input    g.String
 		expected g.Slice[g.String]
-		pattern  regexp.Regexp
+		pattern  *regexp.Regexp
 	}{
 		// Test case 1: Regular split
 		{
 			input:    "one,two,three",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			expected: g.Slice[g.String]{"one", "two", "three"},
 		},
 		// Test case 2: Split with multiple patterns
 		{
 			input:    "1, 2, 3, 4",
-			pattern:  *regexp.MustCompile(`\s*,\s*`),
+			pattern:  regexp.MustCompile(`\s*,\s*`),
 			expected: g.Slice[g.String]{"1", "2", "3", "4"},
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			expected: g.Slice[g.String]{""},
 		},
 		// Test case 4: No match
 		{
 			input:    "abcdefgh",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			expected: g.Slice[g.String]{"abcdefgh"},
 		},
 	}
@@ -270,34 +270,34 @@ func TestSplitRegexpN(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
-		pattern  regexp.Regexp
+		pattern  *regexp.Regexp
 		n        g.Int
 	}{
 		// Test case 1: Regular split with n = 2
 		{
 			input:    "one,two,three",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			n:        2,
 			expected: g.Some(g.Slice[g.String]{"one", "two,three"}),
 		},
 		// Test case 2: Split with multiple patterns with n = 0
 		{
 			input:    "1, 2, 3, 4",
-			pattern:  *regexp.MustCompile(`\s*,\s*`),
+			pattern:  regexp.MustCompile(`\s*,\s*`),
 			n:        0,
 			expected: g.None[g.Slice[g.String]](),
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			n:        1,
 			expected: g.Some(g.Slice[g.String]{""}),
 		},
 		// Test case 4: No match with n = -1
 		{
 			input:    "abcdefgh",
-			pattern:  *regexp.MustCompile(`,`),
+			pattern:  regexp.MustCompile(`,`),
 			n:        -1,
 			expected: g.Some(g.Slice[g.String]{"abcdefgh"}),
 		},
