@@ -64,35 +64,6 @@ func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V
 // in a functional style, enabling operations like mapping or filtering.
 func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return ToSeqMapOrd(mo) }
 
-// MapOrdFromMap converts a standard Map to an ordered Map.
-// The resulting ordered Map will maintain the order of its key-value pairs based on the order of
-// insertion.
-// This function is useful when you want to create an ordered Map from an existing Map.
-//
-// Parameters:
-//
-// - m Map[K, V]: The input Map to be converted to an ordered Map.
-//
-// Returns:
-//
-// - MapOrd[K, V]: New ordered Map containing the same key-value pairs as the
-// input Map.
-//
-// Example usage:
-//
-//	mapOrd := g.MapOrdFromMap[string, int](hmap)
-//
-// Converts the standard Map 'hmap' to an ordered Map.
-func MapOrdFromMap[K comparable, V any](m Map[K, V]) MapOrd[K, V] {
-	mo := NewMapOrd[K, V](m.Len())
-
-	for k, v := range m {
-		mo.Set(k, v)
-	}
-
-	return mo
-}
-
 // MapOrdFromStd converts a standard Go map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of
 // insertion.
@@ -112,7 +83,7 @@ func MapOrdFromMap[K comparable, V any](m Map[K, V]) MapOrd[K, V] {
 //	mapOrd := g.MapOrdFromStd[string, int](goMap)
 //
 // Converts the standard Go map 'map[K]V' to an ordered Map.
-func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return MapOrdFromMap(MapFromStd(m)) }
+func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, V](m).MapOrd() }
 
 // SortBy sorts the ordered Map by a custom comparison function.
 //
@@ -288,7 +259,7 @@ func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
 }
 
 func (mo MapOrd[K, V]) index(key K) int {
-	if f.Comparable(key) {
+	if f.IsComparable(key) {
 		for i, mp := range mo {
 			if f.Eq[any](mp.Key)(key) {
 				return i
@@ -336,7 +307,7 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 		return true
 	}
 
-	comparable := f.Comparable(mo[0].Value)
+	comparable := f.IsComparable(mo[0].Value)
 
 	for i, mp := range mo {
 		if other.index(mp.Key) != i {

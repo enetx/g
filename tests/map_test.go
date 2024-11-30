@@ -13,14 +13,14 @@ import (
 func TestMapFromStd(t *testing.T) {
 	// Test case 1: Test conversion of an empty standard map
 	emptyStdMap := map[string]int{}
-	emptyGenericMap := g.MapFromStd(emptyStdMap)
+	emptyGenericMap := g.Map[string, int](emptyStdMap)
 	if len(emptyGenericMap) != 0 {
 		t.Errorf("Test case 1 failed: Expected empty generic map, got %v", emptyGenericMap)
 	}
 
 	// Test case 2: Test conversion of a standard map with elements
 	stdMap := map[string]int{"a": 1, "b": 2, "c": 3}
-	genericMap := g.MapFromStd(stdMap)
+	genericMap := g.Map[string, int](stdMap)
 	for k, v := range stdMap {
 		if genericMap[k] != v {
 			t.Errorf("Test case 2 failed: Value mismatch for key %s. Expected %d, got %d", k, v, genericMap[k])

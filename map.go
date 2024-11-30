@@ -16,9 +16,6 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 	return make(Map[K, V], size[0])
 }
 
-// MapFromStd creates an Map from a given Go map.
-func MapFromStd[K comparable, V any](stdmap map[K]V) Map[K, V] { return stdmap }
-
 // Transform applies a transformation function to the Map and returns the result.
 func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
 
@@ -88,6 +85,17 @@ func (m Map[K, V]) Delete(keys ...K) Map[K, V] {
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
 
+// MapOrd converts a standard Map to an ordered Map.
+func (m Map[K, V]) MapOrd() MapOrd[K, V] {
+	mo := NewMapOrd[K, V](m.Len())
+
+	for k, v := range m {
+		mo.Set(k, v)
+	}
+
+	return mo
+}
+
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	n := len(m)
@@ -101,7 +109,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	}
 
 	key := m.Iter().Take(1).Keys().Collect()[0]
-	comparable := f.Comparable(key) && f.Comparable(m[key])
+	comparable := f.IsComparable(key) && f.IsComparable(m[key])
 
 	for k, v1 := range m {
 		v2, ok := other[k]

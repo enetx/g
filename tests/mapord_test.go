@@ -572,7 +572,7 @@ func TestMapOrdFromMap(t *testing.T) {
 	m.Set("b", 2)
 	m.Set("c", 3)
 
-	mapOrd := g.MapOrdFromMap(m).
+	mapOrd := m.MapOrd().
 		SortBy(func(a, b g.Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []g.Pair[string, int]{
@@ -589,7 +589,7 @@ func TestMapOrdFromMap(t *testing.T) {
 
 	// Test case 2: Empty Map
 	m2 := g.NewMap[string, int]()
-	mapOrd2 := g.MapOrdFromMap(m2)
+	mapOrd2 := m2.MapOrd()
 	if len(mapOrd2) != 0 {
 		t.Errorf("Expected mapOrd2 to be empty")
 	}

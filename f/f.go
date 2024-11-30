@@ -8,8 +8,8 @@ import (
 	"github.com/enetx/g/pkg/constraints"
 )
 
-// Comparable reports whether the value v is comparable.
-func Comparable[T any](v T) bool { return reflect.ValueOf(v).Comparable() }
+// IsComparable reports whether the value v is comparable.
+func IsComparable[T any](v T) bool { return reflect.ValueOf(v).Comparable() }
 
 // IsZero is a generic function designed to check if a value is considered zero.
 func IsZero[T cmp.Ordered](v T) bool { return v == *new(T) }

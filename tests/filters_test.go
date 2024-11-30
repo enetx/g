@@ -6,7 +6,7 @@ import (
 	"github.com/enetx/g/f"
 )
 
-func TestComparable(t *testing.T) {
+func TestIsComparable(t *testing.T) {
 	tests := []struct {
 		name  string
 		value any
@@ -21,7 +21,7 @@ func TestComparable(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := f.Comparable(tt.value); got != tt.want {
+			if got := f.IsComparable(tt.value); got != tt.want {
 				t.Errorf("Comparable() = %v, want %v", got, tt.want)
 			}
 		})

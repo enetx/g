@@ -873,7 +873,7 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 
 func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	var current V
-	comparable := f.Comparable(current)
+	comparable := f.IsComparable(current)
 
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
