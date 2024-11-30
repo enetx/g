@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/enetx/g/f"
@@ -342,5 +343,29 @@ func TestEndsWith(t *testing.T) {
 	exactMatch := "world"
 	if !endsWith(exactMatch) {
 		t.Errorf("Expected %q to end with %q, but it did not.", exactMatch, suffix)
+	}
+}
+
+func TestFilterRxMatch(t *testing.T) {
+	regex := regexp.MustCompile(`^\d+$`)
+	matchDigits := f.RxMatch[string](regex)
+
+	tests := []struct {
+		input    string
+		expected bool
+	}{
+		{"12345", true},     // Matches: Only digits
+		{"abc123", false},   // Does not match: Contains letters
+		{"", false},         // Does not match: Empty string
+		{" 12345 ", false},  // Does not match: Leading/trailing spaces
+		{"0000", true},      // Matches: Only digits
+		{"123\n456", false}, // Does not match: Contains newline
+	}
+
+	for _, test := range tests {
+		result := matchDigits(test.input)
+		if result != test.expected {
+			t.Errorf("Filter RxMatch failed for input %q: expected %v, got %v", test.input, test.expected, result)
+		}
 	}
 }

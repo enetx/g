@@ -236,16 +236,16 @@ func (s String) Remove(matches ...String) String {
 	return s
 }
 
-// ReplaceRegexp replaces all occurrences of the regular expression matches in the String
+// RxReplace replaces all occurrences of the regular expression matches in the String
 // with the provided newS (as a String) and returns the resulting String after the replacement.
-func (s String) ReplaceRegexp(pattern *regexp.Regexp, newS String) String {
+func (s String) RxReplace(pattern *regexp.Regexp, newS String) String {
 	return String(pattern.ReplaceAllString(s.Std(), newS.Std()))
 }
 
-// FindRegexp searches the String for the first occurrence of the regulare xpression pattern
+// RxFind searches the String for the first occurrence of the regulare xpression pattern
 // and returns an Option[String] containing the matched substring.
 // If no match is found, it returns None.
-func (s String) FindRegexp(pattern *regexp.Regexp) Option[String] {
+func (s String) RxFind(pattern *regexp.Regexp) Option[String] {
 	result := String(pattern.FindString(s.Std()))
 	if result.Empty() {
 		return None[String]()
@@ -296,34 +296,27 @@ func (s String) ReplaceNth(oldS, newS String, n Int) String {
 	return s
 }
 
-// ContainsRegexp checks if the String contains a match for the specified regular expression pattern.
-func (s String) ContainsRegexp(pattern *regexp.Regexp) bool { return pattern.MatchString(s.Std()) }
-
-// ContainsRegexpAny checks if the String contains a match for any of the specified regular
-// expression patterns.
-func (s String) ContainsRegexpAny(patterns ...*regexp.Regexp) bool {
-	for _, pattern := range patterns {
-		if s.ContainsRegexp(pattern) {
-			return true
-		}
-	}
-
-	return false
+// RxMatch checks if the String contains a match for the specified regular expression pattern.
+func (s String) RxMatch(pattern *regexp.Regexp) bool {
+	return f.RxMatch[String](pattern)(s)
 }
 
-// ContainsRegexpAll checks if the String contains a match for all of the specified regular expression patterns.
-func (s String) ContainsRegexpAll(patterns ...*regexp.Regexp) bool {
-	for _, pattern := range patterns {
-		if !s.ContainsRegexp(pattern) {
-			return false
-		}
-	}
+// RxMatchAny checks if the String contains a match for any of the specified regular
+// expression patterns.
+func (s String) RxMatchAny(patterns ...*regexp.Regexp) bool {
+	return Slice[*regexp.Regexp](patterns).
+		Iter().
+		Any(func(pattern *regexp.Regexp) bool { return s.RxMatch(pattern) })
+}
 
-	return true
+// RxMatchAll checks if the String contains a match for all of the specified regular expression patterns.
+func (s String) RxMatchAll(patterns ...*regexp.Regexp) bool {
+	return Slice[*regexp.Regexp](patterns).
+		Iter().
+		All(func(pattern *regexp.Regexp) bool { return s.RxMatch(pattern) })
 }
 
 // Contains checks if the String contains the specified substring.
-// func (s String) Contains(substr String) bool { return strings.Contains(s.Std(), substr.Std()) }
 func (s String) Contains(substr String) bool { return f.Contains(substr)(s) }
 
 // ContainsAny checks if the String contains any of the specified substrings.
@@ -419,19 +412,19 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 	return TransformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
 }
 
-// SplitRegexp splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
+// RxSplit splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
-func (s String) SplitRegexp(pattern *regexp.Regexp) Slice[String] {
+func (s String) RxSplit(pattern *regexp.Regexp) Slice[String] {
 	return TransformSlice(pattern.Split(s.Std(), -1), NewString)
 }
 
-// SplitRegexpN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
+// RxSplitN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
 // The n parameter controls the number of substrings to return:
 // - If n is negative, there is no limit on the number of substrings returned.
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
+func (s String) RxSplitN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	result := TransformSlice(pattern.Split(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
@@ -640,10 +633,10 @@ func (s String) Bytes() Bytes { return Bytes(s) }
 // if substr is not present in s.
 func (s String) Index(substr String) Int { return Int(strings.Index(s.Std(), substr.Std())) }
 
-// IndexRegexp searches for the first occurrence of the regular expression pattern in the String.
+// RxIndex searches for the first occurrence of the regular expression pattern in the String.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
-func (s String) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
+func (s String) RxIndex(pattern *regexp.Regexp) Option[Slice[Int]] {
 	result := TransformSlice(pattern.FindStringIndex(s.Std()), NewInt)
 	if result.Empty() {
 		return None[Slice[Int]]()
@@ -652,18 +645,18 @@ func (s String) IndexRegexp(pattern *regexp.Regexp) Option[Slice[Int]] {
 	return Some(result)
 }
 
-// FindAllRegexp searches the String for all occurrences of the regular expression pattern
+// RxFindAll searches the String for all occurrences of the regular expression pattern
 // and returns an Option[Slice[String]] containing a slice of matched substrings.
 // If no matches are found, the Option[Slice[String]] will be None.
-func (s String) FindAllRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
-	return s.FindAllRegexpN(pattern, -1)
+func (s String) RxFindAll(pattern *regexp.Regexp) Option[Slice[String]] {
+	return s.RxFindAllN(pattern, -1)
 }
 
-// FindAllRegexpN searches the String for up to n occurrences of the regular expression pattern
+// RxFindAllN searches the String for up to n occurrences of the regular expression pattern
 // and returns an Option[Slice[String]] containing a slice of matched substrings.
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
-func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
+func (s String) RxFindAllN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	result := TransformSlice(pattern.FindAllString(s.Std(), n.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
@@ -672,11 +665,11 @@ func (s String) FindAllRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Strin
 	return Some(result)
 }
 
-// FindSubmatchRegexp searches the String for the first occurrence of the regular expression pattern
+// RxFindSubmatch searches the String for the first occurrence of the regular expression pattern
 // and returns an Option[Slice[String]] containing the matched substrings and submatches.
 // The Option will contain an Slice[String] with the full match at index 0, followed by any captured submatches.
 // If no match is found, it returns None.
-func (s String) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[String]] {
+func (s String) RxFindSubmatch(pattern *regexp.Regexp) Option[Slice[String]] {
 	result := TransformSlice(pattern.FindStringSubmatch(s.Std()), NewString)
 	if result.Empty() {
 		return None[Slice[String]]()
@@ -685,23 +678,23 @@ func (s String) FindSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[String]]
 	return Some(result)
 }
 
-// FindAllSubmatchRegexp searches the String for all occurrences of the regular expression pattern
+// RxFindAllSubmatch searches the String for all occurrences of the regular expression pattern
 // and returns an Option[Slice[Slice[String]]] containing the matched substrings and submatches.
 // The Option[Slice[Slice[String]]] will contain an Slice[String] for each match,
 // where each Slice[String] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Slice[String]]] will be None.
 // This method is equivalent to calling SubmatchAllRegexpN with n = -1, which means it finds all occurrences.
-func (s String) FindAllSubmatchRegexp(pattern *regexp.Regexp) Option[Slice[Slice[String]]] {
-	return s.FindAllSubmatchRegexpN(pattern, -1)
+func (s String) RxFindAllSubmatch(pattern *regexp.Regexp) Option[Slice[Slice[String]]] {
+	return s.RxFindAllSubmatchN(pattern, -1)
 }
 
-// FindAllSubmatchRegexpN searches the String for occurrences of the regular expression pattern
+// RxFindAllSubmatchN searches the String for occurrences of the regular expression pattern
 // and returns an Option[Slice[Slice[String]]] containing the matched substrings and submatches.
 // The Option[Slice[Slice[String]]] will contain an Slice[String] for each match,
 // where each Slice[String] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Slice[String]]] will be None.
 // The 'n' parameter specifies the maximum number of matches to find. If n is negative, it finds all occurrences.
-func (s String) FindAllSubmatchRegexpN(pattern *regexp.Regexp, n Int) Option[Slice[Slice[String]]] {
+func (s String) RxFindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Slice[String]]] {
 	var result Slice[Slice[String]]
 
 	for _, v := range pattern.FindAllStringSubmatch(s.Std(), n.Std()) {

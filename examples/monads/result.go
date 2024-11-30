@@ -90,11 +90,11 @@ func main() {
 	strResult := Ok(str)
 
 	// Use ResultMap to convert the string to an integer
-	intResult := ResultMap(strResult, func(s string) Result[int] { return ResultOf(strconv.Atoi(s)) })
+	intResult := TransformResult(strResult, func(s string) Result[int] { return ResultOf(strconv.Atoi(s)) })
 
 	// Alternatively, use ResultOfMap to convert the string to an integer
 	// This simplifies the process by directly passing strconv.Atoi
-	intResult = ResultOfMap(strResult, strconv.Atoi)
+	intResult = TransformResultOf(strResult, strconv.Atoi)
 
 	// Check if the intResult is an error or contains a value
 	if intResult.IsErr() {

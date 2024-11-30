@@ -10,7 +10,7 @@ import (
 func TestOptionUnwrapOr(t *testing.T) {
 	fn := func(x int) g.Option[int] {
 		if x > 10 {
-			return g.Some[int](x)
+			return g.Some(x)
 		}
 		return g.None[int]()
 	}
@@ -100,7 +100,7 @@ func TestOptionThen(t *testing.T) {
 // 	option2.Unwrap()
 // }
 
-func TestOptionMap(t *testing.T) {
+func TestTransformOption(t *testing.T) {
 	// Test 1: Mapping over Some value
 	option1 := g.Some(5)
 
@@ -108,7 +108,7 @@ func TestOptionMap(t *testing.T) {
 		return g.Some(x * 2)
 	}
 
-	result1 := g.OptionMap(option1, fn1)
+	result1 := g.TransformOption(option1, fn1)
 	expected1 := g.Some(10)
 
 	if !reflect.DeepEqual(result1, expected1) {
@@ -122,7 +122,7 @@ func TestOptionMap(t *testing.T) {
 		return g.Some(x * 2)
 	}
 
-	result2 := g.OptionMap(option2, fn2)
+	result2 := g.TransformOption(option2, fn2)
 
 	if result2.IsSome() {
 		t.Errorf("Test 2: Expected None, got Some")

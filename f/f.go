@@ -3,6 +3,7 @@ package f
 import (
 	"cmp"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/enetx/g/pkg/constraints"
@@ -20,29 +21,36 @@ func IsEven[T constraints.Integer](i T) bool { return i%2 == 0 }
 // IsOdd is a generic function that checks if the provided integer is odd.
 func IsOdd[T constraints.Integer](i T) bool { return i%2 != 0 }
 
-// Contains returns a function that checks whether a string contains a given substring.
-func Contains[T ~string](t T) func(T) bool {
+// RxMatch returns a function that checks whether a string or []byte matches a given regular expression.
+func RxMatch[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
+	return func(s T) bool {
+		return t.MatchString(string(s))
+	}
+}
+
+// Contains returns a function that checks whether a string or []byte contains a given substring.
+func Contains[T ~string | ~[]byte](t T) func(T) bool {
 	return func(s T) bool {
 		return strings.Contains(string(s), string(t))
 	}
 }
 
 // ContainsAnyChars returns a function that checks whether a string contains any of the characters from a given set.
-func ContainsAnyChars[T ~string](t T) func(T) bool {
+func ContainsAnyChars[T ~string | ~[]byte](t T) func(T) bool {
 	return func(s T) bool {
 		return strings.ContainsAny(string(s), string(t))
 	}
 }
 
 // StartsWith returns a function that checks whether a string starts with a given prefix.
-func StartsWith[T ~string](t T) func(T) bool {
+func StartsWith[T ~string | ~[]byte](t T) func(T) bool {
 	return func(s T) bool {
 		return strings.HasPrefix(string(s), string(t))
 	}
 }
 
 // EndsWith returns a function that checks whether a string ends with a given suffix.
-func EndsWith[T ~string](t T) func(T) bool {
+func EndsWith[T ~string | ~[]byte](t T) func(T) bool {
 	return func(s T) bool {
 		return strings.HasSuffix(string(s), string(t))
 	}

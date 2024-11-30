@@ -34,15 +34,15 @@ func TestResultOf(t *testing.T) {
 	}
 }
 
-func TestResultMap(t *testing.T) {
+func TestTransformResult(t *testing.T) {
 	// Test 1: Mapping over a Result with a value
-	result1 := g.Ok[int](5)
+	result1 := g.Ok(5)
 
 	fn1 := func(x int) g.Result[int] {
 		return g.Ok(x * 2)
 	}
 
-	mappedResult1 := g.ResultMap(result1, fn1)
+	mappedResult1 := g.TransformResult(result1, fn1)
 
 	if mappedResult1.IsErr() {
 		t.Errorf("Test 1: Expected Ok, got error")
@@ -61,7 +61,7 @@ func TestResultMap(t *testing.T) {
 		return g.Ok(x * 2)
 	}
 
-	mappedResult2 := g.ResultMap(result2, fn2)
+	mappedResult2 := g.TransformResult(result2, fn2)
 
 	if mappedResult2.IsOk() {
 		t.Errorf("Test 2: Expected error, got Ok")
@@ -74,13 +74,13 @@ func TestResultMap(t *testing.T) {
 
 func TestResultOfMap(t *testing.T) {
 	// Test 1: Mapping over a Result with a value
-	result1 := g.Ok[int](5)
+	result1 := g.Ok(5)
 
 	fn1 := func(x int) (int, error) {
 		return x * 2, nil
 	}
 
-	mappedResult1 := g.ResultOfMap(result1, fn1)
+	mappedResult1 := g.TransformResultOf(result1, fn1)
 
 	if mappedResult1.IsErr() {
 		t.Errorf("Test 1: Expected Ok, got error")
@@ -99,7 +99,7 @@ func TestResultOfMap(t *testing.T) {
 		return x * 2, nil
 	}
 
-	mappedResult2 := g.ResultOfMap(result2, fn2)
+	mappedResult2 := g.TransformResultOf(result2, fn2)
 
 	if mappedResult2.IsOk() {
 		t.Errorf("Test 2: Expected error, got Ok")
@@ -112,7 +112,7 @@ func TestResultOfMap(t *testing.T) {
 
 func TestResult(t *testing.T) {
 	// Test 1: Result with a value
-	result1 := g.Ok[int](42)
+	result1 := g.Ok(42)
 	value1, err1 := result1.Result()
 
 	if err1 != nil {
@@ -205,7 +205,7 @@ func TestResultUnwrapOr(t *testing.T) {
 
 func TestResultThen(t *testing.T) {
 	// Test 1: Applying fn to Result with a value
-	result1 := g.Ok[int](42)
+	result1 := g.Ok(42)
 	fn1 := func(x int) g.Result[int] {
 		return g.Ok(x * 2)
 	}

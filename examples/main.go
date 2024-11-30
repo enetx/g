@@ -199,7 +199,7 @@ func main() {
 	fmt.Println(ascii.IsASCII())
 
 	reg := NewString("some text")
-	fmt.Println(reg.ContainsRegexp(regexp.MustCompile(`\w+`)))
+	fmt.Println(reg.RxMatch(regexp.MustCompile(`\w+`)))
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 

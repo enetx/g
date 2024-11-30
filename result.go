@@ -24,7 +24,7 @@ func ResultOf[T any](value T, err error) Result[T] {
 	return Ok(value)
 }
 
-// ResultMap applies the given function to the value inside the Result, producing a new Result with the transformed value.
+// TransformResult applies the given function to the value inside the Result, producing a new Result with the transformed value.
 // If the input Result contains a value, the provided function is applied to it.
 // If the input Result contains an error, the output Result will also contain the same error.
 // Parameters:
@@ -34,7 +34,7 @@ func ResultOf[T any](value T, err error) Result[T] {
 // Returns:
 //
 //	A new Result with the transformed value, or the same error if the input Result contained an error.
-func ResultMap[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
+func TransformResult[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 	if r.IsErr() {
 		return Err[U](r.Err())
 	}
@@ -42,7 +42,7 @@ func ResultMap[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 	return fn(r.Ok())
 }
 
-// ResultOfMap applies the given function to the value inside the Result, producing a new Result with the transformed value.
+// TransformResultOf applies the given function to the value inside the Result, producing a new Result with the transformed value.
 // If the input Result contains a value, the provided function is applied to it.
 // If the input Result contains an error, the output Result will also contain the same error.
 // Parameters:
@@ -52,7 +52,7 @@ func ResultMap[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 // Returns:
 //
 //	A new Result with the transformed value, or the same error if the input Result contained an error.
-func ResultOfMap[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
+func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 	if r.IsErr() {
 		return Err[U](r.Err())
 	}
@@ -61,7 +61,13 @@ func ResultOfMap[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 }
 
 // Ok returns the value held in the Result.
-func (r Result[T]) Ok() T { return *r.value }
+func (r Result[T]) Ok() T {
+	if r.value != nil {
+		return *r.value
+	}
+
+	return *new(T)
+}
 
 // Err returns the error held in the Result.
 func (r Result[T]) Err() error { return r.err }

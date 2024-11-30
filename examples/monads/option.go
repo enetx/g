@@ -28,7 +28,7 @@ func main() {
 	fmt.Println(doubledOption.Unwrap()) // Output: 84
 
 	// Using OptionMap to transform the value inside Option
-	addTwoOption := OptionMap(someOption, func(val int) Option[string] {
+	addTwoOption := TransformOption(someOption, func(val int) Option[string] {
 		return Some("result: " + strconv.Itoa(val+2))
 	})
 

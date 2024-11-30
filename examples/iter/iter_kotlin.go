@@ -11,9 +11,9 @@ import (
 // https://kotlinlang.org/docs/basic-syntax.html#collections
 
 func main() {
-
 	fruits := SliceOf("banana", "avocado", "apple", "kiwifruit").Iter()
 	fruits.
+		// Filter(f.RxMatch[string](regexp.MustCompile("a"))).
 		Filter(f.StartsWith("a")).
 		SortBy(cmp.Cmp).
 		Map(strings.ToUpper).

@@ -8,7 +8,7 @@ import (
 	"github.com/enetx/g"
 )
 
-func TestReplaceRegexp(t *testing.T) {
+func TestRxReplace(t *testing.T) {
 	testCases := []struct {
 		input     g.String
 		pattern   *regexp.Regexp
@@ -53,14 +53,14 @@ func TestReplaceRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ReplaceRegexp(tc.pattern, tc.newString)
+		result := tc.input.RxReplace(tc.pattern, tc.newString)
 		if result != tc.expected {
 			t.Errorf("Expected %s, but got %s for input %s", tc.expected, result, tc.input)
 		}
 	}
 }
 
-func TestFindRegexp(t *testing.T) {
+func TestRxFind(t *testing.T) {
 	testCases := []struct {
 		pattern  *regexp.Regexp
 		expected g.Option[g.String]
@@ -93,7 +93,7 @@ func TestFindRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindRegexp(tc.pattern)
+		result := tc.input.RxFind(tc.pattern)
 		if result.IsSome() {
 			if result.Some() != tc.expected.Some() {
 				t.Errorf("Expected %s, but got %s for input %s", tc.expected.Some(), result.Some(), tc.input)
@@ -106,7 +106,7 @@ func TestFindRegexp(t *testing.T) {
 	}
 }
 
-func TestContainsRegexp(t *testing.T) {
+func TestRxMatch(t *testing.T) {
 	testCases := []struct {
 		pattern  *regexp.Regexp
 		input    g.String
@@ -139,14 +139,14 @@ func TestContainsRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexp(tc.pattern)
+		result := tc.input.RxMatch(tc.pattern)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
 	}
 }
 
-func TestContainsRegexpAny(t *testing.T) {
+func TestRxMatchAny(t *testing.T) {
 	testCases := []struct {
 		input    g.String
 		patterns g.Slice[*regexp.Regexp]
@@ -179,14 +179,14 @@ func TestContainsRegexpAny(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexpAny(tc.patterns...)
+		result := tc.input.RxMatchAny(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
 	}
 }
 
-func TestContainsRegexpAll(t *testing.T) {
+func TestRxMatchAll(t *testing.T) {
 	testCases := []struct {
 		input    g.String
 		patterns g.Slice[*regexp.Regexp]
@@ -219,14 +219,14 @@ func TestContainsRegexpAll(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.ContainsRegexpAll(tc.patterns...)
+		result := tc.input.RxMatchAll(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
 	}
 }
 
-func TestSplitRegexp(t *testing.T) {
+func TestRxSplit(t *testing.T) {
 	testCases := []struct {
 		input    g.String
 		expected g.Slice[g.String]
@@ -259,14 +259,14 @@ func TestSplitRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.SplitRegexp(tc.pattern)
+		result := tc.input.RxSplit(tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
 	}
 }
 
-func TestSplitRegexpN(t *testing.T) {
+func TestRxSplitN(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
@@ -304,14 +304,14 @@ func TestSplitRegexpN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.SplitRegexpN(tc.pattern, tc.n)
+		result := tc.input.RxSplitN(tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s with n = %d", tc.expected, result, tc.input, tc.n)
 		}
 	}
 }
 
-func TestIndexRegexp(t *testing.T) {
+func TestRxIndex(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.Int]]
 		input    g.String
@@ -338,7 +338,7 @@ func TestIndexRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.IndexRegexp(&tc.pattern)
+		result := tc.input.RxIndex(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -351,7 +351,7 @@ func TestIndexRegexp(t *testing.T) {
 	}
 }
 
-func TestFindAllRegexp(t *testing.T) {
+func TestRxFindAll(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
@@ -378,7 +378,7 @@ func TestFindAllRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindAllRegexp(&tc.pattern)
+		result := tc.input.RxFindAll(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -391,7 +391,7 @@ func TestFindAllRegexp(t *testing.T) {
 	}
 }
 
-func TestFindAllRegexpN(t *testing.T) {
+func TestRxFindAllN(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
@@ -422,7 +422,7 @@ func TestFindAllRegexpN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindAllRegexpN(&tc.pattern, tc.n)
+		result := tc.input.RxFindAllN(&tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s and n = %d",
@@ -436,7 +436,7 @@ func TestFindAllRegexpN(t *testing.T) {
 	}
 }
 
-func TestFindSubmatchRegexp(t *testing.T) {
+func TestRxFindSubmatch(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.String]]
 		input    g.String
@@ -463,7 +463,7 @@ func TestFindSubmatchRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindSubmatchRegexp(&tc.pattern)
+		result := tc.input.RxFindSubmatch(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -476,7 +476,7 @@ func TestFindSubmatchRegexp(t *testing.T) {
 	}
 }
 
-func TestFindAllSubmatchRegexp(t *testing.T) {
+func TestRxFindAllSubmatch(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.Slice[g.String]]]
 		input    g.String
@@ -503,7 +503,7 @@ func TestFindAllSubmatchRegexp(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindAllSubmatchRegexp(&tc.pattern)
+		result := tc.input.RxFindAllSubmatch(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -516,7 +516,7 @@ func TestFindAllSubmatchRegexp(t *testing.T) {
 	}
 }
 
-func TestFindAllSubmatchRegexpN(t *testing.T) {
+func TestRxFindAllSubmatchN(t *testing.T) {
 	testCases := []struct {
 		expected g.Option[g.Slice[g.Slice[g.String]]]
 		input    g.String
@@ -547,7 +547,7 @@ func TestFindAllSubmatchRegexpN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.FindAllSubmatchRegexpN(&tc.pattern, tc.n)
+		result := tc.input.RxFindAllSubmatchN(&tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s and n = %d",

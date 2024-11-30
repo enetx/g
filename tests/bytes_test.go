@@ -101,12 +101,12 @@ func TestReplaceAll(t *testing.T) {
 	}
 }
 
-func TestBytesReplaceRegexp(t *testing.T) {
+func TestBytesRxReplace(t *testing.T) {
 	// Test case where pattern matches and is replaced
 	bs1 := g.Bytes("hello world hello world")
 	pattern1 := regexp.MustCompile("world")
 	newB1 := g.Bytes("gopher")
-	replaced1 := bs1.ReplaceRegexp(pattern1, newB1)
+	replaced1 := bs1.RxReplace(pattern1, newB1)
 	expected1 := g.Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
@@ -116,7 +116,7 @@ func TestBytesReplaceRegexp(t *testing.T) {
 	bs2 := g.Bytes("apple apple apple")
 	pattern2 := regexp.MustCompile(`(\w+)`)
 	newB2 := g.Bytes("${1}s")
-	replaced2 := bs2.ReplaceRegexp(pattern2, newB2)
+	replaced2 := bs2.RxReplace(pattern2, newB2)
 	expected2 := g.Bytes("apples apples apples")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement with capture group failed. Expected: %s, Got: %s", expected2, replaced2)
@@ -126,17 +126,17 @@ func TestBytesReplaceRegexp(t *testing.T) {
 	bs3 := g.Bytes("hello world")
 	pattern3 := regexp.MustCompile("gopher")
 	newB3 := g.Bytes("earth")
-	replaced3 := bs3.ReplaceRegexp(pattern3, newB3)
+	replaced3 := bs3.RxReplace(pattern3, newB3)
 	if !bytes.Equal(replaced3, bs3) {
 		t.Errorf("Expected no change when pattern doesn't match. Got: %s", replaced3)
 	}
 }
 
-func TestBytesFindRegexp(t *testing.T) {
+func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern matches and is found
 	bs1 := g.Bytes("hello world")
 	pattern1 := regexp.MustCompile("world")
-	found1 := bs1.FindRegexp(pattern1)
+	found1 := bs1.RxFind(pattern1)
 	expected1 := g.Bytes("world")
 	if found1.IsNone() {
 		t.Errorf("Expected to find matching pattern, but found none")
@@ -147,7 +147,7 @@ func TestBytesFindRegexp(t *testing.T) {
 	// Test case where pattern doesn't match
 	bs2 := g.Bytes("hello world")
 	pattern2 := regexp.MustCompile("gopher")
-	found2 := bs2.FindRegexp(pattern2)
+	found2 := bs2.RxFind(pattern2)
 	if found2.IsSome() {
 		t.Errorf("Expected not to find matching pattern, but found one")
 	}
@@ -633,11 +633,11 @@ func TestBytesIndex(t *testing.T) {
 	}
 }
 
-func TestBytesIndexRegexp(t *testing.T) {
+func TestBytesRxIndex(t *testing.T) {
 	// Test case where a match is found
 	bs := g.Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
-	idx := bs.IndexRegexp(pattern)
+	idx := bs.RxIndex(pattern)
 	expected := g.Some(g.Slice[g.Int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -646,7 +646,7 @@ func TestBytesIndexRegexp(t *testing.T) {
 	// Test case where no match is found
 	bs = g.Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
-	idx = bs.IndexRegexp(pattern)
+	idx = bs.RxIndex(pattern)
 	expected = g.None[g.Slice[g.Int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -898,11 +898,11 @@ func TestBytesIndexRune(t *testing.T) {
 	}
 }
 
-func TestBytesFindAllSubmatchRegexpN(t *testing.T) {
+func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	// Test case where matches are found
 	bs := g.Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.FindAllSubmatchRegexpN(pattern, -1)
+	matches := bs.RxFindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
 		expected := g.Slice[g.Slice[g.Bytes]]{
 			{g.Bytes("hello")},
@@ -918,17 +918,17 @@ func TestBytesFindAllSubmatchRegexpN(t *testing.T) {
 	// Test case where no matches are found
 	bs = g.Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.FindAllSubmatchRegexpN(pattern, -1)
+	matches = bs.RxFindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
 		t.Errorf("FindAllSubmatchRegexpN failed. Expected None, Got matches")
 	}
 }
 
-func TestBytesFindAllRegexp(t *testing.T) {
+func TestBytesRxFindAll(t *testing.T) {
 	// Test case where matches are found
 	bs := g.Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.FindAllRegexp(pattern)
+	matches := bs.RxFindAll(pattern)
 	if matches.IsSome() {
 		expected := g.Slice[g.Bytes]{
 			g.Bytes("hello"),
@@ -944,17 +944,17 @@ func TestBytesFindAllRegexp(t *testing.T) {
 	// Test case where no matches are found
 	bs = g.Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.FindAllRegexp(pattern)
+	matches = bs.RxFindAll(pattern)
 	if matches.IsSome() {
 		t.Errorf("FindAllRegexp failed. Expected None, Got matches")
 	}
 }
 
-func TestBytesFindSubmatchRegexp(t *testing.T) {
+func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where a match is found
 	bs := g.Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	match := bs.FindSubmatchRegexp(pattern)
+	match := bs.RxFindSubmatch(pattern)
 	if match.IsSome() {
 		expected := g.SliceOf(g.Bytes("hello"))
 		if !match.Some().Eq(expected) {
@@ -967,17 +967,17 @@ func TestBytesFindSubmatchRegexp(t *testing.T) {
 	// Test case where no match is found
 	bs = g.Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	match = bs.FindSubmatchRegexp(pattern)
+	match = bs.RxFindSubmatch(pattern)
 	if match.IsSome() {
 		t.Errorf("FindSubmatchRegexp failed. Expected None, Got match")
 	}
 }
 
-func TestBytesFindAllSubmatchRegexp(t *testing.T) {
+func TestBytesRxFindAllSubmatch(t *testing.T) {
 	// Test case where matches are found
 	bs := g.Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.FindAllSubmatchRegexp(pattern)
+	matches := bs.RxFindAllSubmatch(pattern)
 	if matches.IsSome() {
 		expected := g.Slice[g.Slice[g.Bytes]]{
 			{g.Bytes("hello")},
@@ -993,7 +993,7 @@ func TestBytesFindAllSubmatchRegexp(t *testing.T) {
 	// Test case where no matches are found
 	bs = g.Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.FindAllSubmatchRegexp(pattern)
+	matches = bs.RxFindAllSubmatch(pattern)
 	if matches.IsSome() {
 		t.Errorf("FindAllSubmatchRegexp failed. Expected None, Got matches")
 	}
