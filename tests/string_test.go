@@ -169,7 +169,7 @@ func TestStringIsDigit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.IsDigit(); got != tt.want {
-				t.Errorf("StrinIsDigit() = %v, want %v", got, tt.want)
+				t.Errorf("String.IsDigit() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -210,7 +210,7 @@ func TestStringToInt(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.ToInt().UnwrapOrDefault(); got != tt.want {
-				t.Errorf("StrinToInt() = %v, want %v", got, tt.want)
+				t.Errorf("String.ToInt() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -255,7 +255,7 @@ func TestStringToTitle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Title(); got.Ne(tt.want) {
-				t.Errorf("StrinToTitle() = %v, want %v", got, tt.want)
+				t.Errorf("String.ToTitle() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -297,7 +297,7 @@ func TestStringAdd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Append(tt.s); got != tt.want {
-				t.Errorf("StrinAdd() = %v, want %v", got, tt.want)
+				t.Errorf("String.Add() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -339,7 +339,7 @@ func TestStringAddPrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Prepend(tt.s); got != tt.want {
-				t.Errorf("StrinAddPrefix() = %v, want %v", got, tt.want)
+				t.Errorf("String.AddPrefix() = %v, want %v", got, tt.want)
 			}
 		})
 	}

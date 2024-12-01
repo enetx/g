@@ -26,7 +26,7 @@ func TestStringMD5(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.s; got != tt.want {
-				t.Errorf("StrinMD5() = %v, want %v", got, tt.want)
+				t.Errorf("String.MD5() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -74,7 +74,7 @@ func TestStringSHA256(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.s.Hash().SHA256(); got != tt.want {
-				t.Errorf("StrinSHA256() = %v, want %v", got, tt.want)
+				t.Errorf("String.SHA256() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -106,7 +106,7 @@ func TestStringSHA512(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.s.Hash().SHA512(); got != tt.want {
-				t.Errorf("StrinSHA512() = %v, want %v", got, tt.want)
+				t.Errorf("String.SHA512() = %v, want %v", got, tt.want)
 			}
 		})
 	}
