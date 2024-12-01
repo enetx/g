@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestNewDir(t *testing.T) {
 	// Define a test path
-	testPath := g.String("/")
+	testPath := String("/")
 
 	// Create a new Dir instance using NewDir
-	dir := g.NewDir(testPath)
+	dir := NewDir(testPath)
 
 	// Check if the path of the created Dir instance matches the expected path
 	if dir.Path().Ok() != testPath {
@@ -27,7 +27,7 @@ func TestDir_Chown_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Perform chown operation
 	uid := os.Getuid() // Current user's UID
@@ -42,7 +42,7 @@ func TestDir_Chown_Success(t *testing.T) {
 
 func TestDir_Chown_Failure(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := g.NewDir("/nonexistent/path")
+	dir := NewDir("/nonexistent/path")
 
 	// Perform chown operation
 	uid := os.Getuid() // Current user's UID
@@ -61,7 +61,7 @@ func TestDir_Stat_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -74,7 +74,7 @@ func TestDir_Stat_Success(t *testing.T) {
 
 func TestDir_Stat_Failure(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := g.NewDir("/nonexistent/path")
+	dir := NewDir("/nonexistent/path")
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -91,7 +91,7 @@ func TestDir_Path_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Get the absolute path of the directory using Path
 	result := dir.Path()
@@ -115,7 +115,7 @@ func TestDir_Lstat_IsLink_Success(t *testing.T) {
 	}
 
 	// Create a Dir instance with the symbolic link path
-	dir := g.NewDir(g.String(linkPath))
+	dir := NewDir(String(linkPath))
 
 	// Call Lstat to get information about the symbolic link
 	result := dir.Lstat()
@@ -137,7 +137,7 @@ func TestDir_Lstat_IsLink_NotLink(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Call Lstat to get information about the directory
 	result := dir.Lstat()
@@ -155,7 +155,7 @@ func TestDir_Lstat_IsLink_NotLink(t *testing.T) {
 
 func TestDir_CreateTemp_Success(t *testing.T) {
 	// Create a Dir instance representing the default directory for temporary directories
-	dir := g.NewDir("")
+	dir := NewDir("")
 
 	// Create a temporary directory using CreateTemp
 	result := dir.CreateTemp()
@@ -174,7 +174,7 @@ func TestDir_CreateTemp_Success(t *testing.T) {
 
 func TestDir_Temp(t *testing.T) {
 	// Get the default temporary directory using Temp
-	tmpDir := g.NewDir("").Temp()
+	tmpDir := NewDir("").Temp()
 
 	// Check if the returned directory exists
 	if _, err := os.Stat(tmpDir.String().Std()); os.IsNotExist(err) {
@@ -188,7 +188,7 @@ func TestDir_Remove_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Remove the temporary directory using Remove
 	result := dir.Remove()
@@ -201,7 +201,7 @@ func TestDir_Remove_Success(t *testing.T) {
 
 func TestDir_Remove_NotExist(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := g.NewDir("/nonexistent/path")
+	dir := NewDir("/nonexistent/path")
 
 	// Remove the non-existent directory using Remove
 	result := dir.Remove()
@@ -220,7 +220,7 @@ func TestDir_Create_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Create a new directory using Create
 	result := dir.Create()
@@ -239,7 +239,7 @@ func TestDir_Create_Success(t *testing.T) {
 
 func TestDir_Create_Failure(t *testing.T) {
 	// Attempt to create a directory in a non-existent parent directory
-	nonExistentDir := g.NewDir("/nonexistent/parent")
+	nonExistentDir := NewDir("/nonexistent/parent")
 	result := nonExistentDir.Create()
 
 	// Check if the operation failed as expected
@@ -250,7 +250,7 @@ func TestDir_Create_Failure(t *testing.T) {
 
 func TestDir_Join_Success(t *testing.T) {
 	// Create a Dir instance representing an existing directory
-	dir := g.NewDir("/path/to/directory")
+	dir := NewDir("/path/to/directory")
 
 	// Join the directory path with additional elements
 	result := dir.Join("subdir", "file.txt")
@@ -269,10 +269,10 @@ func TestDir_Join_Success(t *testing.T) {
 
 func TestDir_SetPath(t *testing.T) {
 	// Create a Dir instance representing an existing directory
-	dir := g.NewDir("/path/to/directory")
+	dir := NewDir("/path/to/directory")
 
 	// Set a new path for the directory
-	newPath := g.String("/new/path/to/directory")
+	newPath := String("/new/path/to/directory")
 	updatedDir := dir.SetPath(newPath)
 
 	// Check if the path of the directory is updated correctly
@@ -288,7 +288,7 @@ func TestDir_CreateAll_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Create all directories along the path
 	result := dir.CreateAll()
@@ -311,7 +311,7 @@ func TestDir_CreateAll_Mode_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Create all directories along the path with custom mode
 	result := dir.CreateAll(0700)
@@ -341,7 +341,7 @@ func TestDir_Read_Success(t *testing.T) {
 	createTestFiles(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Read the content of the directory
 	result := dir.Read()
@@ -370,7 +370,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	createTestFiles(tempDir)
 
 	// Create a Dir instance representing the temporary directory with a glob pattern
-	dir := g.NewDir(g.String(filepath.Join(tempDir, "*.txt")))
+	dir := NewDir(String(filepath.Join(tempDir, "*.txt")))
 
 	// Retrieve files matching the glob pattern
 	result := dir.Glob()
@@ -396,11 +396,11 @@ func TestDir_Rename(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := g.NewDir(g.String(tempDir))
+	dir := NewDir(String(tempDir))
 
 	// Rename the directory
 	newpath := tempDir + "_new"
-	renamedDir := dir.Rename(g.String(newpath))
+	renamedDir := dir.Rename(String(newpath))
 
 	// Check if the directory has been successfully renamed
 	if renamedDir.IsErr() {
@@ -438,10 +438,10 @@ func TestDir_Copy(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	// Create a Dir instance representing the source directory
-	source := g.NewDir(g.String(sourceDir))
+	source := NewDir(String(sourceDir))
 
 	// Copy the contents of the source directory to the destination directory
-	result := source.Copy(g.String(destDir))
+	result := source.Copy(String(destDir))
 	if result.IsErr() {
 		t.Fatalf("TestDir_Copy: Failed to copy directory contents: %v", result.Err())
 	}
@@ -497,14 +497,14 @@ func TestDir_Walk(t *testing.T) {
 	visited := make([]string, 0)
 
 	// Define the walker function
-	walker := func(f *g.File) error {
+	walker := func(f *File) error {
 		path := f.Path()
 		if path.IsErr() {
 			return path.Err()
 		}
 
 		if f.IsDir() && f.Dir().Ok().IsLink() {
-			return g.SkipWalk
+			return SkipWalk
 		}
 
 		if f.IsLink() {
@@ -516,7 +516,7 @@ func TestDir_Walk(t *testing.T) {
 	}
 
 	// Create a Dir instance representing the test directory
-	testDirInstance := g.NewDir(g.String(testDir))
+	testDirInstance := NewDir(String(testDir))
 
 	// Perform the walk operation
 	if err := testDirInstance.Walk(walker); err != nil {

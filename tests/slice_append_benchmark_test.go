@@ -3,7 +3,7 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 // go test -bench=. -benchmem -count=4
@@ -11,19 +11,19 @@ import (
 func BenchmarkAppendInPlace(b *testing.B) {
 	b.ResetTimer()
 
-	slice := g.NewSlice[g.String]()
+	slice := NewSlice[String]()
 
 	for i := range 10000000 {
-		slice = slice.Append(g.NewInt(i).String())
+		slice = slice.Append(Int(i).String())
 	}
 }
 
 func BenchmarkAppend(b *testing.B) {
 	b.ResetTimer()
 
-	slice := g.NewSlice[g.String]()
+	slice := NewSlice[String]()
 
 	for i := range 10000000 {
-		slice.AppendInPlace(g.NewInt(i).String())
+		slice.AppendInPlace(Int(i).String())
 	}
 }

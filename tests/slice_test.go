@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
 )
@@ -14,25 +14,25 @@ import (
 func TestSliceUnpack(t *testing.T) {
 	tests := []struct {
 		name     string
-		slice    g.Slice[int]
+		slice    Slice[int]
 		vars     []*int
 		expected []int
 	}{
 		{
 			name:     "Unpack with valid indices",
-			slice:    g.Slice[int]{1, 2, 3, 4, 5},
+			slice:    Slice[int]{1, 2, 3, 4, 5},
 			vars:     []*int{new(int), new(int), new(int)},
 			expected: []int{1, 2, 3},
 		},
 		{
 			name:     "Unpack with invalid indices",
-			slice:    g.Slice[int]{1, 2, 3},
+			slice:    Slice[int]{1, 2, 3},
 			vars:     []*int{new(int), new(int), new(int), new(int)},
 			expected: []int{1, 2, 3, 0}, // Expecting zero value for the fourth variable
 		},
 		{
 			name:     "Unpack with empty slice",
-			slice:    g.Slice[int]{},
+			slice:    Slice[int]{},
 			vars:     []*int{new(int)},
 			expected: []int{0}, // Expecting zero value for the only variable
 		},
@@ -57,31 +57,31 @@ func TestSliceUnpack(t *testing.T) {
 }
 
 func TestSubSliceWithStep(t *testing.T) {
-	slice := g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
+	slice := SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
 
 	testCases := []struct {
-		start    g.Int
-		end      g.Int
-		step     g.Int
-		expected g.Slice[int]
+		start    Int
+		end      Int
+		step     Int
+		expected Slice[int]
 	}{
-		{1, 7, 2, g.SliceOf(2, 4, 6)},
-		{0, 9, 3, g.SliceOf(1, 4, 7)},
-		{2, 6, 1, g.SliceOf(3, 4, 5, 6)},
-		{0, 9, 2, g.SliceOf(1, 3, 5, 7, 9)},
-		{0, 9, 4, g.SliceOf(1, 5, 9)},
-		{6, 1, -2, g.SliceOf(7, 5, 3)},
-		{8, 1, -3, g.SliceOf(9, 6, 3)},
-		{8, 0, -2, g.SliceOf(9, 7, 5, 3)},
-		{8, 0, -1, g.SliceOf(9, 8, 7, 6, 5, 4, 3, 2)},
-		{8, 0, -4, g.SliceOf(9, 5)},
-		{-1, -6, -2, g.SliceOf(9, 7, 5)},
-		{-2, -9, -3, g.SliceOf(8, 5, 2)},
-		{-1, -8, -2, g.SliceOf(9, 7, 5, 3)},
-		{-3, -10, -2, g.SliceOf(7, 5, 3, 1)},
-		{-1, -10, -1, g.SliceOf(9, 8, 7, 6, 5, 4, 3, 2, 1)},
-		{-5, -1, -1, g.Slice[int]{}},
-		{-1, -5, -1, g.SliceOf(9, 8, 7, 6)},
+		{1, 7, 2, SliceOf(2, 4, 6)},
+		{0, 9, 3, SliceOf(1, 4, 7)},
+		{2, 6, 1, SliceOf(3, 4, 5, 6)},
+		{0, 9, 2, SliceOf(1, 3, 5, 7, 9)},
+		{0, 9, 4, SliceOf(1, 5, 9)},
+		{6, 1, -2, SliceOf(7, 5, 3)},
+		{8, 1, -3, SliceOf(9, 6, 3)},
+		{8, 0, -2, SliceOf(9, 7, 5, 3)},
+		{8, 0, -1, SliceOf(9, 8, 7, 6, 5, 4, 3, 2)},
+		{8, 0, -4, SliceOf(9, 5)},
+		{-1, -6, -2, SliceOf(9, 7, 5)},
+		{-2, -9, -3, SliceOf(8, 5, 2)},
+		{-1, -8, -2, SliceOf(9, 7, 5, 3)},
+		{-3, -10, -2, SliceOf(7, 5, 3, 1)},
+		{-1, -10, -1, SliceOf(9, 8, 7, 6, 5, 4, 3, 2, 1)},
+		{-5, -1, -1, Slice[int]{}},
+		{-1, -5, -1, SliceOf(9, 8, 7, 6)},
 	}
 
 	for _, tc := range testCases {
@@ -96,10 +96,10 @@ func TestSubSliceWithStep(t *testing.T) {
 }
 
 // func TestSortInts(t *testing.T) {
-// 	slice := g.Slice[int]{5, 2, 8, 1, 6}
+// 	slice := Slice[int]{5, 2, 8, 1, 6}
 // 	slice.Sort()
 
-// 	expected := g.Slice[int]{1, 2, 5, 6, 8}
+// 	expected := Slice[int]{1, 2, 5, 6, 8}
 
 // 	if !reflect.DeepEqual(slice, expected) {
 // 		t.Errorf("Expected %v but got %v", expected, slice)
@@ -107,10 +107,10 @@ func TestSubSliceWithStep(t *testing.T) {
 // }
 
 // func TestSortStrings(t *testing.T) {
-// 	slice := g.Slice[string]{"apple", "orange", "banana", "grape"}
+// 	slice := Slice[string]{"apple", "orange", "banana", "grape"}
 // 	slice.Sort()
 
-// 	expected := g.Slice[string]{"apple", "banana", "grape", "orange"}
+// 	expected := Slice[string]{"apple", "banana", "grape", "orange"}
 
 // 	if !reflect.DeepEqual(slice, expected) {
 // 		t.Errorf("Expected %v but got %v", expected, slice)
@@ -118,10 +118,10 @@ func TestSubSliceWithStep(t *testing.T) {
 // }
 
 // func TestSliceSortFloats(t *testing.T) {
-// 	slice := g.Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
+// 	slice := Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
 // 	slice.Sort()
 
-// 	expected := g.Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
+// 	expected := Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
 
 // 	if !reflect.DeepEqual(slice, expected) {
 // 		t.Errorf("Expected %v but got %v", expected, slice)
@@ -130,41 +130,41 @@ func TestSubSliceWithStep(t *testing.T) {
 
 func TestSliceInsert(t *testing.T) {
 	// Test insertion in the middle
-	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice := Slice[string]{"a", "b", "c", "d"}
 	newSlice := slice.Insert(2, "e", "f")
-	expected := g.Slice[string]{"a", "b", "e", "f", "c", "d"}
+	expected := Slice[string]{"a", "b", "e", "f", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Insert(2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test insertion at the start
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Insert(0, "x", "y")
-	expected = g.Slice[string]{"x", "y", "a", "b", "c", "d"}
+	expected = Slice[string]{"x", "y", "a", "b", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Insert(0) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test insertion at the end
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Insert(slice.Len(), "x", "y")
-	expected = g.Slice[string]{"a", "b", "c", "d", "x", "y"}
+	expected = Slice[string]{"a", "b", "c", "d", "x", "y"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Insert(end) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test insertion with negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Insert(-2, "x", "y")
-	expected = g.Slice[string]{"a", "b", "x", "y", "c", "d"}
+	expected = Slice[string]{"a", "b", "x", "y", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Insert(-2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test insertion at index 0 with an empty slice
-	slice = g.Slice[string]{}
+	slice = Slice[string]{}
 	newSlice = slice.Insert(0, "x", "y")
-	expected = g.Slice[string]{"x", "y"}
+	expected = Slice[string]{"x", "y"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Insert(0) with empty slice failed. Expected %v, but got %v", expected, newSlice)
 	}
@@ -172,48 +172,48 @@ func TestSliceInsert(t *testing.T) {
 
 func TestSliceInsertInPlace(t *testing.T) {
 	// Test insertion in the middle
-	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice := Slice[string]{"a", "b", "c", "d"}
 	slice.InsertInPlace(2, "e", "f")
-	expected := g.Slice[string]{"a", "b", "e", "f", "c", "d"}
+	expected := Slice[string]{"a", "b", "e", "f", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("InsertInPlace(2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at the start
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.InsertInPlace(0, "x", "y")
-	expected = g.Slice[string]{"x", "y", "a", "b", "c", "d"}
+	expected = Slice[string]{"x", "y", "a", "b", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("InsertInPlace(0) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at the end
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.InsertInPlace(slice.Len(), "x", "y")
-	expected = g.Slice[string]{"a", "b", "c", "d", "x", "y"}
+	expected = Slice[string]{"a", "b", "c", "d", "x", "y"}
 	if !slice.Eq(expected) {
 		t.Errorf("InsertInPlace(end) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion with negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.InsertInPlace(-2, "x", "y")
-	expected = g.Slice[string]{"a", "b", "x", "y", "c", "d"}
+	expected = Slice[string]{"a", "b", "x", "y", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("InsertInPlace(-2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at index 0 with an empty slice
-	slice = g.Slice[string]{}
+	slice = Slice[string]{}
 	slice.InsertInPlace(0, "x", "y")
-	expected = g.Slice[string]{"x", "y"}
+	expected = Slice[string]{"x", "y"}
 	if !slice.Eq(expected) {
 		t.Errorf("InsertInPlace(0) with empty slice failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
 func TestSliceToSlice(t *testing.T) {
-	sl := g.NewSlice[int]().Append(1, 2, 3, 4, 5)
+	sl := NewSlice[int]().Append(1, 2, 3, 4, 5)
 	slice := sl.Std()
 
 	if len(slice) != sl.Len().Std() {
@@ -228,7 +228,7 @@ func TestSliceToSlice(t *testing.T) {
 }
 
 func TestSliceShuffle(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	sl := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	sl.Shuffle()
 
 	if sl.Len() != 10 {
@@ -237,136 +237,136 @@ func TestSliceShuffle(t *testing.T) {
 }
 
 func TestSliceReverse(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	sl.Reverse()
 
-	if !reflect.DeepEqual(sl, g.Slice[int]{5, 4, 3, 2, 1}) {
-		t.Errorf("Expected %v, got %v", g.Slice[int]{5, 4, 3, 2, 1}, sl)
+	if !reflect.DeepEqual(sl, Slice[int]{5, 4, 3, 2, 1}) {
+		t.Errorf("Expected %v, got %v", Slice[int]{5, 4, 3, 2, 1}, sl)
 	}
 }
 
 func TestSliceIndex(t *testing.T) {
 	// Test case: Function returns an index for known types (Int)
-	slInt := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	slInt := Slice[Int]{1, 2, 3, 4, 5}
 	index := slInt.Index(3)
 	if index != 2 {
 		t.Errorf("Expected index 2, got %d", index)
 	}
 
 	// Test case: Function returns -1 for unknown types (String)
-	slString := g.Slice[g.String]{"a", "b", "c"}
+	slString := Slice[String]{"a", "b", "c"}
 	index = slString.Index("d")
 	if index != -1 {
 		t.Errorf("Expected index -1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Float)
-	slFloat := g.Slice[g.Float]{1.1, 2.2, 3.3}
+	slFloat := Slice[Float]{1.1, 2.2, 3.3}
 	index = slFloat.Index(2.2)
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns -1 for empty slice (Bool)
-	emptySliceBool := g.Slice[bool]{}
+	emptySliceBool := Slice[bool]{}
 	index = emptySliceBool.Index(true)
 	if index != -1 {
 		t.Errorf("Expected index -1 for empty slice, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Byte)
-	slByte := g.Slice[byte]{byte('a'), byte('b'), byte('c')}
+	slByte := Slice[byte]{byte('a'), byte('b'), byte('c')}
 	index = slByte.Index(byte('b'))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (String)
-	slString2 := g.Slice[string]{"apple", "banana", "cherry"}
+	slString2 := Slice[string]{"apple", "banana", "cherry"}
 	index = slString2.Index("banana")
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Int)
-	slInt2 := g.Slice[int]{10, 20, 30}
+	slInt2 := Slice[int]{10, 20, 30}
 	index = slInt2.Index(20)
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Int8)
-	slInt8 := g.Slice[int8]{1, 2, 3}
+	slInt8 := Slice[int8]{1, 2, 3}
 	index = slInt8.Index(int8(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Int16)
-	slInt16 := g.Slice[int16]{1, 2, 3}
+	slInt16 := Slice[int16]{1, 2, 3}
 	index = slInt16.Index(int16(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Int32)
-	slInt32 := g.Slice[int32]{1, 2, 3}
+	slInt32 := Slice[int32]{1, 2, 3}
 	index = slInt32.Index(int32(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Int64)
-	slInt64 := g.Slice[int64]{1, 2, 3}
+	slInt64 := Slice[int64]{1, 2, 3}
 	index = slInt64.Index(int64(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Uint)
-	slUint := g.Slice[uint]{1, 2, 3, 4, 5}
+	slUint := Slice[uint]{1, 2, 3, 4, 5}
 	index = slUint.Index(uint(3))
 	if index != 2 {
 		t.Errorf("Expected index 2, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Uint8)
-	slUint8 := g.Slice[uint8]{1, 2, 3}
+	slUint8 := Slice[uint8]{1, 2, 3}
 	index = slUint8.Index(uint8(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Uint16)
-	slUint16 := g.Slice[uint16]{1, 2, 3}
+	slUint16 := Slice[uint16]{1, 2, 3}
 	index = slUint16.Index(uint16(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Uint32)
-	slUint32 := g.Slice[uint32]{1, 2, 3}
+	slUint32 := Slice[uint32]{1, 2, 3}
 	index = slUint32.Index(uint32(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Uint64)
-	slUint64 := g.Slice[uint64]{1, 2, 3}
+	slUint64 := Slice[uint64]{1, 2, 3}
 	index = slUint64.Index(uint64(2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Float32)
-	slFloat32 := g.Slice[float32]{1.1, 2.2, 3.3}
+	slFloat32 := Slice[float32]{1.1, 2.2, 3.3}
 	index = slFloat32.Index(float32(2.2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
 	}
 
 	// Test case: Function returns an index for known types (Float64)
-	slFloat64 := g.Slice[float64]{1.1, 2.2, 3.3}
+	slFloat64 := Slice[float64]{1.1, 2.2, 3.3}
 	index = slFloat64.Index(float64(2.2))
 	if index != 1 {
 		t.Errorf("Expected index 1, got %d", index)
@@ -380,7 +380,7 @@ func TestSliceIndexFunc(t *testing.T) {
 	}
 
 	// Create a slice with custom type
-	slCustom := g.Slice[customType]{{Value: 1}, {Value: 2}, {Value: 3}}
+	slCustom := Slice[customType]{{Value: 1}, {Value: 2}, {Value: 3}}
 
 	// Test case: Function returns an index for custom types using IndexFunc
 	index := slCustom.Index(customType{Value: 2})
@@ -396,7 +396,7 @@ func TestSliceIndexFunc(t *testing.T) {
 }
 
 func TestSliceRandomSample(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	sl := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	result := sl.RandomSample(5)
 
 	if result.Len() != 5 {
@@ -411,7 +411,7 @@ func TestSliceRandomSample(t *testing.T) {
 }
 
 func TestSliceAddUnique(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3}
+	sl := Slice[int]{1, 2, 3}
 	sl = sl.AddUnique(4, 5, 6)
 
 	if !sl.Contains(4) {
@@ -425,8 +425,8 @@ func TestSliceAddUnique(t *testing.T) {
 }
 
 func TestSliceSortBy(t *testing.T) {
-	sl1 := g.NewSlice[int]().Append(3, 1, 4, 1, 5)
-	expected1 := g.NewSlice[int]().Append(1, 1, 3, 4, 5)
+	sl1 := NewSlice[int]().Append(3, 1, 4, 1, 5)
+	expected1 := NewSlice[int]().Append(1, 1, 3, 4, 5)
 
 	sl1.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
@@ -434,8 +434,8 @@ func TestSliceSortBy(t *testing.T) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, sl1)
 	}
 
-	sl2 := g.NewSlice[string]().Append("foo", "bar", "baz")
-	expected2 := g.NewSlice[string]().Append("foo", "baz", "bar")
+	sl2 := NewSlice[string]().Append("foo", "bar", "baz")
+	expected2 := NewSlice[string]().Append("foo", "baz", "bar")
 
 	sl2.SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) })
 
@@ -443,8 +443,8 @@ func TestSliceSortBy(t *testing.T) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected2, sl2)
 	}
 
-	sl3 := g.NewSlice[int]()
-	expected3 := g.NewSlice[int]()
+	sl3 := NewSlice[int]()
+	expected3 := NewSlice[int]()
 
 	sl3.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
@@ -454,7 +454,7 @@ func TestSliceSortBy(t *testing.T) {
 }
 
 func TestSliceJoin(t *testing.T) {
-	sl := g.Slice[string]{"1", "2", "3", "4", "5"}
+	sl := Slice[string]{"1", "2", "3", "4", "5"}
 	str := sl.Join(",")
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
@@ -463,7 +463,7 @@ func TestSliceJoin(t *testing.T) {
 }
 
 func TestSliceToStringSlice(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3}
+	sl := Slice[int]{1, 2, 3}
 	result := sl.ToStringSlice()
 	expected := []string{"1", "2", "3"}
 
@@ -473,15 +473,15 @@ func TestSliceToStringSlice(t *testing.T) {
 }
 
 func TestSliceAdd(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3}.Append(4, 5, 6)
+	sl := Slice[int]{1, 2, 3}.Append(4, 5, 6)
 
-	if !reflect.DeepEqual(sl, g.Slice[int]{1, 2, 3, 4, 5, 6}) {
+	if !reflect.DeepEqual(sl, Slice[int]{1, 2, 3, 4, 5, 6}) {
 		t.Error("Add failed")
 	}
 }
 
 func TestSliceClone(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3}
+	sl := Slice[int]{1, 2, 3}
 	slClone := sl.Clone()
 
 	if !sl.Eq(slClone) {
@@ -490,73 +490,73 @@ func TestSliceClone(t *testing.T) {
 }
 
 func TestSliceCut(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test normal range
 	newSlice := slice.Cut(1, 3)
-	expected := g.Slice[int]{1, 4, 5}
+	expected := Slice[int]{1, 4, 5}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Cut(1, 3) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test range with negative indices
 	newSlice = slice.Cut(-3, -2)
-	expected = g.Slice[int]{1, 2, 4, 5}
+	expected = Slice[int]{1, 2, 4, 5}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Cut(-3, -2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test empty range
 	newSlice = slice.Cut(0, 5)
-	expected = g.Slice[int]{}
+	expected = Slice[int]{}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Cut(3, 2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 }
 
 func TestSliceCutInPlace(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test normal range
 	slice.CutInPlace(1, 3)
-	expected := g.Slice[int]{1, 4, 5}
+	expected := Slice[int]{1, 4, 5}
 	if !slice.Eq(expected) {
 		t.Errorf("CutInPlace(1, 3) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test range with negative indices
-	slice = g.Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
+	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
 	slice.CutInPlace(-3, -2)
-	expected = g.Slice[int]{1, 2, 4, 5}
+	expected = Slice[int]{1, 2, 4, 5}
 	if !slice.Eq(expected) {
 		t.Errorf("CutInPlace(-3, -2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test empty range
-	slice = g.Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
+	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
 	slice.CutInPlace(0, 5)
-	expected = g.Slice[int]{}
+	expected = Slice[int]{}
 	if !slice.Eq(expected) {
 		t.Errorf("CutInPlace(0, 5) failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
 func TestSliceLast(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	if sl.Last() != 5 {
 		t.Error("Last() failed")
 	}
 }
 
 func TestSliceLen(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	if sl.Len() != 5 {
 		t.Errorf("Expected 5, got %d", sl.Len())
 	}
 }
 
 func TestSlicePop(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	last, sl := sl.Pop()
 
 	if last != 5 {
@@ -567,58 +567,58 @@ func TestSlicePop(t *testing.T) {
 		t.Errorf("Expected 4, got %v", sl.Len())
 	}
 
-	r := g.Slice[int]{1, 2, 3, 4}
+	r := Slice[int]{1, 2, 3, 4}
 	if sl.Ne(r) {
 		t.Errorf("Expected %v, got %v", r, sl)
 	}
 }
 
 func TestSliceMaxInt(t *testing.T) {
-	sl := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	sl := Slice[Int]{1, 2, 3, 4, 5}
 	if max := cmp.Max(sl...); max != 5 {
 		t.Errorf("Max() = %d, want: %d.", max, 5)
 	}
 }
 
 func TestSliceMaxFloats(t *testing.T) {
-	sl := g.Slice[g.Float]{2.2, 2.8, 2.1, 2.7}
+	sl := Slice[Float]{2.2, 2.8, 2.1, 2.7}
 	if max := cmp.Max(sl...); max != 2.8 {
 		t.Errorf("Max() = %f, want: %f.", max, 2.8)
 	}
 }
 
 func TestSliceMinFloat(t *testing.T) {
-	sl := g.Slice[g.Float]{2.2, 2.8, 2.1, 2.7}
+	sl := Slice[Float]{2.2, 2.8, 2.1, 2.7}
 	if min := cmp.Min(sl...); min != 2.1 {
 		t.Errorf("Min() = %f; want: %f", min, 2.1)
 	}
 }
 
 func TestSliceMinInt(t *testing.T) {
-	sl := g.Slice[g.Int]{1, 2, 3, 4, 5}
+	sl := Slice[Int]{1, 2, 3, 4, 5}
 	if min := cmp.Min(sl...); min != 1 {
 		t.Errorf("Min() = %d; want: %d", min, 1)
 	}
 }
 
 func TestSliceDelete(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	sl = sl.Delete(2)
 
-	if !reflect.DeepEqual(sl, g.Slice[int]{1, 2, 4, 5}) {
-		t.Errorf("Delete(2) = %v, want %v", sl, g.Slice[int]{1, 2, 4, 5})
+	if !reflect.DeepEqual(sl, Slice[int]{1, 2, 4, 5}) {
+		t.Errorf("Delete(2) = %v, want %v", sl, Slice[int]{1, 2, 4, 5})
 	}
 
-	sl = g.Slice[int]{1, 2, 3, 4, 5}
+	sl = Slice[int]{1, 2, 3, 4, 5}
 	sl = sl.Delete(-2)
 
-	if !reflect.DeepEqual(sl, g.Slice[int]{1, 2, 3, 5}) {
-		t.Errorf("Delete(2) = %v, want %v", sl, g.Slice[int]{1, 2, 3, 5})
+	if !reflect.DeepEqual(sl, Slice[int]{1, 2, 3, 5}) {
+		t.Errorf("Delete(2) = %v, want %v", sl, Slice[int]{1, 2, 3, 5})
 	}
 }
 
 func TestSliceSFill(t *testing.T) {
-	sl := g.Slice[int]{1, 2, 3, 4, 5}
+	sl := Slice[int]{1, 2, 3, 4, 5}
 	sl.Fill(0)
 
 	for _, v := range sl {
@@ -629,73 +629,73 @@ func TestSliceSFill(t *testing.T) {
 }
 
 func TestSliceSet(t *testing.T) {
-	sl := g.NewSlice[int](5)
+	sl := NewSlice[int](5)
 
 	sl.Set(0, 1)
 	sl.Set(0, 1)
 	sl.Set(2, 2)
 	sl.Set(4, 3)
 
-	if !reflect.DeepEqual(sl, g.Slice[int]{1, 0, 2, 0, 3}) {
-		t.Errorf("Set() = %v, want %v", sl, g.Slice[int]{1, 0, 2, 0, 3})
+	if !reflect.DeepEqual(sl, Slice[int]{1, 0, 2, 0, 3}) {
+		t.Errorf("Set() = %v, want %v", sl, Slice[int]{1, 0, 2, 0, 3})
 	}
 }
 
 func TestSliceReplace(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    g.Slice[string]
-		i, j     g.Int
+		input    Slice[string]
+		i, j     Int
 		values   []string
-		expected g.Slice[string]
+		expected Slice[string]
 	}{
 		{
 			name:     "basic test",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        3,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"a", "e", "f", "d"},
+			expected: Slice[string]{"a", "e", "f", "d"},
 		},
 		{
 			name:     "replace at start",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        0,
 			j:        2,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"e", "f", "c", "d"},
+			expected: Slice[string]{"e", "f", "c", "d"},
 		},
 		{
 			name:     "replace at end",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        2,
 			j:        4,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"a", "b", "e", "f"},
+			expected: Slice[string]{"a", "b", "e", "f"},
 		},
 		{
 			name:     "replace with more values",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        2,
 			values:   []string{"e", "f", "g", "h"},
-			expected: g.Slice[string]{"a", "e", "f", "g", "h", "c", "d"},
+			expected: Slice[string]{"a", "e", "f", "g", "h", "c", "d"},
 		},
 		{
 			name:     "replace with fewer values",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        3,
 			values:   []string{"e"},
-			expected: g.Slice[string]{"a", "e", "d"},
+			expected: Slice[string]{"a", "e", "d"},
 		},
 		{
 			name:     "replace entire slice",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        0,
 			j:        4,
 			values:   []string{"e", "f", "g", "h"},
-			expected: g.Slice[string]{"e", "f", "g", "h"},
+			expected: Slice[string]{"e", "f", "g", "h"},
 		},
 	}
 
@@ -711,81 +711,81 @@ func TestSliceReplace(t *testing.T) {
 
 func TestSliceReplaceM(t *testing.T) {
 	// Test replacement in the middle
-	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice := Slice[string]{"a", "b", "c", "d"}
 	newSlice := slice.Replace(1, 1, "zz", "xx")
-	expected := g.Slice[string]{"a", "zz", "xx", "b", "c", "d"}
+	expected := Slice[string]{"a", "zz", "xx", "b", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(1, 1) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement with same start and end indices
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(2, 2, "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(2, 2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from i to the end
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(2, slice.Len(), "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx"}
+	expected = Slice[string]{"a", "b", "zz", "xx"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(2, end) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from the start to j
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(0, 2, "zz", "xx")
-	expected = g.Slice[string]{"zz", "xx", "c", "d"}
+	expected = Slice[string]{"zz", "xx", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(start, 2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test empty replacement
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(2, 2) // No replacement, should remain unchanged
-	expected = g.Slice[string]{"a", "b", "c", "d"}
+	expected = Slice[string]{"a", "b", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(2, 2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from negative index to positive index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(-2, 2, "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(-2, 2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from positive index to negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(1, -1, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(1, -1) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from negative index to negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(-3, -2, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "c", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(-3, -2) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement from negative index to positive index including negative values
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(-3, 3, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(-3, 3) failed. Expected %v, but got %v", expected, newSlice)
 	}
 
 	// Test replacement with empty slice
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	newSlice = slice.Replace(1, 3)
-	expected = g.Slice[string]{"a", "d"}
+	expected = Slice[string]{"a", "d"}
 	if !newSlice.Eq(expected) {
 		t.Errorf("Replace(1, 3) with empty slice failed. Expected %v, but got %v", expected, newSlice)
 	}
@@ -794,58 +794,58 @@ func TestSliceReplaceM(t *testing.T) {
 func TestSliceReplaceInPlace(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    g.Slice[string]
-		i, j     g.Int
+		input    Slice[string]
+		i, j     Int
 		values   []string
-		expected g.Slice[string]
+		expected Slice[string]
 	}{
 		{
 			name:     "basic test",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        3,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"a", "e", "f", "d"},
+			expected: Slice[string]{"a", "e", "f", "d"},
 		},
 		{
 			name:     "replace at start",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        0,
 			j:        2,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"e", "f", "c", "d"},
+			expected: Slice[string]{"e", "f", "c", "d"},
 		},
 		{
 			name:     "replace at end",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        2,
 			j:        4,
 			values:   []string{"e", "f"},
-			expected: g.Slice[string]{"a", "b", "e", "f"},
+			expected: Slice[string]{"a", "b", "e", "f"},
 		},
 		{
 			name:     "replace with more values",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        2,
 			values:   []string{"e", "f", "g", "h"},
-			expected: g.Slice[string]{"a", "e", "f", "g", "h", "c", "d"},
+			expected: Slice[string]{"a", "e", "f", "g", "h", "c", "d"},
 		},
 		{
 			name:     "replace with fewer values",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        1,
 			j:        3,
 			values:   []string{"e"},
-			expected: g.Slice[string]{"a", "e", "d"},
+			expected: Slice[string]{"a", "e", "d"},
 		},
 		{
 			name:     "replace entire slice",
-			input:    g.Slice[string]{"a", "b", "c", "d"},
+			input:    Slice[string]{"a", "b", "c", "d"},
 			i:        0,
 			j:        4,
 			values:   []string{"e", "f", "g", "h"},
-			expected: g.Slice[string]{"e", "f", "g", "h"},
+			expected: Slice[string]{"e", "f", "g", "h"},
 		},
 	}
 
@@ -862,81 +862,81 @@ func TestSliceReplaceInPlace(t *testing.T) {
 
 func TestSliceReplaceInPlaceM(t *testing.T) {
 	// Test replacement in the middle
-	slice := g.Slice[string]{"a", "b", "c", "d"}
+	slice := Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(1, 1, "zz", "xx")
-	expected := g.Slice[string]{"a", "zz", "xx", "b", "c", "d"}
+	expected := Slice[string]{"a", "zz", "xx", "b", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(1, 1) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement with same start and end indices
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(2, 2, "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from i to the end
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(2, slice.Len(), "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx"}
+	expected = Slice[string]{"a", "b", "zz", "xx"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(2, end) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from the start to j
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(0, 2, "zz", "xx")
-	expected = g.Slice[string]{"zz", "xx", "c", "d"}
+	expected = Slice[string]{"zz", "xx", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(start, 2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test empty replacement
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(2, 2) // No replacement, should remain unchanged
-	expected = g.Slice[string]{"a", "b", "c", "d"}
+	expected = Slice[string]{"a", "b", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from negative index to positive index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(-2, 2, "zz", "xx")
-	expected = g.Slice[string]{"a", "b", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(-2, 2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from positive index to negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(1, -1, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(1, -1) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from negative index to negative index
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(-3, -2, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "c", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "c", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(-3, -2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement from negative index to positive index including negative values
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(-3, 3, "zz", "xx")
-	expected = g.Slice[string]{"a", "zz", "xx", "d"}
+	expected = Slice[string]{"a", "zz", "xx", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(-3, 3) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test replacement with empty slice
-	slice = g.Slice[string]{"a", "b", "c", "d"}
+	slice = Slice[string]{"a", "b", "c", "d"}
 	slice.ReplaceInPlace(1, 3)
-	expected = g.Slice[string]{"a", "d"}
+	expected = Slice[string]{"a", "d"}
 	if !slice.Eq(expected) {
 		t.Errorf("ReplaceInPlace(1, 3) with empty slice failed. Expected %v, but got %v", expected, slice)
 	}
@@ -944,18 +944,18 @@ func TestSliceReplaceInPlaceM(t *testing.T) {
 
 func TestSliceContainsAny(t *testing.T) {
 	testCases := []struct {
-		sl     g.Slice[int]
-		other  g.Slice[int]
+		sl     Slice[int]
+		other  Slice[int]
 		expect bool
 	}{
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{6, 7, 8, 9, 10}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{5, 6, 7, 8, 9}, true},
-		{g.Slice[int]{}, g.Slice[int]{1, 2, 3, 4, 5}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 4, 5}, true},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{6}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1}, true},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{6, 7, 8, 9, 0, 3}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{6, 7, 8, 9, 10}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{5, 6, 7, 8, 9}, true},
+		{Slice[int]{}, Slice[int]{1, 2, 3, 4, 5}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 4, 5}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{6}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{6, 7, 8, 9, 0, 3}, true},
 	}
 
 	for _, tc := range testCases {
@@ -967,18 +967,18 @@ func TestSliceContainsAny(t *testing.T) {
 
 func TestSliceContainsAll(t *testing.T) {
 	testCases := []struct {
-		sl     g.Slice[int]
-		other  g.Slice[int]
+		sl     Slice[int]
+		other  Slice[int]
 		expect bool
 	}{
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3}, true},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 6}, false},
-		{g.Slice[int]{}, g.Slice[int]{1, 2, 3, 4, 5}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 4, 5}, true},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{6}, false},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1}, true},
-		{g.Slice[int]{1, 2, 3, 4, 5}, g.Slice[int]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 5, 5}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 6}, false},
+		{Slice[int]{}, Slice[int]{1, 2, 3, 4, 5}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 4, 5}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{6}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1}, true},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 5, 5}, true},
 	}
 
 	for _, tc := range testCases {
@@ -990,39 +990,39 @@ func TestSliceContainsAll(t *testing.T) {
 
 func TestSliceSubSlice(t *testing.T) {
 	// Test with an empty slice
-	emptySlice := g.Slice[int]{}
+	emptySlice := Slice[int]{}
 	emptySubSlice := emptySlice.SubSlice(0, 0)
 	if !emptySubSlice.Empty() {
 		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
 
 	// Test with a non-empty slice
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test a valid range within bounds
 	subSlice := slice.SubSlice(1, 4)
-	expected := g.Slice[int]{2, 3, 4}
+	expected := Slice[int]{2, 3, 4}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with a single negative index
 	subSlice = slice.SubSlice(-2, slice.Len())
-	expected = g.Slice[int]{4, 5}
+	expected = Slice[int]{4, 5}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 
 	// Test with a negative start and end index
 	subSlice = slice.SubSlice(-3, -1)
-	expected = g.Slice[int]{3, 4}
+	expected = Slice[int]{3, 4}
 	if !subSlice.Eq(expected) {
 		t.Errorf("Expected subSlice: %v, but got: %v", expected, subSlice)
 	}
 }
 
 func TestSubSliceOutOfBoundsStartIndex(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test with start index beyond slice length (should panic)
 	defer func() {
@@ -1034,7 +1034,7 @@ func TestSubSliceOutOfBoundsStartIndex(t *testing.T) {
 }
 
 func TestSubSliceOutOfBoundsNegativeStartIndex(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test with a negative start index beyond slice length (should panic)
 	defer func() {
@@ -1046,7 +1046,7 @@ func TestSubSliceOutOfBoundsNegativeStartIndex(t *testing.T) {
 }
 
 func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
-	slice := g.Slice[int]{1, 2, 3, 4, 5}
+	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test with an end index beyond slice length (should panic)
 	defer func() {
@@ -1059,13 +1059,13 @@ func TestSubSliceOutOfBoundsEndIndex(t *testing.T) {
 
 func TestGrowSlice(t *testing.T) {
 	// Initialize a slice with some elements.
-	initialSlice := g.SliceOf(1, 2, 3)
+	initialSlice := SliceOf(1, 2, 3)
 
 	// Check the initial capacity of the slice.
-	var initialCapacity g.Int = initialSlice.Cap()
+	var initialCapacity Int = initialSlice.Cap()
 
 	// Grow the slice to accommodate more elements.
-	var newCapacity g.Int = initialCapacity + 5
+	var newCapacity Int = initialCapacity + 5
 	grownSlice := initialSlice.Grow(newCapacity - initialCapacity)
 
 	// Check if the capacity of the grown slice is as expected.
@@ -1086,13 +1086,13 @@ func TestGrowSlice(t *testing.T) {
 
 func TestSliceNotEmpty(t *testing.T) {
 	// Test case 1: Slice with elements
-	sl1 := g.SliceOf(1, 2, 3)
+	sl1 := SliceOf(1, 2, 3)
 	if !sl1.NotEmpty() {
 		t.Errorf("Test case 1 failed: Expected slice to be not empty")
 	}
 
 	// Test case 2: Empty slice
-	sl2 := g.NewSlice[g.Int]()
+	sl2 := NewSlice[Int]()
 	if sl2.NotEmpty() {
 		t.Errorf("Test case 2 failed: Expected slice to be empty")
 	}
@@ -1100,13 +1100,13 @@ func TestSliceNotEmpty(t *testing.T) {
 
 func TestSliceAppendInPlace(t *testing.T) {
 	// Create a slice with initial elements
-	initialSlice := g.Slice[int]{1, 2, 3}
+	initialSlice := Slice[int]{1, 2, 3}
 
 	// Append additional elements using AppendInPlace
 	initialSlice.AppendInPlace(4, 5, 6)
 
 	// Verify that the slice has the expected elements
-	expected := g.Slice[int]{1, 2, 3, 4, 5, 6}
+	expected := Slice[int]{1, 2, 3, 4, 5, 6}
 	if !initialSlice.Eq(expected) {
 		t.Errorf("AppendInPlace failed. Expected: %v, Got: %v", expected, initialSlice)
 	}
@@ -1114,7 +1114,7 @@ func TestSliceAppendInPlace(t *testing.T) {
 
 func TestSliceString(t *testing.T) {
 	// Create a slice with some elements
-	sl := g.SliceOf(1, 2, 3, 4, 5)
+	sl := SliceOf(1, 2, 3, 4, 5)
 
 	// Define the expected string representation
 	expected := "Slice[1, 2, 3, 4, 5]"
@@ -1130,134 +1130,134 @@ func TestSliceString(t *testing.T) {
 
 func TestSliceEq(t *testing.T) {
 	// Test case: Function returns true for equal slices of known types (Int)
-	slInt1 := g.Slice[g.Int]{1, 2, 3}
-	slInt2 := g.Slice[g.Int]{1, 2, 3}
+	slInt1 := Slice[Int]{1, 2, 3}
+	slInt2 := Slice[Int]{1, 2, 3}
 	if !slInt1.Eq(slInt2) {
 		t.Errorf("Test 1: Expected slices to be equal")
 	}
 
 	// Test case: Function returns false for unequal slices of known types (String)
-	slString1 := g.Slice[g.String]{"a", "b", "c"}
-	slString2 := g.Slice[g.String]{"a", "x", "c"}
+	slString1 := Slice[String]{"a", "b", "c"}
+	slString2 := Slice[String]{"a", "x", "c"}
 	if slString1.Eq(slString2) {
 		t.Errorf("Test 2: Expected slices to be unequal")
 	}
 
 	// Test case: Function returns true for empty slices
-	emptySlice1 := g.Slice[g.Float]{}
-	emptySlice2 := g.Slice[g.Float]{}
+	emptySlice1 := Slice[Float]{}
+	emptySlice2 := Slice[Float]{}
 	if !emptySlice1.Eq(emptySlice2) {
 		t.Errorf("Test 3: Expected empty slices to be equal")
 	}
 
 	// Test case: Function returns false for slices of different lengths
-	slFloat1 := g.Slice[g.Float]{1.1, 2.2, 3.3}
-	slFloat2 := g.Slice[g.Float]{1.1, 2.2}
+	slFloat1 := Slice[Float]{1.1, 2.2, 3.3}
+	slFloat2 := Slice[Float]{1.1, 2.2}
 	if slFloat1.Eq(slFloat2) {
 		t.Errorf("Test 4: Expected slices of different lengths to be unequal")
 	}
 
 	// Test case: Function returns true for equal slices of string type
-	slString3 := g.Slice[string]{"apple", "banana", "cherry"}
-	slString4 := g.Slice[string]{"apple", "banana", "cherry"}
+	slString3 := Slice[string]{"apple", "banana", "cherry"}
+	slString4 := Slice[string]{"apple", "banana", "cherry"}
 	if !slString3.Eq(slString4) {
 		t.Errorf("Test 5: Expected slices to be equal")
 	}
 
 	// Test case: Function returns false for unequal slices of int type
-	slInt3 := g.Slice[int]{10, 20, 30}
-	slInt4 := g.Slice[int]{10, 20, 40}
+	slInt3 := Slice[int]{10, 20, 30}
+	slInt4 := Slice[int]{10, 20, 40}
 	if slInt3.Eq(slInt4) {
 		t.Errorf("Test 6: Expected slices to be unequal")
 	}
 
 	// Test case: Function returns true for equal slices of float64 type
-	slFloat64_1 := g.Slice[float64]{1.1, 2.2, 3.3}
-	slFloat64_2 := g.Slice[float64]{1.1, 2.2, 3.3}
+	slFloat64_1 := Slice[float64]{1.1, 2.2, 3.3}
+	slFloat64_2 := Slice[float64]{1.1, 2.2, 3.3}
 	if !slFloat64_1.Eq(slFloat64_2) {
 		t.Errorf("Test 7: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of bool type
-	slBool1 := g.Slice[bool]{true, false, true}
-	slBool2 := g.Slice[bool]{true, false, true}
+	slBool1 := Slice[bool]{true, false, true}
+	slBool2 := Slice[bool]{true, false, true}
 	if !slBool1.Eq(slBool2) {
 		t.Errorf("Test 8: Expected slices to be equal")
 	}
 
 	// Test case: Function returns false for unequal slices of byte type
-	slByte1 := g.Slice[byte]{1, 2, 3}
-	slByte2 := g.Slice[byte]{1, 2, 4}
+	slByte1 := Slice[byte]{1, 2, 3}
+	slByte2 := Slice[byte]{1, 2, 4}
 	if slByte1.Eq(slByte2) {
 		t.Errorf("Test 9: Expected slices to be unequal")
 	}
 
 	// Test case: Function returns true for equal slices of int8 type
-	slInt81 := g.Slice[int8]{1, 2, 3}
-	slInt82 := g.Slice[int8]{1, 2, 3}
+	slInt81 := Slice[int8]{1, 2, 3}
+	slInt82 := Slice[int8]{1, 2, 3}
 	if !slInt81.Eq(slInt82) {
 		t.Errorf("Test 10: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of int16 type
-	slInt161 := g.Slice[int16]{1, 2, 3}
-	slInt162 := g.Slice[int16]{1, 2, 3}
+	slInt161 := Slice[int16]{1, 2, 3}
+	slInt162 := Slice[int16]{1, 2, 3}
 	if !slInt161.Eq(slInt162) {
 		t.Errorf("Test 11: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of int32 type
-	slInt321 := g.Slice[int32]{1, 2, 3}
-	slInt322 := g.Slice[int32]{1, 2, 3}
+	slInt321 := Slice[int32]{1, 2, 3}
+	slInt322 := Slice[int32]{1, 2, 3}
 	if !slInt321.Eq(slInt322) {
 		t.Errorf("Test 12: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of int64 type
-	slInt641 := g.Slice[int64]{1, 2, 3}
-	slInt642 := g.Slice[int64]{1, 2, 3}
+	slInt641 := Slice[int64]{1, 2, 3}
+	slInt642 := Slice[int64]{1, 2, 3}
 	if !slInt641.Eq(slInt642) {
 		t.Errorf("Test 13: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of uint type
-	slUint1 := g.Slice[uint]{1, 2, 3}
-	slUint2 := g.Slice[uint]{1, 2, 3}
+	slUint1 := Slice[uint]{1, 2, 3}
+	slUint2 := Slice[uint]{1, 2, 3}
 	if !slUint1.Eq(slUint2) {
 		t.Errorf("Test 14: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of uint8 type
-	slUint81 := g.Slice[uint8]{1, 2, 3}
-	slUint82 := g.Slice[uint8]{1, 2, 3}
+	slUint81 := Slice[uint8]{1, 2, 3}
+	slUint82 := Slice[uint8]{1, 2, 3}
 	if !slUint81.Eq(slUint82) {
 		t.Errorf("Test 15: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of uint16 type
-	slUint161 := g.Slice[uint16]{1, 2, 3}
-	slUint162 := g.Slice[uint16]{1, 2, 3}
+	slUint161 := Slice[uint16]{1, 2, 3}
+	slUint162 := Slice[uint16]{1, 2, 3}
 	if !slUint161.Eq(slUint162) {
 		t.Errorf("Test 16: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of uint32 type
-	slUint321 := g.Slice[uint32]{1, 2, 3}
-	slUint322 := g.Slice[uint32]{1, 2, 3}
+	slUint321 := Slice[uint32]{1, 2, 3}
+	slUint322 := Slice[uint32]{1, 2, 3}
 	if !slUint321.Eq(slUint322) {
 		t.Errorf("Test 17: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of uint64 type
-	slUint641 := g.Slice[uint64]{1, 2, 3}
-	slUint642 := g.Slice[uint64]{1, 2, 3}
+	slUint641 := Slice[uint64]{1, 2, 3}
+	slUint642 := Slice[uint64]{1, 2, 3}
 	if !slUint641.Eq(slUint642) {
 		t.Errorf("Test 18: Expected slices to be equal")
 	}
 
 	// Test case: Function returns true for equal slices of float32 type
-	slFloat321 := g.Slice[float32]{1.1, 2.2, 3.3}
-	slFloat322 := g.Slice[float32]{1.1, 2.2, 3.3}
+	slFloat321 := Slice[float32]{1.1, 2.2, 3.3}
+	slFloat322 := Slice[float32]{1.1, 2.2, 3.3}
 	if !slFloat321.Eq(slFloat322) {
 		t.Errorf("Test 19: Expected slices to be equal")
 	}
@@ -1265,7 +1265,7 @@ func TestSliceEq(t *testing.T) {
 
 func TestSliceLastIndex(t *testing.T) {
 	// Create a slice with some elements
-	sl := g.SliceOf(1, 2, 3, 4, 5)
+	sl := SliceOf(1, 2, 3, 4, 5)
 
 	// Get the last index of the slice
 	lastIndex := sl.LastIndex()
@@ -1277,7 +1277,7 @@ func TestSliceLastIndex(t *testing.T) {
 	}
 
 	// Create an empty slice
-	emptySlice := g.NewSlice[int]()
+	emptySlice := NewSlice[int]()
 
 	// Get the last index of the empty slice
 	emptyLastIndex := emptySlice.LastIndex()
@@ -1290,7 +1290,7 @@ func TestSliceLastIndex(t *testing.T) {
 
 func TestSliceRandom(t *testing.T) {
 	// Create a slice with some elements
-	sl := g.SliceOf(1, 2, 3, 4, 5)
+	sl := SliceOf(1, 2, 3, 4, 5)
 
 	// Get a random element from the slice
 	randomElement := sl.Random()
@@ -1308,7 +1308,7 @@ func TestSliceRandom(t *testing.T) {
 	}
 
 	// Test for an empty slice
-	emptySlice := g.NewSlice[int]()
+	emptySlice := NewSlice[int]()
 
 	// Get a random element from the empty slice
 	emptyRandomElement := emptySlice.Random()
@@ -1321,12 +1321,12 @@ func TestSliceRandom(t *testing.T) {
 
 func TestSliceAddUniqueInPlace(t *testing.T) {
 	// Test cases for Int
-	testAddUniqueInPlace(t, g.SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
+	testAddUniqueInPlace(t, SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
 
 	// Test cases for Float
 	testAddUniqueInPlace(
 		t,
-		g.SliceOf(1.1, 2.2, 3.3, 4.4, 5.5),
+		SliceOf(1.1, 2.2, 3.3, 4.4, 5.5),
 		[]float64{3.3, 4.4, 5.5, 6.6, 7.7},
 		[]float64{1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7},
 	)
@@ -1334,7 +1334,7 @@ func TestSliceAddUniqueInPlace(t *testing.T) {
 	// Test cases for String
 	testAddUniqueInPlace(
 		t,
-		g.SliceOf("apple", "banana", "orange", "grape"),
+		SliceOf("apple", "banana", "orange", "grape"),
 		[]string{"orange", "grape", "kiwi"},
 		[]string{"apple", "banana", "orange", "grape", "kiwi"},
 	)
@@ -1342,45 +1342,45 @@ func TestSliceAddUniqueInPlace(t *testing.T) {
 	// Add more test cases for other types as needed
 }
 
-func testAddUniqueInPlace[T comparable](t *testing.T, sl g.Slice[T], elems, expected []T) {
+func testAddUniqueInPlace[T comparable](t *testing.T, sl Slice[T], elems, expected []T) {
 	sl.AddUniqueInPlace(elems...)
-	if !sl.Eq(g.SliceOf(expected...)) {
+	if !sl.Eq(SliceOf(expected...)) {
 		t.Errorf("Slice AddUniqueInPlace method failed for type %T. Expected: %v, Got: %v", sl[0], expected, sl)
 	}
 }
 
 func TestSliceAsAny(t *testing.T) {
 	// Test cases for Int
-	testSliceAsAny(t, g.SliceOf(1, 2, 3), []any{1, 2, 3})
+	testSliceAsAny(t, SliceOf(1, 2, 3), []any{1, 2, 3})
 
 	// Test cases for Float
-	testSliceAsAny(t, g.SliceOf(1.1, 2.2, 3.3), []any{1.1, 2.2, 3.3})
+	testSliceAsAny(t, SliceOf(1.1, 2.2, 3.3), []any{1.1, 2.2, 3.3})
 
 	// Test cases for String
-	testSliceAsAny(t, g.SliceOf("apple", "banana", "orange"), []any{"apple", "banana", "orange"})
+	testSliceAsAny(t, SliceOf("apple", "banana", "orange"), []any{"apple", "banana", "orange"})
 
 	// Add more test cases for other types as needed
 }
 
-func testSliceAsAny[T any](t *testing.T, sl g.Slice[T], expected []any) {
+func testSliceAsAny[T any](t *testing.T, sl Slice[T], expected []any) {
 	result := sl.AsAny()
-	if !result.Eq(g.SliceOf(expected...)) {
+	if !result.Eq(SliceOf(expected...)) {
 		t.Errorf("Slice AsAny method failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
 	}
 }
 
 func TestSliceContainsBy(t *testing.T) {
 	// Test case 1: Slice contains the element that satisfies the provided function
-	sl1 := g.Slice[g.Int]{1, 2, 3, 4, 5}
-	contains1 := sl1.ContainsBy(f.Eq(g.Int(3)))
+	sl1 := Slice[Int]{1, 2, 3, 4, 5}
+	contains1 := sl1.ContainsBy(f.Eq(Int(3)))
 
 	if !contains1 {
 		t.Errorf("Test 1: Expected true, got false")
 	}
 
 	// Test case 2: Slice does not contain the element that satisfies the provided function
-	sl2 := g.Slice[g.String]{"apple", "banana", "cherry"}
-	contains2 := sl2.ContainsBy(f.Eq(g.String("orange")))
+	sl2 := Slice[String]{"apple", "banana", "cherry"}
+	contains2 := sl2.ContainsBy(f.Eq(String("orange")))
 
 	if contains2 {
 		t.Errorf("Test 2: Expected false, got true")
@@ -1392,7 +1392,7 @@ func TestSliceContainsBy(t *testing.T) {
 		Age  int
 	}
 
-	sl3 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}, {Name: "Charlie", Age: 35}}
+	sl3 := Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}, {Name: "Charlie", Age: 35}}
 
 	contains3 := sl3.ContainsBy(func(x Person) bool { return x.Name == "Bob" && x.Age == 25 })
 	if !contains3 {
@@ -1402,20 +1402,20 @@ func TestSliceContainsBy(t *testing.T) {
 
 func TestSliceEqNeBy(t *testing.T) {
 	// Test case 1: Slices are equal using the equality function
-	sl1 := g.Slice[g.Int]{1, 2, 3}
-	sl2 := g.Slice[g.Int]{1, 2, 3}
+	sl1 := Slice[Int]{1, 2, 3}
+	sl2 := Slice[Int]{1, 2, 3}
 
-	eq1 := sl1.EqBy(sl2, func(x, y g.Int) bool { return x.Eq(y) })
+	eq1 := sl1.EqBy(sl2, func(x, y Int) bool { return x.Eq(y) })
 
 	if !eq1 {
 		t.Errorf("Test 1: Expected true, got false")
 	}
 
 	// Test case 2: Slices are not equal using the equality function
-	sl3 := g.Slice[g.String]{"apple", "banana", "cherry"}
-	sl4 := g.Slice[g.String]{"apple", "orange", "cherry"}
+	sl3 := Slice[String]{"apple", "banana", "cherry"}
+	sl4 := Slice[String]{"apple", "orange", "cherry"}
 
-	eq2 := sl3.EqBy(sl4, func(x, y g.String) bool { return x.Eq(y) })
+	eq2 := sl3.EqBy(sl4, func(x, y String) bool { return x.Eq(y) })
 
 	if eq2 {
 		t.Errorf("Test 2: Expected false, got true")
@@ -1427,8 +1427,8 @@ func TestSliceEqNeBy(t *testing.T) {
 		Age  int
 	}
 
-	sl5 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
-	sl6 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+	sl5 := Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+	sl6 := Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
 
 	eq3 := sl5.EqBy(sl6, func(x, y Person) bool {
 		return x.Name == y.Name && x.Age == y.Age
@@ -1441,20 +1441,20 @@ func TestSliceEqNeBy(t *testing.T) {
 	// Additional tests for NeBy
 
 	// Test case 4: Slices are not equal using the equality function
-	sl7 := g.Slice[g.Int]{1, 2, 3}
-	sl8 := g.Slice[g.Int]{1, 2, 4}
+	sl7 := Slice[Int]{1, 2, 3}
+	sl8 := Slice[Int]{1, 2, 4}
 
-	ne1 := sl7.NeBy(sl8, func(x, y g.Int) bool { return x.Eq(y) })
+	ne1 := sl7.NeBy(sl8, func(x, y Int) bool { return x.Eq(y) })
 
 	if !ne1 {
 		t.Errorf("Test 4: Expected true, got false")
 	}
 
 	// Test case 5: Slices are equal using the equality function
-	sl9 := g.Slice[g.String]{"apple", "banana", "cherry"}
-	sl10 := g.Slice[g.String]{"apple", "banana", "cherry"}
+	sl9 := Slice[String]{"apple", "banana", "cherry"}
+	sl10 := Slice[String]{"apple", "banana", "cherry"}
 
-	ne2 := sl9.NeBy(sl10, func(x, y g.String) bool { return x.Eq(y) })
+	ne2 := sl9.NeBy(sl10, func(x, y String) bool { return x.Eq(y) })
 
 	if ne2 {
 		t.Errorf("Test 5: Expected false, got true")
@@ -1463,19 +1463,19 @@ func TestSliceEqNeBy(t *testing.T) {
 
 func TestSliceIndexBy(t *testing.T) {
 	// Test case 1: Element satisfying the custom comparison function exists in the slice
-	sl1 := g.Slice[int]{1, 2, 3, 4, 5}
+	sl1 := Slice[int]{1, 2, 3, 4, 5}
 	index1 := sl1.IndexBy(f.Eq(3))
 
-	expectedIndex1 := g.Int(2)
+	expectedIndex1 := Int(2)
 	if index1 != expectedIndex1 {
 		t.Errorf("Test 1: Expected index %d, got %d", expectedIndex1, index1)
 	}
 
 	// Test case 2: Element satisfying the custom comparison function doesn't exist in the slice
-	sl2 := g.Slice[string]{"apple", "banana", "cherry"}
+	sl2 := Slice[string]{"apple", "banana", "cherry"}
 	index2 := sl2.IndexBy(f.Eq("orange"))
 
-	expectedIndex2 := g.Int(-1)
+	expectedIndex2 := Int(-1)
 	if index2 != expectedIndex2 {
 		t.Errorf("Test 2: Expected index %d, got %d", expectedIndex2, index2)
 	}
@@ -1486,10 +1486,10 @@ func TestSliceIndexBy(t *testing.T) {
 		Age  int
 	}
 
-	sl3 := g.Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
+	sl3 := Slice[Person]{{Name: "Alice", Age: 30}, {Name: "Bob", Age: 25}}
 	index3 := sl3.IndexBy(func(x Person) bool { return x.Name == "Bob" && x.Age == 25 })
 
-	expectedIndex3 := g.Int(1)
+	expectedIndex3 := Int(1)
 	if index3 != expectedIndex3 {
 		t.Errorf("Test 3: Expected index %d, got %d", expectedIndex3, index3)
 	}
@@ -1497,18 +1497,18 @@ func TestSliceIndexBy(t *testing.T) {
 
 func TestSliceSwap(t *testing.T) {
 	// Define a slice to test
-	s := g.Slice[int]{1, 2, 3, 4, 5}
+	s := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test swapping two elements
 	s.Swap(1, 3)
-	expected := g.Slice[int]{1, 4, 3, 2, 5}
+	expected := Slice[int]{1, 4, 3, 2, 5}
 	if !s.Eq(expected) {
 		t.Errorf("Swap failed: got %v, want %v", s, expected)
 	}
 
 	// Test swapping two elements
 	s.Swap(-1, 0)
-	expected = g.Slice[int]{5, 4, 3, 2, 1}
+	expected = Slice[int]{5, 4, 3, 2, 1}
 	if !s.Eq(expected) {
 		t.Errorf("Swap failed: got %v, want %v", s, expected)
 	}
@@ -1516,7 +1516,7 @@ func TestSliceSwap(t *testing.T) {
 
 func TestSliceMaxBy(t *testing.T) {
 	// Test case 1: Maximum integer
-	s := g.Slice[int]{3, 1, 4, 2, 5}
+	s := Slice[int]{3, 1, 4, 2, 5}
 	maxInt := s.MaxBy(cmp.Cmp)
 	expectedMaxInt := 5
 	if maxInt != expectedMaxInt {
@@ -1526,7 +1526,7 @@ func TestSliceMaxBy(t *testing.T) {
 
 func TestSliceMinBy(t *testing.T) {
 	// Test case 1: Minimum integer
-	s := g.Slice[int]{3, 1, 4, 2, 5}
+	s := Slice[int]{3, 1, 4, 2, 5}
 	minInt := s.MinBy(cmp.Cmp)
 	expectedMinInt := 1
 	if minInt != expectedMinInt {
@@ -1535,24 +1535,24 @@ func TestSliceMinBy(t *testing.T) {
 }
 
 func TestSliceTransform(t *testing.T) {
-	original := g.Slice[int]{1, 2, 3}
+	original := Slice[int]{1, 2, 3}
 
-	addElement := func(sl g.Slice[int]) g.Slice[int] {
+	addElement := func(sl Slice[int]) Slice[int] {
 		return append(sl, 4)
 	}
 
-	expected := g.Slice[int]{1, 2, 3, 4}
+	expected := Slice[int]{1, 2, 3, 4}
 	result := original.Transform(addElement)
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Transform failed: expected %v, got %v", expected, result)
 	}
 
-	removeLast := func(sl g.Slice[int]) g.Slice[int] {
+	removeLast := func(sl Slice[int]) Slice[int] {
 		return sl[:len(sl)-1]
 	}
 
-	expectedAfterRemoval := g.Slice[int]{1, 2, 3}
+	expectedAfterRemoval := Slice[int]{1, 2, 3}
 	resultAfterRemoval := result.Transform(removeLast)
 
 	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {

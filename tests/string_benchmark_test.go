@@ -4,13 +4,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
-func genText() g.String {
-	text := g.String("").Builder()
+func genText() String {
+	text := String("").Builder()
 	for range 10000 {
-		text.Write(g.String("").Random(1000)).WriteByte('\n')
+		text.Write(String("").Random(1000)).WriteByte('\n')
 	}
 
 	return text.String()

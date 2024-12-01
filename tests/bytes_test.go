@@ -8,22 +8,22 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
-func TestNewBytes(t *testing.T) {
+func TestBytes(t *testing.T) {
 	// Test case with string input
 	strInput := "hello"
-	bytesFromStr := g.NewBytes(strInput)
-	expectedBytesFromStr := g.Bytes("hello")
+	bytesFromStr := Bytes(strInput)
+	expectedBytesFromStr := Bytes("hello")
 	if !bytes.Equal(bytesFromStr, expectedBytesFromStr) {
 		t.Errorf("Conversion from string failed. Expected: %s, Got: %s", expectedBytesFromStr, bytesFromStr)
 	}
 
 	// Test case with []byte input
 	byteSliceInput := []byte{104, 101, 108, 108, 111}
-	bytesFromSlice := g.NewBytes(byteSliceInput)
-	expectedBytesFromSlice := g.Bytes("hello")
+	bytesFromSlice := Bytes(byteSliceInput)
+	expectedBytesFromSlice := Bytes("hello")
 	if !bytes.Equal(bytesFromSlice, expectedBytesFromSlice) {
 		t.Errorf("Conversion from byte slice failed. Expected: %s, Got: %s", expectedBytesFromSlice, bytesFromSlice)
 	}
@@ -31,39 +31,39 @@ func TestNewBytes(t *testing.T) {
 
 func TestBytesReplace(t *testing.T) {
 	// Test case where old byte sequence exists and is replaced
-	bs1 := g.Bytes("hello world")
-	oldB1 := g.Bytes("world")
-	newB1 := g.Bytes("gopher")
+	bs1 := Bytes("hello world")
+	oldB1 := Bytes("world")
+	newB1 := Bytes("gopher")
 	replaced1 := bs1.Replace(oldB1, newB1, -1)
-	expected1 := g.Bytes("hello gopher")
+	expected1 := Bytes("hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
 	}
 
 	// Test case with multiple occurrences of old byte sequence
-	bs2 := g.Bytes("hello world hello world")
-	oldB2 := g.Bytes("world")
-	newB2 := g.Bytes("gopher")
+	bs2 := Bytes("hello world hello world")
+	oldB2 := Bytes("world")
+	newB2 := Bytes("gopher")
 	replaced2 := bs2.Replace(oldB2, newB2, -1)
-	expected2 := g.Bytes("hello gopher hello gopher")
+	expected2 := Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected2, replaced2)
 	}
 
 	// Test case with limited replacements
-	bs3 := g.Bytes("hello world hello world")
-	oldB3 := g.Bytes("world")
-	newB3 := g.Bytes("gopher")
+	bs3 := Bytes("hello world hello world")
+	oldB3 := Bytes("world")
+	newB3 := Bytes("gopher")
 	replaced3 := bs3.Replace(oldB3, newB3, 1)
-	expected3 := g.Bytes("hello gopher hello world")
+	expected3 := Bytes("hello gopher hello world")
 	if !bytes.Equal(replaced3, expected3) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected3, replaced3)
 	}
 
 	// Test case where old byte sequence doesn't exist
-	bs4 := g.Bytes("hello world")
-	oldB4 := g.Bytes("gopher")
-	newB4 := g.Bytes("earth")
+	bs4 := Bytes("hello world")
+	oldB4 := Bytes("gopher")
+	newB4 := Bytes("earth")
 	replaced4 := bs4.Replace(oldB4, newB4, -1)
 	if !bytes.Equal(replaced4, bs4) {
 		t.Errorf("Expected no change when old byte sequence doesn't exist. Got: %s", replaced4)
@@ -72,29 +72,29 @@ func TestBytesReplace(t *testing.T) {
 
 func TestReplaceAll(t *testing.T) {
 	// Test case where old byte sequence exists and is replaced
-	bs1 := g.Bytes("hello world")
-	oldB1 := g.Bytes("world")
-	newB1 := g.Bytes("gopher")
+	bs1 := Bytes("hello world")
+	oldB1 := Bytes("world")
+	newB1 := Bytes("gopher")
 	replaced1 := bs1.ReplaceAll(oldB1, newB1)
-	expected1 := g.Bytes("hello gopher")
+	expected1 := Bytes("hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
 	}
 
 	// Test case with multiple occurrences of old byte sequence
-	bs2 := g.Bytes("hello world hello world")
-	oldB2 := g.Bytes("world")
-	newB2 := g.Bytes("gopher")
+	bs2 := Bytes("hello world hello world")
+	oldB2 := Bytes("world")
+	newB2 := Bytes("gopher")
 	replaced2 := bs2.ReplaceAll(oldB2, newB2)
-	expected2 := g.Bytes("hello gopher hello gopher")
+	expected2 := Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected2, replaced2)
 	}
 
 	// Test case where old byte sequence doesn't exist
-	bs3 := g.Bytes("hello world")
-	oldB3 := g.Bytes("gopher")
-	newB3 := g.Bytes("earth")
+	bs3 := Bytes("hello world")
+	oldB3 := Bytes("gopher")
+	newB3 := Bytes("earth")
 	replaced3 := bs3.ReplaceAll(oldB3, newB3)
 	if !bytes.Equal(replaced3, bs3) {
 		t.Errorf("Expected no change when old byte sequence doesn't exist. Got: %s", replaced3)
@@ -103,29 +103,29 @@ func TestReplaceAll(t *testing.T) {
 
 func TestBytesRxReplace(t *testing.T) {
 	// Test case where pattern matches and is replaced
-	bs1 := g.Bytes("hello world hello world")
+	bs1 := Bytes("hello world hello world")
 	pattern1 := regexp.MustCompile("world")
-	newB1 := g.Bytes("gopher")
+	newB1 := Bytes("gopher")
 	replaced1 := bs1.RxReplace(pattern1, newB1)
-	expected1 := g.Bytes("hello gopher hello gopher")
+	expected1 := Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
 	}
 
 	// Test case where pattern matches and is replaced with capture group
-	bs2 := g.Bytes("apple apple apple")
+	bs2 := Bytes("apple apple apple")
 	pattern2 := regexp.MustCompile(`(\w+)`)
-	newB2 := g.Bytes("${1}s")
+	newB2 := Bytes("${1}s")
 	replaced2 := bs2.RxReplace(pattern2, newB2)
-	expected2 := g.Bytes("apples apples apples")
+	expected2 := Bytes("apples apples apples")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement with capture group failed. Expected: %s, Got: %s", expected2, replaced2)
 	}
 
 	// Test case where pattern doesn't match
-	bs3 := g.Bytes("hello world")
+	bs3 := Bytes("hello world")
 	pattern3 := regexp.MustCompile("gopher")
-	newB3 := g.Bytes("earth")
+	newB3 := Bytes("earth")
 	replaced3 := bs3.RxReplace(pattern3, newB3)
 	if !bytes.Equal(replaced3, bs3) {
 		t.Errorf("Expected no change when pattern doesn't match. Got: %s", replaced3)
@@ -134,10 +134,10 @@ func TestBytesRxReplace(t *testing.T) {
 
 func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern matches and is found
-	bs1 := g.Bytes("hello world")
+	bs1 := Bytes("hello world")
 	pattern1 := regexp.MustCompile("world")
 	found1 := bs1.RxFind(pattern1)
-	expected1 := g.Bytes("world")
+	expected1 := Bytes("world")
 	if found1.IsNone() {
 		t.Errorf("Expected to find matching pattern, but found none")
 	} else if !bytes.Equal(found1.Unwrap(), expected1) {
@@ -145,7 +145,7 @@ func TestBytesRxFind(t *testing.T) {
 	}
 
 	// Test case where pattern doesn't match
-	bs2 := g.Bytes("hello world")
+	bs2 := Bytes("hello world")
 	pattern2 := regexp.MustCompile("gopher")
 	found2 := bs2.RxFind(pattern2)
 	if found2.IsSome() {
@@ -155,17 +155,17 @@ func TestBytesRxFind(t *testing.T) {
 
 func TestBytesStripPrefix(t *testing.T) {
 	// Test case where cutset matches the prefix
-	bs1 := g.Bytes("prefix_hello world")
-	cutset1 := g.Bytes("prefix_")
+	bs1 := Bytes("prefix_hello world")
+	cutset1 := Bytes("prefix_")
 	trimmed1 := bs1.StripPrefix(cutset1)
-	expected1 := g.Bytes("hello world")
+	expected1 := Bytes("hello world")
 	if !bytes.Equal(trimmed1, expected1) {
 		t.Errorf("Trimming prefix failed. Expected: %s, Got: %s", expected1, trimmed1)
 	}
 
 	// Test case where cutset doesn't match the prefix
-	bs2 := g.Bytes("hello world")
-	cutset2 := g.Bytes("nonexistent_")
+	bs2 := Bytes("hello world")
+	cutset2 := Bytes("nonexistent_")
 	trimmed2 := bs2.StripPrefix(cutset2)
 	if !bytes.Equal(trimmed2, bs2) {
 		t.Errorf("Expected no change when cutset doesn't match the prefix. Got: %s", trimmed2)
@@ -174,17 +174,17 @@ func TestBytesStripPrefix(t *testing.T) {
 
 func TestBytesStripSuffix(t *testing.T) {
 	// Test case where cutset matches the suffix
-	bs1 := g.Bytes("hello world_suffix")
-	cutset1 := g.Bytes("_suffix")
+	bs1 := Bytes("hello world_suffix")
+	cutset1 := Bytes("_suffix")
 	trimmed1 := bs1.StripSuffix(cutset1)
-	expected1 := g.Bytes("hello world")
+	expected1 := Bytes("hello world")
 	if !bytes.Equal(trimmed1, expected1) {
 		t.Errorf("Trimming suffix failed. Expected: %s, Got: %s", expected1, trimmed1)
 	}
 
 	// Test case where cutset doesn't match the suffix
-	bs2 := g.Bytes("hello world")
-	cutset2 := g.Bytes("_nonexistent")
+	bs2 := Bytes("hello world")
+	cutset2 := Bytes("_nonexistent")
 	trimmed2 := bs2.StripSuffix(cutset2)
 	if !bytes.Equal(trimmed2, bs2) {
 		t.Errorf("Expected no change when cutset doesn't match the suffix. Got: %s", trimmed2)
@@ -193,19 +193,19 @@ func TestBytesStripSuffix(t *testing.T) {
 
 func TestBytesSplit(t *testing.T) {
 	// Test case where separator exists
-	bs1 := g.Bytes("hello world gopher")
-	separator1 := g.NewBytes(" ")
+	bs1 := Bytes("hello world gopher")
+	separator1 := Bytes(" ")
 	split1 := bs1.Split(separator1).Collect()
-	expected1 := g.SliceOf(g.NewBytes("hello"), g.NewBytes("world"), g.NewBytes("gopher"))
+	expected1 := SliceOf(Bytes("hello"), Bytes("world"), Bytes("gopher"))
 	if !reflect.DeepEqual(split1, expected1) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected1, split1)
 	}
 
 	// Test case where separator doesn't exist
-	bs2 := g.Bytes("helloworldgopher")
-	separator2 := g.NewBytes(" ")
+	bs2 := Bytes("helloworldgopher")
+	separator2 := Bytes(" ")
 	split2 := bs2.Split(separator2).Collect()
-	expected2 := g.Slice[g.Bytes]{g.NewBytes("helloworldgopher")}
+	expected2 := Slice[Bytes]{Bytes("helloworldgopher")}
 	if !reflect.DeepEqual(split2, expected2) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected2, split2)
 	}
@@ -213,10 +213,10 @@ func TestBytesSplit(t *testing.T) {
 
 func TestBytesAdd(t *testing.T) {
 	// Test case where bytes are added
-	bs1 := g.Bytes("hello")
-	obs1 := g.NewBytes(" world")
+	bs1 := Bytes("hello")
+	obs1 := Bytes(" world")
 	added1 := bs1.Add(obs1)
-	expected1 := g.Bytes("hello world")
+	expected1 := Bytes("hello world")
 	if !bytes.Equal(added1, expected1) {
 		t.Errorf("Add failed. Expected: %s, Got: %s", expected1, added1)
 	}
@@ -224,10 +224,10 @@ func TestBytesAdd(t *testing.T) {
 
 func TestBytesAddPrefix(t *testing.T) {
 	// Test case where bytes are added as a prefix
-	bs1 := g.Bytes("world")
-	obs1 := g.NewBytes("hello ")
+	bs1 := Bytes("world")
+	obs1 := Bytes("hello ")
 	prefixed1 := bs1.AddPrefix(obs1)
-	expected1 := g.Bytes("hello world")
+	expected1 := Bytes("hello world")
 	if !bytes.Equal(prefixed1, expected1) {
 		t.Errorf("AddPrefix failed. Expected: %s, Got: %s", expected1, prefixed1)
 	}
@@ -235,7 +235,7 @@ func TestBytesAddPrefix(t *testing.T) {
 
 func TestBytesStd(t *testing.T) {
 	// Test case where Bytes is converted to a byte slice
-	bs1 := g.Bytes("hello world")
+	bs1 := Bytes("hello world")
 	std1 := bs1.Std()
 	expected1 := []byte("hello world")
 	if !bytes.Equal(std1, expected1) {
@@ -245,7 +245,7 @@ func TestBytesStd(t *testing.T) {
 
 func TestBytesClone(t *testing.T) {
 	// Test case where Bytes is cloned
-	bs1 := g.Bytes("hello world")
+	bs1 := Bytes("hello world")
 	cloned1 := bs1.Clone()
 	if !bytes.Equal(cloned1, bs1) {
 		t.Errorf("Clone failed. Expected: %s, Got: %s", bs1, cloned1)
@@ -254,16 +254,16 @@ func TestBytesClone(t *testing.T) {
 
 func TestBytesContainsAnyChars(t *testing.T) {
 	// Test case where Bytes contains any characters from the input String
-	bs1 := g.Bytes("hello")
-	chars1 := g.String("aeiou")
+	bs1 := Bytes("hello")
+	chars1 := String("aeiou")
 	contains1 := bs1.ContainsAnyChars(chars1)
 	if !contains1 {
 		t.Errorf("ContainsAnyChars failed. Expected: true, Got: %t", contains1)
 	}
 
 	// Test case where Bytes doesn't contain any characters from the input String
-	bs2 := g.Bytes("hello")
-	chars2 := g.String("xyz")
+	bs2 := Bytes("hello")
+	chars2 := String("xyz")
 	contains2 := bs2.ContainsAnyChars(chars2)
 	if contains2 {
 		t.Errorf("ContainsAnyChars failed. Expected: false, Got: %t", contains2)
@@ -272,7 +272,7 @@ func TestBytesContainsAnyChars(t *testing.T) {
 
 func TestBytesContainsRune(t *testing.T) {
 	// Test case where Bytes contains the specified rune
-	bs1 := g.Bytes("hello")
+	bs1 := Bytes("hello")
 	rune1 := 'e'
 	contains1 := bs1.ContainsRune(rune1)
 	if !contains1 {
@@ -280,7 +280,7 @@ func TestBytesContainsRune(t *testing.T) {
 	}
 
 	// Test case where Bytes doesn't contain the specified rune
-	bs2 := g.Bytes("hello")
+	bs2 := Bytes("hello")
 	rune2 := 'x'
 	contains2 := bs2.ContainsRune(rune2)
 	if contains2 {
@@ -290,19 +290,19 @@ func TestBytesContainsRune(t *testing.T) {
 
 func TestBytesCount(t *testing.T) {
 	// Test case where Bytes contains multiple occurrences of the specified Bytes
-	bs1 := g.Bytes("hello hello hello")
-	obs1 := g.Bytes("hello")
+	bs1 := Bytes("hello hello hello")
+	obs1 := Bytes("hello")
 	count1 := bs1.Count(obs1)
-	expected1 := g.Int(3)
+	expected1 := Int(3)
 	if count1 != expected1 {
 		t.Errorf("Count failed. Expected: %d, Got: %d", expected1, count1)
 	}
 
 	// Test case where Bytes doesn't contain the specified Bytes
-	bs2 := g.Bytes("hello")
-	obs2 := g.Bytes("world")
+	bs2 := Bytes("hello")
+	obs2 := Bytes("world")
 	count2 := bs2.Count(obs2)
-	expected2 := g.Int(0)
+	expected2 := Int(0)
 	if count2 != expected2 {
 		t.Errorf("Count failed. Expected: %d, Got: %d", expected2, count2)
 	}
@@ -310,9 +310,9 @@ func TestBytesCount(t *testing.T) {
 
 func TestBytesCompare(t *testing.T) {
 	testCases := []struct {
-		bs1      g.Bytes
-		bs2      g.Bytes
-		expected g.Int
+		bs1      Bytes
+		bs2      Bytes
+		expected Int
 	}{
 		{[]byte("apple"), []byte("banana"), -1},
 		{[]byte("banana"), []byte("apple"), 1},
@@ -322,7 +322,7 @@ func TestBytesCompare(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := g.Int(tc.bs1.Cmp(tc.bs2))
+		result := Int(tc.bs1.Cmp(tc.bs2))
 		if result != tc.expected {
 			t.Errorf(
 				"Bytes.Compare(%q, %q): expected %d, got %d",
@@ -337,16 +337,16 @@ func TestBytesCompare(t *testing.T) {
 
 func TestBytesEqFold(t *testing.T) {
 	// Test case where the byte slices are equal regardless of case
-	bs1 := g.Bytes("Hello World")
-	obs1 := g.Bytes("hello world")
+	bs1 := Bytes("Hello World")
+	obs1 := Bytes("hello world")
 	eqFold1 := bs1.EqFold(obs1)
 	if !eqFold1 {
 		t.Errorf("EqFold failed. Expected: true, Got: %t", eqFold1)
 	}
 
 	// Test case where the byte slices are not equal regardless of case
-	bs2 := g.Bytes("Hello World")
-	obs2 := g.Bytes("gopher")
+	bs2 := Bytes("Hello World")
+	obs2 := Bytes("gopher")
 	eqFold2 := bs2.EqFold(obs2)
 	if eqFold2 {
 		t.Errorf("EqFold failed. Expected: false, Got: %t", eqFold2)
@@ -355,8 +355,8 @@ func TestBytesEqFold(t *testing.T) {
 
 func TestBytesEq(t *testing.T) {
 	testCases := []struct {
-		bs1      g.Bytes
-		bs2      g.Bytes
+		bs1      Bytes
+		bs2      Bytes
 		expected bool
 	}{
 		{[]byte("apple"), []byte("banana"), false},
@@ -381,8 +381,8 @@ func TestBytesEq(t *testing.T) {
 
 func TestBytesNe(t *testing.T) {
 	testCases := []struct {
-		bs1      g.Bytes
-		bs2      g.Bytes
+		bs1      Bytes
+		bs2      Bytes
 		expected bool
 	}{
 		{[]byte("apple"), []byte("banana"), true},
@@ -407,8 +407,8 @@ func TestBytesNe(t *testing.T) {
 
 func TestBytesGt(t *testing.T) {
 	testCases := []struct {
-		bs1      g.Bytes
-		bs2      g.Bytes
+		bs1      Bytes
+		bs2      Bytes
 		expected bool
 	}{
 		{[]byte("apple"), []byte("banana"), false},
@@ -434,8 +434,8 @@ func TestBytesGt(t *testing.T) {
 
 func TestBytesLt(t *testing.T) {
 	testCases := []struct {
-		bs1      g.Bytes
-		bs2      g.Bytes
+		bs1      Bytes
+		bs2      Bytes
 		expected bool
 	}{
 		{[]byte("apple"), []byte("banana"), true},
@@ -461,8 +461,8 @@ func TestBytesLt(t *testing.T) {
 
 func TestBytesNormalizeNFC(t *testing.T) {
 	testCases := []struct {
-		input    g.Bytes
-		expected g.Bytes
+		input    Bytes
+		expected Bytes
 	}{
 		{[]byte("Mëtàl Hëàd"), []byte("Mëtàl Hëàd")},
 		{[]byte("Café"), []byte("Café")},
@@ -487,19 +487,19 @@ func TestBytesNormalizeNFC(t *testing.T) {
 func TestBytesReader(t *testing.T) {
 	tests := []struct {
 		name     string
-		bs       g.Bytes
+		bs       Bytes
 		expected []byte
 	}{
-		{"Empty Bytes", g.Bytes{}, []byte{}},
-		{"Single byte Bytes", g.Bytes{0x41}, []byte{0x41}},
+		{"Empty Bytes", Bytes{}, []byte{}},
+		{"Single byte Bytes", Bytes{0x41}, []byte{0x41}},
 		{
 			"Multiple bytes Bytes",
-			g.Bytes{0x48, 0x65, 0x6c, 0x6c, 0x6f},
+			Bytes{0x48, 0x65, 0x6c, 0x6c, 0x6f},
 			[]byte{0x48, 0x65, 0x6c, 0x6c, 0x6f},
 		},
 		{
 			"Bytes with various values",
-			g.Bytes{0x00, 0xff, 0x80, 0x7f},
+			Bytes{0x00, 0xff, 0x80, 0x7f},
 			[]byte{0x00, 0xff, 0x80, 0x7f},
 		},
 	}
@@ -521,33 +521,33 @@ func TestBytesReader(t *testing.T) {
 
 func TestBytesContainsAny(t *testing.T) {
 	testCases := []struct {
-		bs       g.Bytes
-		bss      []g.Bytes
+		bs       Bytes
+		bss      []Bytes
 		expected bool
 	}{
 		{
-			bs:       g.Bytes("Hello, world!"),
-			bss:      []g.Bytes{g.Bytes("world"), g.Bytes("Go")},
+			bs:       Bytes("Hello, world!"),
+			bss:      []Bytes{Bytes("world"), Bytes("Go")},
 			expected: true,
 		},
 		{
-			bs:       g.Bytes("Welcome to the HumanGo-1!"),
-			bss:      []g.Bytes{g.Bytes("Go-3"), g.Bytes("Go-4")},
+			bs:       Bytes("Welcome to the HumanGo-1!"),
+			bss:      []Bytes{Bytes("Go-3"), Bytes("Go-4")},
 			expected: false,
 		},
 		{
-			bs:       g.Bytes("Have a great day!"),
-			bss:      []g.Bytes{g.Bytes(""), g.Bytes(" ")},
+			bs:       Bytes("Have a great day!"),
+			bss:      []Bytes{Bytes(""), Bytes(" ")},
 			expected: true,
 		},
 		{
-			bs:       g.Bytes(""),
-			bss:      []g.Bytes{g.Bytes("Hello"), g.Bytes("world")},
+			bs:       Bytes(""),
+			bss:      []Bytes{Bytes("Hello"), Bytes("world")},
 			expected: false,
 		},
 		{
-			bs:       g.Bytes(""),
-			bss:      []g.Bytes{},
+			bs:       Bytes(""),
+			bss:      []Bytes{},
 			expected: false,
 		},
 	}
@@ -568,33 +568,33 @@ func TestBytesContainsAny(t *testing.T) {
 
 func TestBytesContainsAll(t *testing.T) {
 	testCases := []struct {
-		bs       g.Bytes
-		bss      []g.Bytes
+		bs       Bytes
+		bss      []Bytes
 		expected bool
 	}{
 		{
-			bs:       g.Bytes("Hello, world!"),
-			bss:      []g.Bytes{g.Bytes("Hello"), g.Bytes("world")},
+			bs:       Bytes("Hello, world!"),
+			bss:      []Bytes{Bytes("Hello"), Bytes("world")},
 			expected: true,
 		},
 		{
-			bs:       g.Bytes("Welcome to the HumanGo-1!"),
-			bss:      []g.Bytes{g.Bytes("Go-3"), g.Bytes("Go-4")},
+			bs:       Bytes("Welcome to the HumanGo-1!"),
+			bss:      []Bytes{Bytes("Go-3"), Bytes("Go-4")},
 			expected: false,
 		},
 		{
-			bs:       g.Bytes("Have a great day!"),
-			bss:      []g.Bytes{g.Bytes("Have"), g.Bytes("a")},
+			bs:       Bytes("Have a great day!"),
+			bss:      []Bytes{Bytes("Have"), Bytes("a")},
 			expected: true,
 		},
 		{
-			bs:       g.Bytes(""),
-			bss:      []g.Bytes{g.Bytes("Hello"), g.Bytes("world")},
+			bs:       Bytes(""),
+			bss:      []Bytes{Bytes("Hello"), Bytes("world")},
 			expected: false,
 		},
 		{
-			bs:       g.Bytes("Hello, world!"),
-			bss:      []g.Bytes{},
+			bs:       Bytes("Hello, world!"),
+			bss:      []Bytes{},
 			expected: true,
 		},
 	}
@@ -615,19 +615,19 @@ func TestBytesContainsAll(t *testing.T) {
 
 func TestBytesIndex(t *testing.T) {
 	// Test case where obs is present in bs
-	bs := g.Bytes("hello world")
-	obs := g.Bytes("world")
+	bs := Bytes("hello world")
+	obs := Bytes("world")
 	idx := bs.Index(obs)
-	expected := g.Int(6)
+	expected := Int(6)
 	if idx != expected {
 		t.Errorf("Index failed. Expected: %d, Got: %d", expected, idx)
 	}
 
 	// Test case where obs is not present in bs
-	bs = g.Bytes("hello world")
-	obs = g.Bytes("gopher")
+	bs = Bytes("hello world")
+	obs = Bytes("gopher")
 	idx = bs.Index(obs)
-	expected = g.Int(-1)
+	expected = Int(-1)
 	if idx != expected {
 		t.Errorf("Index failed. Expected: %d, Got: %d", expected, idx)
 	}
@@ -635,19 +635,19 @@ func TestBytesIndex(t *testing.T) {
 
 func TestBytesRxIndex(t *testing.T) {
 	// Test case where a match is found
-	bs := g.Bytes("apple banana")
+	bs := Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
 	idx := bs.RxIndex(pattern)
-	expected := g.Some(g.Slice[g.Int]{6, 12})
+	expected := Some(Slice[Int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}
 
 	// Test case where no match is found
-	bs = g.Bytes("apple banana")
+	bs = Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
 	idx = bs.RxIndex(pattern)
-	expected = g.None[g.Slice[g.Int]]()
+	expected = None[Slice[Int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
 	}
@@ -655,17 +655,17 @@ func TestBytesRxIndex(t *testing.T) {
 
 func TestBytesRepeat(t *testing.T) {
 	// Test case where the Bytes are repeated 3 times
-	bs := g.Bytes("hello")
+	bs := Bytes("hello")
 	repeated := bs.Repeat(3)
-	expected := g.Bytes("hellohellohello")
+	expected := Bytes("hellohellohello")
 	if !bytes.Equal(repeated, expected) {
 		t.Errorf("Repeat failed. Expected: %s, Got: %s", expected, repeated)
 	}
 
 	// Test case where the Bytes are repeated 0 times
-	bs = g.Bytes("hello")
+	bs = Bytes("hello")
 	repeated = bs.Repeat(0)
-	expected = g.Bytes("")
+	expected = Bytes("")
 	if !bytes.Equal(repeated, expected) {
 		t.Errorf("Repeat failed. Expected: %s, Got: %s", expected, repeated)
 	}
@@ -673,7 +673,7 @@ func TestBytesRepeat(t *testing.T) {
 
 func TestToRunes(t *testing.T) {
 	// Test case where the Bytes are converted to runes
-	bs := g.Bytes("hello")
+	bs := Bytes("hello")
 	runes := bs.Runes()
 	expected := []rune{'h', 'e', 'l', 'l', 'o'}
 	if !reflect.DeepEqual(runes, expected) {
@@ -683,9 +683,9 @@ func TestToRunes(t *testing.T) {
 
 func TestBytesLower(t *testing.T) {
 	// Test case where the Bytes are converted to lowercase
-	bs := g.Bytes("Hello World")
+	bs := Bytes("Hello World")
 	lower := bs.Lower()
-	expected := g.Bytes("hello world")
+	expected := Bytes("hello world")
 	if !reflect.DeepEqual(lower, expected) {
 		t.Errorf("Lower failed. Expected: %s, Got: %s", expected, lower)
 	}
@@ -693,9 +693,9 @@ func TestBytesLower(t *testing.T) {
 
 func TestBytesUpper(t *testing.T) {
 	// Test case where the Bytes are converted to uppercase
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	upper := bs.Upper()
-	expected := g.Bytes("HELLO WORLD")
+	expected := Bytes("HELLO WORLD")
 	if !reflect.DeepEqual(upper, expected) {
 		t.Errorf("Upper failed. Expected: %s, Got: %s", expected, upper)
 	}
@@ -703,25 +703,25 @@ func TestBytesUpper(t *testing.T) {
 
 func TestBytesTrimSpace(t *testing.T) {
 	// Test case where white space characters are trimmed from the beginning and end
-	bs := g.Bytes("  hello world  ")
+	bs := Bytes("  hello world  ")
 	trimmed := bs.Trim()
-	expected := g.Bytes("hello world")
+	expected := Bytes("hello world")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
 	}
 
 	// Test case where there are no white space characters
-	bs = g.Bytes("hello world")
+	bs = Bytes("hello world")
 	trimmed = bs.Trim()
-	expected = g.Bytes("hello world")
+	expected = Bytes("hello world")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
 	}
 
 	// Test case where the Bytes is empty
-	bs = g.Bytes("")
+	bs = Bytes("")
 	trimmed = bs.Trim()
-	expected = g.Bytes("")
+	expected = Bytes("")
 	if !bytes.Equal(trimmed, expected) {
 		t.Errorf("TrimSpace failed. Expected: %s, Got: %s", expected, trimmed)
 	}
@@ -729,22 +729,22 @@ func TestBytesTrimSpace(t *testing.T) {
 
 func TestBytesTitle(t *testing.T) {
 	// Test case where the Bytes are converted to title case
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	title := bs.Title()
-	expected := g.Bytes("Hello World")
+	expected := Bytes("Hello World")
 	if !reflect.DeepEqual(title, expected) {
 		t.Errorf("Title failed. Expected: %s, Got: %s", expected, title)
 	}
 
 	// Test case where the Bytes are already in title case
-	bs = g.Bytes("Hello World")
+	bs = Bytes("Hello World")
 	title = bs.Title()
 	if !reflect.DeepEqual(title, bs) {
 		t.Errorf("Title failed. Expected: %s, Got: %s", bs, title)
 	}
 
 	// Test case where the Bytes are empty
-	bs = g.Bytes("")
+	bs = Bytes("")
 	title = bs.Title()
 	if !reflect.DeepEqual(title, bs) {
 		t.Errorf("Title failed. Expected: %s, Got: %s", bs, title)
@@ -753,13 +753,13 @@ func TestBytesTitle(t *testing.T) {
 
 func TestBytesNotEmpty(t *testing.T) {
 	// Test case where the Bytes is not empty
-	bs := g.Bytes("hello")
+	bs := Bytes("hello")
 	if !bs.NotEmpty() {
 		t.Errorf("NotEmpty failed. Expected: true, Got: false")
 	}
 
 	// Test case where the Bytes is empty
-	bs = g.Bytes("")
+	bs = Bytes("")
 	if bs.NotEmpty() {
 		t.Errorf("NotEmpty failed. Expected: false, Got: true")
 	}
@@ -767,18 +767,18 @@ func TestBytesNotEmpty(t *testing.T) {
 
 func TestBytesMap(t *testing.T) {
 	// Test case where the function converts each rune to uppercase
-	bs := g.Bytes("hello")
+	bs := Bytes("hello")
 	uppercase := bs.Map(func(r rune) rune {
 		return unicode.ToUpper(r)
 	})
 
-	expected := g.Bytes("HELLO")
+	expected := Bytes("HELLO")
 	if !bytes.Equal(uppercase, expected) {
 		t.Errorf("Map failed. Expected: %s, Got: %s", expected, uppercase)
 	}
 
 	// Test case where the function removes spaces
-	bs = g.Bytes("hello world")
+	bs = Bytes("hello world")
 	noSpaces := bs.Map(func(r rune) rune {
 		if unicode.IsSpace(r) {
 			return -1 // Remove rune
@@ -786,7 +786,7 @@ func TestBytesMap(t *testing.T) {
 		return r
 	})
 
-	expected = g.Bytes("helloworld")
+	expected = Bytes("helloworld")
 	if !bytes.Equal(noSpaces, expected) {
 		t.Errorf("Map failed. Expected: %s, Got: %s", expected, noSpaces)
 	}
@@ -794,25 +794,25 @@ func TestBytesMap(t *testing.T) {
 
 func TestBytesLenRunes(t *testing.T) {
 	// Test case where the Bytes contain ASCII characters
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	lenRunes := bs.LenRunes()
-	expected := g.Int(11)
+	expected := Int(11)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
 
 	// Test case where the Bytes contain Unicode characters
-	bs = g.Bytes("你好，世界")
+	bs = Bytes("你好，世界")
 	lenRunes = bs.LenRunes()
-	expected = g.Int(5)
+	expected = Int(5)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
 
 	// Test case where the Bytes are empty
-	bs = g.Bytes("")
+	bs = Bytes("")
 	lenRunes = bs.LenRunes()
-	expected = g.Int(0)
+	expected = Int(0)
 	if lenRunes != expected {
 		t.Errorf("LenRunes failed. Expected: %d, Got: %d", expected, lenRunes)
 	}
@@ -820,19 +820,19 @@ func TestBytesLenRunes(t *testing.T) {
 
 func TestBytesLastIndex(t *testing.T) {
 	// Test case where obs is present in bs
-	bs := g.Bytes("hello world")
-	obs := g.Bytes("o")
+	bs := Bytes("hello world")
+	obs := Bytes("o")
 	lastIndex := bs.LastIndex(obs)
-	expected := g.Int(7)
+	expected := Int(7)
 	if lastIndex != expected {
 		t.Errorf("LastIndex failed. Expected: %d, Got: %d", expected, lastIndex)
 	}
 
 	// Test case where obs is not present in bs
-	bs = g.Bytes("hello world")
-	obs = g.Bytes("z")
+	bs = Bytes("hello world")
+	obs = Bytes("z")
 	lastIndex = bs.LastIndex(obs)
-	expected = g.Int(-1)
+	expected = Int(-1)
 	if lastIndex != expected {
 		t.Errorf("LastIndex failed. Expected: %d, Got: %d", expected, lastIndex)
 	}
@@ -840,16 +840,16 @@ func TestBytesLastIndex(t *testing.T) {
 
 func TestBytesIndexByte(t *testing.T) {
 	// Test case where b is present in bs
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	b := byte('o')
 	indexByte := bs.IndexByte(b)
-	expected := g.Int(4)
+	expected := Int(4)
 	if indexByte != expected {
 		t.Errorf("IndexByte failed. Expected: %d, Got: %d", expected, indexByte)
 	}
 
 	// Test case where b is not present in bs
-	bs = g.Bytes("hello world")
+	bs = Bytes("hello world")
 	b = byte('z')
 	indexByte = bs.IndexByte(b)
 	expected = -1
@@ -860,16 +860,16 @@ func TestBytesIndexByte(t *testing.T) {
 
 func TestBytesLastIndexByte(t *testing.T) {
 	// Test case where b is present in bs
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	b := byte('o')
 	lastIndexByte := bs.LastIndexByte(b)
-	expected := g.Int(7)
+	expected := Int(7)
 	if lastIndexByte != expected {
 		t.Errorf("LastIndexByte failed. Expected: %d, Got: %d", expected, lastIndexByte)
 	}
 
 	// Test case where b is not present in bs
-	bs = g.Bytes("hello world")
+	bs = Bytes("hello world")
 	b = byte('z')
 	lastIndexByte = bs.LastIndexByte(b)
 	expected = -1
@@ -880,16 +880,16 @@ func TestBytesLastIndexByte(t *testing.T) {
 
 func TestBytesIndexRune(t *testing.T) {
 	// Test case where r is present in bs
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	r := 'o'
 	indexRune := bs.IndexRune(r)
-	expected := g.Int(4)
+	expected := Int(4)
 	if indexRune != expected {
 		t.Errorf("IndexRune failed. Expected: %d, Got: %d", expected, indexRune)
 	}
 
 	// Test case where r is not present in bs
-	bs = g.Bytes("hello world")
+	bs = Bytes("hello world")
 	r = 'z'
 	indexRune = bs.IndexRune(r)
 	expected = -1
@@ -900,13 +900,13 @@ func TestBytesIndexRune(t *testing.T) {
 
 func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	// Test case where matches are found
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
 	matches := bs.RxFindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
-		expected := g.Slice[g.Slice[g.Bytes]]{
-			{g.Bytes("hello")},
-			{g.Bytes("world")},
+		expected := Slice[Slice[Bytes]]{
+			{Bytes("hello")},
+			{Bytes("world")},
 		}
 		if !matches.Some().Eq(expected) {
 			t.Errorf("FindAllSubmatchRegexpN failed. Expected: %s, Got: %s", expected, matches.Some())
@@ -916,7 +916,7 @@ func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	}
 
 	// Test case where no matches are found
-	bs = g.Bytes("")
+	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
 	matches = bs.RxFindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
@@ -926,13 +926,13 @@ func TestBytesRxFindAllSubmatchN(t *testing.T) {
 
 func TestBytesRxFindAll(t *testing.T) {
 	// Test case where matches are found
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
 	matches := bs.RxFindAll(pattern)
 	if matches.IsSome() {
-		expected := g.Slice[g.Bytes]{
-			g.Bytes("hello"),
-			g.Bytes("world"),
+		expected := Slice[Bytes]{
+			Bytes("hello"),
+			Bytes("world"),
 		}
 		if !matches.Some().Eq(expected) {
 			t.Errorf("FindAllRegexp failed. Expected: %s, Got: %s", expected, matches.Some())
@@ -942,7 +942,7 @@ func TestBytesRxFindAll(t *testing.T) {
 	}
 
 	// Test case where no matches are found
-	bs = g.Bytes("")
+	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
 	matches = bs.RxFindAll(pattern)
 	if matches.IsSome() {
@@ -952,11 +952,11 @@ func TestBytesRxFindAll(t *testing.T) {
 
 func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where a match is found
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
 	match := bs.RxFindSubmatch(pattern)
 	if match.IsSome() {
-		expected := g.SliceOf(g.Bytes("hello"))
+		expected := SliceOf(Bytes("hello"))
 		if !match.Some().Eq(expected) {
 			t.Errorf("FindSubmatchRegexp failed. Expected: %s, Got: %s", expected, match.Some())
 		}
@@ -965,7 +965,7 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 	}
 
 	// Test case where no match is found
-	bs = g.Bytes("")
+	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
 	match = bs.RxFindSubmatch(pattern)
 	if match.IsSome() {
@@ -975,13 +975,13 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 
 func TestBytesRxFindAllSubmatch(t *testing.T) {
 	// Test case where matches are found
-	bs := g.Bytes("hello world")
+	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
 	matches := bs.RxFindAllSubmatch(pattern)
 	if matches.IsSome() {
-		expected := g.Slice[g.Slice[g.Bytes]]{
-			{g.Bytes("hello")},
-			{g.Bytes("world")},
+		expected := Slice[Slice[Bytes]]{
+			{Bytes("hello")},
+			{Bytes("world")},
 		}
 		if !matches.Some().Eq(expected) {
 			t.Errorf("FindAllSubmatchRegexp failed. Expected: %s, Got: %s", expected, matches.Some())
@@ -991,7 +991,7 @@ func TestBytesRxFindAllSubmatch(t *testing.T) {
 	}
 
 	// Test case where no matches are found
-	bs = g.Bytes("")
+	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
 	matches = bs.RxFindAllSubmatch(pattern)
 	if matches.IsSome() {
@@ -1001,29 +1001,29 @@ func TestBytesRxFindAllSubmatch(t *testing.T) {
 
 func TestBytesHashingFunctions(t *testing.T) {
 	// Test case for MD5 hashing
-	input := g.Bytes("hello world")
-	expectedMD5 := g.Bytes("5eb63bbbe01eeed093cb22bb8f5acdc3")
+	input := Bytes("hello world")
+	expectedMD5 := Bytes("5eb63bbbe01eeed093cb22bb8f5acdc3")
 	md5Hash := input.Hash().MD5()
 	if md5Hash.Ne(expectedMD5) {
 		t.Errorf("MD5 hashing failed. Expected: %s, Got: %s", expectedMD5, md5Hash)
 	}
 
 	// Test case for SHA1 hashing
-	expectedSHA1 := g.Bytes("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed")
+	expectedSHA1 := Bytes("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed")
 	sha1Hash := input.Hash().SHA1()
 	if sha1Hash.Ne(expectedSHA1) {
 		t.Errorf("SHA1 hashing failed. Expected: %s, Got: %s", expectedSHA1, sha1Hash)
 	}
 
 	// Test case for SHA256 hashing
-	expectedSHA256 := g.Bytes("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")
+	expectedSHA256 := Bytes("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9")
 	sha256Hash := input.Hash().SHA256()
 	if sha256Hash.Ne(expectedSHA256) {
 		t.Errorf("SHA256 hashing failed. Expected: %s, Got: %s", expectedSHA256, sha256Hash)
 	}
 
 	// Test case for SHA512 hashing
-	expectedSHA512 := g.Bytes(
+	expectedSHA512 := Bytes(
 		"309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee511a7c7a9bcd3ca86d4cd86f989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f",
 	)
 	sha512Hash := input.Hash().SHA512()
@@ -1034,31 +1034,31 @@ func TestBytesHashingFunctions(t *testing.T) {
 
 func TestBytesSplitAfter(t *testing.T) {
 	testCases := []struct {
-		input     g.Bytes
-		separator g.Bytes
-		expected  g.Slice[g.Bytes]
+		input     Bytes
+		separator Bytes
+		expected  Slice[Bytes]
 	}{
 		{
-			g.Bytes("hello,world,how,are,you"),
-			g.Bytes(","),
-			g.Slice[g.Bytes]{g.Bytes("hello,"), g.Bytes("world,"), g.Bytes("how,"), g.Bytes("are,"), g.Bytes("you")},
+			Bytes("hello,world,how,are,you"),
+			Bytes(","),
+			Slice[Bytes]{Bytes("hello,"), Bytes("world,"), Bytes("how,"), Bytes("are,"), Bytes("you")},
 		},
 		{
-			g.Bytes("apple banana cherry"),
-			g.Bytes(" "),
-			g.Slice[g.Bytes]{g.Bytes("apple "), g.Bytes("banana "), g.Bytes("cherry")},
+			Bytes("apple banana cherry"),
+			Bytes(" "),
+			Slice[Bytes]{Bytes("apple "), Bytes("banana "), Bytes("cherry")},
 		},
 
 		{
-			g.Bytes("a-b-c-d-e"),
-			g.Bytes("-"),
-			g.Slice[g.Bytes]{g.Bytes("a-"), g.Bytes("b-"), g.Bytes("c-"), g.Bytes("d-"), g.Bytes("e")},
+			Bytes("a-b-c-d-e"),
+			Bytes("-"),
+			Slice[Bytes]{Bytes("a-"), Bytes("b-"), Bytes("c-"), Bytes("d-"), Bytes("e")},
 		},
-		{g.Bytes("abcd"), g.Bytes("a"), g.Slice[g.Bytes]{g.Bytes("a"), g.Bytes("bcd")}},
-		{g.Bytes("thisistest"), g.Bytes("is"), g.Slice[g.Bytes]{g.Bytes("this"), g.Bytes("is"), g.Bytes("test")}},
-		{g.Bytes("☺☻☹"), g.Bytes(""), g.Slice[g.Bytes]{g.Bytes("☺"), g.Bytes("☻"), g.Bytes("☹")}},
-		{g.Bytes("☺☻☹"), g.Bytes("☹"), g.Slice[g.Bytes]{g.Bytes("☺☻☹"), g.Bytes("")}},
-		{g.Bytes("123"), g.Bytes(""), g.Slice[g.Bytes]{g.Bytes("1"), g.Bytes("2"), g.Bytes("3")}},
+		{Bytes("abcd"), Bytes("a"), Slice[Bytes]{Bytes("a"), Bytes("bcd")}},
+		{Bytes("thisistest"), Bytes("is"), Slice[Bytes]{Bytes("this"), Bytes("is"), Bytes("test")}},
+		{Bytes("☺☻☹"), Bytes(""), Slice[Bytes]{Bytes("☺"), Bytes("☻"), Bytes("☹")}},
+		{Bytes("☺☻☹"), Bytes("☹"), Slice[Bytes]{Bytes("☺☻☹"), Bytes("")}},
+		{Bytes("123"), Bytes(""), Slice[Bytes]{Bytes("1"), Bytes("2"), Bytes("3")}},
 	}
 
 	for _, tc := range testCases {
@@ -1077,29 +1077,29 @@ func TestBytesSplitAfter(t *testing.T) {
 }
 
 func TestBytesFields(t *testing.T) {
-	bs1 := g.NewBytes("hello world how are you")
-	expected1 := g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world"), g.Bytes("how"), g.Bytes("are"), g.Bytes("you")}
+	bs1 := Bytes("hello world how are you")
+	expected1 := Slice[Bytes]{Bytes("hello"), Bytes("world"), Bytes("how"), Bytes("are"), Bytes("you")}
 	result1 := bs1.Fields().Collect()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
 
-	bs2 := g.NewBytes("hello")
-	expected2 := g.Slice[g.Bytes]{g.Bytes("hello")}
+	bs2 := Bytes("hello")
+	expected2 := Slice[Bytes]{Bytes("hello")}
 	result2 := bs2.Fields().Collect()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
 
-	bs3 := g.NewBytes("")
-	expected3 := g.Slice[g.Bytes]{}
+	bs3 := Bytes("")
+	expected3 := Slice[Bytes]{}
 	result3 := bs3.Fields().Collect()
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
 	}
 
-	bs4 := g.NewBytes("   hello   world   ")
-	expected4 := g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world")}
+	bs4 := Bytes("   hello   world   ")
+	expected4 := Slice[Bytes]{Bytes("hello"), Bytes("world")}
 	result4 := bs4.Fields().Collect()
 	if !reflect.DeepEqual(result4, expected4) {
 		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
@@ -1108,17 +1108,17 @@ func TestBytesFields(t *testing.T) {
 
 func TestBytesFieldsBy(t *testing.T) {
 	testCases := []struct {
-		input    g.Bytes
+		input    Bytes
 		fn       func(r rune) bool
-		expected g.Slice[g.Bytes]
+		expected Slice[Bytes]
 	}{
-		{g.Bytes("hello world"), unicode.IsSpace, g.Slice[g.Bytes]{g.Bytes("hello"), g.Bytes("world")}},
+		{Bytes("hello world"), unicode.IsSpace, Slice[Bytes]{Bytes("hello"), Bytes("world")}},
 		{
-			g.Bytes("1,2,3,4,5"),
+			Bytes("1,2,3,4,5"),
 			func(r rune) bool { return r == ',' },
-			g.Slice[g.Bytes]{g.Bytes("1"), g.Bytes("2"), g.Bytes("3"), g.Bytes("4"), g.Bytes("5")},
+			Slice[Bytes]{Bytes("1"), Bytes("2"), Bytes("3"), Bytes("4"), Bytes("5")},
 		},
-		{g.Bytes("camelCcase"), unicode.IsUpper, g.Slice[g.Bytes]{g.Bytes("camel"), g.Bytes("case")}},
+		{Bytes("camelCcase"), unicode.IsUpper, Slice[Bytes]{Bytes("camel"), Bytes("case")}},
 	}
 
 	for _, tc := range testCases {
@@ -1132,9 +1132,9 @@ func TestBytesFieldsBy(t *testing.T) {
 
 func TestBytesTrimSet(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		cutset   g.String
-		expected g.Bytes
+		input    Bytes
+		cutset   String
+		expected Bytes
 	}{
 		{[]byte("##Hello, world!##"), "#", []byte("Hello, world!")},
 		{[]byte("!!!Amazing!!!"), "!", []byte("Amazing")},
@@ -1154,9 +1154,9 @@ func TestBytesTrimSet(t *testing.T) {
 
 func TestBytesTrimStartSet(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		cutset   g.String
-		expected g.Bytes
+		input    Bytes
+		cutset   String
+		expected Bytes
 	}{
 		{[]byte("##Hello, world!##"), "#", []byte("Hello, world!##")},
 		{[]byte("!!!Amazing!!!"), "!", []byte("Amazing!!!")},
@@ -1176,9 +1176,9 @@ func TestBytesTrimStartSet(t *testing.T) {
 
 func TestBytesTrimEndSet(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		cutset   g.String
-		expected g.Bytes
+		input    Bytes
+		cutset   String
+		expected Bytes
 	}{
 		{[]byte("##Hello, world!##"), "#", []byte("##Hello, world!")},
 		{[]byte("!!!Amazing!!!"), "!", []byte("!!!Amazing")},
@@ -1198,8 +1198,8 @@ func TestBytesTrimEndSet(t *testing.T) {
 
 func TestBytesTrim(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		expected g.Bytes
+		input    Bytes
+		expected Bytes
 	}{
 		{[]byte("  Hello, world!  "), []byte("Hello, world!")},
 		{[]byte("\t\tTabbed\t\t"), []byte("Tabbed")},
@@ -1219,8 +1219,8 @@ func TestBytesTrim(t *testing.T) {
 
 func TestBytesTrimStart(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		expected g.Bytes
+		input    Bytes
+		expected Bytes
 	}{
 		{[]byte("  Hello, world!  "), []byte("Hello, world!  ")},
 		{[]byte("\t\tTabbed\t\t"), []byte("Tabbed\t\t")},
@@ -1240,8 +1240,8 @@ func TestBytesTrimStart(t *testing.T) {
 
 func TestBytesTrimEnd(t *testing.T) {
 	tests := []struct {
-		input    g.Bytes
-		expected g.Bytes
+		input    Bytes
+		expected Bytes
 	}{
 		{[]byte("  Hello, world!  "), []byte("  Hello, world!")},
 		{[]byte("\t\tTabbed\t\t"), []byte("\t\tTabbed")},
@@ -1260,9 +1260,9 @@ func TestBytesTrimEnd(t *testing.T) {
 }
 
 func TestBytesTransform(t *testing.T) {
-	original := g.Bytes("hello world")
-	expected := g.Bytes("HELLO WORLD")
-	result := original.Transform(g.Bytes.Upper)
+	original := Bytes("hello world")
+	expected := Bytes("HELLO WORLD")
+	result := original.Transform(Bytes.Upper)
 
 	if !bytes.Equal(result, expected) {
 		t.Errorf("Transform failed: expected %q, got %q", expected, result)

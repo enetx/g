@@ -8,10 +8,10 @@ import (
 )
 
 // Ok returns a new Result[T] containing the given value.
-func Ok[T any](value T) Result[T] { return Result[T]{value: &value, err: nil} }
+func Ok[T any](value T) Result[T] { return Result[T]{value: &value} }
 
 // Err returns a new Result[T] containing the given error.
-func Err[T any](err error) Result[T] { return Result[T]{value: nil, err: err} }
+func Err[T any](err error) Result[T] { return Result[T]{err: err} }
 
 // ResultOf returns a new Result[T] based on the provided value and error.
 // If err is not nil, it returns an Result containing the error.
@@ -61,13 +61,7 @@ func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 }
 
 // Ok returns the value held in the Result.
-func (r Result[T]) Ok() T {
-	if r.value != nil {
-		return *r.value
-	}
-
-	return *new(T)
-}
+func (r Result[T]) Ok() T { return *r.value }
 
 // Err returns the error held in the Result.
 func (r Result[T]) Err() error { return r.err }

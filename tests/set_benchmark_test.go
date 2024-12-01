@@ -3,18 +3,18 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 // go test -bench=. -benchmem -count=4
 
-func genSet() g.Set[g.String] {
-	slice := g.NewSlice[g.String](0, 10000)
+func genSet() Set[String] {
+	slice := NewSlice[String](0, 10000)
 	for i := range 10000 {
-		slice = slice.Append(g.NewInt(i).String())
+		slice = slice.Append(Int(i).String())
 	}
 
-	return g.SetOf(slice...)
+	return SetOf(slice...)
 }
 
 func BenchmarkSymmetricDifference(b *testing.B) {

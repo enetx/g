@@ -3,15 +3,15 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 // go test -bench=. -benchmem -count=4
 
-func genM() g.Map[g.String, int] {
-	mo := g.NewMap[g.String, int](10000)
+func genM() Map[String, int] {
+	mo := NewMap[String, int](10000)
 	for i := range 10000 {
-		mo.Set(g.NewInt(i).String(), i)
+		mo.Set(Int(i).String(), i)
 	}
 
 	return mo

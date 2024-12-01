@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestFloatBytes(t *testing.T) {
 	// Test case for positive float
-	f := g.Float(3.14)
+	f := Float(3.14)
 	expected := []byte{64, 9, 30, 184, 81, 235, 133, 31} // Bytes representation of 3.14 in big-endian
 	actual := f.Bytes()
 	if actual.Ne(expected) {
@@ -18,7 +18,7 @@ func TestFloatBytes(t *testing.T) {
 	}
 
 	// Test case for negative float
-	f = g.Float(-3.14)
+	f = Float(-3.14)
 	expected = []byte{192, 9, 30, 184, 81, 235, 133, 31} // Bytes representation of -3.14 in big-endian
 	actual = f.Bytes()
 	if actual.Ne(expected) {
@@ -26,7 +26,7 @@ func TestFloatBytes(t *testing.T) {
 	}
 
 	// Test case for infinity
-	f = g.Float(math.Inf(1))
+	f = Float(math.Inf(1))
 	expected = []byte{127, 240, 0, 0, 0, 0, 0, 0} // Bytes representation of positive infinity in big-endian
 	actual = f.Bytes()
 	if actual.Ne(expected) {
@@ -34,7 +34,7 @@ func TestFloatBytes(t *testing.T) {
 	}
 
 	// Test case for negative infinity
-	f = g.Float(math.Inf(-1))
+	f = Float(math.Inf(-1))
 	expected = []byte{255, 240, 0, 0, 0, 0, 0, 0} // Bytes representation of negative infinity in big-endian
 	actual = f.Bytes()
 	if actual.Ne(expected) {
@@ -44,8 +44,8 @@ func TestFloatBytes(t *testing.T) {
 
 func TestFloatCompare(t *testing.T) {
 	testCases := []struct {
-		f1       g.Float
-		f2       g.Float
+		f1       Float
+		f2       Float
 		expected int
 	}{
 		{3.14, 6.28, -1},
@@ -64,8 +64,8 @@ func TestFloatCompare(t *testing.T) {
 
 func TestFloatEq(t *testing.T) {
 	testCases := []struct {
-		f1       g.Float
-		f2       g.Float
+		f1       Float
+		f2       Float
 		expected bool
 	}{
 		{3.14, 6.28, false},
@@ -84,8 +84,8 @@ func TestFloatEq(t *testing.T) {
 
 func TestFloatNe(t *testing.T) {
 	testCases := []struct {
-		f1       g.Float
-		f2       g.Float
+		f1       Float
+		f2       Float
 		expected bool
 	}{
 		{3.14, 6.28, true},
@@ -104,8 +104,8 @@ func TestFloatNe(t *testing.T) {
 
 func TestFloatGt(t *testing.T) {
 	testCases := []struct {
-		f1       g.Float
-		f2       g.Float
+		f1       Float
+		f2       Float
 		expected bool
 	}{
 		{3.14, 6.28, false},
@@ -124,8 +124,8 @@ func TestFloatGt(t *testing.T) {
 
 func TestFloatLt(t *testing.T) {
 	testCases := []struct {
-		f1       g.Float
-		f2       g.Float
+		f1       Float
+		f2       Float
 		expected bool
 	}{
 		{3.14, 6.28, true},
@@ -144,8 +144,8 @@ func TestFloatLt(t *testing.T) {
 func TestFloatRound(t *testing.T) {
 	// Test cases for positive numbers
 	positiveTests := []struct {
-		input    g.Float
-		expected g.Int
+		input    Float
+		expected Int
 	}{
 		{1.1, 1},
 		{1.5, 2},
@@ -161,8 +161,8 @@ func TestFloatRound(t *testing.T) {
 
 	// Test cases for negative numbers
 	negativeTests := []struct {
-		input    g.Float
-		expected g.Int
+		input    Float
+		expected Int
 	}{
 		{-1.1, -1},
 		{-1.5, -2},
@@ -179,9 +179,9 @@ func TestFloatRound(t *testing.T) {
 
 func TestFloatRoundDecimal(t *testing.T) {
 	testCases := []struct {
-		value    g.Float
-		decimals g.Int
-		expected g.Float
+		value    Float
+		decimals Int
+		expected Float
 	}{
 		{3.1415926535, 2, 3.14},
 		{3.1415926535, 3, 3.142},
@@ -206,37 +206,37 @@ func TestFloatRoundDecimal(t *testing.T) {
 }
 
 func TestFloatMax(t *testing.T) {
-	if max := g.NewFloat(2.2).Max(2.8, 2.1, 2.7); max != 2.8 {
+	if max := Float(2.2).Max(2.8, 2.1, 2.7); max != 2.8 {
 		t.Errorf("Max() = %f, want: %f.", max, 2.8)
 	}
 }
 
 func TestFloatMin(t *testing.T) {
-	if min := g.NewFloat(2.2).Min(2.8, 2.1, 2.7); min != 2.1 {
+	if min := Float(2.2).Min(2.8, 2.1, 2.7); min != 2.1 {
 		t.Errorf("Min() = %f; want: %f", min, 2.1)
 	}
 }
 
 func TestFloatAbs(t *testing.T) {
 	// Test case for positive float
-	f := g.Float(3.14)
-	expected := g.Float(3.14)
+	f := Float(3.14)
+	expected := Float(3.14)
 	actual := f.Abs()
 	if actual != expected {
 		t.Errorf("Absolute value of positive float incorrect. Expected: %v, Got: %v", expected, actual)
 	}
 
 	// Test case for negative float
-	f = g.Float(-3.14)
-	expected = g.Float(3.14)
+	f = Float(-3.14)
+	expected = Float(3.14)
 	actual = f.Abs()
 	if actual != expected {
 		t.Errorf("Absolute value of negative float incorrect. Expected: %v, Got: %v", expected, actual)
 	}
 
 	// Test case for zero float
-	f = g.Float(0)
-	expected = g.Float(0)
+	f = Float(0)
+	expected = Float(0)
 	actual = f.Abs()
 	if actual != expected {
 		t.Errorf("Absolute value of zero float incorrect. Expected: %v, Got: %v", expected, actual)
@@ -245,18 +245,18 @@ func TestFloatAbs(t *testing.T) {
 
 func TestFloatAdd(t *testing.T) {
 	// Test case for addition of positive floats
-	f1 := g.Float(3.14)
-	f2 := g.Float(1.23)
-	expected := g.Float(4.37)
+	f1 := Float(3.14)
+	f2 := Float(1.23)
+	expected := Float(4.37)
 	actual := f1.Add(f2)
 	if actual != expected {
 		t.Errorf("Addition of positive floats incorrect. Expected: %v, Got: %v", expected, actual)
 	}
 
 	// Test case for addition of negative floats
-	f1 = g.Float(-3.14)
-	f2 = g.Float(-1.23)
-	expected = g.Float(-4.37)
+	f1 = Float(-3.14)
+	f2 = Float(-1.23)
+	expected = Float(-4.37)
 	actual = f1.Add(f2)
 	if actual != expected {
 		t.Errorf("Addition of negative floats incorrect. Expected: %v, Got: %v", expected, actual)
@@ -265,7 +265,7 @@ func TestFloatAdd(t *testing.T) {
 
 func TestFloatBigFloat(t *testing.T) {
 	// Test case for converting positive float to *big.Float
-	f := g.Float(3.14)
+	f := Float(3.14)
 	expected := big.NewFloat(3.14)
 	actual := f.BigFloat()
 	if actual.Cmp(expected) != 0 {
@@ -273,7 +273,7 @@ func TestFloatBigFloat(t *testing.T) {
 	}
 
 	// Test case for converting negative float to *big.Float
-	f = g.Float(-3.14)
+	f = Float(-3.14)
 	expected = big.NewFloat(-3.14)
 	actual = f.BigFloat()
 	if actual.Cmp(expected) != 0 {
@@ -281,7 +281,7 @@ func TestFloatBigFloat(t *testing.T) {
 	}
 
 	// Test case for converting zero float to *big.Float
-	f = g.Float(0)
+	f = Float(0)
 	expected = big.NewFloat(0)
 	actual = f.BigFloat()
 	if actual.Cmp(expected) != 0 {
@@ -291,19 +291,19 @@ func TestFloatBigFloat(t *testing.T) {
 
 func TestFloatIsZero(t *testing.T) {
 	// Test case for zero float
-	f := g.Float(0)
+	f := Float(0)
 	if !f.IsZero() {
 		t.Errorf("IsZero method failed to identify zero float.")
 	}
 
 	// Test case for positive non-zero float
-	f = g.Float(3.14)
+	f = Float(3.14)
 	if f.IsZero() {
 		t.Errorf("IsZero method incorrectly identified positive non-zero float as zero.")
 	}
 
 	// Test case for negative non-zero float
-	f = g.Float(-3.14)
+	f = Float(-3.14)
 	if f.IsZero() {
 		t.Errorf("IsZero method incorrectly identified negative non-zero float as zero.")
 	}
@@ -311,24 +311,24 @@ func TestFloatIsZero(t *testing.T) {
 
 func TestFloatInt(t *testing.T) {
 	// Test case for positive float
-	f := g.Float(3.14)
-	expected := g.Int(3)
+	f := Float(3.14)
+	expected := Int(3)
 	actual := f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert positive float. Expected: %d, Got: %d", expected, actual)
 	}
 
 	// Test case for negative float
-	f = g.Float(-3.14)
-	expected = g.Int(-3)
+	f = Float(-3.14)
+	expected = Int(-3)
 	actual = f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert negative float. Expected: %d, Got: %d", expected, actual)
 	}
 
 	// Test case for zero float
-	f = g.Float(0)
-	expected = g.Int(0)
+	f = Float(0)
+	expected = Int(0)
 	actual = f.Int()
 	if actual != expected {
 		t.Errorf("ToInt method failed to convert zero float. Expected: %d, Got: %d", expected, actual)
@@ -337,24 +337,24 @@ func TestFloatInt(t *testing.T) {
 
 func TestFloatString(t *testing.T) {
 	// Test case for positive float
-	f := g.Float(3.14)
-	expected := g.String("3.14")
+	f := Float(3.14)
+	expected := String("3.14")
 	actual := f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert positive float. Expected: %s, Got: %s", expected, actual)
 	}
 
 	// Test case for negative float
-	f = g.Float(-3.14)
-	expected = g.String("-3.14")
+	f = Float(-3.14)
+	expected = String("-3.14")
 	actual = f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert negative float. Expected: %s, Got: %s", expected, actual)
 	}
 
 	// Test case for zero float
-	f = g.Float(0)
-	expected = g.String("0")
+	f = Float(0)
+	expected = String("0")
 	actual = f.String()
 	if actual != expected {
 		t.Errorf("ToString method failed to convert zero float. Expected: %s, Got: %s", expected, actual)
@@ -363,7 +363,7 @@ func TestFloatString(t *testing.T) {
 
 func TestFloatFloat32(t *testing.T) {
 	// Test case for positive float
-	f := g.Float(3.14)
+	f := Float(3.14)
 	expected := float32(3.14)
 	actual := f.Float32()
 	if actual != expected {
@@ -371,7 +371,7 @@ func TestFloatFloat32(t *testing.T) {
 	}
 
 	// Test case for negative float
-	f = g.Float(-3.14)
+	f = Float(-3.14)
 	expected = float32(-3.14)
 	actual = f.Float32()
 	if actual != expected {
@@ -379,7 +379,7 @@ func TestFloatFloat32(t *testing.T) {
 	}
 
 	// Test case for zero float
-	f = g.Float(0)
+	f = Float(0)
 	expected = float32(0)
 	actual = f.Float32()
 	if actual != expected {
@@ -389,32 +389,32 @@ func TestFloatFloat32(t *testing.T) {
 
 func TestFloatHashing(t *testing.T) {
 	// Test case for a positive float
-	f := g.Float(3.14)
+	f := Float(3.14)
 	fh := f.Hash()
 
 	// Test MD5
-	expectedMD5 := g.String("32200b8781d6e8f31543da4cf19ff307")
+	expectedMD5 := String("32200b8781d6e8f31543da4cf19ff307")
 	actualMD5 := fh.MD5()
 	if actualMD5 != expectedMD5 {
 		t.Errorf("MD5 hash mismatch for positive float. Expected: %s, Got: %s", expectedMD5, actualMD5)
 	}
 
 	// Test SHA1
-	expectedSHA1 := g.String("8d3ad0b5fdf81c2de3656ebe8d8b0f14e1431438")
+	expectedSHA1 := String("8d3ad0b5fdf81c2de3656ebe8d8b0f14e1431438")
 	actualSHA1 := fh.SHA1()
 	if actualSHA1 != expectedSHA1 {
 		t.Errorf("SHA1 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA1, actualSHA1)
 	}
 
 	// Test SHA256
-	expectedSHA256 := g.String("a7c511f4744a60f88b6a88fbbb1ed7c79820e028f841c50843963bbb1dcdd9f6")
+	expectedSHA256 := String("a7c511f4744a60f88b6a88fbbb1ed7c79820e028f841c50843963bbb1dcdd9f6")
 	actualSHA256 := fh.SHA256()
 	if actualSHA256 != expectedSHA256 {
 		t.Errorf("SHA256 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA256, actualSHA256)
 	}
 
 	// Test SHA512
-	expectedSHA512 := g.String(
+	expectedSHA512 := String(
 		"a86ec42eec985ea198240622e13ddfdbd25bee28007d4ee7b17058292dc46ef51e5b107ab44d70ae14300d88bf71a4cda93851ab920f5eeef8bc1531cd451063",
 	)
 	actualSHA512 := fh.SHA512()
@@ -424,18 +424,18 @@ func TestFloatHashing(t *testing.T) {
 }
 
 func TestFloatTransform(t *testing.T) {
-	original := g.Float(3.14)
+	original := Float(3.14)
 
-	multiplyByTwo := func(f g.Float) g.Float { return f * 2 }
-	expected := g.Float(6.28)
+	multiplyByTwo := func(f Float) Float { return f * 2 }
+	expected := Float(6.28)
 	result := original.Transform(multiplyByTwo)
 
 	if result != expected {
 		t.Errorf("Transform failed: expected %f, got %f", expected, result)
 	}
 
-	addConstant := func(f g.Float) g.Float { return f + 1.86 }
-	expectedWithAddition := g.Float(5.00)
+	addConstant := func(f Float) Float { return f + 1.86 }
+	expectedWithAddition := Float(5.00)
 	resultWithAddition := original.Transform(addConstant)
 
 	if resultWithAddition != expectedWithAddition {

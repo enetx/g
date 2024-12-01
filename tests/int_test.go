@@ -4,27 +4,27 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestIntAbs(t *testing.T) {
 	// Test positive integer
-	posInt := g.Int(5)
+	posInt := Int(5)
 	posAbs := posInt.Abs()
 	if posAbs != posInt {
 		t.Errorf("Abs function incorrect for positive integer. Expected: %d, Got: %d", posInt, posAbs)
 	}
 
 	// Test negative integer
-	negInt := g.Int(-5)
+	negInt := Int(-5)
 	negAbs := negInt.Abs()
 	if negAbs != posInt {
 		t.Errorf("Abs function incorrect for negative integer. Expected: %d, Got: %d", posInt, negAbs)
 	}
 
 	// Test zero
-	zero := g.Int(0)
+	zero := Int(0)
 	zeroAbs := zero.Abs()
 	if zeroAbs != zero {
 		t.Errorf("Abs function incorrect for zero. Expected: %d, Got: %d", zero, zeroAbs)
@@ -32,7 +32,7 @@ func TestIntAbs(t *testing.T) {
 }
 
 func TestIntBigInt(t *testing.T) {
-	intVal := g.Int(123)
+	intVal := Int(123)
 	bigInt := intVal.BigInt()
 	expectedBigInt := big.NewInt(123)
 	if bigInt.Cmp(expectedBigInt) != 0 {
@@ -40,10 +40,10 @@ func TestIntBigInt(t *testing.T) {
 	}
 
 	// Test Div
-	dividend := g.Int(10)
-	divisor := g.Int(2)
+	dividend := Int(10)
+	divisor := Int(2)
 	quotient := dividend.Div(divisor)
-	expectedQuotient := g.Int(5)
+	expectedQuotient := Int(5)
 	if quotient != expectedQuotient {
 		t.Errorf("Div function incorrect. Expected: %d, Got: %d", expectedQuotient, quotient)
 	}
@@ -51,25 +51,25 @@ func TestIntBigInt(t *testing.T) {
 
 func TestIntString(t *testing.T) {
 	// Test positive integer
-	posInt := g.Int(123)
+	posInt := Int(123)
 	posStr := posInt.String()
-	expectedPosStr := g.NewString("123")
+	expectedPosStr := String("123")
 	if posStr != expectedPosStr {
 		t.Errorf("String function incorrect for positive integer. Expected: %s, Got: %s", expectedPosStr, posStr)
 	}
 
 	// Test negative integer
-	negInt := g.Int(-123)
+	negInt := Int(-123)
 	negStr := negInt.String()
-	expectedNegStr := g.NewString("-123")
+	expectedNegStr := String("-123")
 	if negStr != expectedNegStr {
 		t.Errorf("String function incorrect for negative integer. Expected: %s, Got: %s", expectedNegStr, negStr)
 	}
 
 	// Test zero
-	zero := g.Int(0)
+	zero := Int(0)
 	zeroStr := zero.String()
-	expectedZeroStr := g.NewString("0")
+	expectedZeroStr := String("0")
 	if zeroStr != expectedZeroStr {
 		t.Errorf("ToString function incorrect for zero. Expected: %s, Got: %s", expectedZeroStr, zeroStr)
 	}
@@ -77,7 +77,7 @@ func TestIntString(t *testing.T) {
 
 func TestIntInt16(t *testing.T) {
 	// Test positive integer within int16 range
-	posInt := g.Int(123)
+	posInt := Int(123)
 	posInt16 := posInt.Int16()
 	expectedPosInt16 := int16(123)
 	if posInt16 != expectedPosInt16 {
@@ -87,7 +87,7 @@ func TestIntInt16(t *testing.T) {
 
 func TestIntInt32(t *testing.T) {
 	// Test positive integer within int32 range
-	posInt := g.Int(123)
+	posInt := Int(123)
 	posInt32 := posInt.Int32()
 	expectedPosInt32 := int32(123)
 	if posInt32 != expectedPosInt32 {
@@ -95,7 +95,7 @@ func TestIntInt32(t *testing.T) {
 	}
 
 	// Test negative integer within int32 range
-	negInt := g.Int(-123)
+	negInt := Int(-123)
 	negInt32 := negInt.Int32()
 	expectedNegInt32 := int32(-123)
 	if negInt32 != expectedNegInt32 {
@@ -105,7 +105,7 @@ func TestIntInt32(t *testing.T) {
 
 func TestIntInt8(t *testing.T) {
 	// Test positive integer within int8 range
-	posInt := g.Int(123)
+	posInt := Int(123)
 	posInt8 := posInt.Int8()
 	expectedPosInt8 := int8(123)
 	if posInt8 != expectedPosInt8 {
@@ -113,7 +113,7 @@ func TestIntInt8(t *testing.T) {
 	}
 
 	// Test negative integer within int8 range
-	negInt := g.Int(-123)
+	negInt := Int(-123)
 	negInt8 := negInt.Int8()
 	expectedNegInt8 := int8(-123)
 	if negInt8 != expectedNegInt8 {
@@ -121,7 +121,7 @@ func TestIntInt8(t *testing.T) {
 	}
 
 	// Test integer outside int8 range
-	bigInt := g.Int(2000) // larger than int8 max value
+	bigInt := Int(2000) // larger than int8 max value
 	bigInt8 := bigInt.Int8()
 	expectedBigInt8 := int8(-48) // expected value after overflow
 	if bigInt8 != expectedBigInt8 {
@@ -135,14 +135,14 @@ func TestIntInt8(t *testing.T) {
 
 func TestIntIsZero(t *testing.T) {
 	// Test zero value
-	zeroInt := g.Int(0)
+	zeroInt := Int(0)
 	isZero := zeroInt.IsZero()
 	if !isZero {
 		t.Errorf("IsZero function incorrect for zero value. Expected: true, Got: %t", isZero)
 	}
 
 	// Test non-zero value
-	nonZeroInt := g.Int(123)
+	nonZeroInt := Int(123)
 	isZero = nonZeroInt.IsZero()
 	if isZero {
 		t.Errorf("IsZero function incorrect for non-zero value. Expected: false, Got: %t", isZero)
@@ -152,7 +152,7 @@ func TestIntIsZero(t *testing.T) {
 func TestIntIsPositive(t *testing.T) {
 	tests := []struct {
 		name string
-		i    g.Int
+		i    Int
 		want bool
 	}{
 		{"positive", 1, true},
@@ -171,7 +171,7 @@ func TestIntIsPositive(t *testing.T) {
 func TestIntNegative(t *testing.T) {
 	tests := []struct {
 		name string
-		i    g.Int
+		i    Int
 		want bool
 	}{
 		{"positive", 1, false},
@@ -189,8 +189,8 @@ func TestIntNegative(t *testing.T) {
 
 func TestIntRandomRange(t *testing.T) {
 	for range 100 {
-		min := g.NewInt(100).Random()
-		max := g.NewInt(100).Random().Add(min)
+		min := Int(100).Random()
+		max := Int(100).Random().Add(min)
 
 		r := min.RandomRange(max)
 		if r.Lt(min) || r.Gt(max) {
@@ -200,37 +200,37 @@ func TestIntRandomRange(t *testing.T) {
 }
 
 func TestIntMax(t *testing.T) {
-	if max := g.NewInt(1).Max(1, 2, 3, 4, 5); max != 5 {
+	if max := Int(1).Max(1, 2, 3, 4, 5); max != 5 {
 		t.Errorf("Max() = %d, want: %d.", max, 5)
 	}
 }
 
 func TestIntMin(t *testing.T) {
-	if min := g.NewInt(1).Min(2, 3, 4, 5); min != 1 {
+	if min := Int(1).Min(2, 3, 4, 5); min != 1 {
 		t.Errorf("Min() = %d; want: %d", min, 1)
 	}
 }
 
 func TestIntLte(t *testing.T) {
 	// Test for less than
-	ltInt1 := g.Int(5)
-	ltInt2 := g.Int(10)
+	ltInt1 := Int(5)
+	ltInt2 := Int(10)
 	isLte := ltInt1.Lte(ltInt2)
 	if !isLte {
 		t.Errorf("Lte function incorrect for less than. Expected: true, Got: %t", isLte)
 	}
 
 	// Test for equal
-	eqInt1 := g.Int(10)
-	eqInt2 := g.Int(10)
+	eqInt1 := Int(10)
+	eqInt2 := Int(10)
 	isLte = eqInt1.Lte(eqInt2)
 	if !isLte {
 		t.Errorf("Lte function incorrect for equal values. Expected: true, Got: %t", isLte)
 	}
 
 	// Test for greater than
-	gtInt1 := g.Int(15)
-	gtInt2 := g.Int(10)
+	gtInt1 := Int(15)
+	gtInt2 := Int(10)
 	isLte = gtInt1.Lte(gtInt2)
 	if isLte {
 		t.Errorf("Lte function incorrect for greater than. Expected: false, Got: %t", isLte)
@@ -239,19 +239,19 @@ func TestIntLte(t *testing.T) {
 
 func TestIntMul(t *testing.T) {
 	// Test for positive multiplication
-	posInt1 := g.Int(5)
-	posInt2 := g.Int(10)
+	posInt1 := Int(5)
+	posInt2 := Int(10)
 	result := posInt1.Mul(posInt2)
-	expected := g.Int(50)
+	expected := Int(50)
 	if result != expected {
 		t.Errorf("Mul function incorrect for positive multiplication. Expected: %d, Got: %d", expected, result)
 	}
 
 	// Test for negative multiplication
-	negInt1 := g.Int(-5)
-	negInt2 := g.Int(10)
+	negInt1 := Int(-5)
+	negInt2 := Int(10)
 	result = negInt1.Mul(negInt2)
-	expected = g.Int(-50)
+	expected = Int(-50)
 	if result != expected {
 		t.Errorf("Mul function incorrect for negative multiplication. Expected: %d, Got: %d", expected, result)
 	}
@@ -259,16 +259,16 @@ func TestIntMul(t *testing.T) {
 
 func TestIntNe(t *testing.T) {
 	// Test for inequality
-	ineqInt1 := g.Int(5)
-	ineqInt2 := g.Int(10)
+	ineqInt1 := Int(5)
+	ineqInt2 := Int(10)
 	isNe := ineqInt1.Ne(ineqInt2)
 	if !isNe {
 		t.Errorf("Ne function incorrect for inequality. Expected: true, Got: %t", isNe)
 	}
 
 	// Test for equality
-	eqInt1 := g.Int(10)
-	eqInt2 := g.Int(10)
+	eqInt1 := Int(10)
+	eqInt2 := Int(10)
 	isNe = eqInt1.Ne(eqInt2)
 	if isNe {
 		t.Errorf("Ne function incorrect for equality. Expected: false, Got: %t", isNe)
@@ -277,25 +277,25 @@ func TestIntNe(t *testing.T) {
 
 func TestIntBinary(t *testing.T) {
 	// Test for positive integer
-	posInt := g.Int(10)
+	posInt := Int(10)
 	binary := posInt.Binary()
-	expected := g.String("00001010")
+	expected := String("00001010")
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for positive integer. Expected: %s, Got: %s", expected, binary)
 	}
 
 	// Test for negative integer
-	negInt := g.Int(-10)
+	negInt := Int(-10)
 	binary = negInt.Binary()
-	expected = g.String("-0001010") // Two's complement representation
+	expected = String("-0001010") // Two's complement representation
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for negative integer. Expected: %s, Got: %s", expected, binary)
 	}
 
 	// Test for zero
-	zeroInt := g.Int(0)
+	zeroInt := Int(0)
 	binary = zeroInt.Binary()
-	expected = g.String("00000000")
+	expected = String("00000000")
 	if binary != expected {
 		t.Errorf("ToBinary function incorrect for zero. Expected: %s, Got: %s", expected, binary)
 	}
@@ -303,7 +303,7 @@ func TestIntBinary(t *testing.T) {
 
 func TestIntUInt16(t *testing.T) {
 	// Test for positive integer
-	posInt := g.Int(100)
+	posInt := Int(100)
 	uint16Val := posInt.UInt16()
 	expected := uint16(100)
 	if uint16Val != expected {
@@ -311,7 +311,7 @@ func TestIntUInt16(t *testing.T) {
 	}
 
 	// Test for negative integer
-	negInt := g.Int(-100)
+	negInt := Int(-100)
 	uint16Val = negInt.UInt16()
 	expected = 65436 // Conversion to uint16 of negative number results in 0
 	if uint16Val != expected {
@@ -321,7 +321,7 @@ func TestIntUInt16(t *testing.T) {
 
 func TestIntUInt32(t *testing.T) {
 	// Test for positive integer
-	posInt := g.Int(100)
+	posInt := Int(100)
 	uint32Val := posInt.UInt32()
 	expected := uint32(100)
 	if uint32Val != expected {
@@ -329,7 +329,7 @@ func TestIntUInt32(t *testing.T) {
 	}
 
 	// Test for negative integer
-	negInt := g.Int(-100)
+	negInt := Int(-100)
 	uint32Val = negInt.UInt32()
 	expected = 4294967196 // Conversion to uint32 of negative number results in 0
 	if uint32Val != expected {
@@ -339,7 +339,7 @@ func TestIntUInt32(t *testing.T) {
 
 func TestIntUInt8(t *testing.T) {
 	// Test for positive integer within range
-	posInt := g.Int(100)
+	posInt := Int(100)
 	uint8Val := posInt.UInt8()
 	expected := uint8(100)
 	if uint8Val != expected {
@@ -351,7 +351,7 @@ func TestIntUInt8(t *testing.T) {
 	}
 
 	// Test for positive integer outside range
-	posInt = g.Int(300)
+	posInt = Int(300)
 	uint8Val = posInt.UInt8()
 	expected = 44 // Overflow results in 44
 	if uint8Val != expected {
@@ -363,7 +363,7 @@ func TestIntUInt8(t *testing.T) {
 	}
 
 	// Test for negative integer
-	negInt := g.Int(-100)
+	negInt := Int(-100)
 	uint8Val = negInt.UInt8()
 	expected = 156 // Conversion to uint8 of negative number results in 156
 	if uint8Val != expected {
@@ -373,7 +373,7 @@ func TestIntUInt8(t *testing.T) {
 
 func TestIntHashingFunctions(t *testing.T) {
 	// Test case for SHA1 hashing
-	input := g.Int(42)
+	input := Int(42)
 	expectedSHA1 := "df58248c414f342c81e056b40bee12d17a08bf61"
 	sha1Hash := input.Hash().SHA1().Std()
 	if sha1Hash != expectedSHA1 {
@@ -421,8 +421,8 @@ func TestIntRem(t *testing.T) {
 	// Test each case
 	for _, tc := range testCases {
 		// Wrap the input integers
-		i := g.Int(tc.dividend)
-		b := g.Int(tc.divisor)
+		i := Int(tc.dividend)
+		b := Int(tc.divisor)
 
 		// Call the Rem method
 		result := i.Rem(b)
@@ -441,36 +441,36 @@ func TestIntRem(t *testing.T) {
 
 func TestIntSub(t *testing.T) {
 	// Testing subtraction with positive integers
-	result := g.Int(5).Sub(3)
-	expected := g.Int(2)
+	result := Int(5).Sub(3)
+	expected := Int(2)
 	if result != expected {
 		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
 	}
 
 	// Testing subtraction with negative integers
-	result = g.Int(-5).Sub(-3)
-	expected = g.Int(-2)
+	result = Int(-5).Sub(-3)
+	expected = Int(-2)
 	if result != expected {
 		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
 	}
 
 	// Testing subtraction with positive and negative integers
-	result = g.Int(5).Sub(-3)
-	expected = g.Int(8)
+	result = Int(5).Sub(-3)
+	expected = Int(8)
 	if result != expected {
 		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
 	}
 
 	// Testing subtraction with negative and positive integers
-	result = g.Int(-5).Sub(3)
-	expected = g.Int(-8)
+	result = Int(-5).Sub(3)
+	expected = Int(-8)
 	if result != expected {
 		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
 	}
 
 	// Testing subtraction with zero
-	result = g.Int(0).Sub(0)
-	expected = g.Int(0)
+	result = Int(0).Sub(0)
+	expected = Int(0)
 	if result != expected {
 		t.Errorf("Subtraction failed: expected %v, got %v", expected, result)
 	}
@@ -479,12 +479,12 @@ func TestIntSub(t *testing.T) {
 func TestIntCmp(t *testing.T) {
 	tests := []struct {
 		name     string
-		i, other g.Int
+		i, other Int
 		expected cmp.Ordering
 	}{
-		{"LessThan", g.Int(5), g.Int(10), cmp.Less},
-		{"GreaterThan", g.Int(15), g.Int(10), cmp.Greater},
-		{"EqualTo", g.Int(10), g.Int(10), cmp.Equal},
+		{"LessThan", Int(5), Int(10), cmp.Less},
+		{"GreaterThan", Int(15), Int(10), cmp.Greater},
+		{"EqualTo", Int(10), Int(10), cmp.Equal},
 	}
 
 	for _, test := range tests {
@@ -498,18 +498,18 @@ func TestIntCmp(t *testing.T) {
 }
 
 func TestIntTransform(t *testing.T) {
-	original := g.Int(10)
+	original := Int(10)
 
-	multiplyByThree := func(i g.Int) g.Int { return i * 3 }
-	expected := g.Int(30)
+	multiplyByThree := func(i Int) Int { return i * 3 }
+	expected := Int(30)
 	result := original.Transform(multiplyByThree)
 
 	if result != expected {
 		t.Errorf("Transform failed: expected %d, got %d", expected, result)
 	}
 
-	subtractFive := func(i g.Int) g.Int { return i - 5 }
-	expectedWithSubtraction := g.Int(5)
+	subtractFive := func(i Int) Int { return i - 5 }
+	expectedWithSubtraction := Int(5)
 	resultWithSubtraction := original.Transform(subtractFive)
 
 	if resultWithSubtraction != expectedWithSubtraction {

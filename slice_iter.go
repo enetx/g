@@ -795,18 +795,14 @@ func excludeSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
 
 func cycleSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 	return func(yield func(V) bool) {
-		var saved []V
-
-		seq(func(v V) bool {
-			saved = append(saved, v)
-			return yield(v)
-		})
-
-		for len(saved) > 0 {
-			for _, v := range saved {
-				if !yield(v) {
-					return
-				}
+		for {
+			cont := true
+			seq(func(v V) bool {
+				cont = cont && yield(v)
+				return cont
+			})
+			if !cont {
+				return
 			}
 		}
 	}

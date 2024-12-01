@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pkg/ref"
 )
@@ -13,14 +13,14 @@ import (
 func TestMapFromStd(t *testing.T) {
 	// Test case 1: Test conversion of an empty standard map
 	emptyStdMap := map[string]int{}
-	emptyGenericMap := g.Map[string, int](emptyStdMap)
+	emptyGenericMap := Map[string, int](emptyStdMap)
 	if len(emptyGenericMap) != 0 {
 		t.Errorf("Test case 1 failed: Expected empty generic map, got %v", emptyGenericMap)
 	}
 
 	// Test case 2: Test conversion of a standard map with elements
 	stdMap := map[string]int{"a": 1, "b": 2, "c": 3}
-	genericMap := g.Map[string, int](stdMap)
+	genericMap := Map[string, int](stdMap)
 	for k, v := range stdMap {
 		if genericMap[k] != v {
 			t.Errorf("Test case 2 failed: Value mismatch for key %s. Expected %d, got %d", k, v, genericMap[k])
@@ -30,14 +30,14 @@ func TestMapFromStd(t *testing.T) {
 
 func TestMapClear(t *testing.T) {
 	// Test case 1: Clearing an empty map
-	emptyMap := g.Map[string, int]{}
+	emptyMap := Map[string, int]{}
 	clearedEmptyMap := emptyMap.Clear()
 	if !clearedEmptyMap.Empty() {
 		t.Errorf("Test case 1 failed: Cleared empty map should be empty")
 	}
 
 	// Test case 2: Clearing a non-empty map
-	testMap := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	testMap := Map[string, int]{"a": 1, "b": 2, "c": 3}
 	clearedTestMap := testMap.Clear()
 	if !clearedTestMap.Empty() {
 		t.Errorf("Test case 2 failed: Cleared test map should be empty")
@@ -46,13 +46,13 @@ func TestMapClear(t *testing.T) {
 
 func TestMapEmpty(t *testing.T) {
 	// Test case 1: Empty map
-	emptyMap := g.Map[string, int]{}
+	emptyMap := Map[string, int]{}
 	if !emptyMap.Empty() {
 		t.Errorf("Test case 1 failed: Empty map should be empty")
 	}
 
 	// Test case 2: Non-empty map
-	testMap := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	testMap := Map[string, int]{"a": 1, "b": 2, "c": 3}
 	if testMap.Empty() {
 		t.Errorf("Test case 2 failed: Non-empty map should not be empty")
 	}
@@ -60,14 +60,14 @@ func TestMapEmpty(t *testing.T) {
 
 func TestMapString(t *testing.T) {
 	// Test case 1: Empty map
-	emptyMap := g.Map[string, int]{}
+	emptyMap := Map[string, int]{}
 	expectedEmptyMapString := "Map{}"
 	emptyMapString := emptyMap.String()
 	if emptyMapString != expectedEmptyMapString {
 		t.Errorf("Test case 1 failed: Expected %q, got %q", expectedEmptyMapString, emptyMapString)
 	}
 	// Test case 2: Map with elements
-	testMap := g.Map[string, int]{"a": 1}
+	testMap := Map[string, int]{"a": 1}
 	expectedTestMapString := "Map{a:1}"
 	testMapString := testMap.String()
 	if testMapString != expectedTestMapString {
@@ -76,7 +76,7 @@ func TestMapString(t *testing.T) {
 }
 
 func TestMapKeys(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Set("a", 1)
 	m.Set("b", 2)
 	m.Set("c", 3)
@@ -100,7 +100,7 @@ func TestMapKeys(t *testing.T) {
 }
 
 func TestMapValues(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 
 	m.Set("a", 1)
 	m.Set("b", 2)
@@ -126,7 +126,7 @@ func TestMapValues(t *testing.T) {
 }
 
 func TestMapClone(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m["a"] = 1
 	m["b"] = 2
 	m["c"] = 3
@@ -145,13 +145,13 @@ func TestMapClone(t *testing.T) {
 }
 
 func TestMapCopy(t *testing.T) {
-	src := g.Map[string, int]{
+	src := Map[string, int]{
 		"a": 1,
 		"b": 2,
 		"c": 3,
 	}
 
-	dst := g.Map[string, int]{
+	dst := Map[string, int]{
 		"d": 4,
 		"e": 5,
 		"a": 6,
@@ -177,7 +177,7 @@ func TestMapCopy(t *testing.T) {
 }
 
 func TestMapAdd(t *testing.T) {
-	m := g.Map[string, string]{}
+	m := Map[string, string]{}
 	m = m.Set("key", "value")
 
 	if m["key"] != "value" {
@@ -186,7 +186,7 @@ func TestMapAdd(t *testing.T) {
 }
 
 func TestMapDelete(t *testing.T) {
-	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
 	m = m.Delete("a", "b")
 
@@ -209,45 +209,45 @@ func TestMapDelete(t *testing.T) {
 
 func TestMapEq(t *testing.T) {
 	// Test case 1: Equal maps
-	map1 := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
-	map2 := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	map1 := Map[string, int]{"a": 1, "b": 2, "c": 3}
+	map2 := Map[string, int]{"a": 1, "b": 2, "c": 3}
 	if !map1.Eq(map2) {
 		t.Errorf("Test case 1 failed: Equal maps should be considered equal")
 	}
 
 	// Test case 2: Maps with different lengths
-	map3 := g.Map[string, int]{"a": 1, "b": 2}
+	map3 := Map[string, int]{"a": 1, "b": 2}
 	if map1.Eq(map3) {
 		t.Errorf("Test case 2 failed: Maps with different lengths should not be considered equal")
 	}
 
 	// Test case 3: Maps with different values
-	map4 := g.Map[string, int]{"a": 1, "b": 2, "c": 4}
+	map4 := Map[string, int]{"a": 1, "b": 2, "c": 4}
 	if map1.Eq(map4) {
 		t.Errorf("Test case 3 failed: Maps with different values should not be considered equal")
 	}
 
 	// Test case 4
-	map5 := g.Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
-	map6 := g.Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
+	map5 := Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
+	map6 := Map[string, []int]{"a": []int{1}, "b": []int{2}, "c": []int{4}}
 	if map5.Ne(map6) {
 		t.Errorf("Test case 4 failed: Equal maps should be considered equal")
 	}
 
 	// Test case 5
-	map7 := g.Map[string, []int]{"a": []int{2}, "b": []int{5}, "c": []int{4}}
+	map7 := Map[string, []int]{"a": []int{2}, "b": []int{5}, "c": []int{4}}
 	if map5.Eq(map7) {
 		t.Errorf("Test case 5 failed: Maps with different values should not be considered equal")
 	}
 
 	// Test case 6
-	if !g.NewMap[int, int]().Eq(g.NewMap[int, int]()) {
+	if !NewMap[int, int]().Eq(NewMap[int, int]()) {
 		t.Errorf("Test case 6 failed: Empty maps should be considered equal")
 	}
 }
 
 func TestMapToMap(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Set("a", 1)
 	m.Set("b", 2)
 	m.Set("c", 3)
@@ -272,7 +272,7 @@ func TestMapToMap(t *testing.T) {
 }
 
 func TestMapLen(t *testing.T) {
-	m := g.Map[int, int]{}
+	m := Map[int, int]{}
 	if m.Len() != 0 {
 		t.Errorf("Expected 0, got %d", m.Len())
 	}
@@ -289,12 +289,12 @@ func TestMapLen(t *testing.T) {
 }
 
 func TestMapMap(t *testing.T) {
-	m := g.NewMap[int, string](3)
+	m := NewMap[int, string](3)
 	m.Set(1, "one")
 	m.Set(2, "two")
 	m.Set(3, "three")
 
-	expected := g.NewMap[int, string](3)
+	expected := NewMap[int, string](3)
 	expected.Set(2, "one")
 	expected.Set(4, "two")
 	expected.Set(6, "three")
@@ -305,7 +305,7 @@ func TestMapMap(t *testing.T) {
 		t.Errorf("Map failed: expected %v, but got %v", expected, mapped)
 	}
 
-	expected = g.NewMap[int, string](3)
+	expected = NewMap[int, string](3)
 	expected.Set(1, "one_suffix")
 	expected.Set(2, "two_suffix")
 	expected.Set(3, "three_suffix")
@@ -316,7 +316,7 @@ func TestMapMap(t *testing.T) {
 		t.Errorf("Map failed: expected %v, but got %v", expected, mapped)
 	}
 
-	expected = g.NewMap[int, string](3)
+	expected = NewMap[int, string](3)
 	expected.Set(0, "")
 	expected.Set(1, "one")
 	expected.Set(3, "three")
@@ -334,12 +334,12 @@ func TestMapMap(t *testing.T) {
 }
 
 func TestMapFilter(t *testing.T) {
-	m := g.NewMap[string, int](3)
+	m := NewMap[string, int](3)
 	m.Set("one", 1)
 	m.Set("two", 2)
 	m.Set("three", 3)
 
-	expected := g.NewMap[string, int](1)
+	expected := NewMap[string, int](1)
 	expected.Set("two", 2)
 
 	filtered := m.Iter().Filter(func(k string, v int) bool { return v%2 == 0 }).Collect()
@@ -348,7 +348,7 @@ func TestMapFilter(t *testing.T) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
 	}
 
-	expected = g.NewMap[string, int](2)
+	expected = NewMap[string, int](2)
 	expected.Set("one", 1)
 	expected.Set("three", 3)
 
@@ -358,7 +358,7 @@ func TestMapFilter(t *testing.T) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
 	}
 
-	expected = g.NewMap[string, int](3)
+	expected = NewMap[string, int](3)
 	expected.Set("one", 1)
 	expected.Set("two", 2)
 	expected.Set("three", 3)
@@ -369,7 +369,7 @@ func TestMapFilter(t *testing.T) {
 		t.Errorf("Filter failed: expected %v, but got %v", expected, filtered)
 	}
 
-	expected = g.NewMap[string, int](0)
+	expected = NewMap[string, int](0)
 
 	filtered = m.Iter().Filter(func(k string, v int) bool { return false }).Collect()
 
@@ -379,14 +379,14 @@ func TestMapFilter(t *testing.T) {
 }
 
 func TestMapInvertValues(t *testing.T) {
-	m := g.NewMap[int, string](0)
+	m := NewMap[int, string](0)
 	inv := m.Invert()
 
 	if inv.Len() != 0 {
 		t.Errorf("Expected inverted map to have length 0, but got length %d", inv.Len())
 	}
 
-	m2 := g.NewMap[string, int](3)
+	m2 := NewMap[string, int](3)
 	m2.Set("one", 1)
 	m2.Set("two", 2)
 	m2.Set("three", 3)
@@ -412,7 +412,7 @@ func TestMapInvertValues(t *testing.T) {
 
 func TestMapGet(t *testing.T) {
 	// Test case 1: Get existing key
-	map1 := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	map1 := Map[string, int]{"a": 1, "b": 2, "c": 3}
 	key1 := "b"
 	expectedValue1 := 2
 	value1 := map1.Get(key1)
@@ -430,7 +430,7 @@ func TestMapGet(t *testing.T) {
 
 func TestMapGetOrSet(t *testing.T) {
 	// Create a new ordered Map called "m" with string keys and integer pointers as values
-	m := g.NewMap[string, *int]()
+	m := NewMap[string, *int]()
 
 	// Use GetOrSet to set the value for the key "root" to 3 if it doesn't exist
 	m.GetOrSet("root", ref.Of(3))
@@ -453,7 +453,7 @@ func TestMapGetOrSet(t *testing.T) {
 
 func TestRandomMap(t *testing.T) {
 	// Create a map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 	testMap.Set("one", 1)
 	testMap.Set("two", 2)
 	testMap.Set("three", 3)
@@ -482,7 +482,7 @@ func TestRandomMap(t *testing.T) {
 
 func TestRandomEmptyMap(t *testing.T) {
 	// Create an empty map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 
 	// Attempt to randomly select a key-value pair
 	randomResult := testMap.Iter().Take(1).Collect()
@@ -495,7 +495,7 @@ func TestRandomEmptyMap(t *testing.T) {
 
 func TestRandomSampleMap(t *testing.T) {
 	// Create a map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 	testMap.Set("one", 1)
 	testMap.Set("two", 2)
 	testMap.Set("three", 3)
@@ -528,7 +528,7 @@ func TestRandomSampleMap(t *testing.T) {
 
 func TestRandomSampleEmptyMap(t *testing.T) {
 	// Create an empty map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 
 	// Attempt to randomly select a sample of key-value pairs
 	randomResult := testMap.Iter().Take(3).Collect()
@@ -541,7 +541,7 @@ func TestRandomSampleEmptyMap(t *testing.T) {
 
 func TestRandomSampleFullMap(t *testing.T) {
 	// Create a map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 	testMap.Set("one", 1)
 	testMap.Set("two", 2)
 
@@ -563,10 +563,10 @@ func TestRandomSampleFullMap(t *testing.T) {
 
 func TestRandomRangeMapEmpty(t *testing.T) {
 	// Create an empty map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 
 	// Attempt to randomize a range
-	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).UInt()).Collect()
+	subrangeMap := testMap.Iter().Take(Int(3).RandomRange(5).UInt()).Collect()
 
 	// Check if the result is an empty map
 	if subrangeMap.Len() != 0 {
@@ -576,13 +576,13 @@ func TestRandomRangeMapEmpty(t *testing.T) {
 
 func TestRandomRangeMapInvalidRange(t *testing.T) {
 	// Create a map for testing
-	testMap := g.NewMap[string, int]()
+	testMap := NewMap[string, int]()
 	testMap.Set("one", 1)
 	testMap.Set("two", 2)
 
 	// Test an invalid range
 
-	subrangeMap := testMap.Iter().Take(g.Int(3).RandomRange(5).UInt()).Collect()
+	subrangeMap := testMap.Iter().Take(Int(3).RandomRange(5).UInt()).Collect()
 
 	// Check if the result is the same as the original map
 	if subrangeMap.Len() != 2 {
@@ -592,8 +592,8 @@ func TestRandomRangeMapInvalidRange(t *testing.T) {
 
 func TestMapNe(t *testing.T) {
 	// Test case 1: Maps are equal
-	map1 := g.Map[string, int]{"a": 1, "b": 2}
-	map2 := g.Map[string, int]{"a": 1, "b": 2}
+	map1 := Map[string, int]{"a": 1, "b": 2}
+	map2 := Map[string, int]{"a": 1, "b": 2}
 	expectedResult1 := false
 	result1 := map1.Ne(map2)
 	if result1 != expectedResult1 {
@@ -601,8 +601,8 @@ func TestMapNe(t *testing.T) {
 	}
 
 	// Test case 2: Maps are not equal
-	map3 := g.Map[string, int]{"a": 1, "b": 2}
-	map4 := g.Map[string, int]{"a": 1, "b": 3}
+	map3 := Map[string, int]{"a": 1, "b": 2}
+	map4 := Map[string, int]{"a": 1, "b": 3}
 	expectedResult2 := true
 	result2 := map3.Ne(map4)
 	if result2 != expectedResult2 {
@@ -612,7 +612,7 @@ func TestMapNe(t *testing.T) {
 
 func TestMapNotEmpty(t *testing.T) {
 	// Test case 1: Map is not empty
-	map1 := g.Map[string, int]{"a": 1, "b": 2}
+	map1 := Map[string, int]{"a": 1, "b": 2}
 	expectedResult1 := true
 	result1 := map1.NotEmpty()
 	if result1 != expectedResult1 {
@@ -620,7 +620,7 @@ func TestMapNotEmpty(t *testing.T) {
 	}
 
 	// Test case 2: Map is empty
-	map2 := g.Map[string, int]{}
+	map2 := Map[string, int]{}
 	expectedResult2 := false
 	result2 := map2.NotEmpty()
 	if result2 != expectedResult2 {
@@ -630,22 +630,22 @@ func TestMapNotEmpty(t *testing.T) {
 
 func TestMapIterChain(t *testing.T) {
 	// Test case 1: Concatenate two iterators
-	iter1 := g.NewMap[int, string]().Set(1, "a").Iter()
-	iter2 := g.NewMap[int, string]().Set(2, "b").Iter()
+	iter1 := NewMap[int, string]().Set(1, "a").Iter()
+	iter2 := NewMap[int, string]().Set(2, "b").Iter()
 
 	concatenated := iter1.Chain(iter2).Collect()
 
-	expected := g.NewMap[int, string]().Set(1, "a").Set(2, "b")
+	expected := NewMap[int, string]().Set(1, "a").Set(2, "b")
 	if !reflect.DeepEqual(concatenated, expected) {
 		t.Errorf("Expected concatenated map to be %v, got %v", expected, concatenated)
 	}
 
 	// Test case 2: Concatenate three iterators
-	iter3 := g.NewMap[int, string]().Set(3, "c").Iter()
+	iter3 := NewMap[int, string]().Set(3, "c").Iter()
 
 	concatenated2 := iter1.Chain(iter2, iter3).Collect()
 
-	expected2 := g.NewMap[int, string]().Set(1, "a").Set(2, "b").Set(3, "c")
+	expected2 := NewMap[int, string]().Set(1, "a").Set(2, "b").Set(3, "c")
 	if !reflect.DeepEqual(concatenated2, expected2) {
 		t.Errorf("Expected concatenated map to be %v, got %v", expected2, concatenated2)
 	}
@@ -653,21 +653,21 @@ func TestMapIterChain(t *testing.T) {
 
 func TestMapIterCount(t *testing.T) {
 	// Test case 1: Count elements in a non-empty map
-	iter := g.NewMap[int, string]().Set(1, "a").Set(2, "b").Iter()
+	iter := NewMap[int, string]().Set(1, "a").Set(2, "b").Iter()
 
 	count := iter.Count()
 
-	expected := g.Int(2)
+	expected := Int(2)
 	if count != expected {
 		t.Errorf("Expected count to be %d, got %d", expected, count)
 	}
 
 	// Test case 2: Count elements in an empty map
-	emptyIter := g.NewMap[int, string]().Iter()
+	emptyIter := NewMap[int, string]().Iter()
 
 	emptyCount := emptyIter.Count()
 
-	emptyExpected := g.Int(0)
+	emptyExpected := Int(0)
 	if emptyCount != emptyExpected {
 		t.Errorf("Expected count to be %d, got %d", emptyExpected, emptyCount)
 	}
@@ -675,7 +675,7 @@ func TestMapIterCount(t *testing.T) {
 
 func TestMapIterExclude(t *testing.T) {
 	// Test case 1: Exclude even values
-	m := g.NewMap[int, string]().
+	m := NewMap[int, string]().
 		Set(1, "a").
 		Set(2, "b").
 		Set(3, "c").
@@ -688,7 +688,7 @@ func TestMapIterExclude(t *testing.T) {
 		}).
 		Collect()
 
-	expected := g.NewMap[int, string]().
+	expected := NewMap[int, string]().
 		Set(1, "a").
 		Set(3, "c").
 		Set(5, "e")
@@ -711,7 +711,7 @@ func TestMapIterExclude(t *testing.T) {
 
 func TestMapIterFind(t *testing.T) {
 	// Test case 1: Find an existing element
-	m := g.NewMap[int, string]().
+	m := NewMap[int, string]().
 		Set(1, "a").
 		Set(2, "b").
 		Set(3, "c").
@@ -726,7 +726,7 @@ func TestMapIterFind(t *testing.T) {
 	if found.IsNone() {
 		t.Errorf("Expected to find key-value pair, got None")
 	} else {
-		expected := g.Pair[int, string]{Key: 3, Value: "c"}
+		expected := Pair[int, string]{Key: 3, Value: "c"}
 		if found.Some() != expected {
 			t.Errorf("Found key-value pair incorrect, expected: %v, got: %v", expected, found.Some())
 		}
@@ -745,13 +745,13 @@ func TestMapIterFind(t *testing.T) {
 
 func TestMapIterRange(t *testing.T) {
 	// Define a map to iterate over
-	m := g.NewMap[int, string]()
+	m := NewMap[int, string]()
 	m.Set(1, "apple")
 	m.Set(2, "banana")
 	m.Set(3, "cherry")
 
 	// Define a slice to collect the keys visited during iteration
-	var keysVisited g.Slice[int]
+	var keysVisited Slice[int]
 
 	// Iterate over the map using Range
 	m.Iter().Range(func(k int, v string) bool {
@@ -763,7 +763,7 @@ func TestMapIterRange(t *testing.T) {
 	keysVisited.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
 
 	// Check if all keys were visited
-	expectedKeys := g.Slice[int]{1, 2, 3}
+	expectedKeys := Slice[int]{1, 2, 3}
 
 	if !reflect.DeepEqual(keysVisited, expectedKeys) {
 		t.Errorf("Expected keys visited to be %v, got %v", expectedKeys, keysVisited)
@@ -772,13 +772,13 @@ func TestMapIterRange(t *testing.T) {
 
 func TestMapIterInspect(t *testing.T) {
 	// Define a map to iterate over
-	m := g.NewMap[int, string]()
+	m := NewMap[int, string]()
 	m.Set(1, "apple")
 	m.Set(2, "banana")
 	m.Set(3, "cherry")
 
 	// Define a slice to store the inspected key-value pairs
-	inspected := g.NewMap[int, string]()
+	inspected := NewMap[int, string]()
 
 	// Create a new iterator with Inspect and collect the pairs
 	m.Iter().Inspect(func(k int, v string) {
@@ -792,26 +792,26 @@ func TestMapIterInspect(t *testing.T) {
 
 func TestMapTransform(t *testing.T) {
 	// Исходные данные
-	original := g.Map[string, int]{"a": 1, "b": 2}
+	original := Map[string, int]{"a": 1, "b": 2}
 
-	addEntry := func(m g.Map[string, int]) g.Map[string, int] {
+	addEntry := func(m Map[string, int]) Map[string, int] {
 		m["c"] = 3
 		return m
 	}
 
-	expected := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	expected := Map[string, int]{"a": 1, "b": 2, "c": 3}
 	result := original.Transform(addEntry)
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Transform failed: expected %v, got %v", expected, result)
 	}
 
-	removeEntry := func(m g.Map[string, int]) g.Map[string, int] {
+	removeEntry := func(m Map[string, int]) Map[string, int] {
 		delete(m, "a")
 		return m
 	}
 
-	expectedAfterRemoval := g.Map[string, int]{"b": 2, "c": 3}
+	expectedAfterRemoval := Map[string, int]{"b": 2, "c": 3}
 	resultAfterRemoval := result.Transform(removeEntry)
 
 	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {

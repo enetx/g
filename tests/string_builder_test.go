@@ -3,14 +3,14 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestBuilder(t *testing.T) {
-	builder := g.NewBuilder()
+	builder := NewBuilder()
 
 	// Test Write
-	builder.Write(g.NewString("hello"))
+	builder.Write(String("hello"))
 	expected := "hello"
 	if result := builder.String().Std(); result != expected {
 		t.Errorf("Write() = %s; want %s", result, expected)
@@ -51,7 +51,7 @@ func TestBuilder(t *testing.T) {
 
 func TestBuilderGrow(t *testing.T) {
 	// Create a new Builder
-	builder := g.NewBuilder()
+	builder := NewBuilder()
 
 	// Grow the builder
 	builder.Grow(16)
@@ -65,7 +65,7 @@ func TestBuilderGrow(t *testing.T) {
 
 func TestBuilderCap(t *testing.T) {
 	// Create a new Builder
-	builder := g.NewBuilder()
+	builder := NewBuilder()
 
 	// Check the initial capacity
 	expected := 0

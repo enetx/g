@@ -3,12 +3,12 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestStringCompressionAndDecompression(t *testing.T) {
 	// Test data
-	inputData := g.NewString("hello world")
+	inputData := String("hello world")
 
 	// Test Zstd compression and decompression
 	zstdCompressed := inputData.Compress().Zstd()

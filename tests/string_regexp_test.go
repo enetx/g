@@ -5,15 +5,15 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestRxReplace(t *testing.T) {
 	testCases := []struct {
-		input     g.String
+		input     String
 		pattern   *regexp.Regexp
-		newString g.String
-		expected  g.String
+		newString String
+		expected  String
 	}{
 		// Test case 1: Regular replacement
 		{
@@ -63,32 +63,32 @@ func TestRxReplace(t *testing.T) {
 func TestRxFind(t *testing.T) {
 	testCases := []struct {
 		pattern  *regexp.Regexp
-		expected g.Option[g.String]
-		input    g.String
+		expected Option[String]
+		input    String
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
 			pattern:  regexp.MustCompile(`\bworld\b`),
-			expected: g.Some[g.String]("world"),
+			expected: Some[String]("world"),
 		},
 		// Test case 2: Match with special characters
 		{
 			input:    "Hello, 12345!",
 			pattern:  regexp.MustCompile(`\d+`),
-			expected: g.Some[g.String]("12345"),
+			expected: Some[String]("12345"),
 		},
 		// Test case 3: No match
 		{
 			input:    "Hello, world!",
 			pattern:  regexp.MustCompile(`\buniverse\b`),
-			expected: g.None[g.String](),
+			expected: None[String](),
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
 			pattern:  regexp.MustCompile(`\d`),
-			expected: g.None[g.String](),
+			expected: None[String](),
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestRxFind(t *testing.T) {
 func TestRxMatch(t *testing.T) {
 	testCases := []struct {
 		pattern  *regexp.Regexp
-		input    g.String
+		input    String
 		expected bool
 	}{
 		// Test case 1: Regular match
@@ -148,32 +148,32 @@ func TestRxMatch(t *testing.T) {
 
 func TestRxMatchAny(t *testing.T) {
 	testCases := []struct {
-		input    g.String
-		patterns g.Slice[*regexp.Regexp]
+		input    String
+		patterns Slice[*regexp.Regexp]
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, one matches
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d+`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d+`)},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, none matches
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\buniverse\b`), regexp.MustCompile(`\d`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\buniverse\b`), regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 	}
@@ -188,32 +188,32 @@ func TestRxMatchAny(t *testing.T) {
 
 func TestRxMatchAll(t *testing.T) {
 	testCases := []struct {
-		input    g.String
-		patterns g.Slice[*regexp.Regexp]
+		input    String
+		patterns Slice[*regexp.Regexp]
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, all match
 		{
 			input:    "Hello, 12345!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bHello\b`), regexp.MustCompile(`\d+`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bHello\b`), regexp.MustCompile(`\d+`)},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, some match
 		{
 			input:    "Hello, world!",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: g.Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
+			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
 			expected: false,
 		},
 	}
@@ -228,33 +228,33 @@ func TestRxMatchAll(t *testing.T) {
 
 func TestRxSplit(t *testing.T) {
 	testCases := []struct {
-		input    g.String
-		expected g.Slice[g.String]
+		input    String
+		expected Slice[String]
 		pattern  *regexp.Regexp
 	}{
 		// Test case 1: Regular split
 		{
 			input:    "one,two,three",
 			pattern:  regexp.MustCompile(`,`),
-			expected: g.Slice[g.String]{"one", "two", "three"},
+			expected: Slice[String]{"one", "two", "three"},
 		},
 		// Test case 2: Split with multiple patterns
 		{
 			input:    "1, 2, 3, 4",
 			pattern:  regexp.MustCompile(`\s*,\s*`),
-			expected: g.Slice[g.String]{"1", "2", "3", "4"},
+			expected: Slice[String]{"1", "2", "3", "4"},
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  regexp.MustCompile(`,`),
-			expected: g.Slice[g.String]{""},
+			expected: Slice[String]{""},
 		},
 		// Test case 4: No match
 		{
 			input:    "abcdefgh",
 			pattern:  regexp.MustCompile(`,`),
-			expected: g.Slice[g.String]{"abcdefgh"},
+			expected: Slice[String]{"abcdefgh"},
 		},
 	}
 
@@ -268,38 +268,38 @@ func TestRxSplit(t *testing.T) {
 
 func TestRxSplitN(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.String]]
-		input    g.String
+		expected Option[Slice[String]]
+		input    String
 		pattern  *regexp.Regexp
-		n        g.Int
+		n        Int
 	}{
 		// Test case 1: Regular split with n = 2
 		{
 			input:    "one,two,three",
 			pattern:  regexp.MustCompile(`,`),
 			n:        2,
-			expected: g.Some(g.Slice[g.String]{"one", "two,three"}),
+			expected: Some(Slice[String]{"one", "two,three"}),
 		},
 		// Test case 2: Split with multiple patterns with n = 0
 		{
 			input:    "1, 2, 3, 4",
 			pattern:  regexp.MustCompile(`\s*,\s*`),
 			n:        0,
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  regexp.MustCompile(`,`),
 			n:        1,
-			expected: g.Some(g.Slice[g.String]{""}),
+			expected: Some(Slice[String]{""}),
 		},
 		// Test case 4: No match with n = -1
 		{
 			input:    "abcdefgh",
 			pattern:  regexp.MustCompile(`,`),
 			n:        -1,
-			expected: g.Some(g.Slice[g.String]{"abcdefgh"}),
+			expected: Some(Slice[String]{"abcdefgh"}),
 		},
 	}
 
@@ -313,27 +313,27 @@ func TestRxSplitN(t *testing.T) {
 
 func TestRxIndex(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.Int]]
-		input    g.String
+		expected Option[Slice[Int]]
+		input    String
 		pattern  regexp.Regexp
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`World`),
-			expected: g.Some(g.Slice[g.Int]{7, 12}),
+			expected: Some(Slice[Int]{7, 12}),
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: g.None[g.Slice[g.Int]](),
+			expected: None[Slice[Int]](),
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`World`),
-			expected: g.None[g.Slice[g.Int]](),
+			expected: None[Slice[Int]](),
 		},
 	}
 
@@ -353,27 +353,27 @@ func TestRxIndex(t *testing.T) {
 
 func TestRxFindAll(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.String]]
-		input    g.String
+		expected Option[Slice[String]]
+		input    String
 		pattern  regexp.Regexp
 	}{
 		// Test case 1: Regular matches
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: g.Some(g.Slice[g.String]{"Hello", "Hello"}),
+			expected: Some(Slice[String]{"Hello", "Hello"}),
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 	}
 
@@ -393,31 +393,31 @@ func TestRxFindAll(t *testing.T) {
 
 func TestRxFindAllN(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.String]]
-		input    g.String
+		expected Option[Slice[String]]
+		input    String
 		pattern  regexp.Regexp
-		n        g.Int
+		n        Int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        2,
-			expected: g.Some(g.Slice[g.String]{"Hello", "Hello"}),
+			expected: Some(Slice[String]{"Hello", "Hello"}),
 		},
 		// Test case 2: No match with n = -1
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
 			n:        -1,
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        1,
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 	}
 
@@ -438,27 +438,27 @@ func TestRxFindAllN(t *testing.T) {
 
 func TestRxFindSubmatch(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.String]]
-		input    g.String
+		expected Option[Slice[String]]
+		input    String
 		pattern  regexp.Regexp
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Hello, (\w+)!`),
-			expected: g.Some(g.Slice[g.String]{"Hello, World!", "World"}),
+			expected: Some(Slice[String]{"Hello, World!", "World"}),
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: g.None[g.Slice[g.String]](),
+			expected: None[Slice[String]](),
 		},
 	}
 
@@ -478,27 +478,27 @@ func TestRxFindSubmatch(t *testing.T) {
 
 func TestRxFindAllSubmatch(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.Slice[g.String]]]
-		input    g.String
+		expected Option[Slice[Slice[String]]]
+		input    String
 		pattern  regexp.Regexp
 	}{
 		// Test case 1: Regular matches
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello, (\w+)!`),
-			expected: g.Some(g.Slice[g.Slice[g.String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
+			expected: Some(Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: g.None[g.Slice[g.Slice[g.String]]](),
+			expected: None[Slice[Slice[String]]](),
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: g.None[g.Slice[g.Slice[g.String]]](),
+			expected: None[Slice[Slice[String]]](),
 		},
 	}
 
@@ -518,31 +518,31 @@ func TestRxFindAllSubmatch(t *testing.T) {
 
 func TestRxFindAllSubmatchN(t *testing.T) {
 	testCases := []struct {
-		expected g.Option[g.Slice[g.Slice[g.String]]]
-		input    g.String
+		expected Option[Slice[Slice[String]]]
+		input    String
 		pattern  regexp.Regexp
-		n        g.Int
+		n        Int
 	}{
 		// Test case 1: Regular matches with n = 2
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello, (\w+)!`),
 			n:        2,
-			expected: g.Some(g.Slice[g.Slice[g.String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
+			expected: Some(Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
 		},
 		// Test case 2: No match with n = -1
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
 			n:        -1,
-			expected: g.None[g.Slice[g.Slice[g.String]]](),
+			expected: None[Slice[Slice[String]]](),
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        1,
-			expected: g.None[g.Slice[g.Slice[g.String]]](),
+			expected: None[Slice[Slice[String]]](),
 		},
 	}
 

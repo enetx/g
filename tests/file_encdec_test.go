@@ -3,11 +3,11 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestGobEncodingDecoding(t *testing.T) {
-	file, err := g.NewFile("testfile.gob").CreateTemp().Result()
+	file, err := NewFile("testfile.gob").CreateTemp().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -15,14 +15,14 @@ func TestGobEncodingDecoding(t *testing.T) {
 	defer file.Remove()
 
 	// Encode data to the file
-	dataToEncode := g.SliceOf(1, 2, 3, 4, 5)
+	dataToEncode := SliceOf(1, 2, 3, 4, 5)
 	result := file.Encode().Gob(dataToEncode)
 	if result.IsErr() {
 		t.Fatalf("Gob encoding failed: %v", result.Err())
 	}
 
 	// Decode data from the file
-	var decodedData g.Slice[int]
+	var decodedData Slice[int]
 	result = file.Decode().Gob(&decodedData)
 	if result.IsErr() {
 		t.Fatalf("Gob decoding failed: %v", result.Err())
@@ -34,7 +34,7 @@ func TestGobEncodingDecoding(t *testing.T) {
 }
 
 func TestJSONEncodingDecoding(t *testing.T) {
-	file, err := g.NewFile("testfile.json").CreateTemp().Result()
+	file, err := NewFile("testfile.json").CreateTemp().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -42,14 +42,14 @@ func TestJSONEncodingDecoding(t *testing.T) {
 	defer file.Remove()
 
 	// Encode data to the file
-	dataToEncode := g.SliceOf(1, 2, 3, 4, 5)
+	dataToEncode := SliceOf(1, 2, 3, 4, 5)
 	result := file.Encode().JSON(dataToEncode)
 	if result.IsErr() {
 		t.Fatalf("JSON encoding failed: %v", result.Err())
 	}
 
 	// Decode data from the file
-	var decodedData g.Slice[int]
+	var decodedData Slice[int]
 	result = file.Decode().JSON(&decodedData)
 	if result.IsErr() {
 		t.Fatalf("JSON decoding failed: %v", result.Err())

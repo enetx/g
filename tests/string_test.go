@@ -7,12 +7,12 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestStringBuilder(t *testing.T) {
 	// Create a String
-	str := g.NewString("hello")
+	str := String("hello")
 
 	// Call the Builder method
 	builder := str.Builder()
@@ -27,16 +27,16 @@ func TestStringBuilder(t *testing.T) {
 func TestStringMinMax(t *testing.T) {
 	// Test cases for Min method
 	minTestCases := []struct {
-		inputs   []g.String
-		expected g.String
+		inputs   []String
+		expected String
 	}{
-		{[]g.String{"apple", "banana", "orange"}, "apple"},
-		{[]g.String{"cat", "dog", "elephant"}, "cat"},
-		{[]g.String{"123", "456", "789"}, "123"},
+		{[]String{"apple", "banana", "orange"}, "apple"},
+		{[]String{"cat", "dog", "elephant"}, "cat"},
+		{[]String{"123", "456", "789"}, "123"},
 	}
 
 	for _, testCase := range minTestCases {
-		result := g.NewString(testCase.inputs[0]).Min(testCase.inputs[1:]...)
+		result := String(testCase.inputs[0]).Min(testCase.inputs[1:]...)
 		if result != testCase.expected {
 			t.Errorf("Min test failed. Expected: %s, Got: %s", testCase.expected, result)
 		}
@@ -44,16 +44,16 @@ func TestStringMinMax(t *testing.T) {
 
 	// Test cases for Max method
 	maxTestCases := []struct {
-		inputs   []g.String
-		expected g.String
+		inputs   []String
+		expected String
 	}{
-		{[]g.String{"apple", "banana", "orange"}, "orange"},
-		{[]g.String{"cat", "dog", "elephant"}, "elephant"},
-		{[]g.String{"123", "456", "789"}, "789"},
+		{[]String{"apple", "banana", "orange"}, "orange"},
+		{[]String{"cat", "dog", "elephant"}, "elephant"},
+		{[]String{"123", "456", "789"}, "789"},
 	}
 
 	for _, testCase := range maxTestCases {
-		result := g.NewString(testCase.inputs[0]).Max(testCase.inputs[1:]...)
+		result := String(testCase.inputs[0]).Max(testCase.inputs[1:]...)
 		if result != testCase.expected {
 			t.Errorf("Max test failed. Expected: %s, Got: %s", testCase.expected, result)
 		}
@@ -62,40 +62,40 @@ func TestStringMinMax(t *testing.T) {
 
 func TestChars(t *testing.T) {
 	// Testing on a regular string with ASCII characters
-	asciiStr := g.String("Hello")
-	asciiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o"}
+	asciiStr := String("Hello")
+	asciiExpected := Slice[String]{"H", "e", "l", "l", "o"}
 	asciiResult := asciiStr.Chars().Collect()
 	if !reflect.DeepEqual(asciiExpected, asciiResult) {
 		t.Errorf("Expected %v, but got %v", asciiExpected, asciiResult)
 	}
 
 	// Testing on a string with Unicode characters (Russian)
-	unicodeStr := g.String("Привет")
-	unicodeExpected := g.Slice[g.String]{"П", "р", "и", "в", "е", "т"}
+	unicodeStr := String("Привет")
+	unicodeExpected := Slice[String]{"П", "р", "и", "в", "е", "т"}
 	unicodeResult := unicodeStr.Chars().Collect()
 	if !reflect.DeepEqual(unicodeExpected, unicodeResult) {
 		t.Errorf("Expected %v, but got %v", unicodeExpected, unicodeResult)
 	}
 
 	// Testing on a string with Unicode characters (Chinese)
-	chineseStr := g.String("你好")
-	chineseExpected := g.Slice[g.String]{"你", "好"}
+	chineseStr := String("你好")
+	chineseExpected := Slice[String]{"你", "好"}
 	chineseResult := chineseStr.Chars().Collect()
 	if !reflect.DeepEqual(chineseExpected, chineseResult) {
 		t.Errorf("Expected %v, but got %v", chineseExpected, chineseResult)
 	}
 
 	// Additional test with a mix of ASCII and Unicode characters
-	mixedStr := g.String("Hello 你好")
-	mixedExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", " ", "你", "好"}
+	mixedStr := String("Hello 你好")
+	mixedExpected := Slice[String]{"H", "e", "l", "l", "o", " ", "你", "好"}
 	mixedResult := mixedStr.Chars().Collect()
 	if !reflect.DeepEqual(mixedExpected, mixedResult) {
 		t.Errorf("Expected %v, but got %v", mixedExpected, mixedResult)
 	}
 
 	// Testing on a string with special characters and symbols
-	specialStr := g.String("Hello, 你好! How are you today? こんにちは")
-	specialExpected := g.Slice[g.String]{
+	specialStr := String("Hello, 你好! How are you today? こんにちは")
+	specialExpected := Slice[String]{
 		"H",
 		"e",
 		"l",
@@ -138,16 +138,16 @@ func TestChars(t *testing.T) {
 	}
 
 	// Testing on a string with emojis
-	emojiStr := g.String("Hello, 😊🌍🚀")
-	emojiExpected := g.Slice[g.String]{"H", "e", "l", "l", "o", ",", " ", "😊", "🌍", "🚀"}
+	emojiStr := String("Hello, 😊🌍🚀")
+	emojiExpected := Slice[String]{"H", "e", "l", "l", "o", ",", " ", "😊", "🌍", "🚀"}
 	emojiResult := emojiStr.Chars().Collect()
 	if !reflect.DeepEqual(emojiExpected, emojiResult) {
 		t.Errorf("Expected %v, but got %v", emojiExpected, emojiResult)
 	}
 
 	// Testing on an empty string
-	emptyStr := g.String("")
-	emptyExpected := g.Slice[g.String]{}
+	emptyStr := String("")
+	emptyExpected := Slice[String]{}
 	emptyResult := emptyStr.Chars().Collect()
 	if !reflect.DeepEqual(emptyExpected, emptyResult) {
 		t.Errorf("Expected %v, but got %v", emptyExpected, emptyResult)
@@ -157,19 +157,19 @@ func TestChars(t *testing.T) {
 func TestStringIsDigit(t *testing.T) {
 	tests := []struct {
 		name string
-		str  g.String
+		str  String
 		want bool
 	}{
-		{"empty", g.String(""), false},
-		{"one", g.String("1"), true},
-		{"nine", g.String("99999"), true},
-		{"non-digit", g.String("1111a"), false},
+		{"empty", String(""), false},
+		{"one", String("1"), true},
+		{"nine", String("99999"), true},
+		{"non-digit", String("1111a"), false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.IsDigit(); got != tt.want {
-				t.Errorf("String.IsDigit() = %v, want %v", got, tt.want)
+				t.Errorf("StrinIsDigit() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -178,39 +178,39 @@ func TestStringIsDigit(t *testing.T) {
 func TestStringToInt(t *testing.T) {
 	tests := []struct {
 		name string
-		str  g.String
-		want g.Int
+		str  String
+		want Int
 	}{
 		{
 			name: "empty",
-			str:  g.String(""),
+			str:  String(""),
 			want: 0,
 		},
 		{
 			name: "one digit",
-			str:  g.String("1"),
+			str:  String("1"),
 			want: 1,
 		},
 		{
 			name: "two digits",
-			str:  g.String("12"),
+			str:  String("12"),
 			want: 12,
 		},
 		{
 			name: "one letter",
-			str:  g.String("a"),
+			str:  String("a"),
 			want: 0,
 		},
 		{
 			name: "one digit and one letter",
-			str:  g.String("1a"),
+			str:  String("1a"),
 			want: 0,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.ToInt().UnwrapOrDefault(); got != tt.want {
-				t.Errorf("String.ToInt() = %v, want %v", got, tt.want)
+				t.Errorf("StrinToInt() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -219,8 +219,8 @@ func TestStringToInt(t *testing.T) {
 func TestStringToTitle(t *testing.T) {
 	tests := []struct {
 		name string
-		str  g.String
-		want g.String
+		str  String
+		want String
 	}{
 		{"empty", "", ""},
 		{"one word", "hello", "Hello"},
@@ -255,7 +255,7 @@ func TestStringToTitle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Title(); got.Ne(tt.want) {
-				t.Errorf("String.ToTitle() = %v, want %v", got, tt.want)
+				t.Errorf("StrinToTitle() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -264,40 +264,40 @@ func TestStringToTitle(t *testing.T) {
 func TestStringAdd(t *testing.T) {
 	tests := []struct {
 		name string
-		str  g.String
-		s    g.String
-		want g.String
+		str  String
+		s    String
+		want String
 	}{
 		{
 			name: "empty",
-			str:  g.String(""),
-			s:    g.String(""),
-			want: g.String(""),
+			str:  String(""),
+			s:    String(""),
+			want: String(""),
 		},
 		{
 			name: "empty_hs",
-			str:  g.String(""),
-			s:    g.String("test"),
-			want: g.String("test"),
+			str:  String(""),
+			s:    String("test"),
+			want: String("test"),
 		},
 		{
 			name: "empty_s",
-			str:  g.String("test"),
-			s:    g.String(""),
-			want: g.String("test"),
+			str:  String("test"),
+			s:    String(""),
+			want: String("test"),
 		},
 		{
 			name: "not_empty",
-			str:  g.String("test"),
-			s:    g.String("test"),
-			want: g.String("testtest"),
+			str:  String("test"),
+			s:    String("test"),
+			want: String("testtest"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Append(tt.s); got != tt.want {
-				t.Errorf("String.Add() = %v, want %v", got, tt.want)
+				t.Errorf("StrinAdd() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -306,40 +306,40 @@ func TestStringAdd(t *testing.T) {
 func TestStringAddPrefix(t *testing.T) {
 	tests := []struct {
 		name string
-		str  g.String
-		s    g.String
-		want g.String
+		str  String
+		s    String
+		want String
 	}{
 		{
 			name: "empty",
-			str:  g.String(""),
-			s:    g.String(""),
-			want: g.String(""),
+			str:  String(""),
+			s:    String(""),
+			want: String(""),
 		},
 		{
 			name: "empty_hs",
-			str:  g.String(""),
-			s:    g.String("test"),
-			want: g.String("test"),
+			str:  String(""),
+			s:    String("test"),
+			want: String("test"),
 		},
 		{
 			name: "empty_s",
-			str:  g.String("test"),
-			s:    g.String(""),
-			want: g.String("test"),
+			str:  String("test"),
+			s:    String(""),
+			want: String("test"),
 		},
 		{
 			name: "not_empty",
-			str:  g.String("rest"),
-			s:    g.String("test"),
-			want: g.String("testrest"),
+			str:  String("rest"),
+			s:    String("test"),
+			want: String("testrest"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.str.Prepend(tt.s); got != tt.want {
-				t.Errorf("String.AddPrefix() = %v, want %v", got, tt.want)
+				t.Errorf("StrinAddPrefix() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -347,7 +347,7 @@ func TestStringAddPrefix(t *testing.T) {
 
 func TestStringRandom(t *testing.T) {
 	for i := range 100 {
-		random := g.NewString("").Random(g.Int(i))
+		random := String("").Random(Int(i))
 
 		if random.Len().Std() != i {
 			t.Errorf("Random string length %d is not equal to %d", random.Len(), i)
@@ -356,14 +356,14 @@ func TestStringRandom(t *testing.T) {
 }
 
 func TestStringChunks(t *testing.T) {
-	str := g.String("")
+	str := String("")
 	chunks := str.Chunks(3)
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
 	}
 
-	str = g.String("hello")
+	str = String("hello")
 	chunks = str.Chunks(10)
 
 	if chunks.Len() != 1 {
@@ -374,14 +374,14 @@ func TestStringChunks(t *testing.T) {
 		t.Errorf("Expected chunk to be %v, but got %v", str, chunks.Get(0))
 	}
 
-	str = g.String("hello")
+	str = String("hello")
 	chunks = str.Chunks(2)
 
 	if chunks.Len() != 3 {
 		t.Errorf("Expected 3 chunks, but got %v", chunks.Len())
 	}
 
-	expectedChunks := g.Slice[g.String]{"he", "ll", "o"}
+	expectedChunks := Slice[String]{"he", "ll", "o"}
 
 	for i, c := range chunks {
 		if c != expectedChunks[i] {
@@ -389,14 +389,14 @@ func TestStringChunks(t *testing.T) {
 		}
 	}
 
-	str = g.String("hello world")
+	str = String("hello world")
 	chunks = str.Chunks(3)
 
 	if chunks.Len() != 4 {
 		t.Errorf("Expected 4 chunks, but got %v", chunks.Len())
 	}
 
-	expectedChunks = g.Slice[g.String]{"hel", "lo ", "wor", "ld"}
+	expectedChunks = Slice[String]{"hel", "lo ", "wor", "ld"}
 
 	for i, c := range chunks {
 		if c != expectedChunks[i] {
@@ -404,7 +404,7 @@ func TestStringChunks(t *testing.T) {
 		}
 	}
 
-	str = g.String("hello")
+	str = String("hello")
 	chunks = str.Chunks(5)
 
 	if chunks.Len() != 1 {
@@ -415,7 +415,7 @@ func TestStringChunks(t *testing.T) {
 		t.Errorf("Expected chunk to be %v, but got %v", str, chunks.Get(0))
 	}
 
-	str = g.String("hello")
+	str = String("hello")
 	chunks = str.Chunks(-1)
 
 	if chunks.Len() != 0 {
@@ -426,10 +426,10 @@ func TestStringChunks(t *testing.T) {
 func TestStringCut(t *testing.T) {
 	tests := []struct {
 		name   string
-		input  g.String
-		start  g.String
-		end    g.String
-		output g.String
+		input  String
+		start  String
+		end    String
+		output String
 	}{
 		{"Basic", "Hello [start]world[end]!", "[start]", "[end]", "world"},
 		{"No start", "Hello world!", "[start]", "[end]", ""},
@@ -473,8 +473,8 @@ func TestStringCut(t *testing.T) {
 
 func TestStringCompare(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected int
 	}{
 		{"apple", "banana", -1},
@@ -494,8 +494,8 @@ func TestStringCompare(t *testing.T) {
 
 func TestStringEq(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", false},
@@ -514,8 +514,8 @@ func TestStringEq(t *testing.T) {
 
 func TestStringNe(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", true},
@@ -534,8 +534,8 @@ func TestStringNe(t *testing.T) {
 
 func TestStringGt(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", false},
@@ -555,8 +555,8 @@ func TestStringGt(t *testing.T) {
 
 func TestStringLt(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", true},
@@ -576,8 +576,8 @@ func TestStringLt(t *testing.T) {
 
 func TestStringLte(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", true},
@@ -597,8 +597,8 @@ func TestStringLte(t *testing.T) {
 
 func TestStringGte(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
+		str1     String
+		str2     String
 		expected bool
 	}{
 		{"apple", "banana", false},
@@ -618,8 +618,8 @@ func TestStringGte(t *testing.T) {
 
 func TestStringReverse(t *testing.T) {
 	testCases := []struct {
-		in      g.String
-		wantOut g.String
+		in      String
+		wantOut String
 	}{
 		{in: "", wantOut: ""},
 		{in: " ", wantOut: " "},
@@ -677,8 +677,8 @@ func TestStringReverse(t *testing.T) {
 
 func TestStringNormalizeNFC(t *testing.T) {
 	testCases := []struct {
-		input    g.String
-		expected g.String
+		input    String
+		expected String
 	}{
 		{input: "Mëtàl Hëàd", expected: "Mëtàl Hëàd"},
 		{input: "Café", expected: "Café"},
@@ -707,9 +707,9 @@ func TestStringNormalizeNFC(t *testing.T) {
 
 func TestStringSimilarity(t *testing.T) {
 	testCases := []struct {
-		str1     g.String
-		str2     g.String
-		expected g.Float
+		str1     String
+		str2     String
+		expected Float
 	}{
 		{"hello", "hello", 100},
 		{"hello", "world", 20},
@@ -743,7 +743,7 @@ func TestStringSimilarity(t *testing.T) {
 			output := tc.str1.Similarity(tc.str2)
 			if output.RoundDecimal(2).Ne(tc.expected) {
 				t.Errorf(
-					"g.String(\"%s\").SimilarText(\"%s\") = %.2f%% but want %.2f%%\n",
+					"String(\"%s\").SimilarText(\"%s\") = %.2f%% but want %.2f%%\n",
 					tc.str1,
 					tc.str2,
 					output,
@@ -757,7 +757,7 @@ func TestStringSimilarity(t *testing.T) {
 func TestStringReader(t *testing.T) {
 	tests := []struct {
 		name     string
-		str      g.String
+		str      String
 		expected string
 	}{
 		{"Empty String", "", ""},
@@ -786,32 +786,32 @@ func TestStringReader(t *testing.T) {
 func TestStringContainsAny(t *testing.T) {
 	testCases := []struct {
 		name    string
-		input   g.String
-		substrs g.Slice[g.String]
+		input   String
+		substrs Slice[String]
 		want    bool
 	}{
 		{
 			name:    "ContainsAny_OneSubstringMatch",
 			input:   "This is an example",
-			substrs: []g.String{"This", "missing"},
+			substrs: []String{"This", "missing"},
 			want:    true,
 		},
 		{
 			name:    "ContainsAny_NoSubstringMatch",
 			input:   "This is an example",
-			substrs: []g.String{"notfound", "missing"},
+			substrs: []String{"notfound", "missing"},
 			want:    false,
 		},
 		{
 			name:    "ContainsAny_EmptySubstrings",
 			input:   "This is an example",
-			substrs: []g.String{},
+			substrs: []String{},
 			want:    false,
 		},
 		{
 			name:    "ContainsAny_EmptyInput",
 			input:   "",
-			substrs: []g.String{"notfound", "missing"},
+			substrs: []String{"notfound", "missing"},
 			want:    false,
 		},
 	}
@@ -829,32 +829,32 @@ func TestStringContainsAny(t *testing.T) {
 func TestStringContainsAll(t *testing.T) {
 	testCases := []struct {
 		name    string
-		input   g.String
-		substrs g.Slice[g.String]
+		input   String
+		substrs Slice[String]
 		want    bool
 	}{
 		{
 			name:    "ContainsAll_AllSubstringsMatch",
 			input:   "This is an example",
-			substrs: []g.String{"This", "example"},
+			substrs: []String{"This", "example"},
 			want:    true,
 		},
 		{
 			name:    "ContainsAll_NotAllSubstringsMatch",
 			input:   "This is an example",
-			substrs: []g.String{"This", "missing"},
+			substrs: []String{"This", "missing"},
 			want:    false,
 		},
 		{
 			name:    "ContainsAll_EmptySubstrings",
 			input:   "This is an example",
-			substrs: []g.String{},
+			substrs: []String{},
 			want:    true,
 		},
 		{
 			name:    "ContainsAll_EmptyInput",
 			input:   "",
-			substrs: []g.String{"notfound", "missing"},
+			substrs: []String{"notfound", "missing"},
 			want:    false,
 		},
 	}
@@ -872,11 +872,11 @@ func TestStringContainsAll(t *testing.T) {
 func TestStringReplaceNth(t *testing.T) {
 	tests := []struct {
 		name     string
-		str      g.String
-		oldS     g.String
-		newS     g.String
-		n        g.Int
-		expected g.String
+		str      String
+		oldS     String
+		newS     String
+		n        Int
+		expected String
 	}{
 		{
 			"First occurrence",
@@ -966,7 +966,7 @@ func TestStringReplaceNth(t *testing.T) {
 
 func TestStringIsASCII(t *testing.T) {
 	testCases := []struct {
-		input    g.String
+		input    String
 		expected bool
 	}{
 		{"Hello, world!", true},
@@ -989,30 +989,30 @@ func TestStringIsASCII(t *testing.T) {
 
 func TestStringReplaceMulti(t *testing.T) {
 	// Test case 1: Basic replacements
-	input1 := g.String("Hello, world! This is a test.")
+	input1 := String("Hello, world! This is a test.")
 	replaced1 := input1.ReplaceMulti("Hello", "Greetings", "world", "universe", "test", "example")
-	expected1 := g.String("Greetings, universe! This is a example.")
+	expected1 := String("Greetings, universe! This is a example.")
 	if replaced1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected '%s', got '%s'", expected1, replaced1)
 	}
 
 	// Test case 2: Replacements with special characters
-	input2 := g.String("The price is $100.00, not $200.00!")
+	input2 := String("The price is $100.00, not $200.00!")
 	replaced2 := input2.ReplaceMulti("$100.00", "$50.00", "$200.00", "$80.00")
-	expected2 := g.String("The price is $50.00, not $80.00!")
+	expected2 := String("The price is $50.00, not $80.00!")
 	if replaced2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected '%s', got '%s'", expected2, replaced2)
 	}
 
 	// Test case 3: No replacements
-	input3 := g.String("No replacements here.")
+	input3 := String("No replacements here.")
 	replaced3 := input3.ReplaceMulti("Hello", "Greetings", "world", "universe")
 	if replaced3 != input3 {
 		t.Errorf("Test case 3 failed: Expected '%s', got '%s'", input3, replaced3)
 	}
 
 	// Test case 4: Empty string
-	input4 := g.String("")
+	input4 := String("")
 	replaced4 := input4.ReplaceMulti("Hello", "Greetings")
 	if replaced4 != input4 {
 		t.Errorf("Test case 4 failed: Expected '%s', got '%s'", input4, replaced4)
@@ -1022,12 +1022,12 @@ func TestStringReplaceMulti(t *testing.T) {
 func TestStringToFloat(t *testing.T) {
 	// Test cases for valid float strings
 	validFloatCases := []struct {
-		input    g.String
-		expected g.Float
+		input    String
+		expected Float
 	}{
-		{"3.14", g.Float(3.14)},
-		{"-123.456", g.Float(-123.456)},
-		{"0.0", g.Float(0.0)},
+		{"3.14", Float(3.14)},
+		{"-123.456", Float(-123.456)},
+		{"0.0", Float(0.0)},
 	}
 
 	for _, testCase := range validFloatCases {
@@ -1046,7 +1046,7 @@ func TestStringToFloat(t *testing.T) {
 	}
 
 	// Test cases for invalid float strings
-	invalidFloatCases := []g.String{"abc", "123abc", "12.34.56", "", " "}
+	invalidFloatCases := []String{"abc", "123abc", "12.34.56", "", " "}
 
 	for _, input := range invalidFloatCases {
 		result := input.ToFloat()
@@ -1059,8 +1059,8 @@ func TestStringToFloat(t *testing.T) {
 func TestStringLower(t *testing.T) {
 	// Test cases for lowercase conversion
 	lowerCases := []struct {
-		input    g.String
-		expected g.String
+		input    String
+		expected String
 	}{
 		{"HELLO", "hello"},
 		{"Hello World", "hello world"},
@@ -1079,9 +1079,9 @@ func TestStringLower(t *testing.T) {
 
 func TestStringStripPrefix(t *testing.T) {
 	stripPrefixCases := []struct {
-		input    g.String
-		prefix   g.String
-		expected g.String
+		input    String
+		prefix   String
+		expected String
 	}{
 		{"Hello, World!", "Hello, ", "World!"},
 		{"prefix-prefix-suffix", "prefix-", "prefix-suffix"},
@@ -1105,9 +1105,9 @@ func TestStringStripPrefix(t *testing.T) {
 
 func TestStringStripSuffix(t *testing.T) {
 	stripSuffixCases := []struct {
-		input    g.String
-		suffix   g.String
-		expected g.String
+		input    String
+		suffix   String
+		expected String
 	}{
 		{"Hello, World!", ", World!", "Hello"},
 		{"prefix-prefix-suffix", "-suffix", "prefix-prefix"},
@@ -1132,11 +1132,11 @@ func TestStringStripSuffix(t *testing.T) {
 func TestStringReplace(t *testing.T) {
 	// Test cases for Replace
 	replaceCases := []struct {
-		input    g.String
-		oldS     g.String
-		newS     g.String
-		n        g.Int
-		expected g.String
+		input    String
+		oldS     String
+		newS     String
+		n        Int
+		expected String
 	}{
 		{"Hello, World!", "Hello", "Hi", 1, "Hi, World!"},
 		{"Hello, Hello, Hello!", "Hello", "Hi", -1, "Hi, Hi, Hi!"},
@@ -1163,8 +1163,8 @@ func TestStringReplace(t *testing.T) {
 func TestStringContainsAnyChars(t *testing.T) {
 	// Test cases for ContainsAnyChars
 	containsAnyCharsCases := []struct {
-		input    g.String
-		chars    g.String
+		input    String
+		chars    String
 		expected bool
 	}{
 		{"Hello, World!", "aeiou", true}, // Contains vowels
@@ -1190,16 +1190,16 @@ func TestStringContainsAnyChars(t *testing.T) {
 
 func TestStringSplitLines(t *testing.T) {
 	// Test case 1: String with multiple lines.
-	str1 := g.NewString("hello\nworld\nhow\nare\nyou\n")
-	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	str1 := String("hello\nworld\nhow\nare\nyou\n")
+	expected1 := Slice[String]{"hello", "world", "how", "are", "you"}
 	result1 := str1.Lines().Collect()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
 
 	// Test case 2: String with single line.
-	str2 := g.NewString("hello")
-	expected2 := g.Slice[g.String]{"hello"}
+	str2 := String("hello")
+	expected2 := Slice[String]{"hello"}
 	result2 := str2.Lines().Collect()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
@@ -1208,30 +1208,30 @@ func TestStringSplitLines(t *testing.T) {
 
 func TestStringSplitN(t *testing.T) {
 	// Test case 1: String with multiple segments, n > 0.
-	str1 := g.NewString("hello,world,how,are,you")
-	sep1 := g.NewString(",")
-	n1 := g.Int(3)
-	expected1 := g.Slice[g.String]{"hello", "world", "how,are,you"}
+	str1 := String("hello,world,how,are,you")
+	sep1 := String(",")
+	n1 := Int(3)
+	expected1 := Slice[String]{"hello", "world", "how,are,you"}
 	result1 := str1.SplitN(sep1, n1)
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
 
 	// Test case 2: String with multiple segments, n < 0.
-	str2 := g.NewString("hello,world,how,are,you")
-	sep2 := g.NewString(",")
-	n2 := g.Int(-1)
-	expected2 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	str2 := String("hello,world,how,are,you")
+	sep2 := String(",")
+	n2 := Int(-1)
+	expected2 := Slice[String]{"hello", "world", "how", "are", "you"}
 	result2 := str2.SplitN(sep2, n2)
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
 
 	// Test case 3: String with single segment, n > 0.
-	str3 := g.NewString("hello")
-	sep3 := g.NewString(",")
-	n3 := g.Int(1)
-	expected3 := g.Slice[g.String]{"hello"}
+	str3 := String("hello")
+	sep3 := String(",")
+	n3 := Int(1)
+	expected3 := Slice[String]{"hello"}
 	result3 := str3.SplitN(sep3, n3)
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
@@ -1240,32 +1240,32 @@ func TestStringSplitN(t *testing.T) {
 
 func TestStringFields(t *testing.T) {
 	// Test case 1: String with multiple words separated by whitespace.
-	str1 := g.NewString("hello world how are you")
-	expected1 := g.Slice[g.String]{"hello", "world", "how", "are", "you"}
+	str1 := String("hello world how are you")
+	expected1 := Slice[String]{"hello", "world", "how", "are", "you"}
 	result1 := str1.Fields().Collect()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
 
 	// Test case 2: String with single word.
-	str2 := g.NewString("hello")
-	expected2 := g.Slice[g.String]{"hello"}
+	str2 := String("hello")
+	expected2 := Slice[String]{"hello"}
 	result2 := str2.Fields().Collect()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
 
-	// Test case 3: Empty string.
-	str3 := g.NewString("")
-	expected3 := g.Slice[g.String]{}
+	// Test case 3: Empty strin
+	str3 := String("")
+	expected3 := Slice[String]{}
 	result3 := str3.Fields().Collect()
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
 	}
 
 	// Test case 4: String with leading and trailing whitespace.
-	str4 := g.NewString("   hello   world   ")
-	expected4 := g.Slice[g.String]{"hello", "world"}
+	str4 := String("   hello   world   ")
+	expected4 := Slice[String]{"hello", "world"}
 	result4 := str4.Fields().Collect()
 	if !reflect.DeepEqual(result4, expected4) {
 		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
@@ -1274,27 +1274,27 @@ func TestStringFields(t *testing.T) {
 
 func TestStringCount(t *testing.T) {
 	// Test case 1: Count occurrences of substring in a string with multiple occurrences.
-	str1 := g.NewString("hello world hello hello")
-	substr1 := g.NewString("hello")
-	expected1 := g.Int(3)
+	str1 := String("hello world hello hello")
+	substr1 := String("hello")
+	expected1 := Int(3)
 	result1 := str1.Count(substr1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
 	}
 
 	// Test case 2: Count occurrences of substring in a string with no occurrences.
-	str2 := g.NewString("abcdefg")
-	substr2 := g.NewString("xyz")
-	expected2 := g.Int(0)
+	str2 := String("abcdefg")
+	substr2 := String("xyz")
+	expected2 := Int(0)
 	result2 := str2.Count(substr2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
 	}
 
-	// Test case 3: Count occurrences of substring in an empty string.
-	str3 := g.NewString("")
-	substr3 := g.NewString("hello")
-	expected3 := g.Int(0)
+	// Test case 3: Count occurrences of substring in an empty strin
+	str3 := String("")
+	substr3 := String("hello")
+	expected3 := Int(0)
 	result3 := str3.Count(substr3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1303,8 +1303,8 @@ func TestStringCount(t *testing.T) {
 
 func TestStringEqFold(t *testing.T) {
 	// Test case 1: Strings are equal case-insensitively.
-	str1 := g.NewString("Hello")
-	str2 := g.NewString("hello")
+	str1 := String("Hello")
+	str2 := String("hello")
 	expected1 := true
 	result1 := str1.EqFold(str2)
 	if result1 != expected1 {
@@ -1312,7 +1312,7 @@ func TestStringEqFold(t *testing.T) {
 	}
 
 	// Test case 2: Strings are not equal case-insensitively.
-	str3 := g.NewString("world")
+	str3 := String("world")
 	expected2 := false
 	result2 := str1.EqFold(str3)
 	if result2 != expected2 {
@@ -1320,8 +1320,8 @@ func TestStringEqFold(t *testing.T) {
 	}
 
 	// Test case 3: Empty strings.
-	str4 := g.NewString("")
-	str5 := g.NewString("")
+	str4 := String("")
+	str5 := String("")
 	expected3 := true
 	result3 := str4.EqFold(str5)
 	if result3 != expected3 {
@@ -1330,27 +1330,27 @@ func TestStringEqFold(t *testing.T) {
 }
 
 func TestStringLastIndex(t *testing.T) {
-	// Test case 1: Substring is present in the string.
-	str1 := g.NewString("hello world hello")
-	substr1 := g.NewString("hello")
-	expected1 := g.Int(12)
+	// Test case 1: Substring is present in the strin
+	str1 := String("hello world hello")
+	substr1 := String("hello")
+	expected1 := Int(12)
 	result1 := str1.LastIndex(substr1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
 	}
 
-	// Test case 2: Substring is not present in the string.
-	substr2 := g.NewString("foo")
-	expected2 := g.Int(-1)
+	// Test case 2: Substring is not present in the strin
+	substr2 := String("foo")
+	expected2 := Int(-1)
 	result2 := str1.LastIndex(substr2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
 	}
 
-	// Test case 3: Empty string.
-	str3 := g.NewString("")
-	substr3 := g.NewString("hello")
-	expected3 := g.Int(-1)
+	// Test case 3: Empty strin
+	str3 := String("")
+	substr3 := String("hello")
+	expected3 := Int(-1)
 	result3 := str3.LastIndex(substr3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1358,27 +1358,27 @@ func TestStringLastIndex(t *testing.T) {
 }
 
 func TestStringIndexRune(t *testing.T) {
-	// Test case 1: Rune is present in the string.
-	str1 := g.NewString("hello")
+	// Test case 1: Rune is present in the strin
+	str1 := String("hello")
 	rune1 := 'e'
-	expected1 := g.Int(1)
+	expected1 := Int(1)
 	result1 := str1.IndexRune(rune1)
 	if result1 != expected1 {
 		t.Errorf("Test case 1 failed: Expected %d, got %d", expected1, result1)
 	}
 
-	// Test case 2: Rune is not present in the string.
+	// Test case 2: Rune is not present in the strin
 	rune2 := 'x'
-	expected2 := g.Int(-1)
+	expected2 := Int(-1)
 	result2 := str1.IndexRune(rune2)
 	if result2 != expected2 {
 		t.Errorf("Test case 2 failed: Expected %d, got %d", expected2, result2)
 	}
 
-	// Test case 3: Empty string.
-	str3 := g.NewString("")
+	// Test case 3: Empty strin
+	str3 := String("")
 	rune3 := 'h'
-	expected3 := g.Int(-1)
+	expected3 := Int(-1)
 	result3 := str3.IndexRune(rune3)
 	if result3 != expected3 {
 		t.Errorf("Test case 3 failed: Expected %d, got %d", expected3, result3)
@@ -1387,7 +1387,7 @@ func TestStringIndexRune(t *testing.T) {
 
 func TestStringNotEmpty(t *testing.T) {
 	// Test case 1: String is not empty.
-	str1 := g.NewString("hello")
+	str1 := String("hello")
 	expected1 := true
 	result1 := str1.NotEmpty()
 	if result1 != expected1 {
@@ -1395,7 +1395,7 @@ func TestStringNotEmpty(t *testing.T) {
 	}
 
 	// Test case 2: String is empty.
-	str2 := g.NewString("")
+	str2 := String("")
 	expected2 := false
 	result2 := str2.NotEmpty()
 	if result2 != expected2 {
@@ -1405,9 +1405,9 @@ func TestStringNotEmpty(t *testing.T) {
 
 func TestRepeat(t *testing.T) {
 	// Test case 1: Repeat count is positive.
-	str := g.NewString("abc")
-	count := g.Int(3)
-	expected1 := g.NewString("abcabcabc")
+	str := String("abc")
+	count := Int(3)
+	expected1 := String("abcabcabc")
 	result1 := str.Repeat(count)
 	if !result1.Eq(expected1) {
 		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
@@ -1415,7 +1415,7 @@ func TestRepeat(t *testing.T) {
 
 	// Test case 2: Repeat count is zero.
 	count = 0
-	expected2 := g.NewString("")
+	expected2 := String("")
 	result2 := str.Repeat(count)
 	if !result2.Eq(expected2) {
 		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
@@ -1424,40 +1424,40 @@ func TestRepeat(t *testing.T) {
 
 func TestStringLeftJustify(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
-	str1 := g.NewString("Hello")
-	length1 := g.Int(10)
-	pad1 := g.NewString(".")
-	expected1 := g.NewString("Hello.....")
+	str1 := String("Hello")
+	length1 := Int(10)
+	pad1 := String(".")
+	expected1 := String("Hello.....")
 	result1 := str1.LeftJustify(length1, pad1)
 	if !result1.Eq(expected1) {
 		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
 	}
 
 	// Test case 2: Original string length is equal to the specified length.
-	str2 := g.NewString("Hello")
-	length2 := g.Int(5)
-	pad2 := g.NewString(".")
-	expected2 := g.NewString("Hello")
+	str2 := String("Hello")
+	length2 := Int(5)
+	pad2 := String(".")
+	expected2 := String("Hello")
 	result2 := str2.LeftJustify(length2, pad2)
 	if !result2.Eq(expected2) {
 		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
 	}
 
 	// Test case 3: Original string length is greater than the specified length.
-	str3 := g.NewString("Hello")
-	length3 := g.Int(3)
-	pad3 := g.NewString(".")
-	expected3 := g.NewString("Hello")
+	str3 := String("Hello")
+	length3 := Int(3)
+	pad3 := String(".")
+	expected3 := String("Hello")
 	result3 := str3.LeftJustify(length3, pad3)
 	if !result3.Eq(expected3) {
 		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
 	}
 
-	// Test case 4: Empty padding string.
-	str4 := g.NewString("Hello")
-	length4 := g.Int(10)
-	pad4 := g.NewString("")
-	expected4 := g.NewString("Hello")
+	// Test case 4: Empty padding strin
+	str4 := String("Hello")
+	length4 := Int(10)
+	pad4 := String("")
+	expected4 := String("Hello")
 	result4 := str4.LeftJustify(length4, pad4)
 	if !result4.Eq(expected4) {
 		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
@@ -1466,40 +1466,40 @@ func TestStringLeftJustify(t *testing.T) {
 
 func TestStringRightJustify(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
-	str1 := g.NewString("Hello")
-	length1 := g.Int(10)
-	pad1 := g.NewString(".")
-	expected1 := g.NewString(".....Hello")
+	str1 := String("Hello")
+	length1 := Int(10)
+	pad1 := String(".")
+	expected1 := String(".....Hello")
 	result1 := str1.RightJustify(length1, pad1)
 	if !result1.Eq(expected1) {
 		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
 	}
 
 	// Test case 2: Original string length is equal to the specified length.
-	str2 := g.NewString("Hello")
-	length2 := g.Int(5)
-	pad2 := g.NewString(".")
-	expected2 := g.NewString("Hello")
+	str2 := String("Hello")
+	length2 := Int(5)
+	pad2 := String(".")
+	expected2 := String("Hello")
 	result2 := str2.RightJustify(length2, pad2)
 	if !result2.Eq(expected2) {
 		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
 	}
 
 	// Test case 3: Original string length is greater than the specified length.
-	str3 := g.NewString("Hello")
-	length3 := g.Int(3)
-	pad3 := g.NewString(".")
-	expected3 := g.NewString("Hello")
+	str3 := String("Hello")
+	length3 := Int(3)
+	pad3 := String(".")
+	expected3 := String("Hello")
 	result3 := str3.RightJustify(length3, pad3)
 	if !result3.Eq(expected3) {
 		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
 	}
 
-	// Test case 4: Empty padding string.
-	str4 := g.NewString("Hello")
-	length4 := g.Int(10)
-	pad4 := g.NewString("")
-	expected4 := g.NewString("Hello")
+	// Test case 4: Empty padding strin
+	str4 := String("Hello")
+	length4 := Int(10)
+	pad4 := String("")
+	expected4 := String("Hello")
 	result4 := str4.RightJustify(length4, pad4)
 	if !result4.Eq(expected4) {
 		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
@@ -1508,40 +1508,40 @@ func TestStringRightJustify(t *testing.T) {
 
 func TestStringCenter(t *testing.T) {
 	// Test case 1: Original string length is less than the specified length.
-	str1 := g.NewString("Hello")
-	length1 := g.Int(10)
-	pad1 := g.NewString(".")
-	expected1 := g.NewString("..Hello...")
+	str1 := String("Hello")
+	length1 := Int(10)
+	pad1 := String(".")
+	expected1 := String("..Hello...")
 	result1 := str1.Center(length1, pad1)
 	if !result1.Eq(expected1) {
 		t.Errorf("Test case 1 failed: Expected %s, got %s", expected1, result1)
 	}
 
 	// Test case 2: Original string length is equal to the specified length.
-	str2 := g.NewString("Hello")
-	length2 := g.Int(5)
-	pad2 := g.NewString(".")
-	expected2 := g.NewString("Hello")
+	str2 := String("Hello")
+	length2 := Int(5)
+	pad2 := String(".")
+	expected2 := String("Hello")
 	result2 := str2.Center(length2, pad2)
 	if !result2.Eq(expected2) {
 		t.Errorf("Test case 2 failed: Expected %s, got %s", expected2, result2)
 	}
 
 	// Test case 3: Original string length is greater than the specified length.
-	str3 := g.NewString("Hello")
-	length3 := g.Int(3)
-	pad3 := g.NewString(".")
-	expected3 := g.NewString("Hello")
+	str3 := String("Hello")
+	length3 := Int(3)
+	pad3 := String(".")
+	expected3 := String("Hello")
 	result3 := str3.Center(length3, pad3)
 	if !result3.Eq(expected3) {
 		t.Errorf("Test case 3 failed: Expected %s, got %s", expected3, result3)
 	}
 
-	// Test case 4: Empty padding string.
-	str4 := g.NewString("Hello")
-	length4 := g.Int(10)
-	pad4 := g.NewString("")
-	expected4 := g.NewString("Hello")
+	// Test case 4: Empty padding strin
+	str4 := String("Hello")
+	length4 := Int(10)
+	pad4 := String("")
+	expected4 := String("Hello")
 	result4 := str4.Center(length4, pad4)
 	if !result4.Eq(expected4) {
 		t.Errorf("Test case 4 failed: Expected %s, got %s", expected4, result4)
@@ -1550,8 +1550,8 @@ func TestStringCenter(t *testing.T) {
 
 func TestStringEndsWithAny(t *testing.T) {
 	// Test case 1: String ends with one of the provided suffixes.
-	str1 := g.NewString("example.com")
-	suffixes1 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	str1 := String("example.com")
+	suffixes1 := Slice[String]{String(".com"), String(".net")}
 	expected1 := true
 	result1 := str1.EndsWithAny(suffixes1...)
 	if result1 != expected1 {
@@ -1559,8 +1559,8 @@ func TestStringEndsWithAny(t *testing.T) {
 	}
 
 	// Test case 2: String ends with multiple provided suffixes.
-	str2 := g.NewString("example.net")
-	suffixes2 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	str2 := String("example.net")
+	suffixes2 := Slice[String]{String(".com"), String(".net")}
 	expected2 := true
 	result2 := str2.EndsWithAny(suffixes2...)
 	if result2 != expected2 {
@@ -1568,8 +1568,8 @@ func TestStringEndsWithAny(t *testing.T) {
 	}
 
 	// Test case 3: String does not end with any of the provided suffixes.
-	str3 := g.NewString("example.org")
-	suffixes3 := g.Slice[g.String]{g.NewString(".com"), g.NewString(".net")}
+	str3 := String("example.org")
+	suffixes3 := Slice[String]{String(".com"), String(".net")}
 	expected3 := false
 	result3 := str3.EndsWithAny(suffixes3...)
 	if result3 != expected3 {
@@ -1580,21 +1580,21 @@ func TestStringEndsWithAny(t *testing.T) {
 func TestStringStartsWithAny(t *testing.T) {
 	// Test cases
 	testCases := []struct {
-		str      g.String
-		prefixes []g.String
+		str      String
+		prefixes []String
 		expected bool
 	}{
-		{"http://example.com", []g.String{"http://", "https://"}, true},
-		{"https://example.com", []g.String{"http://", "https://"}, true},
-		{"ftp://example.com", []g.String{"http://", "https://"}, false},
-		{"", []g.String{""}, true}, // Empty string should match empty prefix
-		{"", []g.String{"non-empty"}, false},
+		{"http://example.com", []String{"http://", "https://"}, true},
+		{"https://example.com", []String{"http://", "https://"}, true},
+		{"ftp://example.com", []String{"http://", "https://"}, false},
+		{"", []String{""}, true}, // Empty string should match empty prefix
+		{"", []String{"non-empty"}, false},
 	}
 
 	// Test each case
 	for _, tc := range testCases {
 		// Wrap the input string
-		s := g.String(tc.str)
+		s := String(tc.str)
 
 		// Call the StartsWith method
 		result := s.StartsWithAny(tc.prefixes...)
@@ -1608,18 +1608,18 @@ func TestStringStartsWithAny(t *testing.T) {
 
 func TestStringSplitAfter(t *testing.T) {
 	testCases := []struct {
-		input     g.String
-		separator g.String
-		expected  g.Slice[g.String]
+		input     String
+		separator String
+		expected  Slice[String]
 	}{
-		{"hello,world,how,are,you", ",", g.Slice[g.String]{"hello,", "world,", "how,", "are,", "you"}},
-		{"apple banana cherry", " ", g.Slice[g.String]{"apple ", "banana ", "cherry"}},
-		{"a-b-c-d-e", "-", g.Slice[g.String]{"a-", "b-", "c-", "d-", "e"}},
-		{"abcd", "a", g.Slice[g.String]{"a", "bcd"}},
-		{"thisistest", "is", g.Slice[g.String]{"this", "is", "test"}},
-		{"☺☻☹", "", g.Slice[g.String]{"☺", "☻", "☹"}},
-		{"☺☻☹", "☹", g.Slice[g.String]{"☺☻☹", ""}},
-		{"123", "", g.Slice[g.String]{"1", "2", "3"}},
+		{"hello,world,how,are,you", ",", Slice[String]{"hello,", "world,", "how,", "are,", "you"}},
+		{"apple banana cherry", " ", Slice[String]{"apple ", "banana ", "cherry"}},
+		{"a-b-c-d-e", "-", Slice[String]{"a-", "b-", "c-", "d-", "e"}},
+		{"abcd", "a", Slice[String]{"a", "bcd"}},
+		{"thisistest", "is", Slice[String]{"this", "is", "test"}},
+		{"☺☻☹", "", Slice[String]{"☺", "☻", "☹"}},
+		{"☺☻☹", "☹", Slice[String]{"☺☻☹", ""}},
+		{"123", "", Slice[String]{"1", "2", "3"}},
 	}
 
 	for _, tc := range testCases {
@@ -1639,13 +1639,13 @@ func TestStringSplitAfter(t *testing.T) {
 
 func TestStringFieldsBy(t *testing.T) {
 	testCases := []struct {
-		input    g.String
+		input    String
 		fn       func(r rune) bool
-		expected g.Slice[g.String]
+		expected Slice[String]
 	}{
-		{"hello world", unicode.IsSpace, g.Slice[g.String]{"hello", "world"}},
-		{"1,2,3,4,5", func(r rune) bool { return r == ',' }, g.Slice[g.String]{"1", "2", "3", "4", "5"}},
-		{"camelCcase", unicode.IsUpper, g.Slice[g.String]{"camel", "case"}},
+		{"hello world", unicode.IsSpace, Slice[String]{"hello", "world"}},
+		{"1,2,3,4,5", func(r rune) bool { return r == ',' }, Slice[String]{"1", "2", "3", "4", "5"}},
+		{"camelCcase", unicode.IsUpper, Slice[String]{"camel", "case"}},
 	}
 
 	for _, tc := range testCases {
@@ -1659,23 +1659,23 @@ func TestStringFieldsBy(t *testing.T) {
 
 func TestStringRemove(t *testing.T) {
 	tests := []struct {
-		original g.String
-		matches  g.Slice[g.String]
-		expected g.String
+		original String
+		matches  Slice[String]
+		expected String
 	}{
 		{
 			original: "Hello, world! This is a test.",
-			matches:  g.Slice[g.String]{"Hello", "test"},
+			matches:  Slice[String]{"Hello", "test"},
 			expected: ", world! This is a .",
 		},
 		{
 			original: "This is a test string. This is a test string.",
-			matches:  g.Slice[g.String]{"test", "string"},
+			matches:  Slice[String]{"test", "string"},
 			expected: "This is a  . This is a  .",
 		},
 		{
 			original: "I love ice cream. Ice cream is delicious.",
-			matches:  g.Slice[g.String]{"Ice", "cream"},
+			matches:  Slice[String]{"Ice", "cream"},
 			expected: "I love ice .   is delicious.",
 		},
 	}
@@ -1691,9 +1691,9 @@ func TestStringRemove(t *testing.T) {
 
 func TestStringTrimSet(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		cutset   g.String
-		expected g.String
+		input    String
+		cutset   String
+		expected String
 	}{
 		{"##Hello, world!##", "#", "Hello, world!"},
 		{"**Magic**String**", "*", "Magic**String"},
@@ -1712,9 +1712,9 @@ func TestStringTrimSet(t *testing.T) {
 
 func TestStringTrimStartSet(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		cutset   g.String
-		expected g.String
+		input    String
+		cutset   String
+		expected String
 	}{
 		{"##Hello, world!##", "#", "Hello, world!##"},
 		{"**Magic**String**", "*", "Magic**String**"},
@@ -1733,9 +1733,9 @@ func TestStringTrimStartSet(t *testing.T) {
 
 func TestStringTrimEndSet(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		cutset   g.String
-		expected g.String
+		input    String
+		cutset   String
+		expected String
 	}{
 		{"##Hello, world!##", "#", "##Hello, world!"},
 		{"**Magic**String**", "*", "**Magic**String"},
@@ -1754,8 +1754,8 @@ func TestStringTrimEndSet(t *testing.T) {
 
 func TestStringTrim(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		expected g.String
+		input    String
+		expected String
 	}{
 		{"  Hello, world!  ", "Hello, world!"},
 		{"\t\tTabs\t\t", "Tabs"},
@@ -1774,8 +1774,8 @@ func TestStringTrim(t *testing.T) {
 
 func TestStringTrimStart(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		expected g.String
+		input    String
+		expected String
 	}{
 		{"  Hello, world!  ", "Hello, world!  "},
 		{"\t\tTabs\t\t", "Tabs\t\t"},
@@ -1794,8 +1794,8 @@ func TestStringTrimStart(t *testing.T) {
 
 func TestStringTrimEnd(t *testing.T) {
 	tests := []struct {
-		input    g.String
-		expected g.String
+		input    String
+		expected String
 	}{
 		{"  Hello, world!  ", "  Hello, world!"},
 		{"\t\tTabs\t\t", "\t\tTabs"},
@@ -1815,7 +1815,7 @@ func TestStringTrimEnd(t *testing.T) {
 func TestStringToBigInt(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    g.String
+		input    String
 		expected *big.Int
 	}{
 		{
@@ -1856,9 +1856,9 @@ func TestStringToBigInt(t *testing.T) {
 }
 
 func TestStringTransform(t *testing.T) {
-	original := g.String("hello world")
-	expected := g.String("HELLO WORLD")
-	result := original.Transform(g.String.Upper)
+	original := String("hello world")
+	expected := String("HELLO WORLD")
+	result := original.Transform(String.Upper)
 
 	if result != expected {
 		t.Errorf("Transform failed: expected %q, got %q", expected, result)

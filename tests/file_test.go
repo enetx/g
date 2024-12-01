@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestFile_Dir_Success(t *testing.T) {
@@ -18,7 +18,7 @@ func TestFile_Dir_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Get the directory of the file
 	result := file.Dir()
@@ -42,7 +42,7 @@ func TestFile_Exist_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Check if the file exists
 	exists := file.Exist()
@@ -59,7 +59,7 @@ func TestFile_MimeType_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Get the MIME type of the file
 	result := file.MimeType()
@@ -83,7 +83,7 @@ func TestFile_Read_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Read the contents of the file
 	result := file.Read()
@@ -115,7 +115,7 @@ func TestFile_IsLink_Success(t *testing.T) {
 	defer os.Remove(symlink)
 
 	// Create a File instance representing the symbolic link
-	file := g.NewFile(g.String(symlink))
+	file := NewFile(String(symlink))
 
 	// Check if the file is a symbolic link
 	isLink := file.IsLink()
@@ -132,7 +132,7 @@ func TestFile_IsLink_Failure(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Check if the file is a symbolic link
 	isLink := file.IsLink()
@@ -173,10 +173,10 @@ func TestFile_Chunks_Success(t *testing.T) {
 	writeToFile(t, tempFile, content)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Define the chunk size
-	chunkSize := g.Int(5)
+	chunkSize := Int(5)
 
 	// Read the file in chunks
 	result := file.Chunks(chunkSize)
@@ -193,7 +193,7 @@ func TestFile_Chunks_Success(t *testing.T) {
 	iterator := result.Ok().Collect()
 
 	// Read chunks from the iterator and verify their content
-	expectedChunks := g.Slice[g.String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
+	expectedChunks := Slice[String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
 
 	if iterator.Ne(expectedChunks) {
 		t.Fatalf(
@@ -214,7 +214,7 @@ func TestFile_Lines_Success(t *testing.T) {
 	writeToFile(t, tempFile, content)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Read the file line by line
 	result := file.Lines()
@@ -231,7 +231,7 @@ func TestFile_Lines_Success(t *testing.T) {
 	iterator := result.Ok().Collect()
 
 	// Read lines from the iterator and verify their content
-	expectedLines := g.Slice[g.String]{"line1", "line2", "line3", "line4", "line5"}
+	expectedLines := Slice[String]{"line1", "line2", "line3", "line4", "line5"}
 
 	if iterator.Ne(expectedLines) {
 		t.Fatalf(
@@ -244,7 +244,7 @@ func TestFile_Lines_Success(t *testing.T) {
 
 func TestFile_Lines_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := g.NewFile(g.String("/invalid/path"))
+	file := NewFile(String("/invalid/path"))
 
 	// Read the file line by line
 	result := file.Lines()
@@ -264,11 +264,11 @@ func TestFile_Append_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Append content to the file
 	content := "appended content"
-	result := file.Append(g.String(content))
+	result := file.Append(String(content))
 
 	defer file.Close()
 
@@ -294,10 +294,10 @@ func TestFile_Append_Success(t *testing.T) {
 
 func TestFile_Append_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := g.NewFile(g.String("/invalid/path"))
+	file := NewFile(String("/invalid/path"))
 
 	// Append content to the file
-	result := file.Append(g.String("appended content"))
+	result := file.Append(String("appended content"))
 
 	// Check if the result is an error
 	if !result.IsErr() {
@@ -317,7 +317,7 @@ func TestFile_Seek_Success(t *testing.T) {
 	writeToFile(t, tempFile, "test content")
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Seek to the middle of the file
 	result := file.Seek(5, io.SeekStart)
@@ -333,7 +333,7 @@ func TestFile_Seek_Success(t *testing.T) {
 
 func TestFile_Seek_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := g.NewFile(g.String("/invalid/path"))
+	file := NewFile(String("/invalid/path"))
 
 	// Seek to a position in the file
 	result := file.Seek(10, io.SeekStart)
@@ -361,10 +361,10 @@ func TestFile_Rename_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Define the new path for renaming
-	newPath := g.NewFile(g.String(tempFile) + "_renamed")
+	newPath := NewFile(String(tempFile) + "_renamed")
 	defer newPath.Remove()
 
 	// Rename the file
@@ -391,10 +391,10 @@ func TestFile_Rename_Success(t *testing.T) {
 
 func TestFile_Rename_FileNotExist(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := g.NewFile(g.String("/invalid/path"))
+	file := NewFile(String("/invalid/path"))
 
 	// Define the new path for renaming
-	newPath := g.NewFile(g.String("/new/path"))
+	newPath := NewFile(String("/new/path"))
 
 	// Rename the file
 	result := file.Rename(newPath.Path().Ok())
@@ -408,7 +408,7 @@ func TestFile_Rename_FileNotExist(t *testing.T) {
 	}
 
 	// Check if the error is of type ErrFileNotExist
-	_, ok := result.Err().(*g.ErrFileNotExist)
+	_, ok := result.Err().(*ErrFileNotExist)
 	if !ok {
 		t.Fatalf("TestFile_Rename_FileNotExist: Expected error of type ErrFileNotExist, got: %v", result.Err())
 	}
@@ -420,7 +420,7 @@ func TestFile_OpenFile_ReadLock(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -443,7 +443,7 @@ func TestFile_OpenFile_WriteLock(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -466,7 +466,7 @@ func TestFile_OpenFile_Truncate(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -498,7 +498,7 @@ func TestFile_Chmod(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Change the mode of the file
 	result := file.Chmod(0644)
@@ -525,7 +525,7 @@ func TestFile_Chown(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Change the owner of the file
 	result := file.Chown(os.Getuid(), os.Getgid())
@@ -563,7 +563,7 @@ func TestFile_WriteFromReader(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Prepare data to write
 	testData := "Hello, World!"
@@ -602,13 +602,13 @@ func TestFile_Write(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Prepare data to write
 	testData := "Hello, World!"
 
 	// Write data into the file
-	result := file.Write(g.String(testData))
+	result := file.Write(String(testData))
 
 	// Check if the result is successful
 	if result.IsErr() {
@@ -633,7 +633,7 @@ func TestFile_Ext(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Extract the file extension
 	extension := file.Ext().Std()
@@ -657,10 +657,10 @@ func TestFile_Copy(t *testing.T) {
 	defer os.Remove(destFile)
 
 	// Create a File instance representing the source file
-	src := g.NewFile(g.String(srcFile))
+	src := NewFile(String(srcFile))
 
 	// Copy the source file to the destination file
-	dest := g.NewFile(g.String(destFile))
+	dest := NewFile(String(destFile))
 	result := src.Copy(dest.Path().Ok())
 
 	// Check if the copy operation was successful
@@ -680,7 +680,7 @@ func TestFile_Split(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Split the file path into its directory and file components
 	dir, fileName := file.Split()
@@ -701,11 +701,11 @@ func TestFile_Move(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := g.NewFile(g.String(tempFile))
+	file := NewFile(String(tempFile))
 
 	// Rename the file
 	newpath := tempFile + ".new"
-	renamedFile := file.Move(g.String(newpath))
+	renamedFile := file.Move(String(newpath))
 
 	// Check if the file has been successfully renamed
 	if renamedFile.IsErr() {
