@@ -991,3 +991,41 @@ func TestSliceIntersperse(t *testing.T) {
 		t.Errorf("Test case 3 failed. Expected: %v, Got: %v", expectedEmpty, interspersedEmpty)
 	}
 }
+
+func TestSliceIterReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    Slice[int]
+		expected []int
+	}{
+		{
+			name:     "empty slice",
+			input:    Slice[int]{},
+			expected: nil,
+		},
+		{
+			name:     "single element",
+			input:    Slice[int]{1},
+			expected: []int{1},
+		},
+		{
+			name:     "multiple elements",
+			input:    Slice[int]{1, 2, 3, 4, 5},
+			expected: []int{5, 4, 3, 2, 1},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			iterator := tt.input.IterReverse()
+			var result []int
+			iterator.ForEach(func(element int) {
+				result = append(result, element)
+			})
+
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("IterReverse() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}

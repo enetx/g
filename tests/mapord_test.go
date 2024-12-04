@@ -10,6 +10,60 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
+func TestMapOrdIterReverse(t *testing.T) {
+	tests := []struct {
+		name     string
+		actions  func(m MapOrd[int, int]) MapOrd[int, int]
+		expected []pair[int, int]
+	}{
+		{
+			name: "empty map",
+			actions: func(m MapOrd[int, int]) MapOrd[int, int] {
+				return m
+			},
+			expected: nil,
+		},
+		{
+			name: "single element",
+			actions: func(m MapOrd[int, int]) MapOrd[int, int] {
+				m.Set(1, 100)
+				return m
+			},
+			expected: []pair[int, int]{{1, 100}},
+		},
+		{
+			name: "multiple elements",
+			actions: func(m MapOrd[int, int]) MapOrd[int, int] {
+				m.Set(1, 100).Set(2, 200).Set(3, 300)
+				return m
+			},
+			expected: []pair[int, int]{{3, 300}, {2, 200}, {1, 100}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mapOrd := NewMapOrd[int, int]()
+			mapOrd = tt.actions(mapOrd)
+			iterator := mapOrd.IterReverse()
+			var result []pair[int, int]
+			iterator.ForEach(func(k, v int) {
+				result = append(result, pair[int, int]{k, v})
+			})
+
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("IterReverse() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
+// pair is a helper type to make the test code cleaner
+type pair[K, V any] struct {
+	Key   K
+	Value V
+}
+
 func TestMapOrdIterSortBy(t *testing.T) {
 	// Sample data
 	data := NewMapOrd[int, string]()

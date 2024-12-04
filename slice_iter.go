@@ -152,7 +152,7 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 	collection := make([]Slice[V], 0)
 
 	seqs(func(v []V) bool {
-		inner := ToSeqSlice(v).Collect()
+		inner := seqSlice(v).Collect()
 		collection = append(collection, inner)
 		return true
 	})
@@ -750,10 +750,20 @@ func FromChan[V any](ch <-chan V) SeqSlice[V] {
 	}
 }
 
-func ToSeqSlice[V any](slice []V) SeqSlice[V] {
+func seqSlice[V any](slice []V) SeqSlice[V] {
 	return func(yield func(V) bool) {
 		for _, v := range slice {
 			if !yield(v) {
+				return
+			}
+		}
+	}
+}
+
+func revSeqSlice[V any](slice []V) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		for i := len(slice) - 1; i >= 0; i-- {
+			if !yield(slice[i]) {
 				return
 			}
 		}

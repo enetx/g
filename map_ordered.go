@@ -62,7 +62,33 @@ func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
 // in a functional style, enabling operations like mapping or filtering.
-func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return ToSeqMapOrd(mo) }
+func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return seqMapOrd(mo) }
+
+// IterReverse returns an iterator (SeqMapOrd[K, V]) for the ordered Map that allows for sequential iteration
+// over its key-value pairs in reverse order. This method is useful when you need to process the elements
+// from the last to the first.
+//
+// Returns:
+//
+// A SeqMapOrd[K, V], which can be used for sequential iteration over the key-value pairs of the ordered Map in reverse order.
+//
+// Example usage:
+//
+//	iter := g.NewMapOrd[int, int]()
+//	iter.
+//		Set(1, 1).
+//		Set(2, 2).
+//		Set(3, 3).
+//		IterReverse()
+//
+//	iter.ForEach(func(k, v int) {
+//	    // Process key-value pair in reverse order
+//	    fmt.Println("Key:", k, "Value:", v)
+//	})
+//
+// The 'IterReverse' method complements the 'Iter' method by providing a way to access the elements
+// in a reverse sequence, offering additional flexibility in data processing scenarios.
+func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] { return revSeqMapOrd(mo) }
 
 // MapOrdFromStd converts a standard Go map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of

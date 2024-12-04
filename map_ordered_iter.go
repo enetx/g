@@ -469,9 +469,20 @@ func (seq SeqMapOrd[K, V]) ToChan(ctxs ...context.Context) chan Pair[K, V] {
 	return ch
 }
 
-func ToSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
+func seqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
 	return func(yield func(K, V) bool) {
 		for _, v := range mo {
+			if !yield(v.Key, v.Value) {
+				return
+			}
+		}
+	}
+}
+
+func revSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		for i := len(mo) - 1; i >= 0; i-- {
+			v := mo[i]
 			if !yield(v.Key, v.Value) {
 				return
 			}

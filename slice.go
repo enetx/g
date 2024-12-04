@@ -89,7 +89,28 @@ func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Slice
 // in a functional style, enabling operations like mapping or filtering.
-func (sl Slice[T]) Iter() SeqSlice[T] { return ToSeqSlice(sl) }
+func (sl Slice[T]) Iter() SeqSlice[T] { return seqSlice(sl) }
+
+// IterReverse returns an iterator (SeqSlice[T]) for the Slice that allows for sequential iteration
+// over its elements in reverse order. This method is useful when you need to traverse the elements
+// from the end to the beginning.
+//
+// Returns:
+//
+// A SeqSlice[T], which can be used for sequential iteration over the elements of the Slice in reverse order.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	iterator := slice.IterReverse()
+//	iterator.ForEach(func(element int) {
+//		// Perform some operation on each element in reverse order
+//		fmt.Println(element)
+//	})
+//
+// The 'IterReverse' method enhances the functionality of the Slice by providing an alternative
+// way to iterate through its elements, enhancing flexibility in how data within a Slice is accessed and manipulated.
+func (sl Slice[T]) IterReverse() SeqSlice[T] { return revSeqSlice(sl) }
 
 // AsAny converts each element of the slice to the 'any' type.
 // It returns a new slice containing the elements as 'any' g.Slice[any].
