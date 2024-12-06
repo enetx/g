@@ -54,6 +54,19 @@ func main() {
 
 	fmt.Println(resultOption.Unwrap()) // Output: 89
 
+	// Using OptionOf to create Option based on a condition
+	m := map[string]int{"one": 100}
+
+	v, ok := m["one"]
+
+	optionFromCondition := OptionOf(v, ok)
+	fmt.Println(optionFromCondition.Unwrap()) // Output: 100
+
+	v, ok = m["two"]
+
+	optionFromConditionFalse := OptionOf(v, ok)
+	fmt.Println(optionFromConditionFalse.UnwrapOr(50)) // Output: 50 (default value when None)
+
 	// Using Expect to handle None Option
 	noneOption.Expect("This is None")
 	// The above line will panic with message "This is None"

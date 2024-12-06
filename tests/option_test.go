@@ -7,6 +7,44 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestOptionOf(t *testing.T) {
+	t.Run("Returns Some when ok is true", func(t *testing.T) {
+		value := 42
+		ok := true
+
+		option := OptionOf(value, ok)
+
+		if option.IsNone() {
+			t.Errorf("Expected Some, but got None")
+		}
+	})
+
+	t.Run("Returns None when ok is false", func(t *testing.T) {
+		value := 42
+		ok := false
+
+		option := OptionOf(value, ok)
+
+		if option.IsSome() {
+			t.Errorf("Expected None, but got Some")
+		}
+	})
+
+	t.Run("Works with different types", func(t *testing.T) {
+		strValue := "test"
+		strOption := OptionOf(strValue, true)
+		if strOption.IsNone() {
+			t.Errorf("Expected Some for string value, but got None")
+		}
+
+		floatValue := 3.14
+		floatOption := OptionOf(floatValue, false)
+		if floatOption.IsSome() {
+			t.Errorf("Expected None for float value, but got Some")
+		}
+	})
+}
+
 func TestOptionUnwrapOr(t *testing.T) {
 	fn := func(x int) Option[int] {
 		if x > 10 {

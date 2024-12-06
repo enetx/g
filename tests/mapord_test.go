@@ -14,7 +14,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 	tests := []struct {
 		name     string
 		actions  func(m MapOrd[int, int]) MapOrd[int, int]
-		expected []pair[int, int]
+		expected []Pair[int, int]
 	}{
 		{
 			name: "empty map",
@@ -29,7 +29,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 				m.Set(1, 100)
 				return m
 			},
-			expected: []pair[int, int]{{1, 100}},
+			expected: []Pair[int, int]{{1, 100}},
 		},
 		{
 			name: "multiple elements",
@@ -37,7 +37,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 				m.Set(1, 100).Set(2, 200).Set(3, 300)
 				return m
 			},
-			expected: []pair[int, int]{{3, 300}, {2, 200}, {1, 100}},
+			expected: []Pair[int, int]{{3, 300}, {2, 200}, {1, 100}},
 		},
 	}
 
@@ -46,9 +46,9 @@ func TestMapOrdIterReverse(t *testing.T) {
 			mapOrd := NewMapOrd[int, int]()
 			mapOrd = tt.actions(mapOrd)
 			iterator := mapOrd.IterReverse()
-			var result []pair[int, int]
+			var result []Pair[int, int]
 			iterator.ForEach(func(k, v int) {
-				result = append(result, pair[int, int]{k, v})
+				result = append(result, Pair[int, int]{k, v})
 			})
 
 			if !reflect.DeepEqual(result, tt.expected) {
@@ -56,12 +56,6 @@ func TestMapOrdIterReverse(t *testing.T) {
 			}
 		})
 	}
-}
-
-// pair is a helper type to make the test code cleaner
-type pair[K, V any] struct {
-	Key   K
-	Value V
 }
 
 func TestMapOrdIterSortBy(t *testing.T) {
