@@ -277,6 +277,9 @@ func (s Set[T]) Clear() Set[T] { return s.Remove(s.ToSlice()...) }
 // Empty checks if the Set is empty.
 func (s Set[T]) Empty() bool { return len(s) == 0 }
 
+// NotEmpty checks if the Set is not empty.
+func (s Set[T]) NotEmpty() bool { return !s.Empty() }
+
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
 	builder := NewBuilder()

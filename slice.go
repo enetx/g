@@ -788,7 +788,7 @@ func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
 // for which fn returns true.
 func (sl Slice[T]) NeBy(other Slice[T], fn func(x, y T) bool) bool { return !sl.EqBy(other, fn) }
 
-// NotEmpty returns true if the slice is not empty.
+// NotEmpty checks if the Slice is not empty.
 func (sl Slice[T]) NotEmpty() bool { return !sl.Empty() }
 
 // Pop returns the last element of the slice and a new slice without the last element.
