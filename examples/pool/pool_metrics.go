@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/enetx/g" // Importing a custom package for generic pool
+	. "github.com/enetx/g"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 		}
 
 		// Final metrics output after all tasks are completed
-		fmt.Printf("\nAll tasks completed. Total: %d, Failed: %d\n",
+		fmt.Printf("\rAll tasks completed. Total: %d, Failed: %d\n",
 			pool.TotalTasks(), pool.FailedTasks())
 
 		// Signal the main function that the metrics goroutine is done

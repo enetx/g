@@ -2,8 +2,11 @@ package g
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"github.com/enetx/g/internal/rlimit"
 )
 
 // Pool[T any] is a goroutine pool that allows parallel task execution.
@@ -102,8 +105,8 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 }
 
 // Limit sets the maximum number of concurrently running tasks.
-func (p *Pool[T]) Limit(n int) {
-	if n <= 0 {
+func (p *Pool[T]) Limit(workers int) {
+	if workers <= 0 {
 		p.semaphore = nil
 		return
 	}
@@ -112,7 +115,11 @@ func (p *Pool[T]) Limit(n int) {
 		panic("cannot change semaphore limit while tasks are running")
 	}
 
-	p.semaphore = make(chan struct{}, n)
+	if runtime.GOOS != "windows" {
+		workers = rlimit.RlimitStack(workers)
+	}
+
+	p.semaphore = make(chan struct{}, workers)
 }
 
 // Context replaces the pool’s context with the provided context.
