@@ -37,6 +37,16 @@ func (p *Pool[T]) acquire() error {
 	}
 }
 
+func (p *Pool[T]) done() {
+	defer atomic.AddInt32(&p.activeTasks, -1)
+
+	if p.semaphore != nil {
+		<-p.semaphore
+	}
+
+	p.wg.Done()
+}
+
 // Go launches an asynchronous task fn() in its own goroutine.
 func (p *Pool[T]) Go(fn func() Result[T]) {
 	if err := p.acquire(); err != nil {
@@ -49,14 +59,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 	p.wg.Add(1)
 
 	go func(index int32) {
-		defer func() {
-			atomic.AddInt32(&p.activeTasks, -1)
-			p.wg.Done()
-
-			if p.semaphore != nil {
-				<-p.semaphore
-			}
-		}()
+		defer p.done()
 
 		select {
 		case <-p.ctx.Done():
