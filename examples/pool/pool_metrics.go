@@ -9,8 +9,9 @@ import (
 )
 
 func main() {
-	pool := NewPool[int]()      // Create a new pool for managing tasks
-	pool.Limit(1)               // Set the concurrency limit to 1, ensuring that only one task runs at a time
+	pool := NewPool[int](). // Create a new pool for managing tasks
+				Limit(1)    // Set the concurrency limit to 1, ensuring that only one task runs at a time
+
 	done := make(chan struct{}) // Channel to synchronize the completion of the metrics goroutine
 
 	// Goroutine to print live metrics about the pool's state

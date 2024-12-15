@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	. "github.com/enetx/g"
 )
 
 func main() {
+	ctx, _ := context.WithTimeout(context.Background(), 100*time.Microsecond)
+
 	pool := NewPool[int]() // Create a new pool for managing tasks
-	pool.Limit(1)          // Set the concurrency limit to 1, ensuring that only one task runs at a time
+	pool.
+		Limit(1).    // Set the concurrency limit to 1, ensuring that only one task runs at a time
+		Context(ctx) // Associate the context with the pool for timeout or cancellation control
 
 	// Launch 10 tasks in the pool
 	for taskID := range 10 {

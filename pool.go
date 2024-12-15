@@ -3,23 +3,10 @@ package g
 import (
 	"context"
 	"runtime"
-	"sync"
 	"sync/atomic"
 
 	"github.com/enetx/g/internal/rlimit"
 )
-
-// Pool[T any] is a goroutine pool that allows parallel task execution.
-type Pool[T any] struct {
-	semaphore   chan struct{}
-	ctx         context.Context
-	cancel      context.CancelFunc
-	results     sync.Map
-	wg          sync.WaitGroup
-	totalTasks  int32
-	activeTasks int32
-	failedTasks int32
-}
 
 // NewPool[T any] creates a new goroutine pool.
 func NewPool[T any]() *Pool[T] {
@@ -42,27 +29,28 @@ func (p *Pool[T]) done() {
 	p.wg.Done()
 }
 
-func (p *Pool[T]) acquire() bool {
+func (p *Pool[T]) acquire() error {
 	if p.semaphore != nil {
 		select {
 		case p.semaphore <- struct{}{}:
-			return true
+			return nil
 		case <-p.ctx.Done():
-			return false
+			return p.ctx.Err()
 		}
 	}
 
 	select {
 	case <-p.ctx.Done():
-		return false
+		return p.ctx.Err()
 	default:
-		return true
+		return nil
 	}
 }
 
 // Go launches an asynchronous task fn() in its own goroutine.
 func (p *Pool[T]) Go(fn func() Result[T]) {
-	if !p.acquire() {
+	if err := p.acquire(); err != nil {
+		p.contextError(err)
 		return
 	}
 
@@ -75,6 +63,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 
 		select {
 		case <-p.ctx.Done():
+			p.contextError(p.ctx.Err())
 			return
 		default:
 		}
@@ -105,13 +94,13 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 }
 
 // Limit sets the maximum number of concurrently running tasks.
-func (p *Pool[T]) Limit(workers int) {
+func (p *Pool[T]) Limit(workers int) *Pool[T] {
 	if workers <= 0 {
 		p.semaphore = nil
-		return
+		return p
 	}
 
-	if p.semaphore != nil && len(p.semaphore) > 0 {
+	if len(p.semaphore) > 0 {
 		panic("cannot change semaphore limit while tasks are running")
 	}
 
@@ -120,17 +109,21 @@ func (p *Pool[T]) Limit(workers int) {
 	}
 
 	p.semaphore = make(chan struct{}, workers)
+
+	return p
 }
 
 // Context replaces the pool’s context with the provided context.
 // If ctx is nil, context.Background() is used by default.
-func (p *Pool[T]) Context(ctx context.Context) {
+func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	p.Cancel()
 	p.ctx, p.cancel = context.WithCancel(ctx)
+
+	return p
 }
 
 // Cancel cancels all tasks in the pool.
@@ -138,6 +131,13 @@ func (p *Pool[T]) Cancel() {
 	if p.cancel != nil {
 		p.cancel()
 	}
+}
+
+func (p *Pool[T]) contextError(err error) {
+	p.errorOnce.Do(func() {
+		index := atomic.AddInt32(&p.totalTasks, 1) - 1
+		p.results.Store(int(index), Err[T](&ErrorContext{index, err}))
+	})
 }
 
 // Reset restores the pool to its initial state: cancels all tasks, clears results and metrics,

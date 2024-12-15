@@ -1,8 +1,10 @@
 package g
 
 import (
+	"context"
 	"iter"
 	"os"
+	"sync"
 )
 
 type (
@@ -73,4 +75,17 @@ type (
 
 	// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
 	SeqMap[K comparable, V any] iter.Seq2[K, V]
+
+	// Pool[T any] is a goroutine pool that allows parallel task execution.
+	Pool[T any] struct {
+		ctx         context.Context    // Context for controlling cancellation and timeouts
+		cancel      context.CancelFunc // Function to cancel the context
+		semaphore   chan struct{}      // Semaphore for limiting concurrency
+		results     sync.Map           // Map to store task results
+		wg          sync.WaitGroup     // WaitGroup to wait for all tasks to complete
+		totalTasks  int32              // Total number of tasks submitted
+		activeTasks int32              // Number of currently active tasks
+		failedTasks int32              // Number of failed tasks
+		errorOnce   sync.Once          // Ensures error is recorded only once
+	}
 )

@@ -121,7 +121,7 @@ func TestPoolCancel(t *testing.T) {
 	pool.Context(ctx)
 	pool.Context(nil)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 100; i++ {
 		pool.Go(func() Result[int] {
 			if i == 3 {
 				pool.Cancel()
@@ -132,8 +132,8 @@ func TestPoolCancel(t *testing.T) {
 
 	results := pool.Wait()
 
-	if len(results) != 4 {
-		t.Errorf("expected 3 results, got %d", len(results))
+	if len(results) != 5 {
+		t.Errorf("expected 5 results, got %d", len(results))
 	}
 
 	t.Logf("Received %d results after calling pool.Cancel()", len(results))
