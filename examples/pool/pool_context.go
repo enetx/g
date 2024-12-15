@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	pool := NewPool[int]()
+	pool := NewPool[int]().Limit(2)
 
 	for taskID := range 10 {
 		pool.Go(func() Result[int] {

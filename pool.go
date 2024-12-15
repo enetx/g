@@ -58,15 +58,14 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 			}
 		}()
 
-		result := fn()
-		if result.IsErr() {
-			atomic.AddInt32(&p.failedTasks, 1)
-		}
-
 		select {
 		case <-p.ctx.Done():
 			p.contextError(p.ctx.Err())
 		default:
+			result := fn()
+			if result.IsErr() {
+				atomic.AddInt32(&p.failedTasks, 1)
+			}
 			p.results.Store(int(index), result)
 		}
 	}(index)
