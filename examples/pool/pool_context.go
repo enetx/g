@@ -1,28 +1,28 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	. "github.com/enetx/g"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
-	pool := NewPool[int]().Limit(2)
+	ctx, _ := context.WithCancel(context.Background())
+	// ctx, _ := context.WithTimeout(context.Background(), 10*time.Microsecond)
+
+	pool := NewPool[int]().Limit(1).Context(ctx)
 
 	for taskID := range 10 {
 		pool.Go(func() Result[int] {
-			time.Sleep(time.Duration(Int(500).RandomRange(1000)) * time.Millisecond)
-
 			if taskID == 2 {
 				return Err[int](errors.New("case 2"))
 			}
 
 			if taskID == 7 {
-				pool.Cancel()
-				return Err[int](errors.New("case 7"))
+				// pool.Cancel()
+				pool.Cancel(errors.New("case 7, cancel"))
 			}
 
 			return Ok(taskID * taskID)
@@ -32,15 +32,19 @@ func main() {
 	pool.Wait().Iter().
 		ForEach(func(v Result[int]) {
 			if v.IsErr() {
-				if errors.As(v.Err(), ref.Of(&ErrorContext{})) {
-					fmt.Println("Context Error:", v.Err())
+				var contextErr error
+				if errors.As(v.Err(), &contextErr) {
+					switch contextErr {
+					case context.DeadlineExceeded:
+						fmt.Println("Error: Context deadline exceeded")
+					case context.Canceled:
+						fmt.Println("Error: Context was canceled")
+					default:
+						fmt.Println("Error:", contextErr)
+					}
 					return
 				}
-
-				fmt.Println("Error:", v.Err())
-				return
 			}
-
 			fmt.Println(v)
 		})
 }

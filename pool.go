@@ -10,7 +10,7 @@ import (
 
 // NewPool[T any] creates a new goroutine pool.
 func NewPool[T any]() *Pool[T] {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancelCause(context.Background())
 
 	return &Pool[T]{
 		ctx:       ctx,
@@ -19,21 +19,21 @@ func NewPool[T any]() *Pool[T] {
 	}
 }
 
-func (p *Pool[T]) acquire() error {
+func (p *Pool[T]) acquire() bool {
 	if p.semaphore != nil {
 		select {
 		case p.semaphore <- struct{}{}:
-			return nil
+			return true
 		case <-p.ctx.Done():
-			return p.ctx.Err()
+			return false
 		}
 	}
 
 	select {
 	case <-p.ctx.Done():
-		return p.ctx.Err()
+		return false
 	default:
-		return nil
+		return true
 	}
 }
 
@@ -49,8 +49,8 @@ func (p *Pool[T]) done() {
 
 // Go launches an asynchronous task fn() in its own goroutine.
 func (p *Pool[T]) Go(fn func() Result[T]) {
-	if err := p.acquire(); err != nil {
-		p.contextError(err)
+	if !p.acquire() {
+		p.contextError()
 		return
 	}
 
@@ -63,7 +63,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 
 		select {
 		case <-p.ctx.Done():
-			p.contextError(p.ctx.Err())
+			p.contextError()
 		default:
 			result := fn()
 			if result.IsErr() {
@@ -118,22 +118,27 @@ func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
 	}
 
 	p.Cancel()
-	p.ctx, p.cancel = context.WithCancel(ctx)
+	p.ctx, p.cancel = context.WithCancelCause(ctx)
 
 	return p
 }
 
 // Cancel cancels all tasks in the pool.
-func (p *Pool[T]) Cancel() {
+func (p *Pool[T]) Cancel(err ...error) {
 	if p.cancel != nil {
-		p.cancel()
+		cause := context.Canceled
+		if len(err) != 0 {
+			cause = err[0]
+		}
+
+		p.cancel(cause)
 	}
 }
 
-func (p *Pool[T]) contextError(err error) {
+func (p *Pool[T]) contextError() {
 	p.errorOnce.Do(func() {
 		index := atomic.AddInt32(&p.totalTasks, 1) - 1
-		p.results.Store(int(index), Err[T](&ErrorContext{index, err}))
+		p.results.Store(int(index), Err[T](context.Cause(p.ctx)))
 	})
 }
 
@@ -148,7 +153,7 @@ func (p *Pool[T]) Reset() {
 	p.ClearResults()
 	p.ClearMetrics()
 	p.semaphore = nil
-	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.ctx, p.cancel = context.WithCancelCause(context.Background())
 }
 
 // ClearResults removes all stored task results from the pool.
