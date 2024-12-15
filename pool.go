@@ -19,16 +19,6 @@ func NewPool[T any]() *Pool[T] {
 	}
 }
 
-func (p *Pool[T]) done() {
-	defer atomic.AddInt32(&p.activeTasks, -1)
-
-	if p.semaphore != nil {
-		<-p.semaphore
-	}
-
-	p.wg.Done()
-}
-
 func (p *Pool[T]) acquire() error {
 	if p.semaphore != nil {
 		select {
@@ -54,27 +44,32 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 		return
 	}
 
-	atomic.AddInt32(&p.activeTasks, 1)
 	index := atomic.AddInt32(&p.totalTasks, 1) - 1
+	atomic.AddInt32(&p.activeTasks, 1)
 	p.wg.Add(1)
 
-	go func() {
-		defer p.done()
+	go func(index int32) {
+		defer func() {
+			atomic.AddInt32(&p.activeTasks, -1)
+			p.wg.Done()
 
-		select {
-		case <-p.ctx.Done():
-			p.contextError(p.ctx.Err())
-			return
-		default:
-		}
+			if p.semaphore != nil {
+				<-p.semaphore
+			}
+		}()
 
 		result := fn()
 		if result.IsErr() {
 			atomic.AddInt32(&p.failedTasks, 1)
 		}
 
-		p.results.Store(int(index), result)
-	}()
+		select {
+		case <-p.ctx.Done():
+			p.contextError(p.ctx.Err())
+		default:
+			p.results.Store(int(index), result)
+		}
+	}(index)
 }
 
 // Wait waits for all submitted tasks in the pool to finish.

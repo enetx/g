@@ -9,8 +9,9 @@ import (
 )
 
 func main() {
-	pool := NewPool[int](). // Create a new pool for managing tasks
-				Limit(1)    // Set the concurrency limit to 1, ensuring that only one task runs at a time
+	// Create a new pool for managing tasks
+	pool := NewPool[int]().
+		Limit(1) // Set the concurrency limit to 1, ensuring that only one task runs at a time
 
 	done := make(chan struct{}) // Channel to synchronize the completion of the metrics goroutine
 
@@ -21,13 +22,13 @@ func main() {
 
 		// Print metrics until there are no active tasks in the pool
 		for pool.ActiveTasks() != 0 {
-			fmt.Printf("\r[Metrics] Total: %d, Active: %d, Failed: %d",
+			fmt.Printf("\r\033[2K[Metrics] Total: %d, Active: %d, Failed: %d",
 				pool.TotalTasks(), pool.ActiveTasks(), pool.FailedTasks())
 			<-ticker.C
 		}
 
 		// Final metrics output after all tasks are completed
-		fmt.Printf("\rAll tasks completed. Total: %d, Failed: %d\n",
+		fmt.Printf("\r\033[2KAll tasks completed. Total: %d, Failed: %d\n",
 			pool.TotalTasks(), pool.FailedTasks())
 
 		// Signal the main function that the metrics goroutine is done
@@ -38,7 +39,7 @@ func main() {
 	for taskID := range 10 {
 		pool.Go(func() Result[int] {
 			// Simulate task execution with a random delay
-			time.Sleep(time.Duration(Int(0).RandomRange(500)) * time.Millisecond)
+			time.Sleep(time.Duration(Int(500).RandomRange(1000)) * time.Millisecond)
 
 			// Simulate an error for task ID 2
 			if taskID == 2 {
