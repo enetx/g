@@ -60,4 +60,8 @@ func main() {
 	results := pool.Wait() // Wait for all tasks to complete
 	<-done                 // Wait for the metrics goroutine to finish
 	results.Print()        // Print the results
+
+	if cause := pool.Cause(); cause != nil {
+		fmt.Println("Pool was canceled due to:", cause)
+	}
 }

@@ -132,9 +132,22 @@ func TestPoolCancel(t *testing.T) {
 
 	results := pool.Wait()
 
-	if len(results) != 5 {
-		t.Errorf("expected 5 results, got %d", len(results))
+	if len(results) != 4 {
+		t.Errorf("expected 4 results, got %d", len(results))
 	}
 
 	t.Logf("Received %d results after calling pool.Cancel()", len(results))
+}
+
+func TestPoolCause(t *testing.T) {
+	pool := NewPool[int]()
+	cancelErr := errors.New("custom cancellation reason")
+
+	pool.Cancel(cancelErr)
+
+	if pool.Cause() == nil {
+		t.Errorf("expected Cause to return a non-nil error after cancellation")
+	} else if !errors.Is(pool.Cause(), cancelErr) {
+		t.Errorf("expected Cause to return %v, got %v", cancelErr, pool.Cause())
+	}
 }

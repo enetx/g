@@ -2,6 +2,7 @@ package g
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync/atomic"
 
@@ -50,7 +51,6 @@ func (p *Pool[T]) done() {
 // Go launches an asynchronous task fn() in its own goroutine.
 func (p *Pool[T]) Go(fn func() Result[T]) {
 	if !p.acquire() {
-		p.contextError()
 		return
 	}
 
@@ -63,12 +63,16 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 
 		select {
 		case <-p.ctx.Done():
-			p.contextError()
 		default:
 			result := fn()
 			if result.IsErr() {
+				if p.cancelOnError {
+					p.Cancel(errors.New("cancel on error"))
+				}
+
 				atomic.AddInt32(&p.failedTasks, 1)
 			}
+
 			p.results.Store(int(index), result)
 		}
 	}(index)
@@ -110,6 +114,11 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 	return p
 }
 
+func (p *Pool[T]) CancelOnError() *Pool[T] {
+	p.cancelOnError = true
+	return p
+}
+
 // Context replaces the pool’s context with the provided context.
 // If ctx is nil, context.Background() is used by default.
 func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
@@ -135,12 +144,10 @@ func (p *Pool[T]) Cancel(err ...error) {
 	}
 }
 
-func (p *Pool[T]) contextError() {
-	p.errorOnce.Do(func() {
-		index := atomic.AddInt32(&p.totalTasks, 1) - 1
-		p.results.Store(int(index), Err[T](context.Cause(p.ctx)))
-	})
-}
+// Cause returns the reason for the cancellation of the pool's context.
+// It retrieves the underlying cause of the context's termination if the context has been canceled.
+// If the pool's context is still active, it returns nil.
+func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 
 // Reset restores the pool to its initial state: cancels all tasks, clears results and metrics,
 // and creates a new context. If there are any active tasks, it will panic.

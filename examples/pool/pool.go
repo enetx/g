@@ -3,13 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	. "github.com/enetx/g"
 )
 
 func main() {
-	ctx, _ := context.WithTimeout(context.Background(), 100*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Microsecond)
+	defer cancel()
 
 	pool := NewPool[int]() // Create a new pool for managing tasks
 	pool.
@@ -37,4 +39,8 @@ func main() {
 
 	// Wait for all tasks to complete and print the results
 	pool.Wait().Print()
+
+	if cause := pool.Cause(); cause != nil {
+		fmt.Println("Pool was canceled due to:", cause)
+	}
 }

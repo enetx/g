@@ -1,29 +1,19 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	. "github.com/enetx/g"
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Microsecond)
-	defer cancel()
-
-	pool := NewPool[int]().Limit(10).Context(ctx)
+	pool := NewPool[int]().Limit(1).CancelOnError()
 
 	for taskID := range 10 {
 		pool.Go(func() Result[int] {
 			if taskID == 2 {
 				return Err[int](errors.New("case 2"))
-			}
-
-			if taskID == 7 {
-				// pool.Cancel()
-				pool.Cancel(errors.New("case 7, cancel"))
 			}
 
 			return Ok(taskID * taskID)
