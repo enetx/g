@@ -81,12 +81,12 @@ type (
 		ctx           context.Context         // Context for controlling cancellation and timeouts
 		cancel        context.CancelCauseFunc // Function to cancel the context
 		semaphore     chan struct{}           // Semaphore for limiting concurrency
-		results       sync.Map                // Map to store task results
-		wg            sync.WaitGroup          // WaitGroup to wait for all tasks to complete
+		results       sync.Map                // Stores task results
+		wg            sync.WaitGroup          // Waits for all tasks to complete
 		totalTasks    int32                   // Total number of tasks submitted
 		activeTasks   int32                   // Number of currently active tasks
 		failedTasks   int32                   // Number of failed tasks
 		errorOnce     sync.Once               // Ensures error is recorded only once
-		cancelOnError bool
+		cancelOnError bool                    // Cancels remaining tasks if any task fails
 	}
 )

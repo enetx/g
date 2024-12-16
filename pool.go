@@ -114,6 +114,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 	return p
 }
 
+// CancelOnError enables cancellation of remaining tasks on failure.
 func (p *Pool[T]) CancelOnError() *Pool[T] {
 	p.cancelOnError = true
 	return p

@@ -151,3 +151,25 @@ func TestPoolCause(t *testing.T) {
 		t.Errorf("expected Cause to return %v, got %v", cancelErr, pool.Cause())
 	}
 }
+
+func TestPoolCancelOnError(t *testing.T) {
+	pool := NewPool[int]().CancelOnError().Limit(1)
+
+	pool.Go(func() Result[int] {
+		return Err[int](errors.New("task failed"))
+	})
+
+	pool.Go(func() Result[int] {
+		return Ok(42)
+	})
+
+	results := pool.Wait()
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 results, got %d", len(results))
+	}
+
+	if !results[0].IsErr() {
+		t.Errorf("Expected first task to fail, but it did not")
+	}
+}
