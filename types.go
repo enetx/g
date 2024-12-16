@@ -86,7 +86,7 @@ type (
 		totalTasks    int32                   // Total number of tasks submitted
 		activeTasks   int32                   // Number of currently active tasks
 		failedTasks   int32                   // Number of failed tasks
-		errorOnce     sync.Once               // Ensures error is recorded only once
+		once          sync.Once               // Ensures Cancel is called only once on error
 		cancelOnError bool                    // Cancels remaining tasks if any task fails
 	}
 )
