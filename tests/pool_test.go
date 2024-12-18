@@ -9,7 +9,6 @@ import (
 	. "github.com/enetx/g"
 )
 
-// TestPool tests basic usage: adding tasks, waiting for results, verifying metrics.
 func TestPool(t *testing.T) {
 	pool := NewPool[int]()
 
@@ -54,7 +53,6 @@ func TestPool(t *testing.T) {
 	}
 }
 
-// TestPoolLimit verifies that concurrency is properly limited.
 func TestPoolLimit(t *testing.T) {
 	pool := NewPool[int]()
 	pool.Limit(-1)
@@ -81,7 +79,6 @@ func TestPoolLimit(t *testing.T) {
 	}
 }
 
-// TestReset verifies the Reset logic.
 func TestPoolReset(t *testing.T) {
 	pool := NewPool[int]()
 	pool.Go(func() Result[int] {
@@ -112,7 +109,6 @@ func TestPoolReset(t *testing.T) {
 	}
 }
 
-// TestPoolCancel tests that tasks can be canceled via the pool's Cancel() method.
 func TestPoolCancel(t *testing.T) {
 	pool := NewPool[int]()
 	pool.Limit(1)

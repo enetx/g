@@ -133,6 +133,9 @@ func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
 	return p
 }
 
+// GetContext returns the current context associated with the pool.
+func (p *Pool[T]) GetContext() context.Context { return p.ctx }
+
 // Cancel cancels all tasks in the pool.
 func (p *Pool[T]) Cancel(err ...error) {
 	if p.cancel != nil {
