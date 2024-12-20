@@ -38,7 +38,7 @@ func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-func (m Map[K, V]) Iter() SeqMap[K, V] { return ToSeqMap(m) }
+func (m Map[K, V]) Iter() SeqMap[K, V] { return seqMap(m) }
 
 // Invert inverts the keys and values of the Map, returning a new Map with values as keys and
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
@@ -94,6 +94,13 @@ func (m Map[K, V]) MapOrd() MapOrd[K, V] {
 	}
 
 	return mo
+}
+
+func (m Map[K, V]) MapSafe() *MapSafe[K, V] {
+	ms := NewMapSafe[K, V]()
+	ms.data = m
+
+	return ms
 }
 
 // Eq checks if two Maps are equal.
@@ -201,7 +208,7 @@ func (m Map[K, V]) Ne(other Map[K, V]) bool { return !m.Eq(other) }
 func (m Map[K, V]) NotEmpty() bool { return !m.Empty() }
 
 // Set sets the value for the given key in the Map.
-func (m Map[K, V]) Set(k K, v V) Map[K, V] { m[k] = v; return m }
+func (m Map[K, V]) Set(key K, value V) Map[K, V] { m[key] = value; return m }
 
 // Print prints the key-value pairs of the Map to the standard output (console)
 // and returns the Map unchanged.

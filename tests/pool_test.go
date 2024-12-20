@@ -152,7 +152,11 @@ func TestPoolCancelOnError(t *testing.T) {
 	pool := NewPool[int]().CancelOnError().Limit(1)
 
 	pool.Go(func() Result[int] {
-		return Err[int](errors.New("task failed"))
+		return Err[int](errors.New("task failed 1"))
+	})
+
+	pool.Go(func() Result[int] {
+		return Err[int](errors.New("task failed 2"))
 	})
 
 	pool.Go(func() Result[int] {

@@ -790,8 +790,7 @@ func TestMapIterInspect(t *testing.T) {
 	}
 }
 
-func TestMapTransform(t *testing.T) {
-	// Исходные данные
+func TestMapTransformMap(t *testing.T) {
 	original := Map[string, int]{"a": 1, "b": 2}
 
 	addEntry := func(m Map[string, int]) Map[string, int] {

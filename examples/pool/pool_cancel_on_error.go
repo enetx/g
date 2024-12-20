@@ -12,8 +12,8 @@ func main() {
 
 	for taskID := range 10 {
 		pool.Go(func() Result[int] {
-			if taskID == 2 {
-				return Err[int](errors.New("case 2"))
+			if taskID == 4 {
+				return Err[int](errors.New("cancel on error"))
 			}
 
 			return Ok(taskID * taskID)

@@ -17,6 +17,7 @@ func NewPool[T any]() *Pool[T] {
 		ctx:       ctx,
 		cancel:    cancel,
 		semaphore: nil,
+		results:   NewMapSafe[int, Result[T]](),
 	}
 }
 
@@ -67,13 +68,13 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 			result := fn()
 			if result.IsErr() {
 				if p.cancelOnError {
-					p.once.Do(func() { p.Cancel(errors.New("cancel on error")) })
+					p.Cancel(errors.New("cancel on error"))
 				}
 
 				atomic.AddInt32(&p.failedTasks, 1)
 			}
 
-			p.results.Store(int(index), result)
+			p.results.Set(int(index), result)
 		}
 	}(index)
 }
@@ -84,14 +85,7 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 	p.Cancel()
 	p.semaphore = nil
 
-	var results []Result[T]
-
-	p.results.Range(func(_, result any) bool {
-		results = append(results, result.(Result[T]))
-		return true
-	})
-
-	return results
+	return p.results.Values()
 }
 
 // Limit sets the maximum number of concurrently running tasks.
@@ -168,12 +162,7 @@ func (p *Pool[T]) Reset() {
 }
 
 // ClearResults removes all stored task results from the pool.
-func (p *Pool[T]) ClearResults() {
-	p.results.Range(func(key, _ any) bool {
-		p.results.Delete(key)
-		return true
-	})
-}
+func (p *Pool[T]) ClearResults() { p.results.Clear() }
 
 // ClearMetrics resets both total tasks and failed tasks counters to zero.
 func (p *Pool[T]) ClearMetrics() {

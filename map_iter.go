@@ -234,7 +234,7 @@ func (seq SeqMap[K, V]) Range(fn func(k K, v V) bool) {
 	})
 }
 
-func ToSeqMap[K comparable, V any](hashmap map[K]V) SeqMap[K, V] {
+func seqMap[K comparable, V any](hashmap map[K]V) SeqMap[K, V] {
 	return func(yield func(K, V) bool) {
 		for k, v := range hashmap {
 			if !yield(k, v) {
