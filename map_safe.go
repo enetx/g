@@ -10,15 +10,18 @@ func NewMapSafe[K comparable, V any](size ...Int) *MapSafe[K, V] {
 	return &MapSafe[K, V]{data: NewMap[K, V](size...)}
 }
 
-// Iter creates a read-only iterator over the MapSafe's key-value pairs
+// Iter provides a thread-safe iterator over the MapSafe's key-value pairs.
 func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		ms.mu.RLock()
-		defer ms.mu.RUnlock()
+	ms.mu.RLock()
+	keys := maps.Keys(ms.data)
+	ms.mu.RUnlock()
 
-		for k, v := range ms.data {
-			if !yield(k, v) {
-				return
+	return func(yield func(K, V) bool) {
+		for k := range keys {
+			if v := ms.Get(k); v.IsSome() {
+				if !yield(k, v.Some()) {
+					return
+				}
 			}
 		}
 	}

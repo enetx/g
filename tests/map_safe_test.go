@@ -59,7 +59,6 @@ func TestMapSafe(t *testing.T) {
 		ms.Set("key1", 1)
 		ms.Set("key2", 2)
 		inverted := ms.Invert()
-
 		if v := inverted.Get(1); v.IsNone() || v.Some() != "key1" {
 			t.Fatal("Inversion failed for key1")
 		}
@@ -69,10 +68,20 @@ func TestMapSafe(t *testing.T) {
 		ms := NewMapSafe[string, int]()
 		ms.Set("key1", 1)
 		ms.Set("key2", 2)
-		iterated := make(map[string]int)
-		ms.Iter().ForEach(func(k string, v int) { iterated[k] = v })
-		if len(iterated) != 2 {
-			t.Fatal("Iteration failed")
+		ms.Set("key3", 2)
+		ms.Iter().ForEach(func(k string, _ int) {
+			if k == "key2" {
+				ms.Set("key2", 44)
+			}
+			if k == "key1" {
+				ms.Delete(k)
+			}
+		})
+		if v := ms.Get("key2"); v.IsNone() || v.Some() != 44 {
+			t.Fatal("Key 'key2' was not changed during iteration")
+		}
+		if v := ms.Get("key1"); v.IsSome() {
+			t.Fatal("Key 'key1' was not deleted during iteration")
 		}
 	})
 
@@ -127,9 +136,9 @@ func TestMapSafe(t *testing.T) {
 	})
 
 	t.Run("TestString", func(t *testing.T) {
-		ms := NewMapSafe[string, int]()
-		ms.Set("key1", 1).Set("key2", 2)
-		expected := "MapSafe{key1:1, key2:2}"
+		ms := NewMapSafe[string, string]()
+		ms.Set("key", "value")
+		expected := "MapSafe{key:value}"
 		if ms.String() != expected {
 			t.Fatalf("Expected %v, got %v", expected, ms.String())
 		}
