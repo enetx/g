@@ -24,20 +24,6 @@ func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
 	}
 }
 
-// LockedIter creates a write-safe iterator over the MapSafe's key-value pairs.
-func (ms *MapSafe[K, V]) LockedIter() SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		ms.mu.Lock()
-		defer ms.mu.Unlock()
-
-		for k, v := range ms.data {
-			if !yield(k, v) {
-				return
-			}
-		}
-	}
-}
-
 // Keys returns a slice of the MapSafe's keys.
 func (ms *MapSafe[K, V]) Keys() Slice[K] { return ms.Iter().Keys().Collect() }
 
