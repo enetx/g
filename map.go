@@ -85,8 +85,8 @@ func (m Map[K, V]) Delete(keys ...K) Map[K, V] {
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
 
-// MapOrd converts a standard Map to an ordered Map.
-func (m Map[K, V]) MapOrd() MapOrd[K, V] {
+// ToMapOrd converts a standard Map to an ordered Map.
+func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
 
 	for k, v := range m {
@@ -96,7 +96,8 @@ func (m Map[K, V]) MapOrd() MapOrd[K, V] {
 	return mo
 }
 
-func (m Map[K, V]) MapSafe() *MapSafe[K, V] {
+// ToMapSafe converts a standard Map to a thread-safe Map.
+func (m Map[K, V]) ToMapSafe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
 	ms.data = m
 

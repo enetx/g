@@ -109,7 +109,7 @@ func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] { return revSeqMapOrd(mo) }
 //	mapOrd := g.MapOrdFromStd[string, int](goMap)
 //
 // Converts the standard Go map 'map[K]V' to an ordered Map.
-func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, V](m).MapOrd() }
+func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, V](m).ToMapOrd() }
 
 // SortBy sorts the ordered Map by a custom comparison function.
 //

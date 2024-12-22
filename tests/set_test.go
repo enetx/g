@@ -633,3 +633,25 @@ func TestSetTransform(t *testing.T) {
 		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
 	}
 }
+
+func TestSetIterFind(t *testing.T) {
+	// Test case 1: Element found
+	seq := Set[int]{1: {}, 2: {}, 3: {}, 4: {}, 5: {}}
+	found := seq.Iter().Find(func(i int) bool {
+		return i == 2
+	})
+	if !found.IsSome() {
+		t.Error("Expected found option to be Some")
+	}
+	if found.Some() != 2 {
+		t.Errorf("Expected found element to be 2, got %d", found.Some())
+	}
+
+	// Test case 2: Element not found
+	notFound := seq.Iter().Find(func(i int) bool {
+		return i == 6
+	})
+	if notFound.IsSome() {
+		t.Error("Expected not found option to be None")
+	}
+}

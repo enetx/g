@@ -104,6 +104,9 @@ func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 	return fn(o.Some())
 }
 
+// String returns a string representation of the Option.
+// If the Option contains a value, it returns a string in the format "Some(value)".
+// Otherwise, it returns "None".
 func (o Option[T]) String() string {
 	if o.IsSome() {
 		return fmt.Sprintf("Some(%v)", o.Some())

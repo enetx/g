@@ -282,7 +282,7 @@ func (f *File) Guard() *File {
 	return f
 }
 
-// MimeType returns the MIME type of the file as an String.
+// MimeType returns the MIME type of the file as Result[String].
 func (f *File) MimeType() Result[String] {
 	if r := f.Open(); r.IsErr() {
 		return Err[String](r.Err())

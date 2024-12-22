@@ -17,7 +17,7 @@ func main() {
 		Key.
 		Print() // 2
 
-	m.MapOrd().
+	m.ToMapOrd().
 		Iter().
 		Find(func(_, v Int) bool { return v == 33 }).
 		UnwrapOrDefault().

@@ -27,7 +27,7 @@ func (f *File) Decode() fdecode { return fdecode{f} }
 // Usage:
 //
 //	data := g.SliceOf(1, 2, 3, 4)
-//	result := g.NewFile("somefile.gob").Enc().Gob(data)
+//	result := g.NewFile("somefile.gob").Encode().Gob(data)
 //
 // Parameters:
 //   - data: The data to be encoded and written to the file.
@@ -57,7 +57,7 @@ func (fe fencode) Gob(data any) Result[*File] {
 // Usage:
 //
 //	var data g.Slice[int]
-//	result := g.NewFile("somefile.gob").Dec().Gob(&data)
+//	result := g.NewFile("somefile.gob").Decode().Gob(&data)
 //
 // Parameters:
 //   - data: A pointer to the data structure where the decoded data will be stored.
@@ -87,7 +87,7 @@ func (fd fdecode) Gob(data any) Result[*File] {
 // Usage:
 //
 //	data := g.SliceOf(1, 2, 3, 4)
-//	result := g.NewFile("somefile.json").Enc().JSON(data)
+//	result := g.NewFile("somefile.json").Encode().JSON(data)
 //
 // Parameters:
 //   - data: The data to be encoded and written to the file.
@@ -117,7 +117,7 @@ func (fe fencode) JSON(data any) Result[*File] {
 // Usage:
 //
 //	var data g.Slice[int]
-//	result := g.NewFile("somefile.json").Dec().JSON(&data)
+//	result := g.NewFile("somefile.json").Decode().JSON(&data)
 //
 // Parameters:
 //   - data: A pointer to the data structure where the decoded data will be stored.

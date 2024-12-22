@@ -56,7 +56,7 @@ func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
-func (s Set[T]) Iter() SeqSet[T] { return ToSeqSet(s) }
+func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
 
 // Add adds the provided elements to the set and returns the modified set.
 func (s Set[T]) Add(values ...T) Set[T] {

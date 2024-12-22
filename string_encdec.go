@@ -27,7 +27,7 @@ func (s String) Decode() decode { return decode{s} }
 // Base64 encodes the wrapped String using Base64 and returns the encoded result as an String.
 func (e encode) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.Bytes())) }
 
-// Base64 decodes the wrapped String using Base64 and returns the decoded result as an String.
+// Base64 decodes the wrapped String using Base64 and returns the decoded result as Result[String].
 func (d decode) Base64() Result[String] {
 	decoded, err := base64.StdEncoding.DecodeString(d.str.Std())
 	if err != nil {
@@ -37,7 +37,7 @@ func (d decode) Base64() Result[String] {
 	return Ok(String(decoded))
 }
 
-// JSON encodes the provided data as JSON and returns the result as an String.
+// JSON encodes the provided data as JSON and returns the result as Result[String].
 func (encode) JSON(data any) Result[String] {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -57,7 +57,7 @@ func (d decode) JSON(data any) Result[String] {
 	return Ok(d.str)
 }
 
-// XML encodes the provided data as XML and returns the result as an String.
+// XML encodes the provided data as XML and returns the result as Result[String].
 // The optional prefix and indent String values can be provided for XML indentation.
 func (encode) XML(data any, s ...String) Result[String] {
 	var (
@@ -119,7 +119,7 @@ func (e encode) URL(safe ...String) String {
 	return enc.String()
 }
 
-// URL URL-decodes the wrapped String and returns the decoded result as an String.
+// URL URL-decodes the wrapped String and returns the decoded result as Result[String].
 func (d decode) URL() Result[String] {
 	result, err := url.QueryUnescape(d.str.Std())
 	if err != nil {
@@ -186,7 +186,7 @@ func (e encode) Hex() String {
 	return result.String()
 }
 
-// Hex hex-decodes the wrapped String and returns the decoded result as an String.
+// Hex hex-decodes the wrapped String and returns the decoded result as Result[String].
 func (d decode) Hex() Result[String] {
 	result, err := hex.DecodeString(d.str.Std())
 	if err != nil {
@@ -206,7 +206,7 @@ func (e encode) Octal() String {
 	return result.Join(" ")
 }
 
-// Octal returns the octal representation of the decimal-encoded string.
+// Octal returns the octal representation of the decimal-encoded string as Result[String].
 func (d decode) Octal() Result[String] {
 	result := NewBuilder()
 
@@ -232,7 +232,7 @@ func (e encode) Binary() String {
 	return result.String()
 }
 
-// Binary converts the wrapped binary String back to its original String representation.
+// Binary converts the wrapped binary String back to its original String representation as Result[String].
 func (d decode) Binary() Result[String] {
 	var result Bytes
 

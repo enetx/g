@@ -302,6 +302,28 @@ func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] { return 
 // The resulting iterator will include elements based on the provided condition.
 func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] { return filterMapOrd(seq, fn) }
 
+// Find searches for an element in the iterator that satisfies the provided function.
+//
+// The function iterates through the elements of the iterator and returns the first element
+// for which the provided function returns true.
+//
+// Params:
+//
+// - fn (func(K, V) bool): The function used to test elements for a condition.
+//
+// Returns:
+//
+// - Option[K, V]: An Option containing the first element that satisfies the condition; None if not found.
+//
+// Example usage:
+//
+//	m := g.NewMapOrd[int, int]()
+//	m.Set(1, 1)
+//	f := m.Iter().Find(func(_ int, v int) bool { return v == 1 })
+//	if f.IsSome() {
+//		print(f.Some().Key)
+//	}
+//
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
 func (seq SeqMapOrd[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
 	return findMapOrd(seq, fn)

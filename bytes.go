@@ -39,7 +39,7 @@ func (bs Bytes) Replace(oldB, newB Bytes, n Int) Bytes { return bytes.Replace(bs
 // ReplaceAll replaces all occurrences of 'oldB' with 'newB' in the Bytes.
 func (bs Bytes) ReplaceAll(oldB, newB Bytes) Bytes { return bytes.ReplaceAll(bs, oldB, newB) }
 
-// ReplaceRegexp replaces all occurrences of the regular expression matches in the Bytes
+// RxReplace replaces all occurrences of the regular expression matches in the Bytes
 // with the provided newB and returns the resulting Bytes after the replacement.
 func (bs Bytes) RxReplace(pattern *regexp.Regexp, newB Bytes) Bytes {
 	return pattern.ReplaceAll(bs, newB)
@@ -113,7 +113,7 @@ func (bs Bytes) Std() []byte { return bs }
 // Clone creates a new Bytes instance with the same content as the current Bytes.
 func (bs Bytes) Clone() Bytes { return bytes.Clone(bs) }
 
-// Compare compares the Bytes with another Bytes and returns an cmp.Ordering.
+// Cmp compares the Bytes with another Bytes and returns an cmp.Ordering.
 func (bs Bytes) Cmp(obs Bytes) cmp.Ordering { return cmp.Ordering(bytes.Compare(bs, obs)) }
 
 // Contains checks if the Bytes contains the specified Bytes.

@@ -164,6 +164,9 @@ func (r Result[T]) Option() Option[T] {
 	return Some(r.Ok())
 }
 
+// String returns a string representation of the Result.
+// If the Result is Ok, it returns a string in the format "Ok(value)".
+// Otherwise, it returns "Err(result error)".
 func (r Result[T]) String() string {
 	if r.IsOk() {
 		return fmt.Sprintf("Ok(%v)", r.Ok())

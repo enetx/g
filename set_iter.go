@@ -91,7 +91,25 @@ func (seq SeqSet[V]) ForEach(fn func(v V)) {
 	})
 }
 
+// Range iterates through elements until the given function returns false.
+//
+// The function iterates through the elements of the iterator and applies the provided function to each element.
 // The iteration will stop when the provided function returns false for an element.
+//
+// Params:
+// - fn (func(V) bool): The function that evaluates elements for continuation of iteration.
+//
+// Example usage:
+//
+// iter := g.SetOf(1, 2, 2, 3, 4, 5).Iter()
+//
+//	iter.Range(func(v int) bool {
+//	    if v == 3 {
+//	        return false
+//	    }
+//	    print(v)
+//	    return true
+//	})
 func (seq SeqSet[V]) Range(fn func(v V) bool) {
 	seq(func(v V) bool {
 		return fn(v)
@@ -187,7 +205,38 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] { return exclude(seq, fn
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return transformSet(seq, transform) }
 
-func ToSeqSet[V comparable](slice Set[V]) SeqSet[V] {
+// Find searches for an element in the iterator that satisfies the provided function.
+//
+// The function iterates through the elements of the iterator and returns the first element
+// for which the provided function returns true.
+//
+// Params:
+//
+// - fn (func(V) bool): The function used to test elements for a condition.
+//
+// Returns:
+//
+// - Option[V]: An Option containing the first element that satisfies the condition; None if not found.
+//
+// Example usage:
+//
+//	iter := g.SetOf(1, 2, 3, 4, 5).Iter()
+//
+//	found := iter.Find(
+//		func(i int) bool {
+//			return i == 2
+//		})
+//
+//	if found.IsSome() {
+//		fmt.Println("Found:", found.Some())
+//	} else {
+//		fmt.Println("Not found.")
+//	}
+//
+// The resulting Option may contain the first element that satisfies the condition, or None if not found.
+func (seq SeqSet[V]) Find(fn func(v V) bool) Option[V] { return findSet(seq, fn) }
+
+func seqSet[V comparable](slice Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		for v := range slice {
 			if !yield(v) {
@@ -269,4 +318,16 @@ func countSet[V comparable](seq SeqSet[V]) Int {
 	})
 
 	return counter
+}
+
+func findSet[V comparable](seq SeqSet[V], fn func(V) bool) (r Option[V]) {
+	seq(func(v V) bool {
+		if !fn(v) {
+			return true
+		}
+		r = Some(v)
+		return false
+	})
+
+	return r
 }
