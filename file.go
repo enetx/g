@@ -23,39 +23,44 @@ func NewFile(name String) *File { return &File{name: name} }
 //	// Open a new file with the specified name "text.txt"
 //	g.NewFile("text.txt").
 //		Lines().                 // Read the file line by line
-//		Unwrap().                // Unwrap the Result type to get the underlying iterator
 //		Skip(3).                 // Skip the first 3 lines
 //		Exclude(f.Zero).         // Exclude lines that are empty or contain only whitespaces
 //		Dedup().                 // Remove consecutive duplicate lines
 //		Map(g.String.Upper).     // Convert each line to uppercase
 //		ForEach(                 // For each line, print it
-//			func(s g.String) {
-//				s.Print()
+//			func(func(s Result[String]) {
+//				s.Ok().Print()
 //			})
 //
 //	// Output:
 //	// UPPERCASED_LINE4
 //	// UPPERCASED_LINE5
 //	// UPPERCASED_LINE6
-func (f *File) Lines() Result[SeqSlice[String]] {
-	if f.file == nil {
-		if r := f.Open(); r.IsErr() {
-			return Err[SeqSlice[String]](r.Err())
+func (f *File) Lines() SeqResult[String] {
+	return func(yield func(Result[String]) bool) {
+		if f.file == nil {
+			if r := f.Open(); r.IsErr() {
+				yield(Err[String](r.Err()))
+				return
+			}
 		}
-	}
 
-	return Ok(SeqSlice[String](func(yield func(String) bool) {
 		defer f.Close()
 
 		scanner := bufio.NewScanner(f.file)
 		scanner.Split(bufio.ScanLines)
 
 		for scanner.Scan() {
-			if !yield(String(scanner.Text())) {
+			if !yield(Ok(String(scanner.Text()))) {
 				return
 			}
 		}
-	}))
+
+		if err := scanner.Err(); err != nil {
+			yield(Err[String](err))
+			return
+		}
+	}
 }
 
 // Chunks returns a new iterator instance that can be used to read the file
@@ -70,25 +75,25 @@ func (f *File) Lines() Result[SeqSlice[String]] {
 //	// Open a new file with the specified name "text.txt"
 //	g.NewFile("text.txt").
 //		Chunks(100).              // Read the file in chunks of 100 bytes
-//		Unwrap().                 // Unwrap the Result type to get the underlying iterator
 //		Map(g.String.Upper).      // Convert each chunk to uppercase
-//		ForEach(                  // For each chunk, print it
-//			func(s g.String) {
-//				s.Print()
+//		ForEach(                  // For each line, print it
+//			func(func(s Result[String]) {
+//				s.Ok().Print()
 //			})
 //
 //	// Output:
 //	// UPPERCASED_CHUNK1
 //	// UPPERCASED_CHUNK2
 //	// UPPERCASED_CHUNK3
-func (f *File) Chunks(size Int) Result[SeqSlice[String]] {
-	if f.file == nil {
-		if r := f.Open(); r.IsErr() {
-			return Err[SeqSlice[String]](r.Err())
+func (f *File) Chunks(size Int) SeqResult[String] {
+	return func(yield func(Result[String]) bool) {
+		if f.file == nil {
+			if r := f.Open(); r.IsErr() {
+				yield(Err[String](r.Err()))
+				return
+			}
 		}
-	}
 
-	return Ok(SeqSlice[String](func(yield func(String) bool) {
 		defer f.Close()
 
 		buffer := make([]byte, size)
@@ -96,6 +101,7 @@ func (f *File) Chunks(size Int) Result[SeqSlice[String]] {
 		for {
 			n, err := f.file.Read(buffer)
 			if err != nil && err != io.EOF {
+				yield(Err[String](err))
 				return
 			}
 
@@ -103,11 +109,11 @@ func (f *File) Chunks(size Int) Result[SeqSlice[String]] {
 				break
 			}
 
-			if !yield(String(buffer[:n])) {
+			if !yield(Ok(String(buffer[:n]))) {
 				return
 			}
 		}
-	}))
+	}
 }
 
 // Append appends the given content to the file, with the specified mode (optional).

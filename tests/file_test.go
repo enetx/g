@@ -182,15 +182,15 @@ func TestFile_Chunks_Success(t *testing.T) {
 	result := file.Chunks(chunkSize)
 
 	// Check if the result is successful
-	if result.IsErr() {
+	if result.Collect().IsErr() {
 		t.Fatalf(
 			"TestFile_Chunks_Success: Expected Chunks to return a successful result, but got an error: %v",
-			result.Err(),
+			result.Collect().Err(),
 		)
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Ok().Collect()
+	iterator := result.Collect().Unwrap()
 
 	// Read chunks from the iterator and verify their content
 	expectedChunks := Slice[String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
@@ -220,20 +220,20 @@ func TestFile_Lines_Success(t *testing.T) {
 	result := file.Lines()
 
 	// Check if the result is successful
-	if result.IsErr() {
+	if result.Collect().IsErr() {
 		t.Fatalf(
 			"TestFile_Lines_Success: Expected Lines to return a successful result, but got an error: %v",
-			result.Err(),
+			result.Collect().Err(),
 		)
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Ok().Collect()
+	iterator := result.Collect()
 
 	// Read lines from the iterator and verify their content
 	expectedLines := Slice[String]{"line1", "line2", "line3", "line4", "line5"}
 
-	if iterator.Ne(expectedLines) {
+	if iterator.Unwrap().Ne(expectedLines) {
 		t.Fatalf(
 			"TestFile_Lines_Success: Expected lines %v, got %v",
 			expectedLines,
@@ -250,10 +250,10 @@ func TestFile_Lines_Failure(t *testing.T) {
 	result := file.Lines()
 
 	// Check if the result is an error
-	if !result.IsErr() {
+	if !result.Collect().IsErr() {
 		t.Fatalf(
 			"TestFile_Lines_Failure: Expected Lines to return an error, but got a successful result: %v",
-			result.Ok(),
+			result.Collect().Ok(),
 		)
 	}
 }
