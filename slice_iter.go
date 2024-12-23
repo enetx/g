@@ -109,7 +109,13 @@ func (seq SeqSlice[V]) Any(fn func(V) bool) bool {
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
 func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
-	return chainSlice(append([]SeqSlice[V]{seq}, seqs...)...)
+	return func(yield func(V) bool) {
+		for _, seq := range append([]SeqSlice[V]{seq}, seqs...) {
+			seq(func(v V) bool {
+				return yield(v)
+			})
+		}
+	}
 }
 
 // Chunks returns an iterator that yields chunks of elements of the specified size.
@@ -133,7 +139,30 @@ func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
 // Output: [Slice[1, 2] Slice[3, 4] Slice[5, 6]]
 //
 // The resulting iterator will yield chunks of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] { return chunks(seq, n.Std()) }
+func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		if n <= 0 {
+			return
+		}
+
+		buf := make([]V, 0, n)
+
+		seq(func(v V) bool {
+			buf = append(buf, v)
+			if len(buf) == int(n) {
+				if !yield(buf) {
+					return false
+				}
+				buf = buf[:0]
+			}
+			return true
+		})
+
+		if len(buf) > 0 {
+			yield(buf)
+		}
+	}
+}
 
 // Collect gathers all elements from the iterator into a Slice.
 func (seq SeqSlice[V]) Collect() Slice[V] {
@@ -161,7 +190,15 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSlice[V]) Count() Int { return countSlice(seq) }
+func (seq SeqSlice[V]) Count() Int {
+	var counter Int
+	seq(func(V) bool {
+		counter++
+		return true
+	})
+
+	return counter
+}
 
 // Counter returns a SeqMapOrd[V, Int] with the counts of each unique element in the slice.
 // This function is useful when you want to count the occurrences of each unique element in a slice.
@@ -179,43 +216,78 @@ func (seq SeqSlice[V]) Count() Int { return countSlice(seq) }
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] { return counterSlice(seq) }
+func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
+	result := NewMapOrd[V, Int]()
+	seq(func(v V) bool {
+		r := result.Get(v).UnwrapOrDefault()
+		r++
+		result.Set(v, r)
+		return true
+	})
+
+	return result.Iter()
+}
 
 // Combinations generates all combinations of length 'n' from the sequence.
-func (seq SeqSlice[V]) Combinations(n Int) SeqSlices[V] { return combinations(seq, n.Std()) }
+func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		k := int(size)
+		s := seq.Collect()
+		n := len(s)
+
+		if k > n || k <= 0 {
+			return
+		}
+
+		indices := make([]int, k)
+		for i := 0; i < k; i++ {
+			indices[i] = i
+		}
+
+		buf := make([]V, k)
+
+		for {
+			for i, idx := range indices {
+				buf[i] = s[idx]
+			}
+
+			if !yield(buf) {
+				return
+			}
+
+			i := k - 1
+			for i >= 0 && indices[i] == n-k+i {
+				i--
+			}
+
+			if i < 0 {
+				return
+			}
+
+			indices[i]++
+
+			for j := i + 1; j < k; j++ {
+				indices[j] = indices[j-1] + 1
+			}
+		}
+	}
+}
 
 // Cycle returns an iterator that endlessly repeats the elements of the current sequence.
-func (seq SeqSlice[V]) Cycle() SeqSlice[V] { return cycleSlice(seq) }
-
-// Exclude returns a new iterator excluding elements that satisfy the provided function.
-//
-// The function applies the provided function to each element of the iterator.
-// If the function returns true for an element, that element is excluded from the resulting iterator.
-//
-// Parameters:
-//
-// - fn (func(V) bool): The function to be applied to each element of the iterator
-// to determine if it should be excluded from the result.
-//
-// Returns:
-//
-// - SeqSlice[V]: A new iterator containing the elements that do not satisfy the given condition.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	notEven := slice.Iter().
-//		Exclude(
-//			func(val int) bool {
-//				return val%2 == 0
-//			}).
-//		Collect()
-//	notEven.Print()
-//
-// Output: [1, 3, 5]
-//
-// The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] { return excludeSlice(seq, fn) }
+func (seq SeqSlice[V]) Cycle() SeqSlice[V] {
+	return func(yield func(V) bool) {
+		for {
+			cont := true
+			seq(func(v V) bool {
+				cont = cont && yield(v)
+				return cont
+			})
+			if !cont {
+				return
+			}
+		}
+	}
+}
 
 // Enumerate adds an index to each element in the iterator.
 //
@@ -235,7 +307,15 @@ func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] { return excludeSlic
 //	ps.Print()
 //
 // Output: MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
-func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] { return enumerate(seq) }
+func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
+	return func(yield func(Int, V) bool) {
+		i := Int(-1)
+		seq(func(v V) bool {
+			i++
+			return yield(i, v)
+		})
+	}
+}
 
 // Dedup creates a new iterator that removes consecutive duplicate elements from the original iterator,
 // leaving only one occurrence of each unique element. If the iterator is sorted, all elements will be unique.
@@ -256,7 +336,27 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] { return enumerate(seq) }
 // Output: [1 2 3 4 5]
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
-func (seq SeqSlice[V]) Dedup() SeqSlice[V] { return dedupSlice(seq) }
+func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
+	var current V
+	comparable := f.IsComparable(current)
+
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if comparable {
+				if f.Eq[any](current)(v) {
+					return true
+				}
+			} else {
+				if f.Eqd(current)(v) {
+					return true
+				}
+			}
+
+			current = v
+			return yield(v)
+		})
+	}
+}
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -288,6 +388,49 @@ func (seq SeqSlice[V]) Dedup() SeqSlice[V] { return dedupSlice(seq) }
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] { return filterSlice(seq, fn) }
 
+func filterSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if fn(v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
+}
+
+// Exclude returns a new iterator excluding elements that satisfy the provided function.
+//
+// The function applies the provided function to each element of the iterator.
+// If the function returns true for an element, that element is excluded from the resulting iterator.
+//
+// Parameters:
+//
+// - fn (func(V) bool): The function to be applied to each element of the iterator
+// to determine if it should be excluded from the result.
+//
+// Returns:
+//
+// - SeqSlice[V]: A new iterator containing the elements that do not satisfy the given condition.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	notEven := slice.Iter().
+//		Exclude(
+//			func(val int) bool {
+//				return val%2 == 0
+//			}).
+//		Collect()
+//	notEven.Print()
+//
+// Output: [1, 3, 5]
+//
+// The resulting iterator will contain only the elements that do not satisfy the provided function.
+func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] {
+	return filterSlice(seq, func(v V) bool { return !fn(v) })
+}
+
 // Fold accumulates values in the iterator using a function.
 //
 // The function iterates through the elements of the iterator, accumulating values
@@ -316,7 +459,13 @@ func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] { return filterSlice(
 // Output: 15.
 //
 // The resulting value will be the accumulation of elements based on the provided function.
-func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V { return fold(seq, init, fn) }
+func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V {
+	seq(func(v V) bool {
+		init = fn(init, v)
+		return true
+	})
+	return init
+}
 
 // ForEach iterates through all elements and applies the given function to each.
 //
@@ -365,11 +514,48 @@ func (seq SeqSlice[V]) ForEach(fn func(v V)) {
 // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
 //
 // The resulting iterator will contain elements from each iterator in sequence.
-func (seq SeqSlice[V]) Flatten() SeqSlice[V] { return flatten(seq) }
+func (seq SeqSlice[V]) Flatten() SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(item V) bool {
+			stack := []reflect.Value{reflect.ValueOf(item)}
+
+			for len(stack) > 0 {
+				val := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+
+				for val.Kind() == reflect.Interface || val.Kind() == reflect.Ptr {
+					if val.IsNil() {
+						goto skip
+					}
+					val = val.Elem()
+				}
+
+				if val.Kind() == reflect.Slice {
+					for i := val.Len() - 1; i >= 0; i-- {
+						stack = append(stack, val.Index(i))
+					}
+				} else {
+					if !yield(val.Interface().(V)) {
+						return false
+					}
+				}
+			skip:
+			}
+			return true
+		})
+	}
+}
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] { return inspectSlice(seq, fn) }
+func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			fn(v)
+			return yield(v)
+		})
+	}
+}
 
 // Intersperse inserts the provided separator between elements of the iterator.
 //
@@ -396,7 +582,20 @@ func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] { return inspectSlice(s
 // Output: "Hello World !".
 //
 // The resulting iterator will contain elements with the separator interspersed.
-func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] { return intersperse(seq, sep) }
+func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		first := true
+
+		seq(func(v V) bool {
+			if !first && !yield(sep) {
+				return false
+			}
+
+			first = false
+			return yield(v)
+		})
+	}
+}
 
 // Map transforms each element in the iterator using the given function.
 //
@@ -428,6 +627,14 @@ func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] { return intersperse(seq, 
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return transformSlice(seq, transform) }
 
+func transformSlice[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
+	return func(yield func(U) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
+}
+
 // Partition divides the elements of the iterator into two separate slices based on a given predicate function.
 //
 // The function takes a predicate function 'fn', which should return true or false for each element in the iterator.
@@ -455,7 +662,19 @@ func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return transformSl
 //	fmt.Println("Odd numbers:", odds)   // Output: Odd numbers: Slice[1, 3, 5]
 //
 // The resulting two slices will contain elements separated based on whether they satisfy the predicate or not.
-func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) { return partition(seq, fn) }
+func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) {
+	left, right := make([]V, 0), make([]V, 0)
+	seq(func(v V) bool {
+		if fn(v) {
+			left = append(left, v)
+		} else {
+			right = append(right, v)
+		}
+		return true
+	})
+
+	return left, right
+}
 
 // Permutations generates iterators of all permutations of elements.
 //
@@ -487,7 +706,52 @@ func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) { retur
 //
 // The resulting iterator will contain iterators representing all possible permutations
 // of the elements in the original iterator.
-func (seq SeqSlice[V]) Permutations() SeqSlices[V] { return permutations(seq) }
+func (seq SeqSlice[V]) Permutations() SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		s := seq.Collect()
+		n := len(s)
+		if n == 0 {
+			return
+		}
+
+		indices := make([]int, n)
+		for i := range indices {
+			indices[i] = i
+		}
+
+		buf := make([]V, n)
+
+		for {
+			for i, v := range indices {
+				buf[i] = s[v]
+			}
+
+			if !yield(buf) {
+				return
+			}
+
+			i := n - 1
+			for i > 0 && indices[i-1] >= indices[i] {
+				i--
+			}
+
+			if i <= 0 {
+				return
+			}
+
+			j := n - 1
+			for indices[j] <= indices[i-1] {
+				j--
+			}
+
+			indices[i-1], indices[j] = indices[j], indices[i-1]
+
+			for x, y := i, n-1; x < y; x, y = x+1, y-1 {
+				indices[x], indices[y] = indices[y], indices[x]
+			}
+		}
+	}
+}
 
 // Range iterates through elements until the given function returns false.
 //
@@ -534,7 +798,17 @@ func (seq SeqSlice[V]) Range(fn func(v V) bool) {
 // Output: [4, 5, 6]
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] { return skipSlice(seq, n) }
+func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if n > 0 {
+				n--
+				return true
+			}
+			return yield(v)
+		})
+	}
+}
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
 // This function is useful when you want to skip a specific number of elements between each iteration.
@@ -555,7 +829,18 @@ func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] { return skipSlice(seq, n) }
 // Output: [1 4 7 10]
 //
 // The resulting iterator will produce elements from the original iterator with a step size of N.
-func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] { return stepbySlice(seq, n) }
+func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		i := uint(0)
+		seq(func(v V) bool {
+			i++
+			if (i-1)%n == 0 {
+				return yield(v)
+			}
+			return true
+		})
+	}
+}
 
 // SortBy applies a custom sorting function to the elements in the iterator
 // and returns a new iterator containing the sorted elements.
@@ -575,11 +860,26 @@ func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] { return stepbySlice(seq, n) }
 //
 // The returned iterator is of type SeqSlice[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] { return sortBySlice(seq, fn) }
+func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] {
+	items := seq.Collect()
+	items.SortBy(fn)
+
+	return items.Iter()
+}
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
-func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] { return takeSlice(seq, n) }
+func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if n == 0 {
+				return false
+			}
+			n--
+			return yield(v)
+		})
+	}
+}
 
 // ToChan converts the iterator into a channel, optionally with context(s).
 //
@@ -646,11 +946,48 @@ func (seq SeqSlice[V]) ToChan(ctxs ...context.Context) chan V {
 // Output: [1, 2, 3, 4, 5].
 //
 // The resulting iterator will contain only unique elements from the original iterator.
-func (seq SeqSlice[V]) Unique() SeqSlice[V] { return uniqueSlice(seq) }
+func (seq SeqSlice[V]) Unique() SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seen := NewSet[any]()
+		seq(func(v V) bool {
+			if !seen.Contains(v) {
+				seen.Add(v)
+				return yield(v)
+			}
+			return true
+		})
+	}
+}
 
 // Zip combines elements from the current sequence and another sequence into pairs,
 // creating an ordered map with identical keys and values of type V.
 func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] { return zip(seq, two) }
+
+func zip[V, U any](one SeqSlice[V], two SeqSlice[U]) SeqMapOrd[V, U] {
+	return func(yield func(V, U) bool) {
+		oneNext, oneStop := one.Pull()
+		defer oneStop()
+
+		twoNext, twoStop := two.Pull()
+		defer twoStop()
+
+		for {
+			one, ok := oneNext()
+			if !ok {
+				return
+			}
+
+			two, ok := twoNext()
+			if !ok {
+				return
+			}
+
+			if !yield(one, two) {
+				return
+			}
+		}
+	}
+}
 
 // Find searches for an element in the iterator that satisfies the provided function.
 //
@@ -681,7 +1018,17 @@ func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] { return zip(seq, tw
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq, fn) }
+func (seq SeqSlice[V]) Find(fn func(v V) bool) (r Option[V]) {
+	seq(func(v V) bool {
+		if !fn(v) {
+			return true
+		}
+		r = Some(v)
+		return false
+	})
+
+	return r
+}
 
 // Windows returns an iterator that yields sliding windows of elements of the specified size.
 //
@@ -704,7 +1051,32 @@ func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] { return findSlice(seq,
 // Output: [Slice[1, 2, 3] Slice[2, 3, 4] Slice[3, 4, 5] Slice[4, 5, 6]]
 //
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] { return windows(seq, n.Std()) }
+func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		if n <= 0 {
+			return
+		}
+
+		buf := make([]V, n)
+		size := 0
+
+		seq(func(v V) bool {
+			if size < int(n) {
+				buf[size] = v
+				size++
+				if size == int(n) {
+					return yield(buf)
+				}
+				return true
+			}
+
+			copy(buf, buf[1:])
+			buf[n-1] = v
+
+			return yield(buf)
+		})
+	}
+}
 
 // FromChan converts a channel into an iterator.
 //
@@ -770,92 +1142,6 @@ func revSeqSlice[V any](slice []V) SeqSlice[V] {
 	}
 }
 
-func chainSlice[V any](seqs ...SeqSlice[V]) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		for _, seq := range seqs {
-			seq(func(v V) bool {
-				return yield(v)
-			})
-		}
-	}
-}
-
-func transformSlice[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
-	return func(yield func(U) bool) {
-		seq(func(v V) bool {
-			return yield(fn(v))
-		})
-	}
-}
-
-func filterSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if fn(v) {
-				return yield(v)
-			}
-			return true
-		})
-	}
-}
-
-func excludeSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
-	return filterSlice(seq, func(v V) bool { return !fn(v) })
-}
-
-func cycleSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		for {
-			cont := true
-			seq(func(v V) bool {
-				cont = cont && yield(v)
-				return cont
-			})
-			if !cont {
-				return
-			}
-		}
-	}
-}
-
-func stepbySlice[V any](seq SeqSlice[V], n uint) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		i := uint(0)
-		seq(func(v V) bool {
-			i++
-			if (i-1)%n == 0 {
-				return yield(v)
-			}
-			return true
-		})
-	}
-}
-
-func takeSlice[V any](seq SeqSlice[V], n uint) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if n == 0 {
-				return false
-			}
-			n--
-			return yield(v)
-		})
-	}
-}
-
-func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seen := NewSet[any]()
-		seq(func(v V) bool {
-			if !seen.Contains(v) {
-				seen.Add(v)
-				return yield(v)
-			}
-			return true
-		})
-	}
-}
-
 // works slower
 // func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 // 	var current V
@@ -876,344 +1162,3 @@ func uniqueSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
 // 		})
 // 	}
 // }
-
-func dedupSlice[V any](seq SeqSlice[V]) SeqSlice[V] {
-	var current V
-	comparable := f.IsComparable(current)
-
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if comparable {
-				if f.Eq[any](current)(v) {
-					return true
-				}
-			} else {
-				if f.Eqd(current)(v) {
-					return true
-				}
-			}
-
-			current = v
-			return yield(v)
-		})
-	}
-}
-
-func sortBySlice[V any](seq SeqSlice[V], fn func(a, b V) cmp.Ordering) SeqSlice[V] {
-	items := seq.Collect()
-	items.SortBy(fn)
-
-	return items.Iter()
-}
-
-func skipSlice[V any](seq SeqSlice[V], n uint) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if n > 0 {
-				n--
-				return true
-			}
-			return yield(v)
-		})
-	}
-}
-
-func inspectSlice[V any](seq SeqSlice[V], fn func(V)) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			fn(v)
-			return yield(v)
-		})
-	}
-}
-
-func enumerate[V any](seq SeqSlice[V]) SeqMapOrd[Int, V] {
-	return func(yield func(Int, V) bool) {
-		i := Int(-1)
-		seq(func(v V) bool {
-			i++
-			return yield(i, v)
-		})
-	}
-}
-
-func zip[V, U any](one SeqSlice[V], two SeqSlice[U]) SeqMapOrd[V, U] {
-	return func(yield func(V, U) bool) {
-		oneNext, oneStop := one.Pull()
-		defer oneStop()
-
-		twoNext, twoStop := two.Pull()
-		defer twoStop()
-
-		for {
-			one, ok := oneNext()
-			if !ok {
-				return
-			}
-
-			two, ok := twoNext()
-			if !ok {
-				return
-			}
-
-			if !yield(one, two) {
-				return
-			}
-		}
-	}
-}
-
-func fold[V any](seq SeqSlice[V], init V, fn func(V, V) V) V {
-	seq(func(v V) bool {
-		init = fn(init, v)
-		return true
-	})
-	return init
-}
-
-func findSlice[V any](seq SeqSlice[V], fn func(V) bool) (r Option[V]) {
-	seq(func(v V) bool {
-		if !fn(v) {
-			return true
-		}
-		r = Some(v)
-		return false
-	})
-
-	return r
-}
-
-func chunks[V any](seq SeqSlice[V], n int) SeqSlices[V] {
-	return func(yield func([]V) bool) {
-		buf := make([]V, 0, n)
-
-		seq(func(v V) bool {
-			if len(buf) == n {
-				clear(buf)
-				buf = buf[:0]
-			}
-
-			if len(buf) < n-1 {
-				buf = append(buf, v)
-				return true
-			}
-
-			if len(buf) < n {
-				buf = append(buf, v)
-				return yield(buf)
-			}
-
-			return yield(buf)
-		})
-
-		if len(buf) < n {
-			yield(buf)
-		}
-	}
-}
-
-func windows[V any](seq SeqSlice[V], n int) SeqSlices[V] {
-	return func(yield func([]V) bool) {
-		buf := make([]V, 0, n)
-
-		seq(func(v V) bool {
-			if len(buf) < n-1 {
-				buf = append(buf, v)
-				return true
-			}
-			if len(buf) < n {
-				buf = append(buf, v)
-				return yield(buf)
-			}
-
-			copy(buf, buf[1:])
-			buf[len(buf)-1] = v
-			return yield(buf)
-		})
-
-		if len(buf) < n {
-			yield(buf)
-		}
-	}
-}
-
-func combinationIndices(n, k int) iter.Seq[[]int] {
-	return func(yield func([]int) bool) {
-		if k > n || k < 1 || n < 0 {
-			return
-		}
-
-		indices := make([]int, k)
-		for i := range indices {
-			indices[i] = i
-		}
-
-		for {
-			if !yield(indices) {
-				return
-			}
-
-			i := k - 1
-			for i >= 0 && indices[i] == i+n-k {
-				i--
-			}
-
-			if i < 0 {
-				return
-			}
-
-			indices[i]++
-			for j := i + 1; j < k; j++ {
-				indices[j] = indices[j-1] + 1
-			}
-		}
-	}
-}
-
-func combinations[V any](seq SeqSlice[V], n int) SeqSlices[V] {
-	return func(yield func([]V) bool) {
-		s := seq.Collect()
-		for indices := range combinationIndices(len(s), n) {
-			buf := make([]V, n)
-			for i, v := range indices {
-				buf[i] = s[v]
-			}
-			if !yield(buf) {
-				return
-			}
-		}
-	}
-}
-
-func permutationIndices(n int) iter.Seq[[]int] {
-	return func(yield func([]int) bool) {
-		indices := make([]int, n)
-		for i := range indices {
-			indices[i] = i
-		}
-
-		for {
-			if !yield(indices) {
-				return
-			}
-
-			i := n - 1
-			for i > 0 && indices[i-1] >= indices[i] {
-				i--
-			}
-
-			if i <= 0 {
-				return
-			}
-
-			j := n - 1
-			for indices[j] <= indices[i-1] {
-				j--
-			}
-
-			indices[i-1], indices[j] = indices[j], indices[i-1]
-
-			for x, y := i, n-1; x < y; x, y = x+1, y-1 {
-				indices[x], indices[y] = indices[y], indices[x]
-			}
-		}
-	}
-}
-
-func permutations[V any](seq SeqSlice[V]) SeqSlices[V] {
-	return func(yield func([]V) bool) {
-		s := seq.Collect()
-		for indices := range permutationIndices(len(s)) {
-			buf := make([]V, len(s))
-			for i, v := range indices {
-				buf[i] = s[v]
-			}
-			if !yield(buf) {
-				return
-			}
-		}
-	}
-}
-
-func flatten[V any](seq SeqSlice[V]) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(s V) bool {
-			if reflect.TypeOf(s).Kind() == reflect.Slice {
-				flattenSlice(s, yield)
-			} else {
-				yield(s)
-			}
-			return true
-		})
-	}
-}
-
-func flattenSlice[V any](s V, yield func(V) bool) {
-	val := reflect.ValueOf(s)
-
-	for i := 0; i < val.Len(); i++ {
-		elem := val.Index(i)
-		if elem.Kind() == reflect.Interface {
-			elem = elem.Elem()
-		}
-
-		if elem.Kind() == reflect.Slice {
-			flattenSlice(elem.Interface().(V), yield)
-		} else {
-			if !yield(elem.Interface().(V)) {
-				return
-			}
-		}
-	}
-}
-
-func countSlice[V any](seq SeqSlice[V]) Int {
-	var counter Int
-	seq(func(V) bool {
-		counter++
-		return true
-	})
-
-	return counter
-}
-
-func counterSlice[V any](seq SeqSlice[V]) SeqMapOrd[V, Int] {
-	result := NewMapOrd[V, Int]()
-	seq(func(v V) bool {
-		r := result.Get(v).UnwrapOrDefault()
-		r++
-		result.Set(v, r)
-		return true
-	})
-
-	return result.Iter()
-}
-
-func partition[V any](seq SeqSlice[V], fn func(V) bool) (Slice[V], Slice[V]) {
-	left, right := make([]V, 0), make([]V, 0)
-	seq(func(v V) bool {
-		if fn(v) {
-			left = append(left, v)
-		} else {
-			right = append(right, v)
-		}
-		return true
-	})
-
-	return left, right
-}
-
-func intersperse[V any](seq SeqSlice[V], sep V) SeqSlice[V] {
-	return func(yield func(V) bool) {
-		first := true
-
-		seq(func(v V) bool {
-			if !first && !yield(sep) {
-				return false
-			}
-
-			first = false
-			return yield(v)
-		})
-	}
-}

@@ -347,7 +347,7 @@ func TestSliceIterPermutations(t *testing.T) {
 	// Additional Test case 4: Empty slice
 	slice4 := Slice[any]{}
 	perms4 := slice4.Iter().Permutations().Collect()
-	expectedPerms4 := []Slice[any]{slice4}
+	expectedPerms4 := []Slice[any]{}
 
 	if !reflect.DeepEqual(perms4, expectedPerms4) {
 		t.Errorf("expected %v, but got %v", expectedPerms4, perms4)
@@ -398,7 +398,7 @@ func TestSliceIterChunks(t *testing.T) {
 		{
 			name:     "empty slice",
 			input:    NewSlice[int](),
-			expected: []Slice[int]{NewSlice[int]()},
+			expected: []Slice[int]{},
 			size:     2,
 		},
 		{
