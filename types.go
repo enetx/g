@@ -75,6 +75,7 @@ type (
 	// SeqSlice is an iterator over sequences of individual values.
 	SeqSlice[V any] iter.Seq[V]
 
+	// SeqResult is an iterator over sequences of Result[V] values.
 	SeqResult[V any] iter.Seq[Result[V]]
 
 	// SeqSlices is an iterator over slices of sequences of individual values.
