@@ -344,7 +344,7 @@ func TestDir_Read_Success(t *testing.T) {
 	dir := NewDir(String(tempDir))
 
 	// Read the content of the directory
-	result := dir.Read()
+	result := dir.Read().Collect()
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -354,7 +354,8 @@ func TestDir_Read_Success(t *testing.T) {
 	// Check if the returned slice of File instances is accurate
 	files := result.Ok()
 	expectedFileNames := []string{"file1.txt", "file2.txt", "subdir1", "subdir2"}
-	for i, file := range files.Enumerate() {
+
+	for i, file := range files {
 		if file.Name().Std() != expectedFileNames[i] {
 			t.Errorf("TestDir_Read_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
 		}
@@ -373,7 +374,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	dir := NewDir(String(filepath.Join(tempDir, "*.txt")))
 
 	// Retrieve files matching the glob pattern
-	result := dir.Glob()
+	result := dir.Glob().Collect()
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -383,7 +384,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	// Check if the returned slice of File instances is accurate
 	files := result.Ok()
 	expectedFileNames := []string{"file1.txt", "file2.txt"}
-	for i, file := range files.Enumerate() {
+	for i, file := range files {
 		if file.Name().Std() != expectedFileNames[i] {
 			t.Errorf("TestDir_Glob_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
 		}

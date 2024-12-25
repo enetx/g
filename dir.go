@@ -380,73 +380,78 @@ func (d *Dir) Exist() bool {
 // This method uses a lazy evaluation strategy where each file is processed one at a time as it is needed.
 //
 // Returns:
-//   - Result[SeqSlice[*File]]: A sequence of File instances representing each file and directory
+//   - SeqResult[*File]: A sequence of Result[*File] instances representing each file and directory
 //     in the current directory. It returns an error if reading the directory fails.
 //
 // Example usage:
 //
 //	dir := g.NewDir("path/to/directory")
-//	files := dir.Read().Ok()
+//	files := dir.Read()
 //	for file := range files {
-//	    fmt.Println(file.Name())
+//	    fmt.Println(file.Ok().Name())
 //	}
-func (d *Dir) Read() Result[SeqSlice[*File]] {
-	entries, err := os.ReadDir(d.path.Std())
-	if err != nil {
-		return Err[SeqSlice[*File]](err)
-	}
+func (d *Dir) Read() SeqResult[*File] {
+	return func(yield func(Result[*File]) bool) {
+		entries, err := os.ReadDir(d.path.Std())
+		if err != nil {
+			yield(Err[*File](err))
+			return
+		}
 
-	return Ok(SeqSlice[*File](func(yield func(*File) bool) {
 		for _, entry := range entries {
 			dpath := d.Path()
 			if dpath.IsErr() {
-				continue
+				yield(Err[*File](dpath.Err()))
+				return
 			}
 
 			file := NewDir(dpath.Ok()).Join(String(entry.Name()))
 			if file.IsErr() {
-				continue
+				yield(Err[*File](file.Err()))
+				return
 			}
 
-			if !yield(NewFile(file.Ok())) {
+			if !yield(Ok(NewFile(file.Ok()))) {
 				return
 			}
 		}
-	}))
+	}
 }
 
 // Glob iterates over files in the current directory matching a specified pattern and yields File instances for each match.
 // This method utilizes a lazy evaluation strategy, processing files as they are needed.
 //
 // Returns:
-//   - Result[SeqSlice[*File]]: A sequence of File instances representing the files that match the
+//   - SeqResult[*File]: A sequence of Result[*File] instances representing the files that match the
 //     provided pattern in the current directory. It returns an error if the glob operation fails.
 //
 // Example usage:
 //
 //	dir := g.NewDir("path/to/directory/*.txt")
-//	files := dir.Glob().Ok()
+//	files := dir.Glob()
 //	for file := range files {
-//	    fmt.Println(file.Name())
+//	    fmt.Println(file.Ok().Name())
 //	}
-func (d *Dir) Glob() Result[SeqSlice[*File]] {
-	matches, err := filepath.Glob(d.path.Std())
-	if err != nil {
-		return Err[SeqSlice[*File]](err)
-	}
+func (d *Dir) Glob() SeqResult[*File] {
+	return (func(yield func(Result[*File]) bool) {
+		matches, err := filepath.Glob(d.path.Std())
+		if err != nil {
+			yield(Err[*File](err))
+			return
+		}
 
-	return Ok(SeqSlice[*File](func(yield func(*File) bool) {
 		for _, match := range matches {
 			file := NewFile(String(match)).Path()
 			if file.IsErr() {
-				continue
+				yield(Err[*File](file.Err()))
+				return
 			}
 
-			if !yield(NewFile(file.Ok())) {
+			if !yield(Ok(NewFile(file.Ok()))) {
 				return
 			}
 		}
-	}))
+	})
 }
 
 // Walk recursively traverses the directory structure and applies the walker function to each file and directory.
@@ -460,43 +465,53 @@ func (d *Dir) Glob() Result[SeqSlice[*File]] {
 //
 // - error: An error indicating any issues that occurred during the walk. If no errors occurred, it returns nil.
 func (d *Dir) Walk(walker func(f *File) error) error {
-	entries := d.Read()
-	if entries.IsErr() {
-		return entries.Err()
-	}
+	var walkErr error
 
-	for entry := range entries.Ok() {
-		if err := walker(entry); err != nil {
+	d.Read().Range(func(r Result[*File]) bool {
+		if r.IsErr() {
+			walkErr = r.Err()
+			return false
+		}
+
+		file := r.Ok()
+
+		if err := walker(file); err != nil {
 			switch {
 			case errors.Is(err, SkipWalk):
-				continue
+				return true
 			case errors.Is(err, StopWalk):
-				return nil
+				return false
 			default:
-				return err
+				walkErr = err
+				return false
 			}
 		}
 
-		stat := entry.Stat()
+		stat := file.Stat()
 		if stat.IsErr() {
-			return stat.Err()
+			walkErr = stat.Err()
+			return false
 		}
 
 		if stat.Ok().IsDir() {
-			entryPath := entry.Path()
-			if entryPath.IsErr() {
-				return entryPath.Err()
+			filePath := file.Path()
+			if filePath.IsErr() {
+				walkErr = filePath.Err()
+				return false
 			}
 
-			subdir := NewDir(entryPath.Ok())
+			subdir := NewDir(filePath.Ok())
 
 			if err := subdir.Walk(walker); err != nil {
-				return err
+				walkErr = err
+				return false
 			}
 		}
-	}
 
-	return nil
+		return true
+	})
+
+	return walkErr
 }
 
 // String returns the String representation of the current directory's path.
