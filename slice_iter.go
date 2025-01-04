@@ -220,7 +220,7 @@ func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
 	result := NewMapOrd[V, Int]()
 
 	seq(func(v V) bool {
-		r := result.Get(v).UnwrapOrDefault()
+		r := result.Get(v).Some()
 		r++
 		result.Set(v, r)
 		return true

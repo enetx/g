@@ -75,16 +75,6 @@ func (o Option[T]) UnwrapOr(value T) T {
 	return value
 }
 
-// UnwrapOrDefault returns the value held in the Option. If the Option contains a value,
-// it returns the value. If the Option is None, it returns the default value for type T.
-func (o Option[T]) UnwrapOrDefault() T {
-	if o.isSome {
-		return o.Some()
-	}
-
-	return *new(T)
-}
-
 // Expect returns the value held in the Option. If the Option contains a nil value, it panics with the provided message.
 func (o Option[T]) Expect(msg string) T {
 	if o.isSome {

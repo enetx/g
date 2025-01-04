@@ -47,7 +47,7 @@ func TestSeqResultAll(t *testing.T) {
 
 		res := seq.All(func(v int) bool { return v > 0 })
 		if !res.IsErr() {
-			t.Errorf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Errorf("expected an error, got Ok(%v)", res.Ok())
 		} else {
 			wantErrMsg := "some error"
 			if res.Err().Error() != wantErrMsg {
@@ -70,7 +70,7 @@ func TestSeqResultAny(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok(false), got Err: %v", res.Err())
 		}
-		if res.UnwrapOrDefault() {
+		if res.Ok() {
 			t.Errorf("expected false, got true")
 		}
 	})
@@ -87,7 +87,7 @@ func TestSeqResultAny(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok(true), got Err: %v", res.Err())
 		}
-		if !res.UnwrapOrDefault() {
+		if !res.Ok() {
 			t.Errorf("expected true, got false")
 		}
 	})
@@ -104,7 +104,7 @@ func TestSeqResultAny(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok(true), got Err: %v", res.Err())
 		}
-		if !res.UnwrapOrDefault() {
+		if !res.Ok() {
 			t.Errorf("expected true, got false")
 		}
 	})
@@ -119,7 +119,7 @@ func TestSeqResultAny(t *testing.T) {
 		res := seq.Any(func(x int) bool { return x == 2 })
 
 		if !res.IsErr() {
-			t.Errorf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Errorf("expected an error, got Ok(%v)", res.Ok())
 		} else {
 			wantErrMsg := "some error"
 			if res.Err().Error() != wantErrMsg {
@@ -136,7 +136,7 @@ func TestSeqResultAny(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok(false), got Err: %v", res.Err())
 		}
-		if res.UnwrapOrDefault() {
+		if res.Ok() {
 			t.Errorf("expected false, got true")
 		}
 	})
@@ -155,7 +155,7 @@ func TestSeqResultCollect(t *testing.T) {
 			t.Fatalf("expected Ok([10, 20, 30]) but got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -172,7 +172,7 @@ func TestSeqResultCollect(t *testing.T) {
 
 		res := seq.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 
 		// Optional: check error message
@@ -191,7 +191,7 @@ func TestSeqResultCollect(t *testing.T) {
 
 		res := seq.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err but got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err but got Ok(%v)", res.Ok())
 		}
 
 		wantErr := "middle error"
@@ -208,7 +208,7 @@ func TestSeqResultCollect(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -279,7 +279,7 @@ func TestSeqResultMap(t *testing.T) {
 			t.Fatalf("expected all Ok, got Err: %v", res.Err())
 		}
 
-		values := res.UnwrapOrDefault()
+		values := res.Ok()
 		if len(values) != 3 {
 			t.Errorf("expected 3 items, got %d", len(values))
 		}
@@ -306,7 +306,7 @@ func TestSeqResultMap(t *testing.T) {
 		// If we try to collect, it should stop at the Err
 		res := mapped.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an error, got Ok(%v)", res.Ok())
 		}
 
 		errMsg := res.Err().Error()
@@ -329,7 +329,7 @@ func TestSeqResultMap(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
 		}
@@ -347,7 +347,7 @@ func TestSeqResultMap(t *testing.T) {
 
 		res := mapped.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an error, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "immediate error" {
@@ -371,7 +371,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected an empty slice, got %d elements", len(collected))
 		}
@@ -395,7 +395,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -420,7 +420,7 @@ func TestSeqResultFilter(t *testing.T) {
 
 		res := filtered.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an error, got Ok(%v)", res.Ok())
 		}
 
 		errMsg := res.Err().Error()
@@ -445,7 +445,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -466,7 +466,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected empty slice, got %d items", len(collected))
 		}
@@ -489,7 +489,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 2 {
 			t.Errorf("expected 2 items, got %d", len(collected))
 		}
@@ -514,7 +514,7 @@ func TestSeqResultExclude(t *testing.T) {
 
 		res := excluded.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "boom" {
@@ -538,7 +538,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected no items, got %d", len(collected))
 		}
@@ -560,7 +560,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected all 3 items, got %d", len(collected))
 		}
@@ -586,7 +586,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected empty slice, got %d items", len(collected))
 		}
@@ -606,7 +606,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 1 {
 			t.Errorf("expected only 1 item after dedup, got %d", len(collected))
 		}
@@ -628,7 +628,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		}
@@ -658,7 +658,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		expected := []int{5, 10, 15, 20}
 		if len(collected) != len(expected) {
 			t.Errorf("expected %d items, got %d", len(expected), len(collected))
@@ -683,7 +683,7 @@ func TestSeqResultDedup(t *testing.T) {
 		deduped := seq.Dedup()
 		res := deduped.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 
 		errMsg := res.Err().Error()
@@ -704,7 +704,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -724,7 +724,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// Only the first 10 should appear
 		if len(collected) != 1 {
 			t.Errorf("expected 1 element, got %d", len(collected))
@@ -748,7 +748,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// Expect [1, 2, 3, 4], skipping repeated 1 and 2
 		want := []int{1, 2, 3, 4}
 		if len(collected) != len(want) {
@@ -773,7 +773,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -797,7 +797,7 @@ func TestSeqResultUnique(t *testing.T) {
 		unique := seq.Unique()
 		res := unique.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "boom" {
@@ -1015,7 +1015,7 @@ func TestSeqResultSkip(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		} else {
@@ -1042,7 +1042,7 @@ func TestSeqResultSkip(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 
 		// After skipping 10, 20 => we should have [30, 40, 50]
 		if len(collected) != 3 {
@@ -1070,7 +1070,7 @@ func TestSeqResultSkip(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We should have no remaining items
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
@@ -1088,7 +1088,7 @@ func TestSeqResultSkip(t *testing.T) {
 		skipped := seq.Skip(2) // wants to skip 2 Ok items, but there's an error after the first Ok
 		res := skipped.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an Err, got Ok(%v)", res.Ok())
 		}
 
 		errMsg := res.Err().Error()
@@ -1112,7 +1112,7 @@ func TestSeqResultStepBy(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		}
@@ -1139,7 +1139,7 @@ func TestSeqResultStepBy(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We yield i=1 => keep, i=2 => skip, i=3 => keep, i=4 => skip, i=5 => keep
 		want := []int{1, 3, 5}
 		if len(collected) != len(want) {
@@ -1164,7 +1164,7 @@ func TestSeqResultStepBy(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We yield i=1 => keep, i=2 => skip, no more items
 		// => [10]
 		if len(collected) != 1 {
@@ -1187,7 +1187,7 @@ func TestSeqResultStepBy(t *testing.T) {
 		stepped := seq.StepBy(2)
 		res := stepped.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "boom" {
@@ -1205,7 +1205,7 @@ func TestSeqResultStepBy(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected empty, got %d items", len(collected))
 		}
@@ -1224,7 +1224,7 @@ func TestSeqResultTake(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// No elements should be yielded
 		if len(collected) != 0 {
 			t.Errorf("expected 0, got %d", len(collected))
@@ -1244,7 +1244,7 @@ func TestSeqResultTake(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We should have only the first 2 Ok values
 		if len(collected) != 2 {
 			t.Errorf("expected 2 items, got %d", len(collected))
@@ -1271,7 +1271,7 @@ func TestSeqResultTake(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 3 {
 			t.Errorf("expected 3, got %d", len(collected))
 		} else {
@@ -1296,7 +1296,7 @@ func TestSeqResultTake(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We can only get the 2 Ok items
 		if len(collected) != 2 {
 			t.Errorf("expected 2, got %d", len(collected))
@@ -1321,7 +1321,7 @@ func TestSeqResultTake(t *testing.T) {
 		taken := seq.Take(2)
 		res := taken.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "boom" {
@@ -1344,7 +1344,7 @@ func TestSeqResultChain(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 2 {
 			t.Errorf("expected 2 items, got %d", len(collected))
 		} else {
@@ -1378,7 +1378,7 @@ func TestSeqResultChain(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// Expect them in the order: seq1 -> seq2 -> seq3
 		want := []int{10, 20, 30, 40, 50}
 		if len(collected) != len(want) {
@@ -1408,7 +1408,7 @@ func TestSeqResultChain(t *testing.T) {
 		res := chained.Collect()
 
 		if !res.IsErr() {
-			t.Fatalf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an error, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "error in seq1" {
@@ -1434,7 +1434,7 @@ func TestSeqResultChain(t *testing.T) {
 		chained := seq1.Chain(seq2, seq3)
 		res := chained.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected an error, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected an error, got Ok(%v)", res.Ok())
 		}
 
 		// The items from seq1 and the Ok(300) from seq2 should be seen,
@@ -1461,7 +1461,7 @@ func TestSeqResultChain(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We only expect the one Ok(999) from seqWithItems
 		if len(collected) != 1 || collected[0] != 999 {
 			t.Errorf("expected [999], got %v", collected)
@@ -1481,7 +1481,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
 		}
@@ -1498,7 +1498,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// Only one item => no separators
 		if len(collected) != 1 || collected[0] != 42 {
 			t.Errorf("expected [42], got %v", collected)
@@ -1518,7 +1518,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
 
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 		// We expect: ["a", ",", "b", ",", "c"]
 		want := []string{"a", ",", "b", ",", "c"}
 		if len(collected) != len(want) {
@@ -1542,7 +1542,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 		inters := seq.Intersperse(999)
 		res := inters.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "boom" {
@@ -1559,7 +1559,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 		inters := seq.Intersperse(999)
 		res := inters.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		errMsg := res.Err().Error()
 		if errMsg != "immediate failure" {
@@ -1605,7 +1605,7 @@ func TestSeqResultInspect(t *testing.T) {
 		if res.IsErr() {
 			t.Fatalf("expected Ok, got Err: %v", res.Err())
 		}
-		collected := res.UnwrapOrDefault()
+		collected := res.Ok()
 
 		// We expect Inspect to be called once per Ok value before yielding them.
 		if len(inspected) != 3 {
@@ -1647,7 +1647,7 @@ func TestSeqResultInspect(t *testing.T) {
 
 		res := inspectedSeq.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		if len(inspected) != 1 {
 			t.Errorf("expected 1 item inspected before the error, got %d", len(inspected))
@@ -1677,7 +1677,7 @@ func TestSeqResultInspect(t *testing.T) {
 
 		res := inspectedSeq.Collect()
 		if !res.IsErr() {
-			t.Fatalf("expected Err, got Ok(%v)", res.UnwrapOrDefault())
+			t.Fatalf("expected Err, got Ok(%v)", res.Ok())
 		}
 		if inspectedCount != 0 {
 			t.Errorf("expected 0 items inspected, got %d", inspectedCount)

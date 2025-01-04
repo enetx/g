@@ -104,16 +104,6 @@ func (r Result[T]) UnwrapOr(value T) T {
 	return value
 }
 
-// UnwrapOrDefault returns the value held in the Result. If the Result contains an error,
-// it returns the default value for type T. Otherwise, it returns the value held in the Result.
-func (r Result[T]) UnwrapOrDefault() T {
-	if r.IsOk() {
-		return r.Ok()
-	}
-
-	return *new(T)
-}
-
 // Expect returns the value held in the Result. If the Result contains an error, it panics with the provided message.
 func (r Result[T]) Expect(msg string) T {
 	if r.IsOk() {
