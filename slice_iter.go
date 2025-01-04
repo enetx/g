@@ -218,6 +218,7 @@ func (seq SeqSlice[V]) Count() Int {
 //	// 3 -> 1 (since 3 appears once)
 func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
 	result := NewMapOrd[V, Int]()
+
 	seq(func(v V) bool {
 		r := result.Get(v).UnwrapOrDefault()
 		r++
