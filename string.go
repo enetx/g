@@ -132,6 +132,27 @@ func (s String) ToFloat() Result[Float] {
 	return Ok(Float(float))
 }
 
+// ToRegexp compiles the String into a regular expression (regexp.Regexp).
+//
+// This method attempts to compile the String receiver into a regular expression using the
+// regexp.Compile function from the standard library. If the compilation is successful,
+// the function returns a Result containing the compiled *regexp.Regexp. If the compilation
+// fails due to an invalid regular expression pattern, the Result will contain the error.
+//
+// Returns:
+// - Result[*regexp.Regexp]: A Result containing the compiled *regexp.Regexp if successful, or an error otherwise.
+//
+// Example usage:
+//
+//	s := g.String(`^\d+$`)
+//	compiledRegex := s.ToRegexp()
+//	if compiledRegex.IsOk() {
+//	    fmt.Println("Regex compiled successfully")
+//	} else {
+//	    fmt.Println("Failed to compile regex:", compiledRegex.Err())
+//	}
+func (s String) ToRegexp() Result[*regexp.Regexp] { return ResultOf(regexp.Compile(s.Std())) }
+
 // Title converts the String to title case.
 func (s String) Title() String { return String(cases.Title(language.English).String(s.Std())) }
 

@@ -8,6 +8,60 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestToRegexp(t *testing.T) {
+	tests := []struct {
+		name         string
+		input        String
+		expectsOk    bool
+		expectsError bool
+		pattern      string
+	}{
+		{
+			name:         "ValidRegex",
+			input:        String(`^\d+$`),
+			expectsOk:    true,
+			expectsError: false,
+			pattern:      `^\d+$`,
+		},
+		{
+			name:         "InvalidRegex",
+			input:        String(`^[`),
+			expectsOk:    false,
+			expectsError: true,
+			pattern:      "",
+		},
+		{
+			name:         "EmptyRegex",
+			input:        String(""),
+			expectsOk:    true,
+			expectsError: false,
+			pattern:      "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.ToRegexp()
+			if tt.expectsOk {
+				if !result.IsOk() {
+					t.Errorf("Expected result to be OK, got error: %v", result.Err())
+				}
+				compiledRegex := result.Unwrap()
+				if tt.pattern != "" && compiledRegex.String() != tt.pattern {
+					t.Errorf("Compiled pattern mismatch: got %v, want %v", compiledRegex.String(), tt.pattern)
+				}
+			} else {
+				if result.IsOk() {
+					t.Errorf("Expected result to be an error, but got OK")
+				}
+				if result.Err() == nil {
+					t.Errorf("Expected an error, but got nil")
+				}
+			}
+		})
+	}
+}
+
 func TestRxReplace(t *testing.T) {
 	testCases := []struct {
 		input     String
