@@ -153,6 +153,63 @@ func TestBytesRxFind(t *testing.T) {
 	}
 }
 
+func TestBytesRxMatch(t *testing.T) {
+	pattern := regexp.MustCompile(`\d+`)
+	bs := Bytes("123abc456")
+	if !bs.RxMatch(pattern) {
+		t.Errorf("Expected match for pattern %v, but got none", pattern)
+	}
+
+	bs = Bytes("abc")
+	if bs.RxMatch(pattern) {
+		t.Errorf("Expected no match for pattern %v, but got one", pattern)
+	}
+}
+
+func TestBytesRxMatchAny(t *testing.T) {
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`\d+`),
+		regexp.MustCompile(`[a-z]+`),
+	}
+
+	bs := Bytes("123abc456")
+	if !bs.RxMatchAny(patterns...) {
+		t.Errorf("Expected match for one of the patterns, but got none")
+	}
+
+	bs = Bytes("123")
+	if !bs.RxMatchAny(patterns...) {
+		t.Errorf("Expected match for one of the patterns, but got none")
+	}
+
+	bs = Bytes("!@#")
+	if bs.RxMatchAny(patterns...) {
+		t.Errorf("Expected no match for any of the patterns, but got one")
+	}
+}
+
+func TestBytesRxMatchAll(t *testing.T) {
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`\d+`),
+		regexp.MustCompile(`[a-z]+`),
+	}
+
+	bs := Bytes("123abc")
+	if !bs.RxMatchAll(patterns...) {
+		t.Errorf("Expected match for all patterns, but got none")
+	}
+
+	bs = Bytes("123")
+	if bs.RxMatchAll(patterns...) {
+		t.Errorf("Expected no match for all patterns, but got one")
+	}
+
+	bs = Bytes("abc")
+	if bs.RxMatchAll(patterns...) {
+		t.Errorf("Expected no match for all patterns, but got one")
+	}
+}
+
 func TestBytesStripPrefix(t *testing.T) {
 	// Test case where cutset matches the prefix
 	bs1 := Bytes("prefix_hello world")

@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/f"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -159,6 +160,24 @@ func (bs Bytes) String() String { return String(bs) }
 
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
+
+// RxMatch checks if the Bytes contains a match for the specified regular expression pattern.
+func (bs Bytes) RxMatch(pattern *regexp.Regexp) bool { return f.RxMatch[Bytes](pattern)(bs) }
+
+// RxMatchAny checks if the Bytes contains a match for any of the specified regular
+// expression patterns.
+func (bs Bytes) RxMatchAny(patterns ...*regexp.Regexp) bool {
+	return Slice[*regexp.Regexp](patterns).
+		Iter().
+		Any(func(pattern *regexp.Regexp) bool { return bs.RxMatch(pattern) })
+}
+
+// RxMatchAll checks if the Bytes contains a match for all of the specified regular expression patterns.
+func (bs Bytes) RxMatchAll(patterns ...*regexp.Regexp) bool {
+	return Slice[*regexp.Regexp](patterns).
+		Iter().
+		All(func(pattern *regexp.Regexp) bool { return bs.RxMatch(pattern) })
+}
 
 // RxIndex searches for the first occurrence of the regular expression pattern in the Bytes.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
