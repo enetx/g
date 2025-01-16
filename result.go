@@ -14,7 +14,7 @@ func Ok[T any](value T) Result[T] { return Result[T]{value: value} }
 // Err returns a new Result[T] containing the given error.
 func Err[T any](err error) Result[T] {
 	if err == nil {
-		err = errors.New("nil error")
+		err = errors.New("Err called with nil error")
 	}
 
 	return Result[T]{err: err}

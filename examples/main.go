@@ -198,8 +198,8 @@ func main() {
 	ascii := String("💛💚💙💜")
 	fmt.Println(ascii.IsASCII())
 
-	reg := NewString("some text")
-	fmt.Println(reg.RxMatch(regexp.MustCompile(`\w+`)))
+	match := NewString("some text").Regexp().Match(regexp.MustCompile(`\w+`))
+	fmt.Println(match)
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 

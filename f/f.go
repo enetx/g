@@ -21,8 +21,8 @@ func IsEven[T constraints.Integer](i T) bool { return i%2 == 0 }
 // IsOdd is a generic function that checks if the provided integer is odd.
 func IsOdd[T constraints.Integer](i T) bool { return i%2 != 0 }
 
-// RxMatch returns a function that checks whether a string or []byte matches a given regular expression.
-func RxMatch[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
+// Match returns a function that checks whether a string or []byte matches a given regular expression.
+func Match[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
 	return func(s T) bool {
 		return t.MatchString(string(s))
 	}

@@ -348,7 +348,7 @@ func TestEndsWith(t *testing.T) {
 
 func TestFilterRxMatch(t *testing.T) {
 	regex := regexp.MustCompile(`^\d+$`)
-	matchDigits := f.RxMatch[string](regex)
+	matchDigits := f.Match[string](regex)
 
 	tests := []struct {
 		input    string

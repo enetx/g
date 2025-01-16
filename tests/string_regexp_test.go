@@ -41,7 +41,7 @@ func TestToRegexp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.ToRegexp()
+			result := tt.input.Regexp().Compile()
 			if tt.expectsOk {
 				if !result.IsOk() {
 					t.Errorf("Expected result to be OK, got error: %v", result.Err())
@@ -107,7 +107,7 @@ func TestRxReplace(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxReplace(tc.pattern, tc.newString)
+		result := tc.input.Regexp().Replace(tc.pattern, tc.newString)
 		if result != tc.expected {
 			t.Errorf("Expected %s, but got %s for input %s", tc.expected, result, tc.input)
 		}
@@ -147,7 +147,7 @@ func TestRxFind(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFind(tc.pattern)
+		result := tc.input.Regexp().Find(tc.pattern)
 		if result.IsSome() {
 			if result.Some() != tc.expected.Some() {
 				t.Errorf("Expected %s, but got %s for input %s", tc.expected.Some(), result.Some(), tc.input)
@@ -193,7 +193,7 @@ func TestRxMatch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxMatch(tc.pattern)
+		result := tc.input.Regexp().Match(tc.pattern)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -233,7 +233,7 @@ func TestRxMatchAny(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxMatchAny(tc.patterns...)
+		result := tc.input.Regexp().MatchAny(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -273,7 +273,7 @@ func TestRxMatchAll(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxMatchAll(tc.patterns...)
+		result := tc.input.Regexp().MatchAll(tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -313,7 +313,7 @@ func TestRxSplit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxSplit(tc.pattern)
+		result := tc.input.Regexp().Split(tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -358,7 +358,7 @@ func TestRxSplitN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxSplitN(tc.pattern, tc.n)
+		result := tc.input.Regexp().SplitN(tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s with n = %d", tc.expected, result, tc.input, tc.n)
 		}
@@ -392,7 +392,7 @@ func TestRxIndex(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxIndex(&tc.pattern)
+		result := tc.input.Regexp().Index(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -432,7 +432,7 @@ func TestRxFindAll(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFindAll(&tc.pattern)
+		result := tc.input.Regexp().FindAll(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -476,7 +476,7 @@ func TestRxFindAllN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFindAllN(&tc.pattern, tc.n)
+		result := tc.input.Regexp().FindAllN(&tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s and n = %d",
@@ -517,7 +517,7 @@ func TestRxFindSubmatch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFindSubmatch(&tc.pattern)
+		result := tc.input.Regexp().FindSubmatch(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -557,7 +557,7 @@ func TestRxFindAllSubmatch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFindAllSubmatch(&tc.pattern)
+		result := tc.input.Regexp().FindAllSubmatch(&tc.pattern)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -601,7 +601,7 @@ func TestRxFindAllSubmatchN(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.RxFindAllSubmatchN(&tc.pattern, tc.n)
+		result := tc.input.Regexp().FindAllSubmatchN(&tc.pattern, tc.n)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s and n = %d",

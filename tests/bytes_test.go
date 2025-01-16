@@ -106,7 +106,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs1 := Bytes("hello world hello world")
 	pattern1 := regexp.MustCompile("world")
 	newB1 := Bytes("gopher")
-	replaced1 := bs1.RxReplace(pattern1, newB1)
+	replaced1 := bs1.Regexp().Replace(pattern1, newB1)
 	expected1 := Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
@@ -116,7 +116,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs2 := Bytes("apple apple apple")
 	pattern2 := regexp.MustCompile(`(\w+)`)
 	newB2 := Bytes("${1}s")
-	replaced2 := bs2.RxReplace(pattern2, newB2)
+	replaced2 := bs2.Regexp().Replace(pattern2, newB2)
 	expected2 := Bytes("apples apples apples")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement with capture group failed. Expected: %s, Got: %s", expected2, replaced2)
@@ -126,7 +126,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs3 := Bytes("hello world")
 	pattern3 := regexp.MustCompile("gopher")
 	newB3 := Bytes("earth")
-	replaced3 := bs3.RxReplace(pattern3, newB3)
+	replaced3 := bs3.Regexp().Replace(pattern3, newB3)
 	if !bytes.Equal(replaced3, bs3) {
 		t.Errorf("Expected no change when pattern doesn't match. Got: %s", replaced3)
 	}
@@ -136,7 +136,7 @@ func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern matches and is found
 	bs1 := Bytes("hello world")
 	pattern1 := regexp.MustCompile("world")
-	found1 := bs1.RxFind(pattern1)
+	found1 := bs1.Regexp().Find(pattern1)
 	expected1 := Bytes("world")
 	if found1.IsNone() {
 		t.Errorf("Expected to find matching pattern, but found none")
@@ -147,7 +147,7 @@ func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern doesn't match
 	bs2 := Bytes("hello world")
 	pattern2 := regexp.MustCompile("gopher")
-	found2 := bs2.RxFind(pattern2)
+	found2 := bs2.Regexp().Find(pattern2)
 	if found2.IsSome() {
 		t.Errorf("Expected not to find matching pattern, but found one")
 	}
@@ -156,12 +156,12 @@ func TestBytesRxFind(t *testing.T) {
 func TestBytesRxMatch(t *testing.T) {
 	pattern := regexp.MustCompile(`\d+`)
 	bs := Bytes("123abc456")
-	if !bs.RxMatch(pattern) {
+	if !bs.Regexp().Match(pattern) {
 		t.Errorf("Expected match for pattern %v, but got none", pattern)
 	}
 
 	bs = Bytes("abc")
-	if bs.RxMatch(pattern) {
+	if bs.Regexp().Match(pattern) {
 		t.Errorf("Expected no match for pattern %v, but got one", pattern)
 	}
 }
@@ -173,17 +173,17 @@ func TestBytesRxMatchAny(t *testing.T) {
 	}
 
 	bs := Bytes("123abc456")
-	if !bs.RxMatchAny(patterns...) {
+	if !bs.Regexp().MatchAny(patterns...) {
 		t.Errorf("Expected match for one of the patterns, but got none")
 	}
 
 	bs = Bytes("123")
-	if !bs.RxMatchAny(patterns...) {
+	if !bs.Regexp().MatchAny(patterns...) {
 		t.Errorf("Expected match for one of the patterns, but got none")
 	}
 
 	bs = Bytes("!@#")
-	if bs.RxMatchAny(patterns...) {
+	if bs.Regexp().MatchAny(patterns...) {
 		t.Errorf("Expected no match for any of the patterns, but got one")
 	}
 }
@@ -195,17 +195,17 @@ func TestBytesRxMatchAll(t *testing.T) {
 	}
 
 	bs := Bytes("123abc")
-	if !bs.RxMatchAll(patterns...) {
+	if !bs.Regexp().MatchAll(patterns...) {
 		t.Errorf("Expected match for all patterns, but got none")
 	}
 
 	bs = Bytes("123")
-	if bs.RxMatchAll(patterns...) {
+	if bs.Regexp().MatchAll(patterns...) {
 		t.Errorf("Expected no match for all patterns, but got one")
 	}
 
 	bs = Bytes("abc")
-	if bs.RxMatchAll(patterns...) {
+	if bs.Regexp().MatchAll(patterns...) {
 		t.Errorf("Expected no match for all patterns, but got one")
 	}
 }
@@ -694,7 +694,7 @@ func TestBytesRxIndex(t *testing.T) {
 	// Test case where a match is found
 	bs := Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
-	idx := bs.RxIndex(pattern)
+	idx := bs.Regexp().Index(pattern)
 	expected := Some(Slice[Int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -703,7 +703,7 @@ func TestBytesRxIndex(t *testing.T) {
 	// Test case where no match is found
 	bs = Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
-	idx = bs.RxIndex(pattern)
+	idx = bs.Regexp().Index(pattern)
 	expected = None[Slice[Int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -959,7 +959,7 @@ func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.RxFindAllSubmatchN(pattern, -1)
+	matches := bs.Regexp().FindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
 		expected := Slice[Slice[Bytes]]{
 			{Bytes("hello")},
@@ -975,7 +975,7 @@ func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.RxFindAllSubmatchN(pattern, -1)
+	matches = bs.Regexp().FindAllSubmatchN(pattern, -1)
 	if matches.IsSome() {
 		t.Errorf("FindAllSubmatchRegexpN failed. Expected None, Got matches")
 	}
@@ -985,7 +985,7 @@ func TestBytesRxFindAll(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.RxFindAll(pattern)
+	matches := bs.Regexp().FindAll(pattern)
 	if matches.IsSome() {
 		expected := Slice[Bytes]{
 			Bytes("hello"),
@@ -1001,7 +1001,7 @@ func TestBytesRxFindAll(t *testing.T) {
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.RxFindAll(pattern)
+	matches = bs.Regexp().FindAll(pattern)
 	if matches.IsSome() {
 		t.Errorf("FindAllRegexp failed. Expected None, Got matches")
 	}
@@ -1011,7 +1011,7 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where a match is found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	match := bs.RxFindSubmatch(pattern)
+	match := bs.Regexp().FindSubmatch(pattern)
 	if match.IsSome() {
 		expected := SliceOf(Bytes("hello"))
 		if !match.Some().Eq(expected) {
@@ -1024,7 +1024,7 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where no match is found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	match = bs.RxFindSubmatch(pattern)
+	match = bs.Regexp().FindSubmatch(pattern)
 	if match.IsSome() {
 		t.Errorf("FindSubmatchRegexp failed. Expected None, Got match")
 	}
@@ -1034,7 +1034,7 @@ func TestBytesRxFindAllSubmatch(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.RxFindAllSubmatch(pattern)
+	matches := bs.Regexp().FindAllSubmatch(pattern)
 	if matches.IsSome() {
 		expected := Slice[Slice[Bytes]]{
 			{Bytes("hello")},
@@ -1050,7 +1050,7 @@ func TestBytesRxFindAllSubmatch(t *testing.T) {
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.RxFindAllSubmatch(pattern)
+	matches = bs.Regexp().FindAllSubmatch(pattern)
 	if matches.IsSome() {
 		t.Errorf("FindAllSubmatchRegexp failed. Expected None, Got matches")
 	}

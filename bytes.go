@@ -2,12 +2,10 @@ package g
 
 import (
 	"bytes"
-	"regexp"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/f"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
@@ -38,24 +36,6 @@ func (bs Bytes) Replace(oldB, newB Bytes, n Int) Bytes { return bytes.Replace(bs
 
 // ReplaceAll replaces all occurrences of 'oldB' with 'newB' in the Bytes.
 func (bs Bytes) ReplaceAll(oldB, newB Bytes) Bytes { return bytes.ReplaceAll(bs, oldB, newB) }
-
-// RxReplace replaces all occurrences of the regular expression matches in the Bytes
-// with the provided newB and returns the resulting Bytes after the replacement.
-func (bs Bytes) RxReplace(pattern *regexp.Regexp, newB Bytes) Bytes {
-	return pattern.ReplaceAll(bs, newB)
-}
-
-// RxFind searches the Bytes for the first occurrence of the regular expression pattern
-// and returns an Option[Bytes] containing the matched substring.
-// If no match is found, the Option[Bytes] will be None.
-func (bs Bytes) RxFind(pattern *regexp.Regexp) Option[Bytes] {
-	result := Bytes(pattern.Find(bs))
-	if result.Empty() {
-		return None[Bytes]()
-	}
-
-	return Some(result)
-}
 
 // Trim trims leading and trailing white space from the Bytes.
 func (bs Bytes) Trim() Bytes { return bytes.TrimSpace(bs) }
@@ -159,100 +139,6 @@ func (bs Bytes) String() String { return String(bs) }
 
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
-
-// RxMatch checks if the Bytes contains a match for the specified regular expression pattern.
-func (bs Bytes) RxMatch(pattern *regexp.Regexp) bool { return f.RxMatch[Bytes](pattern)(bs) }
-
-// RxMatchAny checks if the Bytes contains a match for any of the specified regular
-// expression patterns.
-func (bs Bytes) RxMatchAny(patterns ...*regexp.Regexp) bool {
-	return Slice[*regexp.Regexp](patterns).
-		Iter().
-		Any(func(pattern *regexp.Regexp) bool { return bs.RxMatch(pattern) })
-}
-
-// RxMatchAll checks if the Bytes contains a match for all of the specified regular expression patterns.
-func (bs Bytes) RxMatchAll(patterns ...*regexp.Regexp) bool {
-	return Slice[*regexp.Regexp](patterns).
-		Iter().
-		All(func(pattern *regexp.Regexp) bool { return bs.RxMatch(pattern) })
-}
-
-// RxIndex searches for the first occurrence of the regular expression pattern in the Bytes.
-// If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
-// If no match is found, it returns None.
-func (bs Bytes) RxIndex(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := TransformSlice(pattern.FindIndex(bs), NewInt)
-	if result.Empty() {
-		return None[Slice[Int]]()
-	}
-
-	return Some(result)
-}
-
-// RxFindAll searches the Bytes for all occurrences of the regular expression pattern
-// and returns an Option[Slice[Bytes]] containing a slice of matched substrings.
-// If no matches are found, the Option[Slice[Bytes]] will be None.
-func (bs Bytes) RxFindAll(pattern *regexp.Regexp) Option[Slice[Bytes]] {
-	return bs.RxFindAllN(pattern, -1)
-}
-
-// RxFindAllN searches the Bytes for up to n occurrences of the regular expression pattern
-// and returns an Option[Slice[Bytes]] containing a slice of matched substrings.
-// If no matches are found, the Option[Slice[Bytes]] will be None.
-// If n is negative, all occurrences will be returned.
-func (bs Bytes) RxFindAllN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
-	result := TransformSlice(pattern.FindAll(bs, n.Std()), NewBytes)
-	if result.Empty() {
-		return None[Slice[Bytes]]()
-	}
-
-	return Some(result)
-}
-
-// RxFindSubmatch searches the Bytes for the first occurrence of the regular expression pattern
-// and returns an Option[Slice[Bytes]] containing the matched substrings and submatches.
-// The Option[Slice[Bytes]] will contain an Slice[Bytes] for each match,
-// where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
-// If no match is found, the Option[Slice[Bytes]] will be None.
-func (bs Bytes) RxFindSubmatch(pattern *regexp.Regexp) Option[Slice[Bytes]] {
-	result := TransformSlice(pattern.FindSubmatch(bs), NewBytes)
-	if result.Empty() {
-		return None[Slice[Bytes]]()
-	}
-
-	return Some(result)
-}
-
-// RxFindAllSubmatch searches the Bytes for all occurrences of the regular expression pattern
-// and returns an Option[Slice[Slice[Bytes]]] containing the matched substrings and submatches.
-// The Option[Slice[Slice[Bytes]]] will contain an Slice[Bytes] for each match,
-// where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
-// If no match is found, the Option[Slice[Slice[Bytes]]] will be None.
-// This method is equivalent to calling SubmatchAllRegexpN with n = -1, which means it finds all occurrences.
-func (bs Bytes) RxFindAllSubmatch(pattern *regexp.Regexp) Option[Slice[Slice[Bytes]]] {
-	return bs.RxFindAllSubmatchN(pattern, -1)
-}
-
-// RxFindAllSubmatchN searches the Bytes for occurrences of the regular expression pattern
-// and returns an Option[Slice[Slice[Bytes]]] containing the matched substrings and submatches.
-// The Option[Slice[Slice[Bytes]]] will contain an Slice[Bytes] for each match,
-// where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
-// If no match is found, the Option[Slice[Slice[Bytes]]] will be None.
-// The 'n' parameter specifies the maximum number of matches to find. If n is negative, it finds all occurrences.
-func (bs Bytes) RxFindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Slice[Bytes]]] {
-	var result Slice[Slice[Bytes]]
-
-	for _, v := range pattern.FindAllSubmatch(bs, n.Std()) {
-		result = append(result, TransformSlice(v, NewBytes))
-	}
-
-	if result.Empty() {
-		return None[Slice[Slice[Bytes]]]()
-	}
-
-	return Some(result)
-}
 
 // LastIndex returns the index of the last instance of obs in bs, or -1 if obs is not present in bs.
 func (bs Bytes) LastIndex(obs Bytes) Int { return Int(bytes.LastIndex(bs, obs)) }
