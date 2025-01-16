@@ -134,6 +134,10 @@ func (i Int) UInt64() uint64 { return uint64(i) }
 // UInt8 returns the Int as a uint8.
 func (i Int) UInt8() uint8 { return uint8(i) }
 
-// Print prints the value of the Int to the standard output (console)
+// Print writes the value of the Int to the standard output (console)
 // and returns the Int unchanged.
-func (i Int) Print() Int { fmt.Println(i); return i }
+func (i Int) Print() Int { Print(i); return i }
+
+// Println writes the value of the Int to the standard output (console) with a newline
+// and returns the Int unchanged.
+func (i Int) Println() Int { Println(i); return i }

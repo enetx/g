@@ -13,7 +13,7 @@ func main() {
 		Cycle().   // Cycle through the elements in the slice
 		Take(10).  // Take the first 10 elements from the cycled sequence
 		Collect(). // Collect the resulting sequence
-		Print()    // Print the collected sequence
+		Println()  // Print the collected sequence
 
 	// Output: Slice[bbb, ddd, aaa, ccc, bbb, ddd, aaa, ccc, bbb, ddd]
 }

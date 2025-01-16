@@ -2,7 +2,6 @@ package g
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -372,9 +371,13 @@ func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
 // Path returns the absolute path of the file.
 func (f *File) Path() Result[String] { return f.filePath() }
 
-// Print prints the content of the File to the standard output (console)
+// Print writes the content of the File to the standard output (console)
 // and returns the File unchanged.
-func (f *File) Print() *File { fmt.Println(f); return f }
+func (f *File) Print() *File { Print(f); return f }
+
+// Println writes the content of the File to the standard output (console) with a newline
+// and returns the File unchanged.
+func (f *File) Println() *File { Println(f); return f }
 
 // Read opens the named file with a read-lock and returns its contents.
 func (f *File) Read() Result[String] {

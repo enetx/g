@@ -17,7 +17,7 @@ func main() {
 	fmt.Println(f.Path().Unwrap(), f.Read().Unwrap())
 
 	// Calculate the MD5 hash of the file's content and print it
-	f.Read().Unwrap().Hash().MD5().Print()
+	f.Read().Unwrap().Hash().MD5().Println()
 
 	// Remove the temporary file and print whether it still exists
 	fmt.Println(f.Remove().Unwrap().Exist())

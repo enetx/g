@@ -13,7 +13,7 @@ func main() {
 
 	// Zip the slices in parallel and collect the resulting tuples
 	zipped := slice1.Zip(slice2).Collect()
-	zipped.Print() // MapOrd{1:4, 2:5, 3:6}
+	zipped.Println() // MapOrd{1:4, 2:5, 3:6}
 
 	// Iterate over the zipped tuples and print each one
 	for _, v := range zipped {

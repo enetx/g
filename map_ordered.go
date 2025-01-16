@@ -1,7 +1,6 @@
 package g
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/enetx/g/cmp"
@@ -378,6 +377,10 @@ func (mo MapOrd[K, V]) Ne(other MapOrd[K, V]) bool { return !mo.Eq(other) }
 // NotEmpty checks if the ordered Map is not empty.
 func (mo MapOrd[K, V]) NotEmpty() bool { return !mo.Empty() }
 
-// Print prints the key-value pairs of the MapOrd to the standard output (console)
-// and returns the MapOrd pointer unchanged.
-func (mo MapOrd[K, V]) Print() MapOrd[K, V] { fmt.Println(mo); return mo }
+// Print writes the key-value pairs of the MapOrd to the standard output (console)
+// and returns the MapOrd unchanged.
+func (mo MapOrd[K, V]) Print() MapOrd[K, V] { Print(mo); return mo }
+
+// Println writes the key-value pairs of the MapOrd to the standard output (console) with a newline
+// and returns the MapOrd unchanged.
+func (mo MapOrd[K, V]) Println() MapOrd[K, V] { Println(mo); return mo }

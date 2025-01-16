@@ -32,6 +32,6 @@ func main() {
 
 	// Iterate over the permutations and print each one
 	for _, v := range pp {
-		v.Print()
+		v.Println()
 	}
 }

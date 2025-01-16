@@ -1,7 +1,6 @@
 package g
 
 import (
-	"fmt"
 	"maps"
 
 	"github.com/enetx/g/f"
@@ -211,6 +210,10 @@ func (m Map[K, V]) NotEmpty() bool { return !m.Empty() }
 // Set sets the value for the given key in the Map.
 func (m Map[K, V]) Set(key K, value V) Map[K, V] { m[key] = value; return m }
 
-// Print prints the key-value pairs of the Map to the standard output (console)
+// Print writes the key-value pairs of the Map to the standard output (console)
 // and returns the Map unchanged.
-func (m Map[K, V]) Print() Map[K, V] { fmt.Println(m); return m }
+func (m Map[K, V]) Print() Map[K, V] { Print(m); return m }
+
+// Println writes the key-value pairs of the Map to the standard output (console) with a newline
+// and returns the Map unchanged.
+func (m Map[K, V]) Println() Map[K, V] { Println(m); return m }

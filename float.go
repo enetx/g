@@ -2,7 +2,6 @@ package g
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"math/big"
 	"math/bits"
@@ -131,6 +130,10 @@ func (f Float) UInt64() uint64 { return math.Float64bits(f.Std()) }
 // Float32 returns the Float as a float32.
 func (f Float) Float32() float32 { return float32(f) }
 
-// Print prints the value of the Float to the standard output (console)
+// Print writes the value of the Float to the standard output (console)
 // and returns the Float unchanged.
-func (f Float) Print() Float { fmt.Println(f); return f }
+func (f Float) Print() Float { Print(f); return f }
+
+// Println writes the value of the Float to the standard output (console) with a newline
+// and returns the Float unchanged.
+func (f Float) Println() Float { Println(f); return f }

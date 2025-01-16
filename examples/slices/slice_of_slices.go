@@ -22,29 +22,29 @@ func main() {
 		return cmp.Less
 	})
 
-	nx.Print()
+	nx.Println()
 
-	nx = nx.Iter().Dedup().Collect().Print()
+	nx = nx.Iter().Dedup().Collect().Println()
 
 	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return b.Get(0).Cmp(a.Get(0)) })
-	nx.Print()
+	nx.Println()
 
 	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return a.Len().Cmp(b.Len()) })
-	nx.Print()
+	nx.Println()
 
 	nx.Reverse()
-	nx.Print()
+	nx.Println()
 
-	nx.Random().Print()
-	nx.RandomSample(2).Print()
+	nx.Random().Println()
+	nx.RandomSample(2).Println()
 
 	ch := nx.Iter().Chunks(2).Collect() // return []Slice[T]
 	chunks := SliceOf(ch...)            // make slice chunks
-	chunks.Print()
+	chunks.Println()
 
 	// pr := nx.Iter().Permutations().Collect() // return []Slice[T]
 	// permutations := g.SliceOf(pr...)         // make slice permutations
-	// permutations.Print()
+	// permutations.Println()
 
 	m := NewMap[string, Slice[Slice[String]]]()
 	m.Set("one", nx)
@@ -63,8 +63,8 @@ func main() {
 		SliceOf(4.5, 6.7),
 	}
 
-	nestedSlice.Print()                            // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
-	nestedSlice.Iter().Flatten().Collect().Print() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+	nestedSlice.Println()                            // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
+	nestedSlice.Iter().Flatten().Collect().Println() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
 
 	nestedSlice2 := Slice[any]{
 		1,
@@ -78,5 +78,5 @@ func main() {
 	}
 
 	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], {1 1}, {2 2}]
-	nestedSlice2.Iter().Flatten().Collect().Print()
+	nestedSlice2.Iter().Flatten().Collect().Println()
 }

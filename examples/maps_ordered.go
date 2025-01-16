@@ -23,9 +23,9 @@ func main() {
 		gos.GetOrSet(i, ref.Of(NewSlice[int]())).AppendInPlace(i)
 	}
 
-	gos.Print()
+	gos.Println()
 	gos.Shuffle()
-	gos.Print()
+	gos.Println()
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -45,7 +45,7 @@ func main() {
 		god.Set(i, god.Get(i).Some().Append(i))
 	}
 
-	god.Print()
+	god.Println()
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -63,17 +63,17 @@ func main() {
 		Set(888, 300)
 
 	if r := ms1.Get(888); r.IsSome() {
-		r.Some().Print()
+		r.Some().Println()
 	}
 
 	if r := ms1.Get(11); r.IsSome() {
-		r.Some().Print()
+		r.Some().Println()
 	}
 
 	ms1.Set(1, 223)
 
-	ms.Print()
-	ms1.Print()
+	ms.Println()
+	ms1.Println()
 
 	fmt.Println(ms.Eq(ms1))
 	fmt.Println(ms.Contains(12))
@@ -81,7 +81,7 @@ func main() {
 	ms.Iter().ForEach(func(k, v Int) { fmt.Println(k, v) })
 
 	ms = ms.Iter().Map(func(k, v Int) (Int, Int) { return k.Mul(2), v.Mul(2) }).Collect()
-	ms.Print()
+	ms.Println()
 
 	ms.Delete(22)
 	fmt.Println(ms.Contains(22))
@@ -116,5 +116,5 @@ func main() {
 	mss.SortByValue(func(a, b Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
-	// MapOrdFromStd(mss.ToMap().Std()).Print()
+	// MapOrdFromStd(mss.ToMap().Std()).Println()
 }

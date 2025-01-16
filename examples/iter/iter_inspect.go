@@ -23,5 +23,5 @@ func main() {
 		Map(func(k int, v string) (int, string) { return k, v + v }).
 		// Map values to concatenate them with themselves
 		Collect(). // Collect the resulting ordered map
-		Print()    // Print the ordered map
+		Println()  // Print the ordered map
 }

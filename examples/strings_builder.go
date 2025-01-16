@@ -15,5 +15,5 @@ func main() {
 			Write("\n")
 	}
 
-	builder.String().Print()
+	builder.String().Println()
 }

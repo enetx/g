@@ -14,7 +14,7 @@ func main() {
 
 	f.Close()
 
-	f.Read().Unwrap().Print()
+	f.Read().Unwrap().Println()
 
 	stat := f.Stat().Unwrap()
 	fmt.Printf("Name(): %v\n", f.Name())
@@ -25,22 +25,22 @@ func main() {
 	fmt.Printf("ModeTime(): %v\n", stat.ModTime())
 
 	fmt.Println(f.Exist())
-	f.Dir().Unwrap().Path().Unwrap().Print()
-	f.Path().Unwrap().Print()
+	f.Dir().Unwrap().Path().Unwrap().Println()
+	f.Path().Unwrap().Println()
 
 	f = f.Rename("aaa/aaa/aaa/fff.txt").Ok().Copy(f.Dir().Ok().Join("copy_of_aaa.txt").Ok()).Ok()
-	f.Name().Print()
+	f.Name().Println()
 
-	f.Ext().Print()
-	f.MimeType().Unwrap().Print()
+	f.Ext().Println()
+	f.MimeType().Unwrap().Println()
 
 	fmt.Println("--------------------------------------------------------------")
 
-	f.Path().Unwrap().Print()
+	f.Path().Unwrap().Println()
 
 	dir, file := f.Split()
 	fmt.Println(dir.Path().Unwrap(), file.Name())
 
 	newFile := NewFile(dir.Join(file.Name()).Ok())
-	newFile.Path().Ok().Print()
+	newFile.Path().Ok().Println()
 }

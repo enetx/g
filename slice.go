@@ -860,9 +860,13 @@ func (sl Slice[T]) Clip() Slice[T] { return slices.Clip(sl) }
 // Std returns a new slice with the same elements as the Slice[T].
 func (sl Slice[T]) Std() []T { return sl }
 
-// Print prints the elements of the Slice to the standard output (console)
+// Print writes the elements of the Slice to the standard output (console)
 // and returns the Slice unchanged.
-func (sl Slice[T]) Print() Slice[T] { fmt.Println(sl); return sl }
+func (sl Slice[T]) Print() Slice[T] { Print(sl); return sl }
+
+// Println writes the elements of the Slice to the standard output (console) with a newline
+// and returns the Slice unchanged.
+func (sl Slice[T]) Println() Slice[T] { Println(sl); return sl }
 
 // Unpack assigns values of the slice's elements to the variables passed as pointers.
 // If the number of variables passed is greater than the length of the slice,

@@ -15,6 +15,6 @@ func main() {
 
 	// Iterate over the resulting slice pp and print each element
 	for _, v := range pp {
-		v.Print()
+		v.Println()
 	}
 }

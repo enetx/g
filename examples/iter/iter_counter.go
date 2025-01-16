@@ -12,5 +12,5 @@ func main() {
 		Counter().
 		SortBy(func(a, b Pair[int, Int]) cmp.Ordering { return b.Value.Cmp(a.Value) }).
 		Collect().
-		Print() // MapOrd{1:3, 2:2, 3:1}
+		Println() // MapOrd{1:3, 2:2, 3:1}
 }

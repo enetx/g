@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// Wait for all tasks to complete and print the results
-	pool.Wait().Print()
+	pool.Wait().Println()
 
 	if cause := pool.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

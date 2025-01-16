@@ -19,5 +19,5 @@ func main() {
 		Filter(f.IsEven).                      // Filter even numbers
 		Map(func(i int) int { return i * 2 }). // Double each element
 		Collect().                             // Collect the results into a slice
-		Print()                                // Print the collected results: Slice[4, 8]
+		Println()                              // Print the collected results: Slice[4, 8]
 }

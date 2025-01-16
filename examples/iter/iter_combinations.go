@@ -34,6 +34,6 @@ func main() {
 	// Iterate over the combinations and print each one
 	// AB AC AD BC BD CD
 	for _, v := range pp {
-		v.Print()
+		v.Println()
 	}
 }

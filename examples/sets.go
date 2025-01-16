@@ -24,25 +24,25 @@ func main() {
 			fmt.Println(i)
 		}).
 		Collect().
-		Print()
+		Println()
 
 	s2 := SetOf(4, 5, 6, 7, 8)
-	s.SymmetricDifference(s2).Collect().Print()
+	s.SymmetricDifference(s2).Collect().Println()
 
 	set5 := SetOf(1, 2)
 	set6 := SetOf(2, 3, 4, 9)
 
-	s.Iter().Chain(set5.Iter(), set6.Iter()).Map(func(i int) int { return i + i }).Collect().Print()
+	s.Iter().Chain(set5.Iter(), set6.Iter()).Map(func(i int) int { return i + i }).Collect().Println()
 
 	set7 := set5.Difference(set6).Collect()
-	set7.Print()
+	set7.Println()
 
 	s = SetOf(1, 2, 3, 4, 5)
 	even = s.Iter().Filter(f.IsEven).Collect()
-	even.Print()
+	even.Println()
 
 	s = s.Remove(1)
-	s.Print()
+	s.Println()
 
 	// iterate over set
 	for value := range s {

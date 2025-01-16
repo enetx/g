@@ -1,7 +1,6 @@
 package g
 
 import (
-	"fmt"
 	"maps"
 )
 
@@ -182,12 +181,22 @@ func (ms *MapSafe[K, V]) String() string {
 	return builder.String().StripSuffix(", ").Format("MapSafe{%s}").Std()
 }
 
-// Print prints the key-value pairs of the MapSafe to the standard output (console)
+// Print writes the key-value pairs of the MapSafe to the standard output (console)
 // and returns the MapSafe unchanged.
 func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	fmt.Println(ms)
+	Print(ms)
+	return ms
+}
+
+// Println writes the key-value pairs of the MapSafe to the standard output (console) with a newline
+// and returns the MapSafe unchanged.
+func (ms *MapSafe[K, V]) Println() *MapSafe[K, V] {
+	ms.mu.RLock()
+	defer ms.mu.RUnlock()
+
+	Println(ms)
 	return ms
 }

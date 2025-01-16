@@ -8,11 +8,11 @@ func main() {
 		Iter().
 		Dedup().   // Remove duplicate elements
 		Collect(). // Collect the resulting slice
-		Print()    // Print the collected slice: Slice[1, 3, 4, 8, 9]
+		Println()  // Print the collected slice: Slice[1, 3, 4, 8, 9]
 
 	SliceOf([]int{1, 2, 3}, []int{1, 2, 3}, []int{1, 2}).
 		Iter().
 		Dedup().
 		Collect().
-		Print() // Slice[[1 2 3], [1 2]]
+		Println() // Slice[[1 2 3], [1 2]]
 }

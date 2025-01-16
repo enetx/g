@@ -1,13 +1,46 @@
 package g
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
+
+// Fprintf formats according to a format specifier and writes to w.
+// It returns the number of bytes written and any write error encountered.
+func Fprintf[T ~string](w io.Writer, format T, a ...any) (int, error) {
+	return fmt.Fprintf(w, string(format), a...)
+}
+
+// Printf formats according to a format specifier and writes to standard output.
+// It returns the number of bytes written and any write error encountered.
+func Printf[T ~string](format T, a ...any) (int, error) { return fmt.Printf(string(format), a...) }
 
 // Sprintf formats according to a format specifier and returns the resulting String.
 func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
 
+// Fprint writes the output to w using the default formats for its operands.
+// It returns the number of bytes written and any write error encountered.
+func Fprint(w io.Writer, a ...any) (int, error) { return fmt.Fprint(w, a...) }
+
+// Print writes the output to standard output using the default formats for its operands.
+// It returns the number of bytes written and any write error encountered.
+func Print(a ...any) (int, error) { return fmt.Print(a...) }
+
 // Sprint formats using the default formats for its operands and returns the resulting String.
 // Spaces are added between operands when neither is a string.
 func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
+
+// Fprintln writes the output to w followed by a newline using the default formats for its operands.
+// It returns the number of bytes written and any write error encountered.
+func Fprintln(w io.Writer, a ...any) (int, error) { return fmt.Fprintln(w, a...) }
+
+// Println writes the output to standard output followed by a newline using the default formats for its operands.
+// It returns the number of bytes written and any write error encountered.
+func Println(a ...any) (int, error) { return fmt.Println(a...) }
+
+// Sprintln formats using the default formats for its operands and returns the resulting String.
+// Spaces are added between operands when neither is a string. A newline is appended.
+func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 
 // Format formats a string (str) by replacing placeholders with values from a map (args)
 // and returns the result as a String. Placeholders in the format string should be enclosed

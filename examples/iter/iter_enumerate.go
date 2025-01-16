@@ -10,5 +10,5 @@ func main() {
 		Collect()    // Collect the resulting pairs
 
 	// Print the ordered map
-	ps.Print() // MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
+	ps.Println() // MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
 }

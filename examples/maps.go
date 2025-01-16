@@ -28,7 +28,7 @@ func main() {
 		gos2.Set(i, gos2.Get(i).Some().Append(i))
 	}
 
-	gos2.Print()
+	gos2.Println()
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -42,5 +42,5 @@ func main() {
 		god[i] = god.Get(i).Some().Append(i)
 	}
 
-	god.Print()
+	god.Println()
 }

@@ -2,7 +2,6 @@ package g
 
 import (
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -517,6 +516,10 @@ func (d *Dir) Walk(walker func(f *File) error) error {
 // String returns the String representation of the current directory's path.
 func (d *Dir) String() String { return d.path }
 
-// Print prints the content of the Dir to the standard output (console)
+// Print writes the content of the Dir to the standard output (console)
 // and returns the Dir unchanged.
-func (d *Dir) Print() *Dir { fmt.Println(d); return d }
+func (d *Dir) Print() *Dir { Print(d); return d }
+
+// Println writes the content of the Dir to the standard output (console) with a newline
+// and returns the Dir unchanged.
+func (d *Dir) Println() *Dir { Println(d); return d }

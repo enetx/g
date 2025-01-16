@@ -1,7 +1,5 @@
 package g
 
-import "fmt"
-
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {
 	if len(size) == 0 {
@@ -289,6 +287,10 @@ func (s Set[T]) String() string {
 	return builder.String().StripSuffix(", ").Format("Set{%s}").Std()
 }
 
-// Print prints the elements of the Set to the standard output (console)
+// Print writes the elements of the Set to the standard output (console)
 // and returns the Set unchanged.
-func (s Set[T]) Print() Set[T] { fmt.Println(s); return s }
+func (s Set[T]) Print() Set[T] { Print(s); return s }
+
+// Println writes the elements of the Set to the standard output (console) with a newline
+// and returns the Set unchanged.
+func (s Set[T]) Println() Set[T] { Println(s); return s }

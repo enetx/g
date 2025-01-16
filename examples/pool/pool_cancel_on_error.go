@@ -20,7 +20,7 @@ func main() {
 		})
 	}
 
-	pool.Wait().Print()
+	pool.Wait().Println()
 
 	if cause := pool.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

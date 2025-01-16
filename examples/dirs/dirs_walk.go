@@ -18,7 +18,7 @@ func walker(f *File) error {
 	}
 
 	// Print the path
-	f.Path().Ok().Print()
+	f.Path().Ok().Println()
 
 	return nil
 }

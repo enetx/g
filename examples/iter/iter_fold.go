@@ -15,6 +15,6 @@ func main() {
 			func(acc, val String) String {
 				// Folding function: concatenate each element in the iterator with the accumulator
 				return Sprintf("(%s + %s)", acc, val)
-			}).
-		Print() // (((((0 + 1) + 2) + 3) + 4) + 5)
+				}).
+		Println() // (((((0 + 1) + 2) + 3) + 4) + 5)
 }

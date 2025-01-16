@@ -7,7 +7,7 @@ func main() {
 		Iter().
 		Find(func(v Int) bool { return v%2 == 0 }).
 		Some().
-		Print() // 4
+		Println() // 4
 
 	m := NewMap[Int, Int]().Set(1, 11).Set(2, 22).Set(3, 33)
 	m.
@@ -15,12 +15,12 @@ func main() {
 		Find(func(_, v Int) bool { return v == 22 }).
 		Some().
 		Key.
-		Print() // 2
+		Println() // 2
 
 	m.ToMapOrd().
 		Iter().
 		Find(func(_, v Int) bool { return v == 33 }).
 		Some().
 		Key.
-		Print() // 3
+		Println() // 3
 }

@@ -2,7 +2,6 @@ package g
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 	"unicode"
 	"unicode/utf8"
@@ -309,9 +308,13 @@ func (bs Bytes) Lower() Bytes { return cases.Lower(language.English).Bytes(bs) }
 // Upper converts the Bytes to uppercase.
 func (bs Bytes) Upper() Bytes { return cases.Upper(language.English).Bytes(bs) }
 
-// Print prints the content of the Bytes to the standard output (console)
+// Print writes the content of the Bytes to the standard output (console)
 // and returns the Bytes unchanged.
-func (bs Bytes) Print() Bytes { fmt.Println(bs); return bs }
+func (bs Bytes) Print() Bytes { Print(bs); return bs }
+
+// Println writes the content of the Bytes to the standard output (console) with a newline
+// and returns the Bytes unchanged.
+func (bs Bytes) Println() Bytes { Println(bs); return bs }
 
 // trimBytesStart trims the leading whitespace characters from the byte slice.
 func trimBytesStart(s []byte) []byte {

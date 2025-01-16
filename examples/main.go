@@ -12,13 +12,13 @@ func main() {
 	// strings
 	str := NewString("") // declaration and assignation
 
-	str.Random(9).Print()
-	str.Hash().MD5().Print()
+	str.Random(9).Println()
+	str.Hash().MD5().Println()
 
 	str = "test"
-	str.Compress().Flate().Decompress().Flate().Unwrap().Print()
+	str.Compress().Flate().Decompress().Flate().Unwrap().Println()
 
-	NewString("12").ToInt().Ok().Print()
+	NewString("12").ToInt().Ok().Println()
 
 	var jsonSet Set[int]
 
@@ -54,12 +54,12 @@ func main() {
 
 	fmt.Printf("%v\n", n.Bytes())
 
-	n.Hash().MD5().Print()
-	n.Hash().SHA1().Print()
-	n.Hash().SHA256().Print()
+	n.Hash().MD5().Println()
+	n.Hash().SHA1().Println()
+	n.Hash().SHA256().Println()
 
-	n.Binary().Print()
-	n.String().Print()
+	n.Binary().Println()
+	n.String().Println()
 
 	rn := NewInt(10).Random()
 	fmt.Println("random number: ", rn)
@@ -71,12 +71,12 @@ func main() {
 
 	fmt.Println(n2) // declaration and assignation
 
-	n.Add(n2).Mul(3).Print()
+	n.Add(n2).Mul(3).Println()
 
 	// floats
 
 	fl := NewFloat(12.5456)
-	fl.Round().Print() // 13
+	fl.Round().Println() // 13
 
 	// slices
 	sl := NewSlice[String]().Append(a, b, c, d, e) // declaration and assignation
@@ -87,7 +87,7 @@ func main() {
 	fmt.Println(sl.Get(1) == "bbb")
 	fmt.Println(sl.Get(-2) == "ddd")
 
-	sl.Iter().Map(String.Upper).Collect().Print()
+	sl.Iter().Map(String.Upper).Collect().Println()
 
 	counter := sl.Append(sl...).Append("ddd").Iter().Counter().Collect()
 
@@ -95,11 +95,11 @@ func main() {
 		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
 	})
 
-	counter.Print() // Output: MapOrd{ddd:3, abc:2, bbb:2, ccc:2, eee:2}
+	counter.Println() // Output: MapOrd{ddd:3, abc:2, bbb:2, ccc:2, eee:2}
 
 	counter.Iter().ForEach(func(k String, v Int) { fmt.Println(k.Title(), ":", v) })
 
-	sl.Iter().ForEach(func(v String) { v.Print() })
+	sl.Iter().ForEach(func(v String) { v.Println() })
 
 	sl = sl.Iter().Unique().Collect()
 	sl.Reverse()
@@ -111,7 +111,7 @@ func main() {
 			}).
 		Collect()
 
-	sl.Print()
+	sl.Println()
 
 	fmt.Println(sl.Random())
 
@@ -125,17 +125,17 @@ func main() {
 	fmt.Println(sl3.Last().Count("b")) // 5
 
 	sl4 := SliceOf([]string{"root", "toor"}...).Random()
-	NewString(sl4).Upper().Print()
+	NewString(sl4).Upper().Println()
 
-	sl3.Iter().Map(func(s String) String { return s + "MAPMAPMAP" }).Collect().Print()
+	sl3.Iter().Map(func(s String) String { return s + "MAPMAPMAP" }).Collect().Println()
 
 	empsl := NewSlice[String]()
 	fmt.Println(empsl.Empty())
 
 	// maps
 	m1 := Map[int, string](map[int]string{1: "root", 22: "toor"}) // declaration and assignation
-	m1.Iter().Values().Collect().Print()
-	m1.Iter().Keys().Collect().Print()
+	m1.Iter().Values().Collect().Println()
+	m1.Iter().Keys().Collect().Println()
 
 	m2 := NewMap[int, string]() // declaration and assignation
 
@@ -143,10 +143,10 @@ func main() {
 	m2[88] = "BBB"
 	m2.Set(77, "CCC")
 
-	m2.Delete(99).Print()
-	m2.Iter().Keys().Collect().Print()
+	m2.Delete(99).Println()
+	m2.Iter().Keys().Collect().Println()
 
-	m2.Print()
+	m2.Println()
 	fmt.Println(m2.Std())
 
 	fmt.Println(m2.Invert().Iter().Values().Collect().Get(0))        // return int type
@@ -156,44 +156,44 @@ func main() {
 	fmt.Println(m3.Contains("test"))
 
 	ub := NewBytes("abcdef\u0301\u031dg")
-	ub.NormalizeNFC().Reverse().Print()
+	ub.NormalizeNFC().Reverse().Println()
 
-	NewString("abcde丂g").Reverse().Print()
+	NewString("abcde丂g").Reverse().Println()
 
 	l := String("hello")
-	l.Similarity("world").Print()
+	l.Similarity("world").Println()
 
 	hbs := Bytes("Hello, 世界!")
-	hbs.Reverse().String().Print() // "!界世 ,olleH"
+	hbs.Reverse().String().Println() // "!界世 ,olleH"
 
 	hbs = Bytes("hello, world!")
 
-	hbs.Replace([]byte("l"), []byte("L"), 2).String().Print() // "heLLo, world!"
+	hbs.Replace([]byte("l"), []byte("L"), 2).String().Println() // "heLLo, world!"
 
 	hs1 := String("kitten")
 	hs2 := String("sitting")
 	similarity := hs1.Similarity(hs2) // g.Float(57.14285714285714)
 
-	similarity.Print()
+	similarity.Println()
 
-	NewString("&aacute;").Decode().HTML().Print()
+	NewString("&aacute;").Decode().HTML().Println()
 
 	to := String("Hello, 世界!")
 
-	to.Encode().Hex().Print()
-	to.Encode().Hex().Decode().Hex().Unwrap().Print()
+	to.Encode().Hex().Println()
+	to.Encode().Hex().Decode().Hex().Unwrap().Println()
 
-	to.Encode().Octal().Print()
-	to.Encode().Octal().Decode().Octal().Unwrap().Print()
+	to.Encode().Octal().Println()
+	to.Encode().Octal().Decode().Octal().Unwrap().Println()
 
-	to.Encode().Binary().Chunks(8).Join(" ").Print()
-	to.Encode().Binary().Decode().Binary().Unwrap().Print()
+	to.Encode().Binary().Chunks(8).Join(" ").Println()
+	to.Encode().Binary().Decode().Binary().Unwrap().Println()
 
 	toi := Int(1234567890)
 
-	toi.Binary().Print()
-	toi.Octal().Print()
-	toi.Hex().Print()
+	toi.Binary().Println()
+	toi.Octal().Println()
+	toi.Hex().Println()
 
 	ascii := String("💛💚💙💜")
 	fmt.Println(ascii.IsASCII())
@@ -203,5 +203,5 @@ func main() {
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 
-	NewString("Hello").Format("%s world").Print()
+	NewString("Hello").Format("%s world").Println()
 }

@@ -10,12 +10,12 @@ func main() {
 		Intersperse(" ").
 		Collect().
 		Join().
-		Print() // Hello World !
+		Println() // Hello World !
 
 		// Example 2
 	str := String("I love ice cream. Ice cream is delicious.")
 	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect().Append("")
 
 	str = str.ReplaceMulti(matches...)
-	str.Print() // I love ice .   is delicious.
+	str.Println() // I love ice .   is delicious.
 }

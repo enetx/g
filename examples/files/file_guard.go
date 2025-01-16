@@ -24,7 +24,7 @@ func main() {
 	go func() {
 		fmt.Println("Waiting for guard release")
 		// Create a new file and guard it for reading
-		NewFile(fname).Guard().Read().Unwrap().Print()
+		NewFile(fname).Guard().Read().Unwrap().Println()
 		// Signal the main goroutine that the reading is complete
 		exit <- struct{}{}
 	}()

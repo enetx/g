@@ -48,7 +48,7 @@ func main() {
 		Collect(). // Collects all chunks into a single collection (Slice).
 		Unwrap().  // Unwraps the result, extracting the successful value or panicking on error.
 		Join().    // Joins all collected chunks into a single string.
-		Print()    // Prints the joined string.
+		Println()  // Prints the joined string.
 
 	fmt.Println(offset) // Prints the final offset after processing the chunks.
 }

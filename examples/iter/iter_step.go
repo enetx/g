@@ -16,5 +16,5 @@ func main() {
 		Iter().
 		StepBy(2). // Iterate over the map with a step size of 2
 		Collect().
-		Print() // MapOrd{0:aa, 2:cc, 4:ff, 6:aa}
+		Println() // MapOrd{0:aa, 2:cc, 4:ff, 6:aa}
 }

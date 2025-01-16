@@ -10,13 +10,13 @@ func main() {
 		Lines().
 		Exclude(f.IsZero).
 		Collect().
-		Print() // Slice[foo, bar, baz]
+		Println() // Slice[foo, bar, baz]
 
 	s := NewString("💛💚💙💜")
 
-	s.LeftJustify(10, "*").Print()  // 💛💚💙💜******
-	s.RightJustify(10, "*").Print() // ******💛💚💙💜
-	s.Center(10, "*").Print()       // ***💛💚💙💜***
+	s.LeftJustify(10, "*").Println()  // 💛💚💙💜******
+	s.RightJustify(10, "*").Println() // ******💛💚💙💜
+	s.Center(10, "*").Println()       // ***💛💚💙💜***
 
 	///////////////////////////////////////////////////////////////////////
 
@@ -28,29 +28,29 @@ func main() {
 		cuted.AppendInPlace(cut)
 	}
 
-	cuted.Print()
+	cuted.Println()
 
-	ss.Print()
+	ss.Println()
 
 	println(ss.Contains("Hello"))
 
-	NewString(byte('g')).Print()
-	NewString(rune('g')).Print()
-	NewString([]rune("hello")).Print()
-	NewString([]byte("hello")).Print()
+	NewString(byte('g')).Println()
+	NewString(rune('g')).Println()
+	NewString([]rune("hello")).Println()
+	NewString([]byte("hello")).Println()
 
-	NewString("").Random(10).Print()
-	NewString("").Random(10, ASCII_LETTERS).Print()
-	NewString("").Random(10, DIGITS).Print()
-	NewString("").Random(10, PUNCTUATION).Print()
+	NewString("").Random(10).Println()
+	NewString("").Random(10, ASCII_LETTERS).Println()
+	NewString("").Random(10, DIGITS).Println()
+	NewString("").Random(10, PUNCTUATION).Println()
 
 	String("https://www.test.com/?query=Hellö Wörld&param=value").
 		Encode().
 		URL().
-		Print() // https://www.test.com/?query=Hell%C3%B6+W%C3%B6rld&param=value
+		Println() // https://www.test.com/?query=Hell%C3%B6+W%C3%B6rld&param=value
 
-	String("Hellö Wörld@Golang").Encode().URL().Print()   // Hell%C3%B6+W%C3%B6rld@Golang
-	String("Hellö Wörld@Golang").Encode().URL("").Print() // Hell%C3%B6+W%C3%B6rld%40Golang
+	String("Hellö Wörld@Golang").Encode().URL().Println()   // Hell%C3%B6+W%C3%B6rld@Golang
+	String("Hellö Wörld@Golang").Encode().URL("").Println() // Hell%C3%B6+W%C3%B6rld%40Golang
 
 	original := String("Hello, world! This is a test.")
 	modified := original.Remove(
@@ -58,16 +58,16 @@ func main() {
 		"test",
 	)
 
-	modified.Print()
+	modified.Println()
 
 	num := String("hello")
 
-	num.Transform(String.Title).Print() // String type
+	num.Transform(String.Title).Println() // String type
 
 	String("a1b2c3d4e5").
 		Chars().
 		Filter(String.IsDigit).
 		Collect().
 		Join().
-		Print()
+		Println()
 }

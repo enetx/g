@@ -28,15 +28,15 @@ func main() {
 	s := SliceOf[Int](1, 2, 3, 4, 5)
 
 	ss := TransformSlice(s, Int.String) // g.Slice[g.String]
-	ss.Get(0).Format("hello %s").Print()
+	ss.Get(0).Format("hello %s").Println()
 
 	is := TransformSlice(ss, func(s String) Int { return s.ToInt().Unwrap() }) // g.Slice[g.Int]
-	is.Get(0).Add(99).Print()
+	is.Get(0).Add(99).Println()
 
 	////////////////////////////////////////////////////////////////////////////
 
 	ss1 := SliceOf[String]("1", "22", "3a", "44")
 	is1 := TransformSlice(ss1, String.ToInt).Iter().Filter(Result[Int].IsOk).Collect()
 
-	TransformSlice(is1, Result[Int].Ok).Print() // Slice[1, 22, 44]
+	TransformSlice(is1, Result[Int].Ok).Println() // Slice[1, 22, 44]
 }

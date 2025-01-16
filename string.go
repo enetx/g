@@ -1,7 +1,6 @@
 package g
 
 import (
-	"fmt"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -318,9 +317,7 @@ func (s String) ReplaceNth(oldS, newS String, n Int) String {
 }
 
 // RxMatch checks if the String contains a match for the specified regular expression pattern.
-func (s String) RxMatch(pattern *regexp.Regexp) bool {
-	return f.RxMatch[String](pattern)(s)
-}
+func (s String) RxMatch(pattern *regexp.Regexp) bool { return f.RxMatch[String](pattern)(s) }
 
 // RxMatchAny checks if the String contains a match for any of the specified regular
 // expression patterns.
@@ -886,9 +883,13 @@ func writePadding(output *Builder, pad String, padlen, remains Int) {
 	}
 }
 
-// Print prints the content of the String to the standard output (console)
+// Print writes the content of the String to the standard output (console)
 // and returns the String unchanged.
-func (s String) Print() String { fmt.Println(s); return s }
+func (s String) Print() String { Print(s); return s }
+
+// Println writes the content of the String to the standard output (console) with a newline
+// and returns the String unchanged.
+func (s String) Println() String { Println(s); return s }
 
 // trimStringStart returns a slice of the string s, with all leading
 // white space removed, as defined by Unicode.

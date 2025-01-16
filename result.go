@@ -1,6 +1,7 @@
 package g
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,7 +12,13 @@ import (
 func Ok[T any](value T) Result[T] { return Result[T]{value: value} }
 
 // Err returns a new Result[T] containing the given error.
-func Err[T any](err error) Result[T] { return Result[T]{err: err} }
+func Err[T any](err error) Result[T] {
+	if err == nil {
+		err = errors.New("nil error")
+	}
+
+	return Result[T]{err: err}
+}
 
 // ResultOf returns a new Result[T] based on the provided value and error.
 // If err is not nil, it returns an Result containing the error.
