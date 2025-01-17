@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/enetx/g"
 )
@@ -30,28 +31,28 @@ func TestStringFormat(t *testing.T) {
 		// Placeholder with modifier: upper
 		{
 			name:     "Modifier: upper",
-			format:   "Name: {$upper:name}",
+			format:   "Name: {name.$upper}",
 			args:     map[string]any{"name": "john"},
 			expected: "Name: JOHN",
 		},
 		// Placeholder with modifier: trim and title
 		{
 			name:     "Modifier: trim and title",
-			format:   "Title: {$trim.$title:work}",
+			format:   "Title: {work.$trim.$title}",
 			args:     map[string]any{"work": " developer "},
 			expected: "Title: Developer",
 		},
 		// Nested modifiers: trim and len
 		{
 			name:     "Nested modifiers",
-			format:   "Length: {$trim.$len:input}",
+			format:   "Length: {input.$trim.$len}",
 			args:     map[string]any{"input": "  data  "},
 			expected: "Length: 4",
 		},
 		// Placeholder with fallback and modifier
 		{
 			name:     "Fallback with modifier",
-			format:   "Name: {$upper:name?fallback}",
+			format:   "Name: {name?fallback.$upper}",
 			args:     map[string]any{"fallback": "guest"},
 			expected: "Name: GUEST",
 		},
@@ -72,55 +73,116 @@ func TestStringFormat(t *testing.T) {
 		// Modifier: round for float values
 		{
 			name:     "Modifier: round",
-			format:   "Value: {$round:number}",
+			format:   "Value: {number.$round}",
 			args:     map[string]any{"number": 12.7},
 			expected: "Value: 13",
 		},
 		// Modifier: abs for negative numbers
 		{
 			name:     "Modifier: abs",
-			format:   "Absolute: {$abs:value}",
+			format:   "Absolute: {value.$abs}",
 			args:     map[string]any{"value": -42},
 			expected: "Absolute: 42",
 		},
 		// Modifier: reverse for strings
 		{
 			name:     "Modifier: reverse",
-			format:   "Reversed: {$reverse:word}",
+			format:   "Reversed: {word.$reverse}",
 			args:     map[string]any{"word": "hello"},
 			expected: "Reversed: olleh",
 		},
 		// Modifier: hex for integers
 		{
 			name:     "Modifier: hex",
-			format:   "Hex: {$hex:number}",
+			format:   "Hex: {number.$hex}",
 			args:     map[string]any{"number": 255},
 			expected: "Hex: ff",
 		},
 		// Modifier: bin for integers
 		{
 			name:     "Modifier: bin",
-			format:   "Binary: {$bin:number}",
+			format:   "Binary: {number.$bin}",
 			args:     map[string]any{"number": 5},
 			expected: "Binary: 00000101",
 		},
 		// Modifier: url encoding
 		{
 			name:     "Modifier: url",
-			format:   "URL: {$url:input}",
+			format:   "URL: {input.$url}",
 			args:     map[string]any{"input": "hello world"},
 			expected: "URL: hello+world",
 		},
 		// Modifier: base64 encoding
 		{
 			name:     "Modifier: base64",
-			format:   "Base64: {$base64:input}",
+			format:   "Base64: {input.$base64}",
 			args:     map[string]any{"input": "hello"},
 			expected: "Base64: aGVsbG8=",
+		},
+		// Modifier: format for dates
+		{
+			name:     "Modifier: format date",
+			format:   "Date: {today.$format(2006-01-02)}",
+			args:     map[string]any{"today": time.Date(2025, 1, 17, 0, 0, 0, 0, time.UTC)},
+			expected: "Date: 2025-01-17",
 		},
 	}
 
 	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Format(tt.format, tt.args)
+			if result != String(tt.expected) {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestStringFormatWithErrors(t *testing.T) {
+	errorTests := []struct {
+		name     string
+		format   string
+		args     map[string]any
+		expected string
+	}{
+		// Placeholder with invalid syntax
+		{
+			name:     "Invalid placeholder syntax",
+			format:   "Hello, {name?",
+			args:     map[string]any{"name": "John"},
+			expected: "Hello, {name?",
+		},
+		// Modifier with invalid syntax
+		{
+			name:     "Invalid modifier syntax",
+			format:   "Value: {number.$unknown(",
+			args:     map[string]any{"number": 42},
+			expected: "Value: {number.$unknown(",
+		},
+		// Unsupported modifier
+		{
+			name:     "Unsupported modifier",
+			format:   "Value: {number.$unsupported}",
+			args:     map[string]any{"number": 42},
+			expected: "Value: 42",
+		},
+		// Fallback key missing
+		{
+			name:     "Missing fallback key",
+			format:   "Hello, {name?fallback}!",
+			args:     make(map[string]any),
+			expected: "Hello, {name?fallback}!",
+		},
+		// Placeholder with unsupported type
+		{
+			name:     "Unsupported type for modifier",
+			format:   "Value: {obj.$upper}",
+			args:     map[string]any{"obj": struct{}{}},
+			expected: "Value: {}",
+		},
+	}
+
+	for _, tt := range errorTests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := Format(tt.format, tt.args)
 			if result != String(tt.expected) {

@@ -3,6 +3,10 @@ package g
 import (
 	"fmt"
 	"io"
+	"regexp"
+	"time"
+
+	"github.com/enetx/g/f"
 )
 
 // Fprintf formats according to a format specifier and writes to w.
@@ -50,12 +54,14 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 // Parameters:
 //   - str: A template string containing placeholders enclosed in curly braces.
 //   - args: A map containing keys and their associated values for replacing placeholders.
+//   - customHandlers (optional): Additional Map of custom modifiers where the key is the
+//     modifier name and the value is a function to process the transformation.
 //
 // Placeholder Syntax:
 //   - Simple Placeholder: "{key}" - Replaced with the value from the map corresponding to "key".
 //   - Placeholder with Fallback: "{key?fallback}" - Uses the "fallback" key if "key" is not found.
-//   - Placeholder with Modifiers: "{$modifiers:key}" - Applies transformations to the value using the specified modifiers.
-//   - Placeholder with Modifiers and Fallback: "{$modifiers:key?fallback}" - Applies modifiers and uses fallback logic.
+//   - Placeholder with Modifiers: "{key.$modifiers}" - Applies transformations to the value using the specified modifiers.
+//   - Placeholder with Fallback and Modifiers: "{key?fallback.$modifiers}" - Applies modifiers and uses fallback logic.
 //
 // Supported Modifiers:
 //   - "$upper": Converts the value to uppercase.
@@ -74,6 +80,11 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //   - "$html": Encodes the string with HTML entities.
 //   - "$base64": Encodes the string in Base64 format.
 //   - "$rot13": Applies ROT13 encoding to the string.
+//   - "$format": Formats a time.Time value using the provided format string. (e.g., {time.$format(2006-01-02)}).
+//
+// Custom Modifiers:
+//   - You can define custom modifiers by providing a Map where the key is the modifier
+//     name (String), and the value is a function with the signature: func(any, ...String) any.
 //
 // Returns:
 //   - A formatted string with placeholders replaced by their corresponding values from the map.
@@ -85,9 +96,10 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //	    "age":   30,
 //	    "city":  "New York",
 //	}
+//
 //	format := "Hello, my name is {name}. I am {age} years old and live in {city}."
 //	formatted := g.Format(format, values)
-//	formatted.Println()
+//	fmt.Println(formatted)
 //
 // Output:
 //
@@ -98,26 +110,54 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //	values := map[string]any{
 //	    "name":  "John",
 //	    "work": " developer ",
+//	    "today":  time.Now(),
 //	}
-//	format := "Name: {$upper:name}, Title: {$trim.$title:work}"
+//
+//	format := "Name: {name.$upper}, Work: {work.$trim.$title}, Today: {today.$format(01/02/2006)}."
 //	formatted := g.Format(format, values)
-//	formatted.Print()
+//	fmt.Println(formatted)
 //
 // Output:
 //
-//	Name: JOHN, Title: Developer
-func Format[T, U ~string](str T, args Map[U, any]) String {
+//	Name: JOHN, Work: Developer, Today: 01/17/2025.
+//
+// Example with Custom Modifiers:
+//
+//	handlers := Map[String, func(v any, args ...String) any]{
+//		"$double": func(v any, _ ...String) any { return (v.(Int) * 2).String() },
+//		"$prefix": func(v any, _ ...String) any { return "prefix_" + v.(String) },
+//	}
+//
+//	args := map[string]any{
+//		"value": Int(42),
+//		"text":  String("example"),
+//		"date":  time.Now(),
+//	}
+//
+//	result := Format("{value.$double} and {text.$upper}", args, handlers)
+//	result.Println()
+//
+// Output:
+//
+//	84 and EXAMPLE
+func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String, func(any, ...String) any]) String {
 	result := String(str)
 
-	applyRegex := func(regex String, handler func(String, Option[Slice[String]]) String) {
-		re := regex.Regexp().Compile().Ok()
-		result = result.Regexp().ReplaceBy(re, func(match String) String {
-			return handler(match, match.Regexp().FindSubmatch(re))
-		})
-	}
+	modRx := String(`(\$\w+)(?:\((.*?)\))?`).Regexp().Compile().Ok()
+	fallRx := String(`\{(\w+)\?([\w]+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
+	placeRx := String(`\{(\w+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
 
-	modifierHandlers := Map[String, func(any) any]{
-		"$upper": func(v any) any {
+	handlers := Map[String, func(any, ...String) any]{
+		"$format": func(v any, params ...String) any {
+			if len(params) == 0 {
+				return v
+			}
+			if date, ok := v.(time.Time); ok {
+				return date.Format(params[0].Std())
+			}
+			return v
+		},
+		"$upper": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Upper()
@@ -127,7 +167,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$lower": func(v any) any {
+		"$lower": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Lower()
@@ -137,7 +177,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$title": func(v any) any {
+		"$title": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Title()
@@ -147,7 +187,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$trim": func(v any) any {
+		"$trim": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Trim()
@@ -157,7 +197,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$len": func(v any) any {
+		"$len": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Len().String()
@@ -167,7 +207,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$round": func(v any) any {
+		"$round": func(v any, _ ...String) any {
 			switch f := v.(type) {
 			case Float:
 				return f.Round().String()
@@ -177,7 +217,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$abs": func(v any) any {
+		"$abs": func(v any, _ ...String) any {
 			switch n := v.(type) {
 			case Int:
 				return n.Abs().String()
@@ -191,7 +231,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$bool": func(v any) any {
+		"$bool": func(v any, _ ...String) any {
 			if b, ok := v.(bool); ok {
 				if b {
 					return "true"
@@ -200,7 +240,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 			}
 			return v
 		},
-		"$reverse": func(v any) any {
+		"$reverse": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Reverse()
@@ -210,7 +250,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$hex": func(v any) any {
+		"$hex": func(v any, _ ...String) any {
 			switch n := v.(type) {
 			case Int:
 				return n.Hex()
@@ -228,7 +268,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$oct": func(v any) any {
+		"$oct": func(v any, _ ...String) any {
 			switch n := v.(type) {
 			case Int:
 				return n.Octal()
@@ -246,7 +286,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$bin": func(v any) any {
+		"$bin": func(v any, _ ...String) any {
 			switch n := v.(type) {
 			case Int:
 				return n.Binary()
@@ -264,7 +304,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$url": func(v any) any {
+		"$url": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Encode().URL()
@@ -274,7 +314,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$html": func(v any) any {
+		"$html": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Encode().HTML()
@@ -284,7 +324,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$base64": func(v any) any {
+		"$base64": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Encode().Base64()
@@ -294,7 +334,7 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 				return v
 			}
 		},
-		"$rot13": func(v any) any {
+		"$rot13": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Encode().Rot13()
@@ -305,82 +345,79 @@ func Format[T, U ~string](str T, args Map[U, any]) String {
 			}
 		},
 	}
-	processModifiers := func(modifiers String, v any) String {
-		for modifier := range modifiers.Split(".") {
-			if handler := modifierHandlers.Get(modifier); handler.IsSome() {
-				v = handler.Some()(v)
+
+	for _, custom := range customHandlers {
+		handlers.Copy(custom)
+	}
+
+	parseModifier := func(mod String) (String, Slice[String]) {
+		matches := mod.Regexp().FindSubmatch(modRx)
+		if matches.IsSome() {
+			name, params := matches.Some()[1], NewSlice[String]()
+			if matches.Some().Len().Gt(2) && matches.Some()[2].NotEmpty() {
+				params = matches.Some()[2].Split(",").Collect()
 			}
+
+			return name, params
 		}
+
+		return "", nil
+	}
+
+	applyModifiers := func(mods String, v any) String {
+		mods.Split(".").Exclude(f.IsZero).ForEach(func(mod String) {
+			name, params := parseModifier(mod)
+			if handler := handlers.Get(name); handler.IsSome() {
+				v = handler.Some()(v, params...)
+			}
+		})
 
 		return Sprint(v)
 	}
 
-	applyRegex(String(`\{([\$\w\.]+):(\w+)\?(\w+)\}`), func(match String, matches Option[Slice[String]]) String {
-		if matches.IsNone() || matches.Some().Len() != 4 {
+	parsePlaceholders := func(pattern *regexp.Regexp, handler func(Slice[String]) String) {
+		result = result.Regexp().ReplaceBy(pattern, func(match String) String {
+			matches := match.Regexp().FindSubmatch(pattern)
+			if matches.IsSome() {
+				return handler(matches.Some())
+			}
+
 			return match
+		})
+	}
+
+	parsePlaceholders(fallRx, func(matches Slice[String]) String {
+		if matches.Len().Lt(4) {
+			return matches[0]
 		}
 
-		var modifiers, key, fallbackKey String
-		matches.Some()[1:].Unpack(&modifiers, &key, &fallbackKey)
+		key, fallbackKey, modifiers := matches[1], matches[2], matches[3]
 
 		value := args.Get(U(key))
 		if value.IsNone() {
 			value = args.Get(U(fallbackKey))
 		}
 
-		if value.IsNone() {
-			return match
+		if value.IsSome() {
+			return applyModifiers(modifiers, value.Some())
 		}
 
-		return processModifiers(modifiers, value.Some())
+		return matches[0]
 	})
 
-	applyRegex(String(`\{([\$\w\.]+):(\w+)\}`), func(match String, matches Option[Slice[String]]) String {
-		if matches.IsNone() || matches.Some().Len() != 3 {
-			return match
+	parsePlaceholders(placeRx, func(matches Slice[String]) String {
+		if matches.Len().Lt(3) {
+			return matches[0]
 		}
 
-		var modifiers, key String
-		matches.Some()[1:].Unpack(&modifiers, &key)
+		key, modifiers := matches[1], matches[2]
 
 		value := args.Get(U(key))
-		if value.IsNone() {
-			return match
+		if value.IsSome() {
+			return applyModifiers(modifiers, value.Some())
 		}
 
-		return processModifiers(modifiers, value.Some())
-	})
-
-	applyRegex(String(`\{(\w+)\?(\w+)\}`), func(match String, matches Option[Slice[String]]) String {
-		if matches.IsNone() || matches.Some().Len() != 3 {
-			return match
-		}
-
-		var key, fallbackKey String
-		matches.Some()[1:].Unpack(&key, &fallbackKey)
-
-		value := args.Get(U(key))
-		if value.IsNone() {
-			value = args.Get(U(fallbackKey))
-		}
-
-		if value.IsNone() {
-			return match
-		}
-
-		return Sprint(value.Some())
-	})
-
-	applyRegex(String(`\{(\w+)\}`), func(match String, matches Option[Slice[String]]) String {
-		if matches.IsNone() || matches.Some().Len() != 2 {
-			return match
-		}
-
-		if value := args.Get(U(matches.Some().Get(1))); value.IsSome() {
-			return Sprint(value.Some())
-		}
-
-		return match
+		return matches[0]
 	})
 
 	return result
