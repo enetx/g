@@ -19,7 +19,7 @@ func TestPool(t *testing.T) {
 				atomic.AddInt32(&successCount, 1)
 				return Ok(i)
 			}
-			return Err[int](errors.New(""))
+			return Err[int](nil)
 		})
 	}
 

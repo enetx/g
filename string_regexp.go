@@ -30,6 +30,13 @@ func (r regexps) Replace(pattern *regexp.Regexp, newS String) String {
 	return String(pattern.ReplaceAllString(r.str.Std(), newS.Std()))
 }
 
+// ReplaceBy replaces all occurrences of the regular expression matches in the String
+// by applying a custom transformation function to each match.
+// The function `fn` takes a String representing a match and returns a String that will replace it.
+func (r regexps) ReplaceBy(pattern *regexp.Regexp, fn func(match String) String) String {
+	return String(pattern.ReplaceAllStringFunc(r.str.Std(), func(s string) string { return fn(String(s)).Std() }))
+}
+
 // Match checks if the String contains a match for the specified regular expression pattern.
 func (r regexps) Match(pattern *regexp.Regexp) bool { return f.Match[String](pattern)(r.str) }
 

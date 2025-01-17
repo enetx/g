@@ -8,9 +8,15 @@ type Builder struct{ builder *strings.Builder }
 // NewBuilder creates a new instance of Builder.
 func NewBuilder() *Builder { return &Builder{new(strings.Builder)} }
 
-// Write appends a string to the current state of the builder.
+// Write appends a String to the current state of the builder.
 func (b *Builder) Write(str String) *Builder {
 	b.builder.WriteString(str.Std())
+	return b
+}
+
+// Write appends a string to the current state of the builder.
+func (b *Builder) WriteString(str string) *Builder {
+	b.builder.WriteString(str)
 	return b
 }
 
