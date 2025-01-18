@@ -624,6 +624,43 @@ func (s String) Std() string { return string(s) }
 // Format applies a specified format to the String object.
 func (s String) Format(format String) String { return Sprintf(format, s) }
 
+// Truncate shortens the String to the specified maximum length. If the String exceeds the
+// specified length, it is truncated, and an ellipsis ("...") is appended to indicate the truncation.
+//
+// If the length of the String is less than or equal to the specified maximum length, the
+// original String is returned unchanged.
+//
+// The method respects Unicode characters and truncates based on the number of runes,
+// not bytes.
+//
+// Parameters:
+//   - max: The maximum number of runes allowed in the resulting String.
+//
+// Returns:
+//   - A new String truncated to the specified maximum length with "..." appended
+//     if truncation occurs. Otherwise, returns the original String.
+//
+// Example usage:
+//
+//	s := g.String("Hello, World!")
+//	result := s.Truncate(5)
+//	// result: "Hello..."
+//
+//	s2 := g.String("Short")
+//	result2 := s2.Truncate(10)
+//	// result2: "Short"
+//
+//	s3 := g.String("😊😊😊😊😊")
+//	result3 := s3.Truncate(3)
+//	// result3: "😊😊😊..."
+func (s String) Truncate(max Int) String {
+	if max.IsNegative() || s.LenRunes().Lte(max) {
+		return s
+	}
+
+	return String(s.Runes().SubSlice(0, max)).Append("...")
+}
+
 // LeftJustify justifies the String to the left by adding padding to the right, up to the
 // specified length. If the length of the String is already greater than or equal to the specified
 // length, or the pad is empty, the original String is returned.

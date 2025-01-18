@@ -10,6 +10,81 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestStringTruncate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    String
+		max      Int
+		expected String
+	}{
+		// Basic truncation
+		{
+			name:     "Basic truncation",
+			input:    String("Hello, World!"),
+			max:      5,
+			expected: String("Hello..."),
+		},
+		// No truncation (length less than max)
+		{
+			name:     "No truncation (shorter than max)",
+			input:    String("Short"),
+			max:      10,
+			expected: String("Short"),
+		},
+		// Exact length (no truncation)
+		{
+			name:     "Exact length",
+			input:    String("Perfect"),
+			max:      7,
+			expected: String("Perfect"),
+		},
+		// Truncation of Unicode characters
+		{
+			name:     "Truncation with Unicode",
+			input:    String("😊😊😊😊😊"),
+			max:      3,
+			expected: String("😊😊😊..."),
+		},
+		// Truncation with mixed characters
+		{
+			name:     "Truncation with mixed characters",
+			input:    String("Hello😊World"),
+			max:      6,
+			expected: String("Hello😊..."),
+		},
+		// Empty input
+		{
+			name:     "Empty input",
+			input:    String(""),
+			max:      5,
+			expected: String(""),
+		},
+		// Zero max length
+		{
+			name:     "Zero max length",
+			input:    String("Zero length"),
+			max:      0,
+			expected: String("..."),
+		},
+		// Negative max length (invalid case)
+		{
+			name:     "Negative max length",
+			input:    String("Negative case"),
+			max:      -1,
+			expected: String("Negative case"), // No truncation, invalid max
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.Truncate(tt.max)
+			if result != tt.expected {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestStringBuilder(t *testing.T) {
 	// Create a String
 	str := String("hello")

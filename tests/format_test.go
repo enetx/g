@@ -115,7 +115,7 @@ func TestStringFormat(t *testing.T) {
 		// Modifier: base64 encoding
 		{
 			name:     "Modifier: base64",
-			format:   "Base64: {input.$base64}",
+			format:   "Base64: {input.$base64e}",
 			args:     map[string]any{"input": "hello"},
 			expected: "Base64: aGVsbG8=",
 		},
@@ -125,6 +125,71 @@ func TestStringFormat(t *testing.T) {
 			format:   "Date: {today.$format(2006-01-02)}",
 			args:     map[string]any{"today": time.Date(2025, 1, 17, 0, 0, 0, 0, time.UTC)},
 			expected: "Date: 2025-01-17",
+		},
+		// Test for $replace
+		{
+			name:     "Modifier: replace",
+			format:   "Result: {input.$replace(a,b)}",
+			args:     map[string]any{"input": "banana"},
+			expected: "Result: bbnbnb",
+		},
+		{
+			name:     "Modifier: replace with empty string",
+			format:   "Result: {input.$replace(a,)}",
+			args:     map[string]any{"input": "banana"},
+			expected: "Result: bnn",
+		},
+		{
+			name:     "Modifier: replace no matches",
+			format:   "Result: {input.$replace(x,y)}",
+			args:     map[string]any{"input": "banana"},
+			expected: "Result: banana",
+		},
+
+		// Test for $repeat
+		{
+			name:     "Modifier: repeat string",
+			format:   "Repeated: {input.$repeat(3)}",
+			args:     map[string]any{"input": "ha"},
+			expected: "Repeated: hahaha",
+		},
+		{
+			name:     "Modifier: repeat int",
+			format:   "Repeated: {input.$repeat(4)}",
+			args:     map[string]any{"input": 5},
+			expected: "Repeated: 5555",
+		},
+		{
+			name:     "Modifier: repeat with invalid count",
+			format:   "Repeated: {input.$repeat(abc)}",
+			args:     map[string]any{"input": "ha"},
+			expected: "Repeated: ha",
+		},
+
+		// Test for $truncate
+		{
+			name:     "Modifier: truncate string",
+			format:   "Truncated: {input.$truncate(5)}",
+			args:     map[string]any{"input": "Hello, World!"},
+			expected: "Truncated: Hello...",
+		},
+		{
+			name:     "Modifier: truncate with exact length",
+			format:   "Truncated: {input.$truncate(5)}",
+			args:     map[string]any{"input": "Hello"},
+			expected: "Truncated: Hello",
+		},
+		{
+			name:     "Modifier: truncate with no truncation",
+			format:   "Truncated: {input.$truncate(15)}",
+			args:     map[string]any{"input": "Hello, World!"},
+			expected: "Truncated: Hello, World!",
+		},
+		{
+			name:     "Modifier: truncate with invalid max",
+			format:   "Truncated: {input.$truncate(abc)}",
+			args:     map[string]any{"input": "Hello, World!"},
+			expected: "Truncated: Hello, World!",
 		},
 	}
 
@@ -183,6 +248,60 @@ func TestStringFormatWithErrors(t *testing.T) {
 	}
 
 	for _, tt := range errorTests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Format(tt.format, tt.args)
+			if result != String(tt.expected) {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestFormatTrimSetModifier(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		args     map[string]any
+		expected string
+	}{
+		// Basic trimming
+		{
+			name:     "Trim specific characters",
+			format:   "Result: {value.$trimset(#)}",
+			args:     map[string]any{"value": "###Hello###"},
+			expected: "Result: Hello",
+		},
+		// Trim multiple characters
+		{
+			name:     "Trim multiple characters",
+			format:   "Result: {value.$trimset(#$)}",
+			args:     map[string]any{"value": "$$#Hello#$"},
+			expected: "Result: Hello",
+		},
+		// No trimming (no matching characters)
+		{
+			name:     "No trimming needed",
+			format:   "Result: {value.$trimset(%)}",
+			args:     map[string]any{"value": "Hello"},
+			expected: "Result: Hello",
+		},
+		// Empty value
+		{
+			name:     "Empty value",
+			format:   "Result: {value.$trimset(#)}",
+			args:     map[string]any{"value": ""},
+			expected: "Result: ",
+		},
+		// Empty set
+		{
+			name:     "Empty trim set",
+			format:   "Result: {value.$trimset()}",
+			args:     map[string]any{"value": "###Hello###"},
+			expected: "Result: ###Hello###",
+		},
+	}
+
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := Format(tt.format, tt.args)
 			if result != String(tt.expected) {

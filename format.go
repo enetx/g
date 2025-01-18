@@ -58,30 +58,44 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //     modifier name and the value is a function to process the transformation.
 //
 // Placeholder Syntax:
-//   - Simple Placeholder: "{key}" - Replaced with the value from the map corresponding to "key".
-//   - Placeholder with Fallback: "{key?fallback}" - Uses the "fallback" key if "key" is not found.
-//   - Placeholder with Modifiers: "{key.$modifiers}" - Applies transformations to the value using the specified modifiers.
-//   - Placeholder with Fallback and Modifiers: "{key?fallback.$modifiers}" - Applies modifiers and uses fallback logic.
+//   - Simple Placeholder: "{key}"
+//     - Replaced with the value from the map corresponding to "key".
+//   - Placeholder with Fallback: "{key?fallback}"
+//     - Uses the "fallback" key if "key" is not found in the map.
+//   - Placeholder with Modifiers: "{key.$modifiers}"
+//     - Applies transformations to the value using the specified modifiers.
+//   - Placeholder with Fallback and Modifiers: "{key?fallback.$modifiers}"
+//     - Applies modifiers to the value and uses fallback logic if "key" is not found.
+//   - Placeholder with Parameters: "{key.$modifier(param1,param2,...)}"
+//     - Passes parameters to the specified modifier for additional control or customization.
+//   - Placeholder with Fallback, Modifiers, and Parameters: "{key?fallback.$modifier(param1,param2,...)}"
+//     - Combines fallback logic, modifiers, and parameters for maximum flexibility.
 //
 // Supported Modifiers:
-//   - "$upper": Converts the value to uppercase.
+//   - "$abs": Returns the absolute value for numeric inputs.
+//   - "$base64d": Decodes a Base64-encoded string.
+//   - "$base64e": Encodes the string in Base64 format.
+//   - "$bin": Converts a numeric value to binary representation.
+//   - "$bool": Converts a boolean value to "true" or "false".
+//   - "$format": Formats a time.Time value using the provided format string (e.g., {time.$format(2006-01-02)}).
+//   - "$hex": Converts a numeric value to hexadecimal representation.
+//   - "$html": Encodes the string with HTML entities.
+//   - "$len": Returns the length of the value as a string.
 //   - "$lower": Converts the value to lowercase.
+//   - "$oct": Converts a numeric value to octal representation.
+//   - "$repeat": Repeats the value a specified number of times (e.g., {value.$repeat(3)}).
+//   - "$replace": Replaces all occurrences of a substring in the value with another substring (e.g., {text.$replace(old,new)}).
+//   - "$reverse": Reverses the string value.
+//   - "$rot13": Applies ROT13 encoding to the string.
+//   - "$round": Rounds a floating-point value to the nearest integer.
 //   - "$title": Converts the value to title case.
 //   - "$trim": Trims leading and trailing whitespace from the value.
-//   - "$len": Returns the length of the value as a string.
-//   - "$round": Rounds a floating-point value to the nearest integer.
-//   - "$abs": Returns the absolute value for numeric inputs.
-//   - "$bool": Converts a boolean value to "true" or "false".
-//   - "$reverse": Reverses the string value.
-//   - "$hex": Converts a numeric value to hexadecimal representation.
-//   - "$oct": Converts a numeric value to octal representation.
-//   - "$bin": Converts a numeric value to binary representation.
+//   - "$trimset": Removes all leading and trailing characters in the value that match any character in the specified set (e.g., {text.$trimset(set)}).
+//   - "$truncate": Truncates the value to a specified maximum length and appends "..." if truncation occurs (e.g., {text.$truncate(10)}).
+//   - "$upper": Converts the value to uppercase.
 //   - "$url": Encodes the string as a URL-safe string.
-//   - "$html": Encodes the string with HTML entities.
-//   - "$base64": Encodes the string in Base64 format.
-//   - "$rot13": Applies ROT13 encoding to the string.
-//   - "$format": Formats a time.Time value using the provided format string. (e.g., {time.$format(2006-01-02)}).
-//
+//   - "$xor": Performs a bitwise XOR operation on an integer value with the provided operand (e.g., {value.$xor(42)}).
+
 // Custom Modifiers:
 //   - You can define custom modifiers by providing a Map where the key is the modifier
 //     name (String), and the value is a function with the signature: func(any, ...String) any.
@@ -152,10 +166,78 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 			if len(params) == 0 {
 				return v
 			}
+
 			if date, ok := v.(time.Time); ok {
 				return date.Format(params[0].Std())
 			}
+
 			return v
+		},
+		"$replace": func(v any, params ...String) any {
+			if len(params) < 2 {
+				return v
+			}
+
+			oldS, newS := params[0], params[1]
+
+			switch s := v.(type) {
+			case String:
+				return s.ReplaceAll(oldS, newS)
+			case string:
+				return String(s).ReplaceAll(oldS, newS)
+			default:
+				return v
+			}
+		},
+		"$repeat": func(v any, params ...String) any {
+			if len(params) == 0 {
+				return v
+			}
+
+			var counter Int
+			if params[0].ToInt().IsErr() {
+				return v
+			}
+
+			counter = params[0].ToInt().Ok()
+
+			switch t := v.(type) {
+			case String:
+				return t.Repeat(counter)
+			case string:
+				return String(t).Repeat(counter)
+			case Int:
+				return t.String().Repeat(counter)
+			case int:
+				return Int(t).String().Repeat(counter)
+			case Float:
+				return t.String().Repeat(counter)
+			case float64:
+				return Float(t).String().Repeat(counter)
+			default:
+				return v
+			}
+		},
+		"$truncate": func(v any, params ...String) any {
+			if len(params) == 0 {
+				return v
+			}
+
+			var max Int
+			if params[0].ToInt().IsErr() {
+				return v
+			}
+
+			max = params[0].ToInt().Ok()
+
+			switch s := v.(type) {
+			case String:
+				return s.Truncate(max)
+			case string:
+				return String(s).Truncate(max)
+			default:
+				return v
+			}
 		},
 		"$upper": func(v any, _ ...String) any {
 			switch s := v.(type) {
@@ -193,6 +275,20 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return s.Trim()
 			case string:
 				return String(s).Trim()
+			default:
+				return v
+			}
+		},
+		"$trimset": func(v any, params ...String) any {
+			if len(params) == 0 {
+				return v
+			}
+
+			switch s := v.(type) {
+			case String:
+				return s.TrimSet(params[0])
+			case string:
+				return String(s).TrimSet(params[0])
 			default:
 				return v
 			}
@@ -324,12 +420,22 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return v
 			}
 		},
-		"$base64": func(v any, _ ...String) any {
+		"$base64e": func(v any, _ ...String) any {
 			switch s := v.(type) {
 			case String:
 				return s.Encode().Base64()
 			case string:
 				return String(s).Encode().Base64()
+			default:
+				return v
+			}
+		},
+		"$base64d": func(v any, _ ...String) any {
+			switch s := v.(type) {
+			case String:
+				return s.Decode().Base64().Ok()
+			case string:
+				return String(s).Decode().Base64().Ok()
 			default:
 				return v
 			}
@@ -340,6 +446,20 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return s.Encode().Rot13()
 			case string:
 				return String(s).Encode().Rot13()
+			default:
+				return v
+			}
+		},
+		"$xor": func(v any, params ...String) any {
+			if len(params) == 0 {
+				return v
+			}
+
+			switch s := v.(type) {
+			case String:
+				return s.Encode().XOR(params[0])
+			case string:
+				return String(s).Encode().XOR(params[0])
 			default:
 				return v
 			}

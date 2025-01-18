@@ -28,9 +28,9 @@ func main() {
 	}
 
 	f := Format(
-		// "Hello, my name is {name.$trim}. I am {age} years old and live in {city}.",
+		"Hello, my name is {name.$trim.$replace(j,r).$title}. I am {age} years old and live in {city.$truncate(2)}.",
 		// "Hello, my name is {name.$trim.$upper}. I am {age} years old and live in {city}.",
-		"Hello, my name is {name?noname.$trim.$upper}. I am {age} years old and live in {city}. Today {today.$format(01/02/2006)}.",
+		// "Hello, my name is {name?noname.$trim.$upper}. I am {age} years old and live in {city}. Today {today.$format(01/02/2006)}.",
 		named,
 	)
 

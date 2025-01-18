@@ -70,4 +70,13 @@ func main() {
 		Collect().
 		Join().
 		Println()
+
+	String("Hello, World!").Truncate(5).Println()
+	// result2: "Hello..."
+
+	String("Short").Truncate(10).Println()
+	// result2: "Short"
+
+	String("😊😊😊😊😊").Truncate(3).Println()
+	// result3: "😊😊😊..."
 }
