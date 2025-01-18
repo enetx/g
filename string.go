@@ -618,6 +618,17 @@ func (s String) Runes() Slice[rune] { return []rune(s) }
 // Chars splits the String into individual characters and returns the iterator.
 func (s String) Chars() SeqSlice[String] { return s.Split() }
 
+// SubString extracts a substring from the String starting at the 'start' index and ending before the 'end' index.
+// The function also supports an optional 'step' parameter to define the increment between indices in the substring.
+// If 'start' or 'end' index is negative, they represent positions relative to the end of the String:
+// - A negative 'start' index indicates the position from the end of the String, moving backward.
+// - A negative 'end' index indicates the position from the end of the String.
+// The function ensures that indices are adjusted to fall within the valid range of the String's length.
+// If indices are out of bounds or if 'start' exceeds 'end', the function returns the original String unmodified.
+func (s String) SubString(start, end Int, step ...Int) String {
+	return String(s.Runes().SubSlice(start, end, step...))
+}
+
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
 

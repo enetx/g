@@ -122,7 +122,7 @@ func TestStringFormat(t *testing.T) {
 		// Modifier: format for dates
 		{
 			name:     "Modifier: format date",
-			format:   "Date: {today.$format(2006-01-02)}",
+			format:   "Date: {today.$date(2006-01-02)}",
 			args:     map[string]any{"today": time.Date(2025, 1, 17, 0, 0, 0, 0, time.UTC)},
 			expected: "Date: 2025-01-17",
 		},
@@ -164,6 +164,14 @@ func TestStringFormat(t *testing.T) {
 			format:   "Repeated: {input.$repeat(abc)}",
 			args:     map[string]any{"input": "ha"},
 			expected: "Repeated: ha",
+		},
+
+		// Test for $substring
+		{
+			name:     "Modifier: substring",
+			format:   "Result: {input.$substring(0,-1,2)}",
+			args:     map[string]any{"input": "Hello, World!"},
+			expected: "Result: Hlo ol",
 		},
 
 		// Test for $truncate
@@ -267,35 +275,35 @@ func TestFormatTrimSetModifier(t *testing.T) {
 		// Basic trimming
 		{
 			name:     "Trim specific characters",
-			format:   "Result: {value.$trimset(#)}",
+			format:   "Result: {value.$trim(#)}",
 			args:     map[string]any{"value": "###Hello###"},
 			expected: "Result: Hello",
 		},
 		// Trim multiple characters
 		{
 			name:     "Trim multiple characters",
-			format:   "Result: {value.$trimset(#$)}",
+			format:   "Result: {value.$trim(#$)}",
 			args:     map[string]any{"value": "$$#Hello#$"},
 			expected: "Result: Hello",
 		},
 		// No trimming (no matching characters)
 		{
 			name:     "No trimming needed",
-			format:   "Result: {value.$trimset(%)}",
+			format:   "Result: {value.$trim(%)}",
 			args:     map[string]any{"value": "Hello"},
 			expected: "Result: Hello",
 		},
 		// Empty value
 		{
 			name:     "Empty value",
-			format:   "Result: {value.$trimset(#)}",
+			format:   "Result: {value.$trim(#)}",
 			args:     map[string]any{"value": ""},
 			expected: "Result: ",
 		},
 		// Empty set
 		{
 			name:     "Empty trim set",
-			format:   "Result: {value.$trimset()}",
+			format:   "Result: {value.$trim()}",
 			args:     map[string]any{"value": "###Hello###"},
 			expected: "Result: ###Hello###",
 		},

@@ -77,7 +77,7 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //   - "$base64e": Encodes the string in Base64 format.
 //   - "$bin": Converts a numeric value to binary representation.
 //   - "$bool": Converts a boolean value to "true" or "false".
-//   - "$format": Formats a time.Time value using the provided format string (e.g., {time.$format(2006-01-02)}).
+//   - "$date": Formats a time.Time value using the provided format string (e.g., {time.$date(2006-01-02)}).
 //   - "$hex": Converts a numeric value to hexadecimal representation.
 //   - "$html": Encodes the string with HTML entities.
 //   - "$len": Returns the length of the value as a string.
@@ -88,9 +88,9 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 //   - "$reverse": Reverses the string value.
 //   - "$rot13": Applies ROT13 encoding to the string.
 //   - "$round": Rounds a floating-point value to the nearest integer.
+//   - "$substring": Extracts a substring from a string starting at a specified index and ending at another index.
 //   - "$title": Converts the value to title case.
-//   - "$trim": Trims leading and trailing whitespace from the value.
-//   - "$trimset": Removes all leading and trailing characters in the value that match any character in the specified set (e.g., {text.$trimset(set)}).
+//   - "$trim": Trims leading and trailing whitespace from the value by default. If an optional parameter is provided, it trims characters in the parameter instead of whitespace.
 //   - "$truncate": Truncates the value to a specified maximum length and appends "..." if truncation occurs (e.g., {text.$truncate(10)}).
 //   - "$upper": Converts the value to uppercase.
 //   - "$url": Encodes the string as a URL-safe string.
@@ -157,12 +157,12 @@ func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String, func(any, ...String) any]) String {
 	result := String(str)
 
-	modRx := String(`(\$\w+)(?:\((.*?)\))?`).Regexp().Compile().Ok()
-	fallRx := String(`\{(\w+)\?([\w]+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
-	placeRx := String(`\{(\w+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
+	modrx := String(`(\$\w+)(?:\((.*?)\))?`).Regexp().Compile().Ok()
+	fallrx := String(`\{(\w+)\?([\w]+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
+	placerx := String(`\{(\w+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
 
 	handlers := Map[String, func(any, ...String) any]{
-		"$format": func(v any, params ...String) any {
+		"$date": func(v any, params ...String) any {
 			if len(params) == 0 {
 				return v
 			}
@@ -194,26 +194,25 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return v
 			}
 
-			var counter Int
-			if params[0].ToInt().IsErr() {
+			counter := params[0].Trim().ToInt()
+
+			if counter.IsErr() {
 				return v
 			}
 
-			counter = params[0].ToInt().Ok()
-
 			switch t := v.(type) {
 			case String:
-				return t.Repeat(counter)
+				return t.Repeat(counter.Ok())
 			case string:
-				return String(t).Repeat(counter)
+				return String(t).Repeat(counter.Ok())
 			case Int:
-				return t.String().Repeat(counter)
+				return t.String().Repeat(counter.Ok())
 			case int:
-				return Int(t).String().Repeat(counter)
+				return Int(t).String().Repeat(counter.Ok())
 			case Float:
-				return t.String().Repeat(counter)
+				return t.String().Repeat(counter.Ok())
 			case float64:
-				return Float(t).String().Repeat(counter)
+				return Float(t).String().Repeat(counter.Ok())
 			default:
 				return v
 			}
@@ -223,18 +222,42 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return v
 			}
 
-			var max Int
-			if params[0].ToInt().IsErr() {
+			max := params[0].Trim().ToInt()
+			if max.IsErr() {
 				return v
 			}
 
-			max = params[0].ToInt().Ok()
+			switch s := v.(type) {
+			case String:
+				return s.Truncate(max.Ok())
+			case string:
+				return String(s).Truncate(max.Ok())
+			default:
+				return v
+			}
+		},
+		"$substring": func(v any, params ...String) any {
+			if len(params) == 0 || len(params) < 2 {
+				return v
+			}
+
+			start := params[0].Trim().ToInt()
+			end := params[1].Trim().ToInt()
+			step := Ok[Int](1)
+
+			if len(params) > 2 {
+				step = params[2].Trim().ToInt()
+			}
+
+			if start.IsErr() || end.IsErr() || step.IsErr() {
+				return v
+			}
 
 			switch s := v.(type) {
 			case String:
-				return s.Truncate(max)
+				return s.SubString(start.Ok(), end.Ok(), step.Ok())
 			case string:
-				return String(s).Truncate(max)
+				return String(s).SubString(start.Ok(), end.Ok(), step.Ok())
 			default:
 				return v
 			}
@@ -269,19 +292,16 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 				return v
 			}
 		},
-		"$trim": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Trim()
-			case string:
-				return String(s).Trim()
-			default:
-				return v
-			}
-		},
-		"$trimset": func(v any, params ...String) any {
+		"$trim": func(v any, params ...String) any {
 			if len(params) == 0 {
-				return v
+				switch s := v.(type) {
+				case String:
+					return s.Trim()
+				case string:
+					return String(s).Trim()
+				default:
+					return v
+				}
 			}
 
 			switch s := v.(type) {
@@ -471,7 +491,7 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 	}
 
 	parseModifier := func(mod String) (String, Slice[String]) {
-		matches := mod.Regexp().FindSubmatch(modRx)
+		matches := mod.Regexp().FindSubmatch(modrx)
 		if matches.IsSome() {
 			name, params := matches.Some()[1], NewSlice[String]()
 			if matches.Some().Len().Gt(2) && matches.Some()[2].NotEmpty() {
@@ -506,7 +526,7 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 		})
 	}
 
-	parsePlaceholders(fallRx, func(matches Slice[String]) String {
+	parsePlaceholders(fallrx, func(matches Slice[String]) String {
 		if matches.Len().Lt(4) {
 			return matches[0]
 		}
@@ -525,7 +545,7 @@ func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String,
 		return matches[0]
 	})
 
-	parsePlaceholders(placeRx, func(matches Slice[String]) String {
+	parsePlaceholders(placerx, func(matches Slice[String]) String {
 		if matches.Len().Lt(3) {
 			return matches[0]
 		}

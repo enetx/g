@@ -28,9 +28,9 @@ func main() {
 	}
 
 	f := Format(
-		"Hello, my name is {name.$trim.$replace(j,r).$title}. I am {age} years old and live in {city.$truncate(2)}.",
+		"Hello, my name is {name.$trim.$replace(j,r).$title.$substring(0,-2)}ot. I am {age} years old and live in {city.$truncate(2)}.",
 		// "Hello, my name is {name.$trim.$upper}. I am {age} years old and live in {city}.",
-		// "Hello, my name is {name?noname.$trim.$upper}. I am {age} years old and live in {city}. Today {today.$format(01/02/2006)}.",
+		// "Hello, my name is {name?noname.$trim.$upper}. I am {age} years old and live in {city}. Today {today.$date(01/02/2006)}.",
 		named,
 	)
 
@@ -49,7 +49,7 @@ func main() {
 		"date":  time.Now(),
 	}
 
-	format := "{value.$double} and {text.$upper} {date.$format(01-02-2006)}"
+	format := "{value.$double} and {text.$upper} {date.$date(01-02-2006)}"
 	result := Format(format, args, handlers)
 	result.Println() // Output: "84 and EXAMPLE 01-17-2025"
 }

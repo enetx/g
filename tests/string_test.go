@@ -10,6 +10,64 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestSubString(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    String
+		start    Int
+		end      Int
+		step     []Int
+		expected string
+	}{
+		{
+			name:     "Basic substring",
+			input:    "Hello, world!",
+			start:    0,
+			end:      5,
+			expected: "Hello",
+		},
+		{
+			name:     "With negative start",
+			input:    "Hello, world!",
+			start:    -6,
+			end:      12,
+			expected: "world",
+		},
+		{
+			name:     "With negative end",
+			input:    "Hello, world!",
+			start:    7,
+			end:      -1,
+			expected: "world",
+		},
+		{
+			name:     "Start exceeds end",
+			input:    "Hello, world!",
+			start:    5,
+			end:      1,
+			expected: "",
+		},
+		{
+			name:     "Step parameter",
+			input:    "abcdef",
+			start:    0,
+			end:      6,
+			step:     []Int{2},
+			expected: "ace",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			s := String(tc.input)
+			result := s.SubString(tc.start, tc.end, tc.step...)
+			if result.Std() != tc.expected {
+				t.Errorf("Test %s failed: expected %s, got %s", tc.name, tc.expected, result.Std())
+			}
+		})
+	}
+}
+
 func TestStringTruncate(t *testing.T) {
 	tests := []struct {
 		name     string
