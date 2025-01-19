@@ -145,7 +145,6 @@ func TestStringFormat(t *testing.T) {
 			args:     map[string]any{"input": "banana"},
 			expected: "Result: banana",
 		},
-
 		// Test for $repeat
 		{
 			name:     "Modifier: repeat string",
@@ -165,7 +164,6 @@ func TestStringFormat(t *testing.T) {
 			args:     map[string]any{"input": "ha"},
 			expected: "Repeated: ha",
 		},
-
 		// Test for $substring
 		{
 			name:     "Modifier: substring",
@@ -173,7 +171,6 @@ func TestStringFormat(t *testing.T) {
 			args:     map[string]any{"input": "Hello, World!"},
 			expected: "Result: Hlo ol",
 		},
-
 		// Test for $truncate
 		{
 			name:     "Modifier: truncate string",
@@ -198,6 +195,32 @@ func TestStringFormat(t *testing.T) {
 			format:   "Truncated: {input.$truncate(abc)}",
 			args:     map[string]any{"input": "Hello, World!"},
 			expected: "Truncated: Hello, World!",
+		},
+		// A format string with no placeholders at all.
+		{
+			name:     "No placeholders",
+			format:   "Just a normal text",
+			args:     make(map[string]any),
+			expected: "Just a normal text",
+		},
+		// An empty placeholder (e.g., "Hello, {}!")
+		{
+			name:     "Empty placeholder",
+			format:   "Hello, {}!",
+			args:     make(map[string]any),
+			expected: "Hello, {}!",
+		},
+		//  Multiple chained modifiers (e.g., trim, lower, replace, reverse).
+		{
+			name:   "Multiple chain modifiers",
+			format: "{word.$trim.$lower.$replace(e,a).$reverse}",
+			args:   map[string]any{"word": "  EXAMPLE "},
+			// Explanation:
+			//   "  EXAMPLE " -> $trim => "EXAMPLE"
+			//   -> $lower => "example"
+			//   -> $replace(e,a) => "axampla"
+			//   -> $reverse => "alpmaxa"
+			expected: "alpmaxa",
 		},
 	}
 

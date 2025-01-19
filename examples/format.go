@@ -7,6 +7,10 @@ import (
 )
 
 func main() {
+	// 1) Basic named placeholders
+
+	// Here we have a template with two named placeholders: {foo} and {bar}.
+	// The maps can be passed in any of the supported forms (map[string]any, map[String]any, etc.).
 	foo := String("foo")
 	bar := "bar"
 
@@ -15,41 +19,55 @@ func main() {
 	Format("foo: {foo.$upper}, bar: {bar}", Map[string, any]{"foo": foo, "bar": bar}).Println()
 	Format("foo: {foo}, bar: {bar}", Map[String, any]{"foo": foo, "bar": bar}).Println()
 
+	// 2) Named placeholders with fallback and multiple modifiers
+
+	// We define a map with "name", "age", and "city".
+	// We'll illustrate fallback ( {name?noname} ), plus various modifiers
+	// like $trim, $replace, $title, $substring, $date, etc.
 	name := String("   john  ")
 	age := 30
 	city := "New York"
 
 	named := map[string]any{
-		"name":   name,
-		"age":    age,
-		"city":   city,
-		"noname": "       no name         ",
-		"today":  time.Now(),
+		"name":  name,
+		"age":   age,
+		"city":  city,
+		"today": time.Now(),
 	}
 
-	f := Format(
-		"Hello, my name is {name.$trim.$replace(j,r).$title.$substring(0,-2)}ot. I am {age} years old and live in {city.$truncate(2)}.",
-		// "Hello, my name is {name.$trim.$upper}. I am {age} years old and live in {city}.",
-		// "Hello, my name is {name?noname.$trim.$upper}. I am {age} years old and live in {city}. Today {today.$date(01/02/2006)}.",
+	// Template example:
+	// {name.$trim.$replace(j,r).$title.$substring(0,-2)}ot
+	// This will:
+	//   - Trim whitespace around "name"
+	//   - Replace 'j' with 'r'
+	//   - Convert to Title
+	//   - Substring from 0 to length-2 (e.g. "Jo" => "J")
+	//   - Then append "ot" as literal text
+	Format(
+		"Hello, my name is {name.$trim.$replace(j,r).$title.$substring(0,-2).$replace(o,0)}0t. I am {age} years old and live in {city.$truncate(2)}.",
 		named,
-	)
+	).
+		Println() // Output: Hello, my name is Root. I am 30 years old and live in Ne....
 
-	f.Println()
+	// Another variant with fallback {unknown?name} and a date modifier
+	Format("Today is {today.$date(01/02/2006)}. Name fallback example: {unknown?name.$trim.$upper}", named).
+		Println() // Output: Today is 01/19/2025. Name fallback example: JOHN
 
-	///////////////////////////////////////////////////////////////////////////
+	// 3) Mixing numeric placeholders with named placeholders
 
-	handlers := Map[String, func(v any, args ...String) any]{
-		"$double": func(v any, _ ...String) any { return (v.(Int) * 2).String() },
-		"$prefix": func(v any, _ ...String) any { return "prefix_" + v.(String) },
-	}
+	// Numeric placeholders {1}, {2}, etc. use 1-based indexing for non-map arguments.
+	// Named placeholders still come from any map arguments.
+	Format(
+		"Numeric: {1}, Named: {key}, Another numeric: {2}",
+		map[string]any{"key": "named-value"},
+		"positional-1", // => {1}
+		"positional-2", // => {2}
+	).
+		Println() // Output: Numeric: positional-1, Named: named-value, Another numeric: positional-2
 
-	args := map[string]any{
-		"value": Int(42),
-		"text":  String("example"),
-		"date":  time.Now(),
-	}
+	// 4) Numeric-only usage
 
-	format := "{value.$double} and {text.$upper} {date.$date(01-02-2006)}"
-	result := Format(format, args, handlers)
-	result.Println() // Output: "84 and EXAMPLE 01-17-2025"
+	// If you only have numeric placeholders, you can simply pass arguments
+	Format("{1} + {2} + {3} + {1}", "Hello", 123, "World").
+		Println() // Output: Hello + 123 + World + Hello
 }

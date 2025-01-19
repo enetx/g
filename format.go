@@ -3,7 +3,6 @@ package g
 import (
 	"fmt"
 	"io"
-	"regexp"
 	"time"
 
 	"github.com/enetx/g/f"
@@ -46,519 +45,521 @@ func Println(a ...any) (int, error) { return fmt.Println(a...) }
 // Spaces are added between operands when neither is a string. A newline is appended.
 func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 
-// Format formats a string by replacing placeholders with corresponding values from a map
-// and returns the resulting formatted string. Placeholders in the input string should
-// be enclosed in curly braces, e.g., "{key}". Optional modifiers can be used to transform
-// the values (e.g., "$upper" for uppercase, "$lower" for lowercase, etc.).
+var handlers = Map[String, func(any, ...String) any]{}
+
+// Format replaces placeholders in the given template string `str` with corresponding values
+// from the provided arguments. It supports both numeric (1-based) and named placeholders,
+// optional fallback keys, and a chain of modifiers. The function returns the final replaced string.
 //
-// Parameters:
-//   - str: A template string containing placeholders enclosed in curly braces.
-//   - args: A map containing keys and their associated values for replacing placeholders.
-//   - customHandlers (optional): Additional Map of custom modifiers where the key is the
-//     modifier name and the value is a function to process the transformation.
+// Usage:
 //
-// Placeholder Syntax:
-//   - Simple Placeholder: "{key}"
-//     - Replaced with the value from the map corresponding to "key".
-//   - Placeholder with Fallback: "{key?fallback}"
-//     - Uses the "fallback" key if "key" is not found in the map.
-//   - Placeholder with Modifiers: "{key.$modifiers}"
-//     - Applies transformations to the value using the specified modifiers.
-//   - Placeholder with Fallback and Modifiers: "{key?fallback.$modifiers}"
-//     - Applies modifiers to the value and uses fallback logic if "key" is not found.
-//   - Placeholder with Parameters: "{key.$modifier(param1,param2,...)}"
-//     - Passes parameters to the specified modifier for additional control or customization.
-//   - Placeholder with Fallback, Modifiers, and Parameters: "{key?fallback.$modifier(param1,param2,...)}"
-//     - Combines fallback logic, modifiers, and parameters for maximum flexibility.
+//	Format("{1}, {2}, {foo}", arg1, arg2, map[string]any{"foo": "bar"})
 //
-// Supported Modifiers:
-//   - "$abs": Returns the absolute value for numeric inputs.
-//   - "$base64d": Decodes a Base64-encoded string.
-//   - "$base64e": Encodes the string in Base64 format.
-//   - "$bin": Converts a numeric value to binary representation.
-//   - "$bool": Converts a boolean value to "true" or "false".
-//   - "$date": Formats a time.Time value using the provided format string (e.g., {time.$date(2006-01-02)}).
-//   - "$hex": Converts a numeric value to hexadecimal representation.
-//   - "$html": Encodes the string with HTML entities.
-//   - "$len": Returns the length of the value as a string.
-//   - "$lower": Converts the value to lowercase.
-//   - "$oct": Converts a numeric value to octal representation.
-//   - "$repeat": Repeats the value a specified number of times (e.g., {value.$repeat(3)}).
-//   - "$replace": Replaces all occurrences of a substring in the value with another substring (e.g., {text.$replace(old,new)}).
-//   - "$reverse": Reverses the string value.
-//   - "$rot13": Applies ROT13 encoding to the string.
-//   - "$round": Rounds a floating-point value to the nearest integer.
-//   - "$substring": Extracts a substring from a string starting at a specified index and ending at another index.
-//   - "$title": Converts the value to title case.
-//   - "$trim": Trims leading and trailing whitespace from the value by default. If an optional parameter is provided, it trims characters in the parameter instead of whitespace.
-//   - "$truncate": Truncates the value to a specified maximum length and appends "..." if truncation occurs (e.g., {text.$truncate(10)}).
-//   - "$upper": Converts the value to uppercase.
-//   - "$url": Encodes the string as a URL-safe string.
-//   - "$xor": Performs a bitwise XOR operation on an integer value with the provided operand (e.g., {value.$xor(42)}).
-
-// Custom Modifiers:
-//   - You can define custom modifiers by providing a Map where the key is the modifier
-//     name (String), and the value is a function with the signature: func(any, ...String) any.
+// The arguments passed to Format can include:
 //
-// Returns:
-//   - A formatted string with placeholders replaced by their corresponding values from the map.
+//   - Any number of map-like values (map[string]any, map[String]any, Map[string,any], Map[String,any])
+//     whose entries will be merged into a single combined map for *named* placeholders.
+//   - Any other values (strings, numbers, etc.) that become *positional* arguments, accessible by
+//     numeric placeholders like {1}, {2}, etc.
 //
-// Example Usage:
+// Placeholders are enclosed in curly braces `{...}` and support the following forms:
+//  1. Numeric: `{1}`, `{2}`, etc. (1-based indexing into positional arguments)
+//  2. Named: `{key}`                -> looks up "key" in the merged map
+//  3. Fallback: `{key?fallback}`    -> if "key" not found, tries "fallback"
+//  4. Modifiers: `{key.$upper}`, `{1.$date(2006-01-02)}`, etc.
+//  5. Combined fallback + modifiers: `{key?fallback.$trim.$replace(a,b)}`
+//  6. Modifier parameters: `{key.$modifier(param1,param2,...)}`
 //
-//	values := map[string]any{
-//	    "name":  "John",
-//	    "age":   30,
-//	    "city":  "New York",
-//	}
+// ### Modifiers
 //
-//	format := "Hello, my name is {name}. I am {age} years old and live in {city}."
-//	formatted := g.Format(format, values)
-//	fmt.Println(formatted)
+// After determining the value for a placeholder (either from a positional argument or via the merged map),
+// Format checks for a chain of modifiers appended to the placeholder, e.g. `"{key.$upper.$replace(x,y)}"`.
+// Each modifier is looked up in a global `handlers` map, where the key is the modifier name (e.g. `"$upper"`)
+// and the value is a function:
 //
-// Output:
+//	func(value any, params ...String) any
 //
-//	Hello, my name is John. I am 30 years old and live in New York.
+// The function applies a transformation to `value` and returns the new value. If a modifier is unknown,
+// it is skipped. Some available built-in modifiers include (but are not limited to):
 //
-// Example with Modifiers:
+//   - $upper, $lower, $title, $trim, $replace, $repeat, $substring, $truncate
+//   - $date(layout), $round, $abs, $len, $reverse
+//   - $hex, $bin, $oct, $url, $html, $base64e, $base64d, $rot13, $xor
 //
-//	values := map[string]any{
-//	    "name":  "John",
-//	    "work": " developer ",
-//	    "today":  time.Now(),
-//	}
+// ### Fallback
 //
-//	format := "Name: {name.$upper}, Work: {work.$trim.$title}, Today: {today.$format(01/02/2006)}."
-//	formatted := g.Format(format, values)
-//	fmt.Println(formatted)
+// If a named placeholder uses a fallback syntax `"{key?fallback}"`, Format will first look for "key" in
+// the merged map. If not found, it tries "fallback". If still not found, the placeholder is left as-is
+// (e.g., `"{key?fallback}"` remains untouched).
 //
-// Output:
+// ### Numeric Placeholders
 //
-//	Name: JOHN, Work: Developer, Today: 01/17/2025.
+// Numeric placeholders like `"{1}"`, `"{2}"` refer to the 1-based index of non-map arguments passed to
+// Format. For example:
 //
-// Example with Custom Modifiers:
+//	Format("{1} + {2}", "Hello", 123)
+//	// => "Hello + 123"
 //
-//	handlers := Map[String, func(v any, args ...String) any]{
-//		"$double": func(v any, _ ...String) any { return (v.(Int) * 2).String() },
-//		"$prefix": func(v any, _ ...String) any { return "prefix_" + v.(String) },
-//	}
+// If `{3}` is out of range, the placeholder is left unchanged.
 //
-//	args := map[string]any{
-//		"value": Int(42),
-//		"text":  String("example"),
-//		"date":  time.Now(),
-//	}
+// ### Return Value
 //
-//	result := Format("{value.$double} and {text.$upper}", args, handlers)
-//	result.Println()
+// The function returns a `String` (your custom type) containing the final replaced and modified result.
 //
-// Output:
+// ### Example
 //
-//	84 and EXAMPLE
-func Format[T, U ~string](str T, args Map[U, any], customHandlers ...Map[String, func(any, ...String) any]) String {
-	result := String(str)
+//	format := "Hello, {1}! Welcome to {city?location.$upper} on {today.$date(2006-01-02)}."
+//
+//	result := Format(
+//	    format,
+//	    "Alice",  // {1}
+//	    map[string]any{
+//	        "city":  "New York",
+//	        "today": time.Now(),
+//	    },
+//	)
+//	// The placeholder {1} -> "Alice"
+//	// The placeholder {city?location} -> "New York" (no need to use fallback)
+//	// The modifier .$upper -> "NEW YORK"
+//	// The placeholder {today.$date(2006-01-02)} -> e.g. "2025-01-17"
+//	// => "Hello, Alice! Welcome to NEW YORK on 2025-01-17."
+//
+// Finally, if any placeholder cannot be resolved (key is missing and no fallback, or numeric index is out of range),
+// that placeholder remains as the original text with braces, e.g., `"{unknownKey}"`.
+func Format[T ~string](template T, args ...any) String {
+	named := NewMap[String, any]()
+	var positional Slice[any]
 
-	modrx := String(`(\$\w+)(?:\((.*?)\))?`).Regexp().Compile().Ok()
-	fallrx := String(`\{(\w+)\?([\w]+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
-	placerx := String(`\{(\w+)((?:\.\$[\w]+(?:\([^\)]*\))?)*)\}`).Regexp().Compile().Ok()
-
-	handlers := Map[String, func(any, ...String) any]{
-		"$date": func(v any, params ...String) any {
-			if len(params) == 0 {
-				return v
+	for _, arg := range args {
+		switch value := arg.(type) {
+		case map[string]any:
+			for k, v := range value {
+				named[String(k)] = v
 			}
-
-			if date, ok := v.(time.Time); ok {
-				return date.Format(params[0].Std())
+		case map[String]any:
+			for k, v := range value {
+				named[k] = v
 			}
-
-			return v
-		},
-		"$replace": func(v any, params ...String) any {
-			if len(params) < 2 {
-				return v
+		case Map[String, any]:
+			for k, v := range value {
+				named[k] = v
 			}
-
-			oldS, newS := params[0], params[1]
-
-			switch s := v.(type) {
-			case String:
-				return s.ReplaceAll(oldS, newS)
-			case string:
-				return String(s).ReplaceAll(oldS, newS)
-			default:
-				return v
+		case Map[string, any]:
+			for k, v := range value {
+				named[String(k)] = v
 			}
-		},
-		"$repeat": func(v any, params ...String) any {
-			if len(params) == 0 {
-				return v
-			}
-
-			counter := params[0].Trim().ToInt()
-
-			if counter.IsErr() {
-				return v
-			}
-
-			switch t := v.(type) {
-			case String:
-				return t.Repeat(counter.Ok())
-			case string:
-				return String(t).Repeat(counter.Ok())
-			case Int:
-				return t.String().Repeat(counter.Ok())
-			case int:
-				return Int(t).String().Repeat(counter.Ok())
-			case Float:
-				return t.String().Repeat(counter.Ok())
-			case float64:
-				return Float(t).String().Repeat(counter.Ok())
-			default:
-				return v
-			}
-		},
-		"$truncate": func(v any, params ...String) any {
-			if len(params) == 0 {
-				return v
-			}
-
-			max := params[0].Trim().ToInt()
-			if max.IsErr() {
-				return v
-			}
-
-			switch s := v.(type) {
-			case String:
-				return s.Truncate(max.Ok())
-			case string:
-				return String(s).Truncate(max.Ok())
-			default:
-				return v
-			}
-		},
-		"$substring": func(v any, params ...String) any {
-			if len(params) == 0 || len(params) < 2 {
-				return v
-			}
-
-			start := params[0].Trim().ToInt()
-			end := params[1].Trim().ToInt()
-			step := Ok[Int](1)
-
-			if len(params) > 2 {
-				step = params[2].Trim().ToInt()
-			}
-
-			if start.IsErr() || end.IsErr() || step.IsErr() {
-				return v
-			}
-
-			switch s := v.(type) {
-			case String:
-				return s.SubString(start.Ok(), end.Ok(), step.Ok())
-			case string:
-				return String(s).SubString(start.Ok(), end.Ok(), step.Ok())
-			default:
-				return v
-			}
-		},
-		"$upper": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Upper()
-			case string:
-				return String(s).Upper()
-			default:
-				return v
-			}
-		},
-		"$lower": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Lower()
-			case string:
-				return String(s).Lower()
-			default:
-				return v
-			}
-		},
-		"$title": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Title()
-			case string:
-				return String(s).Title()
-			default:
-				return v
-			}
-		},
-		"$trim": func(v any, params ...String) any {
-			if len(params) == 0 {
-				switch s := v.(type) {
-				case String:
-					return s.Trim()
-				case string:
-					return String(s).Trim()
-				default:
-					return v
-				}
-			}
-
-			switch s := v.(type) {
-			case String:
-				return s.TrimSet(params[0])
-			case string:
-				return String(s).TrimSet(params[0])
-			default:
-				return v
-			}
-		},
-		"$len": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Len().String()
-			case string:
-				return String(s).Len().String()
-			default:
-				return v
-			}
-		},
-		"$round": func(v any, _ ...String) any {
-			switch f := v.(type) {
-			case Float:
-				return f.Round().String()
-			case float64:
-				return Float(f).Round().String()
-			default:
-				return v
-			}
-		},
-		"$abs": func(v any, _ ...String) any {
-			switch n := v.(type) {
-			case Int:
-				return n.Abs().String()
-			case int:
-				return Int(n).Abs().String()
-			case Float:
-				return n.Abs().String()
-			case float64:
-				return Float(n).Abs().String()
-			default:
-				return v
-			}
-		},
-		"$bool": func(v any, _ ...String) any {
-			if b, ok := v.(bool); ok {
-				if b {
-					return "true"
-				}
-				return "false"
-			}
-			return v
-		},
-		"$reverse": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Reverse()
-			case string:
-				return String(s).Reverse()
-			default:
-				return v
-			}
-		},
-		"$hex": func(v any, _ ...String) any {
-			switch n := v.(type) {
-			case Int:
-				return n.Hex()
-			case int:
-				return Int(n).Hex()
-			case Float:
-				return n.Int().Hex()
-			case float64:
-				return Int(n).Hex()
-			case String:
-				return n.Encode().Hex()
-			case string:
-				return String(n).Encode().Hex()
-			default:
-				return v
-			}
-		},
-		"$oct": func(v any, _ ...String) any {
-			switch n := v.(type) {
-			case Int:
-				return n.Octal()
-			case int:
-				return Int(n).Octal()
-			case Float:
-				return n.Int().Octal()
-			case float64:
-				return Int(n).Octal()
-			case String:
-				return n.Encode().Octal()
-			case string:
-				return String(n).Encode().Octal()
-			default:
-				return v
-			}
-		},
-		"$bin": func(v any, _ ...String) any {
-			switch n := v.(type) {
-			case Int:
-				return n.Binary()
-			case int:
-				return Int(n).Binary()
-			case Float:
-				return n.Int().Binary()
-			case float64:
-				return Int(n).Binary()
-			case String:
-				return n.Encode().Binary()
-			case string:
-				return String(n).Encode().Binary()
-			default:
-				return v
-			}
-		},
-		"$url": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Encode().URL()
-			case string:
-				return String(s).Encode().URL()
-			default:
-				return v
-			}
-		},
-		"$html": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Encode().HTML()
-			case string:
-				return String(s).Encode().HTML()
-			default:
-				return v
-			}
-		},
-		"$base64e": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Encode().Base64()
-			case string:
-				return String(s).Encode().Base64()
-			default:
-				return v
-			}
-		},
-		"$base64d": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Decode().Base64().Ok()
-			case string:
-				return String(s).Decode().Base64().Ok()
-			default:
-				return v
-			}
-		},
-		"$rot13": func(v any, _ ...String) any {
-			switch s := v.(type) {
-			case String:
-				return s.Encode().Rot13()
-			case string:
-				return String(s).Encode().Rot13()
-			default:
-				return v
-			}
-		},
-		"$xor": func(v any, params ...String) any {
-			if len(params) == 0 {
-				return v
-			}
-
-			switch s := v.(type) {
-			case String:
-				return s.Encode().XOR(params[0])
-			case string:
-				return String(s).Encode().XOR(params[0])
-			default:
-				return v
-			}
-		},
-	}
-
-	for _, custom := range customHandlers {
-		handlers.Copy(custom)
-	}
-
-	parseModifier := func(mod String) (String, Slice[String]) {
-		matches := mod.Regexp().FindSubmatch(modrx)
-		if matches.IsSome() {
-			name, params := matches.Some()[1], NewSlice[String]()
-			if matches.Some().Len().Gt(2) && matches.Some()[2].NotEmpty() {
-				params = matches.Some()[2].Split(",").Collect()
-			}
-
-			return name, params
+		default:
+			positional = positional.Append(value)
 		}
-
-		return "", nil
 	}
 
-	applyModifiers := func(mods String, v any) String {
-		mods.Split(".").Exclude(f.IsZero).ForEach(func(mod String) {
-			name, params := parseModifier(mod)
-			if handler := handlers.Get(name); handler.IsSome() {
-				v = handler.Some()(v, params...)
-			}
-		})
+	return parseTmpl(String(template), named, positional)
+}
 
-		return Sprint(v)
+func parseTmpl(tmpl String, named Map[String, any], positional Slice[any]) String {
+	builder := NewBuilder()
+	length := tmpl.Len()
+
+	for i := Int(0); i < length; {
+		if tmpl[i] == '{' {
+			cidx := tmpl[i+1:].Index("}")
+			if cidx.IsNegative() {
+				builder.WriteByte(tmpl[i])
+				i++
+				continue
+			}
+
+			eidx := i + 1 + cidx
+			placeholder := tmpl[i+1 : eidx]
+
+			replaced := processPlaceholder(placeholder, named, positional)
+			builder.Write(replaced)
+
+			i = eidx + 1
+		} else {
+			builder.WriteByte(tmpl[i])
+			i++
+		}
 	}
 
-	parsePlaceholders := func(pattern *regexp.Regexp, handler func(Slice[String]) String) {
-		result = result.Regexp().ReplaceBy(pattern, func(match String) String {
-			matches := match.Regexp().FindSubmatch(pattern)
-			if matches.IsSome() {
-				return handler(matches.Some())
-			}
+	return builder.String()
+}
 
-			return match
+func processPlaceholder(placeholder String, named Map[String, any], positional Slice[any]) String {
+	var (
+		keyfall String
+		mods    String
+		key     String
+		fall    String
+	)
+
+	if idx := placeholder.Index("."); idx.IsPositive() {
+		keyfall = placeholder[:idx]
+		mods = placeholder[idx+1:]
+	} else {
+		keyfall = placeholder
+	}
+
+	if idx := keyfall.Index("?"); idx.IsPositive() {
+		key = keyfall[:idx]
+		fall = keyfall[idx+1:]
+	} else {
+		key = keyfall
+	}
+
+	vo := resolveValue(key, fall, named, positional)
+	if vo.IsNone() {
+		return "{" + placeholder + "}"
+	}
+
+	value := vo.Some()
+
+	if mods.NotEmpty() {
+		mods.Split(".").Exclude(f.IsZero).ForEach(func(segment String) {
+			name, params := parseMod(segment)
+			value = applyMod(value, name, params)
 		})
 	}
 
-	parsePlaceholders(fallrx, func(matches Slice[String]) String {
-		if matches.Len().Lt(4) {
-			return matches[0]
+	return Sprint(value)
+}
+
+func resolveValue(key, fall String, named Map[String, any], positional Slice[any]) Option[any] {
+	if num := key.ToInt(); num.IsOk() {
+		idx := num.Ok() - 1
+		if idx.IsNegative() || idx.Gte(positional.Len()) {
+			return None[any]()
 		}
 
-		key, fallbackKey, modifiers := matches[1], matches[2], matches[3]
+		return Some(positional[idx])
+	}
 
-		value := args.Get(U(key))
-		if value.IsNone() {
-			value = args.Get(U(fallbackKey))
+	value := named.Get(key)
+	if value.IsNone() && fall.NotEmpty() {
+		value = named.Get(fall)
+	}
+
+	return value
+}
+
+func parseMod(segment String) (String, Slice[String]) {
+	oidx := segment.Index("(")
+	if oidx.IsNegative() {
+		return segment, nil
+	}
+
+	cidx := segment.LastIndex(")")
+	if cidx.Lt(oidx) {
+		return segment, nil
+	}
+
+	params := segment[oidx+1 : cidx].Split(",").Collect()
+	name := segment[:oidx]
+
+	return name, params
+}
+
+func applyMod(value any, name String, params Slice[String]) any {
+	switch name {
+	case "$date":
+		if len(params) == 0 {
+			return value
 		}
 
-		if value.IsSome() {
-			return applyModifiers(modifiers, value.Some())
+		if date, ok := value.(time.Time); ok {
+			return date.Format(params[0].Std())
 		}
 
-		return matches[0]
-	})
-
-	parsePlaceholders(placerx, func(matches Slice[String]) String {
-		if matches.Len().Lt(3) {
-			return matches[0]
+		return value
+	case "$replace":
+		if len(params) < 2 {
+			return value
 		}
 
-		key, modifiers := matches[1], matches[2]
+		oldS, newS := params[0], params[1]
 
-		value := args.Get(U(key))
-		if value.IsSome() {
-			return applyModifiers(modifiers, value.Some())
+		switch s := value.(type) {
+		case String:
+			return s.ReplaceAll(oldS, newS)
+		case string:
+			return String(s).ReplaceAll(oldS, newS)
+		default:
+			return value
+		}
+	case "$repeat":
+		if len(params) == 0 {
+			return value
 		}
 
-		return matches[0]
-	})
+		counter := params[0].Trim().ToInt()
+		if counter.IsErr() {
+			return value
+		}
 
-	return result
+		switch t := value.(type) {
+		case String:
+			return t.Repeat(counter.Ok())
+		case string:
+			return String(t).Repeat(counter.Ok())
+		case Int:
+			return t.String().Repeat(counter.Ok())
+		case int:
+			return Int(t).String().Repeat(counter.Ok())
+		case Float:
+			return t.String().Repeat(counter.Ok())
+		case float64:
+			return Float(t).String().Repeat(counter.Ok())
+		default:
+			return value
+		}
+	case "$truncate":
+		if len(params) == 0 {
+			return value
+		}
+
+		max := params[0].Trim().ToInt()
+		if max.IsErr() {
+			return value
+		}
+
+		switch s := value.(type) {
+		case String:
+			return s.Truncate(max.Ok())
+		case string:
+			return String(s).Truncate(max.Ok())
+		default:
+			return value
+		}
+	case "$substring":
+		if len(params) == 0 || len(params) < 2 {
+			return value
+		}
+
+		start := params[0].Trim().ToInt()
+		end := params[1].Trim().ToInt()
+		step := Ok[Int](1)
+
+		if len(params) > 2 {
+			step = params[2].Trim().ToInt()
+		}
+
+		if start.IsErr() || end.IsErr() || step.IsErr() {
+			return value
+		}
+
+		switch s := value.(type) {
+		case String:
+			return s.SubString(start.Ok(), end.Ok(), step.Ok())
+		case string:
+			return String(s).SubString(start.Ok(), end.Ok(), step.Ok())
+		default:
+			return value
+		}
+	case "$upper":
+		switch s := value.(type) {
+		case String:
+			return s.Upper()
+		case string:
+			return String(s).Upper()
+		default:
+			return value
+		}
+	case "$lower":
+		switch s := value.(type) {
+		case String:
+			return s.Lower()
+		case string:
+			return String(s).Lower()
+		default:
+			return value
+		}
+	case "$title":
+		switch s := value.(type) {
+		case String:
+			return s.Title()
+		case string:
+			return String(s).Title()
+		default:
+			return value
+		}
+	case "$trim":
+		if len(params) == 0 {
+			switch s := value.(type) {
+			case String:
+				return s.Trim()
+			case string:
+				return String(s).Trim()
+			default:
+				return value
+			}
+		}
+
+		switch s := value.(type) {
+		case String:
+			return s.TrimSet(params[0])
+		case string:
+			return String(s).TrimSet(params[0])
+		default:
+			return value
+		}
+	case "$len":
+		switch s := value.(type) {
+		case String:
+			return s.Len().String()
+		case string:
+			return String(s).Len().String()
+		default:
+			return value
+		}
+	case "$round":
+		switch fl := value.(type) {
+		case Float:
+			return fl.Round().String()
+		case float64:
+			return Float(fl).Round().String()
+		default:
+			return value
+		}
+	case "$abs":
+		switch n := value.(type) {
+		case Int:
+			return n.Abs().String()
+		case int:
+			return Int(n).Abs().String()
+		case Float:
+			return n.Abs().String()
+		case float64:
+			return Float(n).Abs().String()
+		default:
+			return value
+		}
+	case "$bool":
+		if b, ok := value.(bool); ok {
+			if b {
+				return "true"
+			}
+			return "false"
+		}
+		return value
+	case "$reverse":
+		switch s := value.(type) {
+		case String:
+			return s.Reverse()
+		case string:
+			return String(s).Reverse()
+		default:
+			return value
+		}
+	case "$hex":
+		switch n := value.(type) {
+		case Int:
+			return n.Hex()
+		case int:
+			return Int(n).Hex()
+		case Float:
+			return n.Int().Hex()
+		case float64:
+			return Int(n).Hex()
+		case String:
+			return n.Encode().Hex()
+		case string:
+			return String(n).Encode().Hex()
+		default:
+			return value
+		}
+	case "$oct":
+		switch n := value.(type) {
+		case Int:
+			return n.Octal()
+		case int:
+			return Int(n).Octal()
+		case Float:
+			return n.Int().Octal()
+		case float64:
+			return Int(n).Octal()
+		case String:
+			return n.Encode().Octal()
+		case string:
+			return String(n).Encode().Octal()
+		default:
+			return value
+		}
+	case "$bin":
+		switch n := value.(type) {
+		case Int:
+			return n.Binary()
+		case int:
+			return Int(n).Binary()
+		case Float:
+			return n.Int().Binary()
+		case float64:
+			return Int(n).Binary()
+		case String:
+			return n.Encode().Binary()
+		case string:
+			return String(n).Encode().Binary()
+		default:
+			return value
+		}
+	case "$url":
+		switch s := value.(type) {
+		case String:
+			return s.Encode().URL()
+		case string:
+			return String(s).Encode().URL()
+		default:
+			return value
+		}
+	case "$html":
+		switch s := value.(type) {
+		case String:
+			return s.Encode().HTML()
+		case string:
+			return String(s).Encode().HTML()
+		default:
+			return value
+		}
+	case "$base64e":
+		switch s := value.(type) {
+		case String:
+			return s.Encode().Base64()
+		case string:
+			return String(s).Encode().Base64()
+		default:
+			return value
+		}
+	case "$base64d":
+		switch s := value.(type) {
+		case String:
+			return s.Decode().Base64().Ok()
+		case string:
+			return String(s).Decode().Base64().Ok()
+		default:
+			return value
+		}
+	case "$rot13":
+		switch s := value.(type) {
+		case String:
+			return s.Encode().Rot13()
+		case string:
+			return String(s).Encode().Rot13()
+		default:
+			return value
+		}
+	case "$xor":
+		if len(params) == 0 {
+			return value
+		}
+
+		switch s := value.(type) {
+		case String:
+			return s.Encode().XOR(params[0])
+		case string:
+			return String(s).Encode().XOR(params[0])
+		default:
+			return value
+		}
+	default:
+		return value
+	}
 }
