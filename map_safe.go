@@ -175,10 +175,10 @@ func (ms *MapSafe[K, V]) String() string {
 	builder := NewBuilder()
 
 	for k, v := range ms.data {
-		builder.Write(Sprintf("%v:%v, ", k, v))
+		builder.Write(Sprintf("{}:{}, ", k, v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("MapSafe{%s}").Std()
+	return builder.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
 }
 
 // Print writes the key-value pairs of the MapSafe to the standard output (console)

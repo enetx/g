@@ -10,16 +10,13 @@ import (
 
 // Fprintf formats according to a format specifier and writes to w.
 // It returns the number of bytes written and any write error encountered.
-func Fprintf[T ~string](w io.Writer, format T, a ...any) (int, error) {
-	return fmt.Fprintf(w, string(format), a...)
+func Fprintf[T ~string](w io.Writer, format T, args ...any) (int, error) {
+	return w.Write(Sprintf(format, args...).Bytes())
 }
 
 // Printf formats according to a format specifier and writes to standard output.
 // It returns the number of bytes written and any write error encountered.
-func Printf[T ~string](format T, a ...any) (int, error) { return fmt.Printf(string(format), a...) }
-
-// Sprintf formats according to a format specifier and returns the resulting String.
-func Sprintf[T ~string](str T, a ...any) String { return NewString(fmt.Sprintf(string(str), a...)) }
+func Printf[T ~string](format T, args ...any) { Sprintf(format, args...).Print() }
 
 // Fprint writes the output to w using the default formats for its operands.
 // It returns the number of bytes written and any write error encountered.
@@ -43,131 +40,163 @@ func Println(a ...any) (int, error) { return fmt.Println(a...) }
 
 // Sprintln formats using the default formats for its operands and returns the resulting String.
 // Spaces are added between operands when neither is a string. A newline is appended.
-func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
+func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
 
-// Format replaces placeholders in the given template string `template` with corresponding values
-// from the provided arguments. Placeholders are enclosed in curly braces `{...}` and can be either
-// numeric (1-based) or named. Named placeholders can also have an optional fallback and chainable
-// modifiers. The function returns the final replaced string.
+type Named Map[String, any]
+
+// Sprintf processes a template string and replaces placeholders with values
+// provided in the arguments. Placeholders are enclosed in curly braces `{...}` and
+// can be either numeric (1-based) or named. Named placeholders can also have an
+// optional fallback (`?fallback`) and chainable modifiers (`.$upper`, etc.).
+// The function returns the final replaced string.
 //
-// The arguments passed to Format can include:
-//   - Any number of map-like values (map[string]any, map[String]any, Map[string,any], Map[String,any])
-//     whose entries are merged into a single combined map for named placeholders.
-//   - Any other values (strings, numbers, etc.) that become positional arguments, accessible via
-//     numeric placeholders, e.g. {1}, {2}, etc.
+// The arguments passed to Sprintf may include:
+//   - Named: a custom type (map-like) that contains key-value pairs for named
+//     placeholders, e.g. {key}, {key?fallback}.
+//   - Any other values (strings, numbers, etc.) become positional arguments,
+//     accessible via numeric placeholders, e.g. {1}, {2}, etc.
 //
-// Supported placeholder forms:
+// Placeholder Forms:
 //
-//  1. Numeric:         {1}, {2}, {3}, ...
-//     - Uses 1-based indexing into the non-map arguments.
-//  2. Named:           {key}
-//     - Looks up 'key' in the merged map.
-//  3. Fallback:        {key?fallback}
-//     - If 'key' is not found in the map, tries 'fallback'. If also missing, leaves the placeholder unchanged.
-//  4. Modifiers:       {key.$upper}, {1.$date(2006-01-02)}, etc.
+//  1. Numeric:    {1}, {2}, {3}, ...
+//     - Uses 1-based indexing into the positional arguments.
+//
+//  2. Named:      {key}
+//     - Looks up 'key' in the map of Named arguments.
+//
+//  3. Fallback:   {key?fallback}
+//     - If "key" is not found in the named map, it tries "fallback". If
+//     neither is found, the placeholder remains unchanged, e.g. {key?fallback}.
+//
+//  4. Modifiers:  {key.$upper}, {1.$date(2006-01-02)}, etc.
 //     - Applies transformations to the placeholder value (see below).
-//  5. Combined:        {key?fallback.$trim.$replace(a,b)}
+//
+//  5. Combined:   {key?fallback.$trim.$replace(a,b)}
 //     - Fallback and multiple modifiers can be used together.
-//  6. Parameters:      {key.$modifier(param1,param2,...)}
+//
+//  6. Parameters: {key.$modifier(param1,param2,...)}
 //     - Passes parameters to the specified modifier function.
 //
-// Once a placeholder's value is determined (either by numeric position or via the merged map), Format
-// checks for a chain of modifiers. Each modifier name (e.g. "$upper") maps to a function with the signature:
+//  7. Auto-index: {}
+//     - If the placeholder is empty ({}) or starts with a dot ({.something}),
+//     the system automatically takes the next positional argument. If there
+//     are not enough positional arguments, it leaves the braces as "{}".
+//
+//  8. Escaping braces with a backslash
+//     - If the parser sees `\{`, it interprets it as a literal '{' (and not the
+//     start of a placeholder). Likewise, `\}` is interpreted as a literal '}'.
+//
+// Once a placeholder’s value is determined (either from numeric position or via
+// the named map), Sprintf checks for a chain of modifiers. Each modifier name
+// (e.g. "$upper") maps to a function with the signature:
 //
 //	func(value any, params ...String) any
 //
-// This function transforms 'value' (e.g., changing case, formatting dates, or performing calculations)
-// and returns the new value. If a modifier is unrecognized, it is skipped.
+// This function transforms the value (e.g., changing case, formatting dates, or
+// performing calculations) and returns the new value. If a modifier is
+// unrecognized, it is skipped.
 //
-// The built-in modifiers currently supported include:
+// Built-in Modifiers:
 //
-//   - $date(2006-01-02): formats a time.Time using the specified layout;
-//   - $replace(old,new): replaces 'old' with 'new' in the string;
-//   - $repeat(n): repeats a string or numeric text n times;
-//   - $truncate(n): truncates a string to length n, optionally appending "...";
-//   - $substring(start,end[,step]): returns a substring with optional step;
-//   - $upper, $lower, $title, $trim, $len: upper/lower/title case, trim, length;
-//   - $round, $abs, $bool, $reverse: round floats, absolute values, booleans, reverse strings;
-//   - $hex, $oct, $bin: convert numeric or string data into hex, octal, or binary forms;
-//   - $url, $html: URL-encode or HTML-encode string data;
-//   - $base64e, $base64d: encode/decode using Base64;
-//   - $rot13: applies a ROT13 transform to a string;
-//   - $xor: performs XOR transformation on a string with the given key.
+//   - `$date(2006-01-02)`: Formats a time.Time using the specified Go layout.
+//   - `$replace(old,new)`: Replaces all occurrences of `old` with `new` in a string.
+//   - `$repeat(n)`: Repeats a string or numeric text n times.
+//   - `$truncate(n)`: Truncates a string to length n, optionally appending "..."
+//   - `$substring(start,end[,step])`: Extracts a substring with an optional step.
+//   - `$upper`, `$lower`, `$title`, `$trim`, `$len`: Basic string transformations
+//     (uppercase, lowercase, title case, trim) and length calculation.
+//   - `$round`, `$abs`, `$bool`, `$reverse`: Rounds floats, calculates absolute
+//     values, converts booleans to "true"/"false", or reverses strings.
+//   - `$hex`, `$oct`, `$bin`: Converts numeric/string data to hex, octal, or binary forms.
+//   - `$url`, `$html`: Encodes the string as URL-safe or HTML entities.
+//   - `$base64e`, `$base64d`: Base64-encode or decode string data.
+//   - `$rot13`: Applies a ROT13 transform to a string.
+//   - `$xor(key)`: Performs XOR transformation on a string with the given key.
 //
-// Example usage:
+// Example Usage:
 //
 //	format := "Hello, {1}! Fallback: {city?unknown} => {city.$upper}"
-//	result := Format(format,
-//	                 "Alice",            // {1}
-//	                 map[string]any{"city": "New York"})
+//	result := g.Sprintf(format,
+//	                  "Alice", // => {1}
+//	                  g.Named{"city": "New York"})
+//
+// Explanation:
+//
 //	// {1} -> "Alice"
 //	// {city?unknown} -> "New York" (no fallback needed)
 //	// {city.$upper} -> "NEW YORK"
 //
-// If a placeholder cannot be resolved (key is missing and no fallback, or numeric index is out of range),
-// it remains intact with braces, e.g., `"{unknown}"`. If modifiers are present but the initial value
-// is invalid for them, the modifiers are skipped. In all other cases, a transformed value is substituted
-// in the final result.
-func Format[T ~string](template T, args ...any) String {
-	named := NewMap[String, any]()
+//	// If a placeholder cannot be resolved (missing key, out-of-range index),
+//	// it remains e.g. "{unknown}". If modifiers don’t apply, they’re skipped.
+func Sprintf[T ~string](template T, args ...any) String {
+	named := make(Named)
 	var positional Slice[any]
 
 	for _, arg := range args {
-		switch value := arg.(type) {
-		case map[string]any:
-			for k, v := range value {
-				named[String(k)] = v
-			}
-		case map[String]any:
-			for k, v := range value {
+		switch x := arg.(type) {
+		case Named:
+			for k, v := range x {
 				named[k] = v
-			}
-		case Map[String, any]:
-			for k, v := range value {
-				named[k] = v
-			}
-		case Map[string, any]:
-			for k, v := range value {
-				named[String(k)] = v
 			}
 		default:
-			positional = positional.Append(value)
+			positional = positional.Append(x)
 		}
 	}
 
 	return parseTmpl(String(template), named, positional)
 }
 
-func parseTmpl(tmpl String, named Map[String, any], positional Slice[any]) String {
+func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 	builder := NewBuilder()
 	length := tmpl.Len()
 
-	for i := Int(0); i < length; {
-		if tmpl[i] == '{' {
-			cidx := tmpl[i+1:].Index("}")
+	var autoidx, idx Int
+
+	for idx < length {
+		if tmpl[idx] == '\\' && idx+1 < length {
+			next := tmpl[idx+1]
+			if next == '{' || next == '}' {
+				builder.WriteByte(next)
+				idx += 2
+
+				continue
+			}
+		}
+
+		if tmpl[idx] == '{' {
+			cidx := tmpl[idx+1:].Index("}")
 			if cidx.IsNegative() {
-				builder.WriteByte(tmpl[i])
-				i++
+				builder.WriteByte(tmpl[idx])
+				idx++
+
 				continue
 			}
 
-			eidx := i + 1 + cidx
-			placeholder := tmpl[i+1 : eidx]
+			eidx := idx + 1 + cidx
+			placeholder := tmpl[idx+1 : eidx]
+
+			trimmed := placeholder.Trim()
+			if trimmed.Empty() || trimmed[0] == '.' {
+				autoidx++
+				if autoidx <= positional.Len() {
+					placeholder = autoidx.String() + placeholder
+				}
+			}
 
 			replaced := processPlaceholder(placeholder, named, positional)
 			builder.Write(replaced)
 
-			i = eidx + 1
+			idx = eidx + 1
 		} else {
-			builder.WriteByte(tmpl[i])
-			i++
+			builder.WriteByte(tmpl[idx])
+			idx++
 		}
 	}
 
 	return builder.String()
 }
 
-func processPlaceholder(placeholder String, named Map[String, any], positional Slice[any]) String {
+func processPlaceholder(placeholder String, named Named, positional Slice[any]) String {
 	var (
 		keyfall String
 		mods    String
@@ -189,12 +218,10 @@ func processPlaceholder(placeholder String, named Map[String, any], positional S
 		key = keyfall
 	}
 
-	vo := resolveValue(key, fall, named, positional)
-	if vo.IsNone() {
+	value := resolveValue(key, fall, named, positional)
+	if value == nil {
 		return "{" + placeholder + "}"
 	}
-
-	value := vo.Some()
 
 	if mods.NotEmpty() {
 		mods.Split(".").Exclude(f.IsZero).ForEach(func(segment String) {
@@ -206,19 +233,22 @@ func processPlaceholder(placeholder String, named Map[String, any], positional S
 	return Sprint(value)
 }
 
-func resolveValue(key, fall String, named Map[String, any], positional Slice[any]) Option[any] {
+func resolveValue(key, fall String, named Named, positional Slice[any]) any {
 	if num := key.ToInt(); num.IsOk() {
 		idx := num.Ok() - 1
 		if idx.IsNegative() || idx.Gte(positional.Len()) {
-			return None[any]()
+			return nil
 		}
 
-		return Some(positional[idx])
+		return positional[idx]
 	}
 
-	value := named.Get(key)
-	if value.IsNone() && fall.NotEmpty() {
-		value = named.Get(fall)
+	value, ok := named[key]
+	if !ok && fall.NotEmpty() {
+		value, ok = named[fall]
+		if !ok {
+			return nil
+		}
 	}
 
 	return value
@@ -243,6 +273,12 @@ func parseMod(segment String) (String, Slice[String]) {
 
 func applyMod(value any, name String, params Slice[String]) any {
 	switch name {
+	case "$fmt":
+		if len(params) == 0 {
+			return value
+		}
+
+		return fmt.Sprintf(params[0].Std(), value)
 	case "$date":
 		if len(params) == 0 {
 			return value
@@ -394,11 +430,27 @@ func applyMod(value any, name String, params Slice[String]) any {
 			return value
 		}
 	case "$round":
+		if len(params) == 0 {
+			switch fl := value.(type) {
+			case Float:
+				return fl.Round().String()
+			case float64:
+				return Float(fl).Round().String()
+			default:
+				return value
+			}
+		}
+
+		precision := params[0].Trim().ToInt()
+		if precision.IsErr() {
+			return value
+		}
+
 		switch fl := value.(type) {
 		case Float:
-			return fl.Round().String()
+			return fl.RoundDecimal(precision.Ok()).String()
 		case float64:
-			return Float(fl).Round().String()
+			return Float(fl).RoundDecimal(precision.Ok()).String()
 		default:
 			return value
 		}

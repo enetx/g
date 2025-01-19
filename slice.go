@@ -705,10 +705,10 @@ func (sl Slice[T]) String() string {
 	builder := NewBuilder()
 
 	for _, v := range sl {
-		builder.Write(Sprintf("%v, ", v))
+		builder.Write(Sprintf("{}, ", v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("Slice[%s]").Std()
+	return builder.String().StripSuffix(", ").Format("Slice[{}]").Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.

@@ -151,7 +151,7 @@ func TestMapSafe(t *testing.T) {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				ms.Set(Sprintf("key%d", i), i)
+				ms.Set(Sprintf("key{}", i), i)
 			}(i)
 		}
 		wg.Wait()
