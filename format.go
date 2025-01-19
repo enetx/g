@@ -45,87 +45,69 @@ func Println(a ...any) (int, error) { return fmt.Println(a...) }
 // Spaces are added between operands when neither is a string. A newline is appended.
 func Sprintln(a ...any) String { return NewString(fmt.Sprintln(a...)) }
 
-var handlers = Map[String, func(any, ...String) any]{}
-
-// Format replaces placeholders in the given template string `str` with corresponding values
-// from the provided arguments. It supports both numeric (1-based) and named placeholders,
-// optional fallback keys, and a chain of modifiers. The function returns the final replaced string.
-//
-// Usage:
-//
-//	Format("{1}, {2}, {foo}", arg1, arg2, map[string]any{"foo": "bar"})
+// Format replaces placeholders in the given template string `template` with corresponding values
+// from the provided arguments. Placeholders are enclosed in curly braces `{...}` and can be either
+// numeric (1-based) or named. Named placeholders can also have an optional fallback and chainable
+// modifiers. The function returns the final replaced string.
 //
 // The arguments passed to Format can include:
-//
 //   - Any number of map-like values (map[string]any, map[String]any, Map[string,any], Map[String,any])
-//     whose entries will be merged into a single combined map for *named* placeholders.
-//   - Any other values (strings, numbers, etc.) that become *positional* arguments, accessible by
-//     numeric placeholders like {1}, {2}, etc.
+//     whose entries are merged into a single combined map for named placeholders.
+//   - Any other values (strings, numbers, etc.) that become positional arguments, accessible via
+//     numeric placeholders, e.g. {1}, {2}, etc.
 //
-// Placeholders are enclosed in curly braces `{...}` and support the following forms:
-//  1. Numeric: `{1}`, `{2}`, etc. (1-based indexing into positional arguments)
-//  2. Named: `{key}`                -> looks up "key" in the merged map
-//  3. Fallback: `{key?fallback}`    -> if "key" not found, tries "fallback"
-//  4. Modifiers: `{key.$upper}`, `{1.$date(2006-01-02)}`, etc.
-//  5. Combined fallback + modifiers: `{key?fallback.$trim.$replace(a,b)}`
-//  6. Modifier parameters: `{key.$modifier(param1,param2,...)}`
+// Supported placeholder forms:
 //
-// ### Modifiers
+//  1. Numeric:         {1}, {2}, {3}, ...
+//     - Uses 1-based indexing into the non-map arguments.
+//  2. Named:           {key}
+//     - Looks up 'key' in the merged map.
+//  3. Fallback:        {key?fallback}
+//     - If 'key' is not found in the map, tries 'fallback'. If also missing, leaves the placeholder unchanged.
+//  4. Modifiers:       {key.$upper}, {1.$date(2006-01-02)}, etc.
+//     - Applies transformations to the placeholder value (see below).
+//  5. Combined:        {key?fallback.$trim.$replace(a,b)}
+//     - Fallback and multiple modifiers can be used together.
+//  6. Parameters:      {key.$modifier(param1,param2,...)}
+//     - Passes parameters to the specified modifier function.
 //
-// After determining the value for a placeholder (either from a positional argument or via the merged map),
-// Format checks for a chain of modifiers appended to the placeholder, e.g. `"{key.$upper.$replace(x,y)}"`.
-// Each modifier is looked up in a global `handlers` map, where the key is the modifier name (e.g. `"$upper"`)
-// and the value is a function:
+// Once a placeholder's value is determined (either by numeric position or via the merged map), Format
+// checks for a chain of modifiers. Each modifier name (e.g. "$upper") maps to a function with the signature:
 //
 //	func(value any, params ...String) any
 //
-// The function applies a transformation to `value` and returns the new value. If a modifier is unknown,
-// it is skipped. Some available built-in modifiers include (but are not limited to):
+// This function transforms 'value' (e.g., changing case, formatting dates, or performing calculations)
+// and returns the new value. If a modifier is unrecognized, it is skipped.
 //
-//   - $upper, $lower, $title, $trim, $replace, $repeat, $substring, $truncate
-//   - $date(layout), $round, $abs, $len, $reverse
-//   - $hex, $bin, $oct, $url, $html, $base64e, $base64d, $rot13, $xor
+// The built-in modifiers currently supported include:
 //
-// ### Fallback
+//   - $date(2006-01-02): formats a time.Time using the specified layout;
+//   - $replace(old,new): replaces 'old' with 'new' in the string;
+//   - $repeat(n): repeats a string or numeric text n times;
+//   - $truncate(n): truncates a string to length n, optionally appending "...";
+//   - $substring(start,end[,step]): returns a substring with optional step;
+//   - $upper, $lower, $title, $trim, $len: upper/lower/title case, trim, length;
+//   - $round, $abs, $bool, $reverse: round floats, absolute values, booleans, reverse strings;
+//   - $hex, $oct, $bin: convert numeric or string data into hex, octal, or binary forms;
+//   - $url, $html: URL-encode or HTML-encode string data;
+//   - $base64e, $base64d: encode/decode using Base64;
+//   - $rot13: applies a ROT13 transform to a string;
+//   - $xor: performs XOR transformation on a string with the given key.
 //
-// If a named placeholder uses a fallback syntax `"{key?fallback}"`, Format will first look for "key" in
-// the merged map. If not found, it tries "fallback". If still not found, the placeholder is left as-is
-// (e.g., `"{key?fallback}"` remains untouched).
+// Example usage:
 //
-// ### Numeric Placeholders
+//	format := "Hello, {1}! Fallback: {city?unknown} => {city.$upper}"
+//	result := Format(format,
+//	                 "Alice",            // {1}
+//	                 map[string]any{"city": "New York"})
+//	// {1} -> "Alice"
+//	// {city?unknown} -> "New York" (no fallback needed)
+//	// {city.$upper} -> "NEW YORK"
 //
-// Numeric placeholders like `"{1}"`, `"{2}"` refer to the 1-based index of non-map arguments passed to
-// Format. For example:
-//
-//	Format("{1} + {2}", "Hello", 123)
-//	// => "Hello + 123"
-//
-// If `{3}` is out of range, the placeholder is left unchanged.
-//
-// ### Return Value
-//
-// The function returns a `String` (your custom type) containing the final replaced and modified result.
-//
-// ### Example
-//
-//	format := "Hello, {1}! Welcome to {city?location.$upper} on {today.$date(2006-01-02)}."
-//
-//	result := Format(
-//	    format,
-//	    "Alice",  // {1}
-//	    map[string]any{
-//	        "city":  "New York",
-//	        "today": time.Now(),
-//	    },
-//	)
-//	// The placeholder {1} -> "Alice"
-//	// The placeholder {city?location} -> "New York" (no need to use fallback)
-//	// The modifier .$upper -> "NEW YORK"
-//	// The placeholder {today.$date(2006-01-02)} -> e.g. "2025-01-17"
-//	// => "Hello, Alice! Welcome to NEW YORK on 2025-01-17."
-//
-// Finally, if any placeholder cannot be resolved (key is missing and no fallback, or numeric index is out of range),
-// that placeholder remains as the original text with braces, e.g., `"{unknownKey}"`.
+// If a placeholder cannot be resolved (key is missing and no fallback, or numeric index is out of range),
+// it remains intact with braces, e.g., `"{unknown}"`. If modifiers are present but the initial value
+// is invalid for them, the modifiers are skipped. In all other cases, a transformed value is substituted
+// in the final result.
 func Format[T ~string](template T, args ...any) String {
 	named := NewMap[String, any]()
 	var positional Slice[any]
