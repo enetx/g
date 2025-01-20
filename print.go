@@ -1,8 +1,11 @@
 package g
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/enetx/g/f"
@@ -42,7 +45,6 @@ func Println(a ...any) (int, error) { return fmt.Println(a...) }
 // Spaces are added between operands when neither is a string. A newline is appended.
 func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
 
-type Named Map[String, any]
 
 // Sprintf processes a template string and replaces placeholders with values
 // provided in the arguments. Placeholders are enclosed in curly braces `{...}` and
@@ -66,7 +68,7 @@ type Named Map[String, any]
 //
 //  3. Fallback:   {key?fallback}
 //     - If "key" is not found in the named map, it tries "fallback". If
-//     neither is found, the placeholder remains unchanged, e.g. {key?fallback}.
+//     neither is found, the placeholder remains unchanged (e.g. `{key?fallback}`).
 //
 //  4. Modifiers:  {key.$upper}, {1.$date(2006-01-02)}, etc.
 //     - Applies transformations to the placeholder value (see below).
@@ -78,7 +80,7 @@ type Named Map[String, any]
 //     - Passes parameters to the specified modifier function.
 //
 //  7. Auto-index: {}
-//     - If the placeholder is empty ({}) or starts with a dot ({.something}),
+//     - If the placeholder is empty (`{}`) or starts with a dot (`{.something}`),
 //     the system automatically takes the next positional argument. If there
 //     are not enough positional arguments, it leaves the braces as "{}".
 //
@@ -88,7 +90,7 @@ type Named Map[String, any]
 //
 // Once a placeholder’s value is determined (either from numeric position or via
 // the named map), Sprintf checks for a chain of modifiers. Each modifier name
-// (e.g. "$upper") maps to a function with the signature:
+// (e.g. `$upper`) maps to a function with the signature:
 //
 //	func(value any, params ...String) any
 //
@@ -98,20 +100,70 @@ type Named Map[String, any]
 //
 // Built-in Modifiers:
 //
-//   - `$date(2006-01-02)`: Formats a time.Time using the specified Go layout.
-//   - `$replace(old,new)`: Replaces all occurrences of `old` with `new` in a string.
-//   - `$repeat(n)`: Repeats a string or numeric text n times.
-//   - `$truncate(n)`: Truncates a string to length n, optionally appending "..."
-//   - `$substring(start,end[,step])`: Extracts a substring with an optional step.
-//   - `$upper`, `$lower`, `$title`, `$trim`, `$len`: Basic string transformations
-//     (uppercase, lowercase, title case, trim) and length calculation.
-//   - `$round`, `$abs`, `$bool`, `$reverse`: Rounds floats, calculates absolute
-//     values, converts booleans to "true"/"false", or reverses strings.
-//   - `$hex`, `$oct`, `$bin`: Converts numeric/string data to hex, octal, or binary forms.
-//   - `$url`, `$html`: Encodes the string as URL-safe or HTML entities.
-//   - `$base64e`, `$base64d`: Base64-encode or decode string data.
-//   - `$rot13`: Applies a ROT13 transform to a string.
-//   - `$xor(key)`: Performs XOR transformation on a string with the given key.
+//   - `$get(path)`
+//     Retrieves a nested value from a map, slice, array, or struct by following
+//     the dot-separated path. For maps, underscores in `path` are interpreted as
+//     literal dots in the key. Returns `nil` if the path cannot be resolved.
+//
+//   - `$json`
+//     Marshals the current value as JSON. If marshalling fails, returns the original value.
+//
+//   - `$fmt(formatString)`
+//     Passes the current value to `fmt.Sprintf(formatString, value)`. If no parameters are given,
+//     returns the original value.
+//
+//   - `$date(2006-01-02)`
+//     If the current value is a `time.Time`, formats it using the Go time layout string.
+//
+//   - `$replace(old,new)`
+//     Replaces all occurrences of `old` with `new` in the current string.
+//
+//   - `$repeat(n)`
+//     Repeats the current string representation `n` times.
+//
+//   - `$truncate(n)`
+//     Truncates the current string to length `n`. (Implementation can optionally append `...`.)
+//
+//   - `$substring(start,end[,step])`
+//     Extracts a substring from the current string (start-inclusive, end-exclusive). An optional
+//     `step` can also be provided.
+//
+//   - `$upper`, `$lower`, `$title`
+//     Converts the string to uppercase, lowercase, or title case.
+//
+//   - `$trim`
+//     Trims whitespace from the current string. If a parameter is given (e.g. `$trim(abc)`),
+//     it trims only those runes (`a`, `b`, `c`) instead.
+//
+//   - `$len`
+//     Computes the length of the current string and returns it as a string.
+//
+//   - `$round`, `$abs`
+//     For numeric values: `$round` rounds a float to an integer, or `$round(n)` rounds to `n` decimal
+//     places. `$abs` returns the absolute value.
+//
+//   - `$bool`
+//     Converts a `bool` to the string `"true"` or `"false"`. Other types are returned unchanged.
+//
+//   - `$reverse`
+//     Reverses the current string.
+//
+//   - `$hex`, `$oct`, `$bin`
+//     Converts numeric values to hexadecimal/octal/binary string representations. If the current
+//     value is a string, it converts the *byte-encoded* version of that string instead.
+//
+//   - `$url`, `$html`
+//     Escapes the current string for safe inclusion in a URL or HTML. (Typically applies
+//     percent-encoding for `$url`, and HTML entities for `$html`.)
+//
+//   - `$base64e`, `$base64d`
+//     Base64-encodes (`$base64e`) or decodes (`$base64d`) the current string.
+//
+//   - `$rot13`
+//     Applies a simple ROT13 transformation to the current string.
+//
+//   - `$xor(key)`
+//     XOR-encrypts the current string using the provided key.
 //
 // Example Usage:
 //
@@ -224,10 +276,15 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 	}
 
 	if mods.NotEmpty() {
-		mods.Split(".").Exclude(f.IsZero).ForEach(func(segment String) {
-			name, params := parseMod(segment)
-			value = applyMod(value, name, params)
-		})
+		mods.
+			Prepend(".").
+			Split(".$").
+			Exclude(f.IsZero).
+			Map(func(mod String) String { return "$" + mod }).
+			ForEach(func(segment String) {
+				name, params := parseMod(segment)
+				value = applyMod(value, name, params)
+			})
 	}
 
 	return Sprint(value)
@@ -273,6 +330,93 @@ func parseMod(segment String) (String, Slice[String]) {
 
 func applyMod(value any, name String, params Slice[String]) any {
 	switch name {
+	case "$get":
+		if len(params) == 0 {
+			return value
+		}
+
+		path := params[0].Split(".").Map(func(s String) String { return s.ReplaceAll("_", ".") })
+		current := reflect.ValueOf(value)
+
+		for part := range path {
+			partstr := part.Std()
+
+			switch current.Kind() {
+			case reflect.Map:
+				mapKeyType := current.Type().Key()
+				var key reflect.Value
+
+				switch mapKeyType.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					i64, err := strconv.ParseInt(partstr, 10, 64)
+					if err != nil {
+						return nil
+					}
+					key = reflect.ValueOf(i64).Convert(mapKeyType)
+				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+					u64, err := strconv.ParseUint(partstr, 10, 64)
+					if err != nil {
+						return nil
+					}
+					key = reflect.ValueOf(u64).Convert(mapKeyType)
+				case reflect.Bool:
+					b, err := strconv.ParseBool(partstr)
+					if err != nil {
+						return nil
+					}
+					key = reflect.ValueOf(b).Convert(mapKeyType)
+				case reflect.Float32, reflect.Float64:
+					fl, err := strconv.ParseFloat(partstr, 64)
+					if err != nil {
+						return nil
+					}
+					key = reflect.ValueOf(fl).Convert(mapKeyType)
+				default:
+					switch mapKeyType {
+					case reflect.TypeOf(""):
+						key = reflect.ValueOf(partstr)
+					case reflect.TypeOf(String("")):
+						key = reflect.ValueOf(String(partstr))
+					default:
+						return nil
+					}
+				}
+
+				current = current.MapIndex(key)
+				if !current.IsValid() {
+					return nil
+				}
+			case reflect.Slice, reflect.Array:
+				index, err := strconv.Atoi(partstr)
+				if err != nil || index < 0 || index >= current.Len() {
+					return nil
+				}
+
+				current = current.Index(index)
+			case reflect.Struct:
+				field := current.FieldByName(partstr)
+				if !field.IsValid() {
+					return nil
+				}
+
+				current = field
+			default:
+				return nil
+			}
+
+			if !current.IsValid() {
+				return nil
+			}
+		}
+
+		return current.Interface()
+	case "$json":
+		jsonData, err := json.Marshal(value)
+		if err != nil {
+			return value
+		}
+
+		return String(jsonData)
 	case "$fmt":
 		if len(params) == 0 {
 			return value

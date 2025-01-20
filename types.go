@@ -70,6 +70,10 @@ type (
 		data Map[K, V]    // The underlying map storing key-value pairs.
 	}
 
+	// Named is a map-like type that stores key-value pairs for resolving named
+	// placeholders in Sprintf.
+	Named Map[String, any]
+
 	// SeqSet is an iterator over sequences of unique values.
 	SeqSet[V comparable] iter.Seq[V]
 
