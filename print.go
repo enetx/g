@@ -180,15 +180,15 @@ func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
 //	// If a placeholder cannot be resolved (missing key, out-of-range index),
 //	// it remains e.g. "{unknown}". If modifiers don’t apply, they’re skipped.
 func Sprintf[T ~string](template T, args ...any) String {
-	named := make(Named)
-	var positional Slice[any]
+	var (
+		named      Named
+		positional Slice[any]
+	)
 
 	for _, arg := range args {
 		switch x := arg.(type) {
 		case Named:
-			for k, v := range x {
-				named[k] = v
-			}
+			named = x
 		default:
 			positional = positional.Append(x)
 		}
@@ -299,15 +299,12 @@ func resolveValue(key, fall String, named Named, positional Slice[any]) any {
 		return positional[idx]
 	}
 
-	value, ok := named[key]
-	if !ok && fall.NotEmpty() {
-		value, ok = named[fall]
-		if !ok {
-			return nil
-		}
+	value := Map[String, any](named).Get(key)
+	if value.IsNone() && fall.NotEmpty() {
+		value = Map[String, any](named).Get(fall)
 	}
 
-	return value
+	return value.Some()
 }
 
 func parseMod(segment String) (String, Slice[String]) {
