@@ -22,6 +22,14 @@ func TestSprintfGet(t *testing.T) {
 			expected: "Value: value",
 		},
 		{
+			name:     "Simple Map Any Access",
+			template: "Value: {1.$get(key)}",
+			args: []any{
+				map[String]any{"key": "value"},
+			},
+			expected: "Value: value",
+		},
+		{
 			name:     "Nested Map Access",
 			template: "Deep Value: {1.$get(key.subkey)}",
 			args: []any{

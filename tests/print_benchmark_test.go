@@ -2,7 +2,6 @@ package g_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -12,24 +11,6 @@ import (
 
 func BenchmarkSprintf(b *testing.B) {
 	name := "World"
-
-	b.Run("StringConcat", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			_ = "Hello, " + name + "!"
-		}
-	})
-
-	b.Run("StringBuilder", func(b *testing.B) {
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
-			var sb strings.Builder
-			sb.WriteString("Hello, ")
-			sb.WriteString(name)
-			sb.WriteString("!")
-			_ = sb.String()
-		}
-	})
 
 	b.Run("fmt.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
@@ -93,7 +74,7 @@ func BenchmarkSprintfFormatSpecifiers(b *testing.B) {
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = Sprintf("Hex: {.$hex}, Binary: {$.bin}", num, num)
+			_ = Sprintf("Hex: {.$hex}, Binary: {.$bin}", num, num)
 		}
 	})
 }

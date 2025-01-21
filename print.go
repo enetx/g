@@ -45,7 +45,6 @@ func Println(a ...any) (int, error) { return fmt.Println(a...) }
 // Spaces are added between operands when neither is a string. A newline is appended.
 func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
 
-
 // Sprintf processes a template string and replaces placeholders with values
 // provided in the arguments. Placeholders are enclosed in curly braces `{...}` and
 // can be either numeric (1-based) or named. Named placeholders can also have an
@@ -201,6 +200,7 @@ func Sprintf[T ~string](template T, args ...any) String {
 func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 	builder := NewBuilder()
 	length := tmpl.Len()
+	builder.Grow(length)
 
 	var autoidx, idx Int
 
@@ -280,7 +280,6 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 			Prepend(".").
 			Split(".$").
 			Exclude(f.IsZero).
-			Map(func(mod String) String { return "$" + mod }).
 			ForEach(func(segment String) {
 				name, params := parseMod(segment)
 				value = applyMod(value, name, params)
@@ -330,7 +329,7 @@ func parseMod(segment String) (String, Slice[String]) {
 
 func applyMod(value any, name String, params Slice[String]) any {
 	switch name {
-	case "$get":
+	case "get":
 		if len(params) == 0 {
 			return value
 		}
@@ -386,19 +385,24 @@ func applyMod(value any, name String, params Slice[String]) any {
 				if !current.IsValid() {
 					return nil
 				}
+
+				for current.Kind() == reflect.Interface || current.Kind() == reflect.Ptr {
+					if current.IsNil() {
+						return nil
+					}
+					current = current.Elem()
+				}
 			case reflect.Slice, reflect.Array:
 				index, err := strconv.Atoi(partstr)
 				if err != nil || index < 0 || index >= current.Len() {
 					return nil
 				}
-
 				current = current.Index(index)
 			case reflect.Struct:
 				field := current.FieldByName(partstr)
 				if !field.IsValid() {
 					return nil
 				}
-
 				current = field
 			default:
 				return nil
@@ -409,21 +413,25 @@ func applyMod(value any, name String, params Slice[String]) any {
 			}
 		}
 
-		return current.Interface()
-	case "$json":
+		if current.IsValid() && current.CanInterface() {
+			return current.Interface()
+		}
+
+		return nil
+	case "json":
 		jsonData, err := json.Marshal(value)
 		if err != nil {
 			return value
 		}
 
 		return String(jsonData)
-	case "$fmt":
+	case "fmt":
 		if len(params) == 0 {
 			return value
 		}
 
 		return fmt.Sprintf(params[0].Std(), value)
-	case "$date":
+	case "date":
 		if len(params) == 0 {
 			return value
 		}
@@ -433,7 +441,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		}
 
 		return value
-	case "$replace":
+	case "replace":
 		if len(params) < 2 {
 			return value
 		}
@@ -448,7 +456,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$repeat":
+	case "repeat":
 		if len(params) == 0 {
 			return value
 		}
@@ -474,7 +482,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$truncate":
+	case "truncate":
 		if len(params) == 0 {
 			return value
 		}
@@ -492,7 +500,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$substring":
+	case "substring":
 		if len(params) == 0 || len(params) < 2 {
 			return value
 		}
@@ -517,7 +525,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$upper":
+	case "upper":
 		switch s := value.(type) {
 		case String:
 			return s.Upper()
@@ -526,7 +534,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$lower":
+	case "lower":
 		switch s := value.(type) {
 		case String:
 			return s.Lower()
@@ -535,7 +543,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$title":
+	case "title":
 		switch s := value.(type) {
 		case String:
 			return s.Title()
@@ -544,7 +552,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$trim":
+	case "trim":
 		if len(params) == 0 {
 			switch s := value.(type) {
 			case String:
@@ -564,7 +572,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$len":
+	case "len":
 		switch s := value.(type) {
 		case String:
 			return s.Len().String()
@@ -573,7 +581,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$round":
+	case "round":
 		if len(params) == 0 {
 			switch fl := value.(type) {
 			case Float:
@@ -598,7 +606,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$abs":
+	case "abs":
 		switch n := value.(type) {
 		case Int:
 			return n.Abs().String()
@@ -611,7 +619,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$bool":
+	case "bool":
 		if b, ok := value.(bool); ok {
 			if b {
 				return "true"
@@ -619,7 +627,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 			return "false"
 		}
 		return value
-	case "$reverse":
+	case "reverse":
 		switch s := value.(type) {
 		case String:
 			return s.Reverse()
@@ -628,7 +636,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$hex":
+	case "hex":
 		switch n := value.(type) {
 		case Int:
 			return n.Hex()
@@ -645,7 +653,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$oct":
+	case "oct":
 		switch n := value.(type) {
 		case Int:
 			return n.Octal()
@@ -662,7 +670,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$bin":
+	case "bin":
 		switch n := value.(type) {
 		case Int:
 			return n.Binary()
@@ -679,7 +687,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$url":
+	case "url":
 		switch s := value.(type) {
 		case String:
 			return s.Encode().URL()
@@ -688,7 +696,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$html":
+	case "html":
 		switch s := value.(type) {
 		case String:
 			return s.Encode().HTML()
@@ -697,7 +705,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$base64e":
+	case "base64e":
 		switch s := value.(type) {
 		case String:
 			return s.Encode().Base64()
@@ -706,7 +714,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$base64d":
+	case "base64d":
 		switch s := value.(type) {
 		case String:
 			return s.Decode().Base64().Ok()
@@ -715,7 +723,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$rot13":
+	case "rot13":
 		switch s := value.(type) {
 		case String:
 			return s.Encode().Rot13()
@@ -724,7 +732,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		default:
 			return value
 		}
-	case "$xor":
+	case "xor":
 		if len(params) == 0 {
 			return value
 		}
