@@ -38,6 +38,30 @@ func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
 // Transform applies a transformation function to the MapOrd and returns the result.
 func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
 
+// AsAny converts each key-value pair in the MapOrd to the 'any' type.
+// It returns a new MapOrd[any, any], where both keys and values are of type 'any'.
+// This is especially useful for working with dynamic formatting tools like Sprintf,
+// where modifiers such as $get can access elements without strict typing constraints.
+//
+// Example:
+//
+//	mo := NewMapOrd[string, int]()
+//	mo.
+//		Set("a", 1).
+//		Set("b", 2)
+//
+//	Printf("{1.$get(a)} -> {1.$get(b)}\n", mo.AsAny())
+//	// Output: "a -> 1"
+func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
+	anymo := make([]Pair[any, any], mo.Len())
+
+	for i, v := range mo {
+		anymo[i] = Pair[any, any]{v.Key, v.Value}
+	}
+
+	return anymo
+}
+
 // Iter returns an iterator (SeqMapOrd[K, V]) for the ordered Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the ordered Map.
@@ -184,7 +208,7 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
 // func (mo MapOrd[K, V]) ToMap() Map[K, V] {
 // 	m := NewMap[K, V](len(mo))
 // 	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
-
+//
 // 	return m
 // }
 

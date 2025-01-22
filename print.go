@@ -11,6 +11,26 @@ import (
 	"github.com/enetx/g/f"
 )
 
+var (
+
+	// Print writes the output to standard output using the default formats for its operands.
+	// It returns the number of bytes written and any write error encountered.
+	// func Print(a ...any) (int, error) { return fmt.Print(a...) }
+	Print = fmt.Print
+
+	// Println writes the output to standard output followed by a newline using the default formats for its operands.
+	// It returns the number of bytes written and any write error encountered.
+	Println = fmt.Println
+
+	// Fprint writes the output to w using the default formats for its operands.
+	// It returns the number of bytes written and any write error encountered.
+	Fprint = fmt.Fprint
+
+	// Fprintln writes the output to w followed by a newline using the default formats for its operands.
+	// It returns the number of bytes written and any write error encountered.
+	Fprintln = fmt.Fprintln
+)
+
 // Fprintf formats according to a format specifier and writes to w.
 // It returns the number of bytes written and any write error encountered.
 func Fprintf[T ~string](w io.Writer, format T, args ...any) (int, error) {
@@ -21,25 +41,9 @@ func Fprintf[T ~string](w io.Writer, format T, args ...any) (int, error) {
 // It returns the number of bytes written and any write error encountered.
 func Printf[T ~string](format T, args ...any) { Sprintf(format, args...).Print() }
 
-// Fprint writes the output to w using the default formats for its operands.
-// It returns the number of bytes written and any write error encountered.
-func Fprint(w io.Writer, a ...any) (int, error) { return fmt.Fprint(w, a...) }
-
-// Print writes the output to standard output using the default formats for its operands.
-// It returns the number of bytes written and any write error encountered.
-func Print(a ...any) (int, error) { return fmt.Print(a...) }
-
 // Sprint formats using the default formats for its operands and returns the resulting String.
 // Spaces are added between operands when neither is a string.
 func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
-
-// Fprintln writes the output to w followed by a newline using the default formats for its operands.
-// It returns the number of bytes written and any write error encountered.
-func Fprintln(w io.Writer, a ...any) (int, error) { return fmt.Fprintln(w, a...) }
-
-// Println writes the output to standard output followed by a newline using the default formats for its operands.
-// It returns the number of bytes written and any write error encountered.
-func Println(a ...any) (int, error) { return fmt.Println(a...) }
 
 // Sprintln formats using the default formats for its operands and returns the resulting String.
 // Spaces are added between operands when neither is a string. A newline is appended.
@@ -343,6 +347,8 @@ func applyMod(value any, name String, params Slice[String]) any {
 				var key reflect.Value
 
 				switch mapKeyType.Kind() {
+				case reflect.Interface:
+					key = reflect.ValueOf(partstr)
 				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 					i64, err := strconv.ParseInt(partstr, 10, 64)
 					if err != nil {
@@ -390,11 +396,41 @@ func applyMod(value any, name String, params Slice[String]) any {
 					current = current.Elem()
 				}
 			case reflect.Slice, reflect.Array:
-				index, err := strconv.Atoi(partstr)
-				if err != nil || index < 0 || index >= current.Len() {
-					return nil
+				if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
+					slice := current.Interface().(MapOrd[any, any])
+					if slice.Empty() {
+						return nil
+					}
+
+					mapKeyType := reflect.ValueOf(slice[0].Key).Type()
+
+					var pair Option[any]
+
+					switch mapKeyType {
+					case reflect.TypeOf(""):
+						pair = slice.Get(partstr)
+					case reflect.TypeOf(String("")):
+						pair = slice.Get(part)
+					case reflect.TypeOf(0):
+						pair = slice.Get(part.ToInt().Ok().Std())
+					case reflect.TypeOf(Int(0)):
+						pair = slice.Get(part.ToInt().Ok())
+					case reflect.TypeOf(0.0):
+						pair = slice.Get(part.ToFloat().Ok().Std())
+					case reflect.TypeOf(Float(0.0)):
+						pair = slice.Get(part.ToFloat().Ok())
+					default:
+						return nil
+					}
+
+					current = reflect.ValueOf(pair.Some())
+				} else {
+					index, err := strconv.Atoi(partstr)
+					if err != nil || index < 0 || index >= current.Len() {
+						return nil
+					}
+					current = current.Index(index)
 				}
-				current = current.Index(index)
 			case reflect.Struct:
 				field := current.FieldByName(partstr)
 				if !field.IsValid() {
