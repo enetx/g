@@ -328,6 +328,82 @@ func parseMod(segment String) (String, Slice[String]) {
 	return name, params
 }
 
+func constructKey(keyType reflect.Type, key string) Result[reflect.Value] {
+	switch keyType.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		i64, err := strconv.ParseInt(key, 10, keyType.Bits())
+		if err != nil {
+			return Err[reflect.Value](err)
+		}
+		return Ok(reflect.ValueOf(i64).Convert(keyType))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		u64, err := strconv.ParseUint(key, 10, keyType.Bits())
+		if err != nil {
+			return Err[reflect.Value](err)
+		}
+		return Ok(reflect.ValueOf(u64).Convert(keyType))
+	case reflect.Bool:
+		b, err := strconv.ParseBool(key)
+		if err != nil {
+			return Err[reflect.Value](err)
+		}
+		return Ok(reflect.ValueOf(b))
+	case reflect.Float32, reflect.Float64:
+		fl, err := strconv.ParseFloat(key, keyType.Bits())
+		if err != nil {
+			return Err[reflect.Value](err)
+		}
+		return Ok(reflect.ValueOf(fl).Convert(keyType))
+	default:
+		switch keyType {
+		case reflect.TypeOf(""):
+			return Ok(reflect.ValueOf(key))
+		case reflect.TypeOf(String("")):
+			return Ok(reflect.ValueOf(String(key)))
+		default:
+			return Err[reflect.Value](fmt.Errorf("unsupported key type: %s", keyType))
+		}
+	}
+}
+
+func extractFromMapOrd(v reflect.Value, key String) Option[any] {
+	slice := v.Interface().(MapOrd[any, any])
+	if slice.Empty() {
+		return None[any]()
+	}
+
+	mapKeyType := reflect.ValueOf(slice[0].Key).Type()
+
+	switch mapKeyType {
+	case reflect.TypeOf(""):
+		return slice.Get(key.Std())
+	case reflect.TypeOf(String("")):
+		return slice.Get(key)
+	case reflect.TypeOf(0):
+		return slice.Get(key.ToInt().Ok().Std())
+	case reflect.TypeOf(Int(0)):
+		return slice.Get(key.ToInt().Ok())
+	case reflect.TypeOf(0.0):
+		return slice.Get(key.ToFloat().Ok().Std())
+	case reflect.TypeOf(Float(0.0)):
+		return slice.Get(key.ToFloat().Ok())
+	default:
+		return None[any]()
+	}
+}
+
+func resolveIndirect(v reflect.Value) reflect.Value {
+	for v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return reflect.Value{}
+		}
+
+		v = v.Elem()
+	}
+
+	return v
+}
+
 func applyMod(value any, name String, params Slice[String]) any {
 	switch name {
 	case "get":
@@ -339,109 +415,38 @@ func applyMod(value any, name String, params Slice[String]) any {
 		current := reflect.ValueOf(value)
 
 		for part := range path {
-			partstr := part.Std()
-
-			switch current.Kind() {
-			case reflect.Map:
-				mapKeyType := current.Type().Key()
-				var key reflect.Value
-
-				switch mapKeyType.Kind() {
-				case reflect.Interface:
-					key = reflect.ValueOf(partstr)
-				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-					i64, err := strconv.ParseInt(partstr, 10, 64)
-					if err != nil {
-						return nil
-					}
-					key = reflect.ValueOf(i64).Convert(mapKeyType)
-				case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-					u64, err := strconv.ParseUint(partstr, 10, 64)
-					if err != nil {
-						return nil
-					}
-					key = reflect.ValueOf(u64).Convert(mapKeyType)
-				case reflect.Bool:
-					b, err := strconv.ParseBool(partstr)
-					if err != nil {
-						return nil
-					}
-					key = reflect.ValueOf(b).Convert(mapKeyType)
-				case reflect.Float32, reflect.Float64:
-					fl, err := strconv.ParseFloat(partstr, 64)
-					if err != nil {
-						return nil
-					}
-					key = reflect.ValueOf(fl).Convert(mapKeyType)
-				default:
-					switch mapKeyType {
-					case reflect.TypeOf(""):
-						key = reflect.ValueOf(partstr)
-					case reflect.TypeOf(String("")):
-						key = reflect.ValueOf(String(partstr))
-					default:
-						return nil
-					}
-				}
-
-				current = current.MapIndex(key)
-				if !current.IsValid() {
-					return nil
-				}
-
-				for current.Kind() == reflect.Interface || current.Kind() == reflect.Ptr {
-					if current.IsNil() {
-						return nil
-					}
-					current = current.Elem()
-				}
-			case reflect.Slice, reflect.Array:
-				if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
-					slice := current.Interface().(MapOrd[any, any])
-					if slice.Empty() {
-						return nil
-					}
-
-					mapKeyType := reflect.ValueOf(slice[0].Key).Type()
-
-					var pair Option[any]
-
-					switch mapKeyType {
-					case reflect.TypeOf(""):
-						pair = slice.Get(partstr)
-					case reflect.TypeOf(String("")):
-						pair = slice.Get(part)
-					case reflect.TypeOf(0):
-						pair = slice.Get(part.ToInt().Ok().Std())
-					case reflect.TypeOf(Int(0)):
-						pair = slice.Get(part.ToInt().Ok())
-					case reflect.TypeOf(0.0):
-						pair = slice.Get(part.ToFloat().Ok().Std())
-					case reflect.TypeOf(Float(0.0)):
-						pair = slice.Get(part.ToFloat().Ok())
-					default:
-						return nil
-					}
-
-					current = reflect.ValueOf(pair.Some())
-				} else {
-					index, err := strconv.Atoi(partstr)
-					if err != nil || index < 0 || index >= current.Len() {
-						return nil
-					}
-					current = current.Index(index)
-				}
-			case reflect.Struct:
-				field := current.FieldByName(partstr)
-				if !field.IsValid() {
-					return nil
-				}
-				current = field
-			default:
+			if !current.IsValid() {
 				return nil
 			}
 
-			if !current.IsValid() {
+			switch current.Kind() {
+			case reflect.Map:
+				keyType := current.Type().Key()
+
+				key := constructKey(keyType, part.Std())
+				if key.IsErr() {
+					return nil
+				}
+
+				current = current.MapIndex(key.Ok())
+				current = resolveIndirect(current)
+			case reflect.Slice, reflect.Array:
+				if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
+					pair := extractFromMapOrd(current, part)
+					if pair.IsNone() {
+						return nil
+					}
+					current = reflect.ValueOf(pair.Some())
+				} else {
+					index := part.ToInt()
+					if index.IsErr() || index.Ok().Gte(Int(current.Len())) {
+						return nil
+					}
+					current = current.Index(index.Ok().Std())
+				}
+			case reflect.Struct:
+				current = current.FieldByName(part.Std())
+			default:
 				return nil
 			}
 		}

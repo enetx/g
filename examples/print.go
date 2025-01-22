@@ -15,8 +15,8 @@ func main() {
 	Printf("user {.$get(db.user.age)} years old\n", mo)
 
 	// Map example
-	data := map[any]any{
-		"user": Map[any, any]{
+	data := map[string]any{
+		"user": map[string]string{
 			"email": "user@example.com",
 		},
 	}
