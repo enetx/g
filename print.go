@@ -237,55 +237,6 @@ func parseMod(segment String) (String, Slice[String]) {
 	return name, params
 }
 
-func applyMod(value any, name String, params Slice[String]) any {
-	val := reflect.ValueOf(value)
-
-	method := val.MethodByName(string(name))
-	if !method.IsValid() || method.Kind() != reflect.Func {
-		return value
-	}
-
-	methodType := method.Type()
-	numIn := methodType.NumIn()
-	isVariadic := methodType.IsVariadic()
-
-	if isVariadic {
-		numIn--
-	}
-
-	var args []reflect.Value
-
-	for i := range numIn {
-		arg := toType(params[i], methodType.In(i))
-		if arg.IsErr() {
-			return value
-		}
-
-		args = append(args, arg.Ok())
-	}
-
-	if isVariadic {
-		elemType := methodType.In(numIn).Elem()
-
-		for param := range params[numIn:].Iter() {
-			arg := toType(param, elemType)
-			if arg.IsErr() {
-				return value
-			}
-
-			args = append(args, arg.Ok())
-		}
-	}
-
-	results := method.Call(args)
-
-	if len(results) > 0 {
-		return results[0].Interface()
-	}
-
-	return value
-}
-
 func toType(param String, targetType reflect.Type) Result[reflect.Value] {
 	switch targetType.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -323,4 +274,126 @@ func toType(param String, targetType reflect.Type) Result[reflect.Value] {
 			return Err[reflect.Value](fmt.Errorf("unsupported type: %s", targetType))
 		}
 	}
+}
+
+func extractFromMapOrd(param String, targetType reflect.Value) Option[any] {
+	slice := targetType.Interface().(MapOrd[any, any])
+	if slice.Empty() {
+		return None[any]()
+	}
+
+	mapKeyType := reflect.ValueOf(slice[0].Key).Type()
+
+	switch mapKeyType {
+	case reflect.TypeOf(""):
+		return slice.Get(param.Std())
+	case reflect.TypeOf(String("")):
+		return slice.Get(param)
+	case reflect.TypeOf(0):
+		return slice.Get(param.ToInt().Ok().Std())
+	case reflect.TypeOf(Int(0)):
+		return slice.Get(param.ToInt().Ok())
+	case reflect.TypeOf(0.0):
+		return slice.Get(param.ToFloat().Ok().Std())
+	case reflect.TypeOf(Float(0.0)):
+		return slice.Get(param.ToFloat().Ok())
+	default:
+		return None[any]()
+	}
+}
+
+func resolveIndirect(targetType reflect.Value) reflect.Value {
+	for targetType.Kind() == reflect.Interface || targetType.Kind() == reflect.Ptr {
+		if targetType.IsNil() {
+			return reflect.Value{}
+		}
+
+		targetType = targetType.Elem()
+	}
+
+	return targetType
+}
+
+func callMethod(method reflect.Value, params Slice[String]) Option[any] {
+	methodType := method.Type()
+	numIn := methodType.NumIn()
+	isVariadic := methodType.IsVariadic()
+
+	if isVariadic {
+		numIn--
+	}
+
+	var args []reflect.Value
+
+	for i := range numIn {
+		arg := toType(params[i], methodType.In(i))
+		if arg.IsErr() {
+			return None[any]()
+		}
+
+		args = append(args, arg.Ok())
+	}
+
+	if isVariadic {
+		elemType := methodType.In(numIn).Elem()
+		for _, param := range params[numIn:] {
+			arg := toType(param, elemType)
+			if arg.IsErr() {
+				return None[any]()
+			}
+
+			args = append(args, arg.Ok())
+		}
+	}
+
+	results := method.Call(args)
+
+	if len(results) > 0 {
+		return Some(results[0].Interface())
+	}
+
+	return None[any]()
+}
+
+func applyMod(value any, name String, params Slice[String]) any {
+	current := reflect.ValueOf(value)
+
+	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
+		if result := callMethod(method, params); result.IsSome() {
+			return result.Some()
+		}
+
+		return value
+	}
+
+	switch current.Kind() {
+	case reflect.Map:
+		key := toType(name, current.Type().Key())
+		if key.IsErr() {
+			return value
+		}
+
+		current = resolveIndirect(current.MapIndex(key.Ok()))
+	case reflect.Slice, reflect.Array:
+		if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
+			if pair := extractFromMapOrd(name, current); pair.IsSome() {
+				current = reflect.ValueOf(pair.Some())
+			}
+		} else {
+			index := name.ToInt()
+			if index.IsErr() || index.Ok().Gte(Int(current.Len())) {
+				return value
+			}
+
+			current = current.Index(index.Ok().Std())
+		}
+	case reflect.Struct:
+		current = current.FieldByName(name.Std())
+	}
+
+	if current.IsValid() && current.CanInterface() {
+		return current.Interface()
+	}
+
+	return value
 }
