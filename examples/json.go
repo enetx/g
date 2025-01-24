@@ -14,12 +14,7 @@ func main() {
 
 	res := response{Page: 1, Fruits: Slice[String]{"apple", "peach", "pear"}}
 
-	// Sprintf
-	s := Sprintf("{.$json}", res).Println()
-	Printf("{1.$get(Page)} {1.$get(Fruits.1)}\n", res)
-
-	// or
-	// s := String("").Encode().JSON(res).Unwrap().Println()
+	s := String("").Encode().JSON(res).Unwrap().Println()
 
 	var res2 response
 

@@ -15,25 +15,25 @@ func TestSprintfGet(t *testing.T) {
 	}{
 		{
 			name:     "Simple Map Access",
-			template: "Value: {1.$get(key)}",
+			template: "Value: {1.Get(key).Some}",
 			args: []any{
-				map[String]String{"key": "value"},
+				Map[String, String]{"key": "value"},
 			},
 			expected: "Value: value",
 		},
 		{
 			name:     "Simple Map Any Access",
-			template: "Value: {1.$get(key)}",
+			template: "Value: {1.Get(key).Some}",
 			args: []any{
-				map[String]any{"key": "value"},
+				Map[String, any]{"key": "value"},
 			},
 			expected: "Value: value",
 		},
 		{
 			name:     "Nested Map Access",
-			template: "Deep Value: {1.$get(key.subkey)}",
+			template: "Deep Value: {1.Get(key).Some.Get(subkey).Some}",
 			args: []any{
-				map[string]map[String]string{
+				Map[string, Map[String, string]]{
 					"key": {"subkey": "deepvalue"},
 				},
 			},
@@ -41,76 +41,52 @@ func TestSprintfGet(t *testing.T) {
 		},
 		{
 			name:     "Map with Float Keys",
-			template: "Float Key: {1.$get(3_14)}",
+			template: "Float Key: {1.Get(3_14).Some}",
 			args: []any{
-				map[Float]string{3.14: "pi"},
+				Map[Float, string]{3.14: "pi"},
 			},
 			expected: "Float Key: pi",
 		},
 		{
 			name:     "Slice Index Access",
-			template: "Index 1: {1.$get(1)}",
+			template: "Index 1: {1.Get(1)}",
 			args: []any{
-				[]string{"first", "second", "third"},
+				Slice[string]{"first", "second", "third"},
 			},
 			expected: "Index 1: second",
 		},
 		{
 			name:     "Nested Slice Access",
-			template: "Nested Index: {1.$get(1.0)}",
+			template: "Nested Index: {1.Get(1).Get(0)}",
 			args: []any{
-				[][]Int{{100, 200}, {300, 400}},
+				Slice[Slice[Int]]{{100, 200}, {300, 400}},
 			},
 			expected: "Nested Index: 300",
 		},
 		{
-			name:     "Struct Field Access",
-			template: "Struct Field: {1.$get(Field)}",
-			args: []any{
-				struct {
-					Field string
-				}{Field: "fieldvalue"},
-			},
-			expected: "Struct Field: fieldvalue",
-		},
-		{
-			name:     "Complex Struct Field Access",
-			template: "Complex Struct: {1.$get(SubStruct.InnerField)}",
-			args: []any{
-				struct {
-					SubStruct struct {
-						InnerField String
-					}
-				}{SubStruct: struct {
-					InnerField String
-				}{InnerField: "inner"}},
-			},
-			expected: "Complex Struct: inner",
-		},
-		{
 			name:     "Map with Int Keys",
-			template: "Int Key: {1.$get(42)}",
+			template: "Int Key: {1.Get(42).Some}",
 			args: []any{
-				map[int]string{42: "intvalue"},
+				Map[int, string]{42: "intvalue"},
 			},
 			expected: "Int Key: intvalue",
 		},
 		{
 			name:     "Boolean Key Map",
-			template: "Bool Key: {1.$get(true)}",
+			template: "Bool Key: {1.Get(true).Some}",
 			args: []any{
-				map[bool]string{true: "boolvalue"},
+				Map[bool, string]{true: "boolvalue"},
 			},
 			expected: "Bool Key: boolvalue",
 		},
 		{
 			name:     "Full Complexity",
-			template: "Access: {1.$get(map.slice.1.0.field)}",
+			template: "Access: {1.Get(map).Some.Get(slice).Some.Get(1).Some.Get(0).Get(field).Some}",
 			args: []any{
-				map[String]map[string]map[String][]map[string]string{
+				Map[String, Map[string, Map[String, Slice[Map[string, string]]]]]{
 					"map": {
 						"slice": {
-							"1": []map[string]string{
+							"1": Slice[Map[string, string]]{
 								{"field": "subfieldvalue"},
 							},
 						},
@@ -140,35 +116,11 @@ func TestSprintfGetNamed(t *testing.T) {
 	}{
 		{
 			name:     "Simple Map Access",
-			template: "Value: {map.$get(key)}",
-			named:    Named{"map": map[String]String{"key": "value"}},
+			template: "Value: {map.Get(key).Some}",
+			named:    Named{"map": Map[String, String]{"key": "value"}},
 			expected: "Value: value",
 		},
-		{
-			name:     "Full Complexity",
-			template: "Access: {complex.$get(map.slice.1.0.field)} {struct.$get(SubStruct.InnerField)}",
-			named: Named{
-				"complex": map[String]map[string]map[String][]map[string]string{
-					"map": {
-						"slice": {
-							"1": []map[string]string{
-								{"field": "subfieldvalue"},
-							},
-						},
-					},
-				},
-				"struct": struct {
-					SubStruct struct {
-						InnerField String
-					}
-				}{SubStruct: struct {
-					InnerField String
-				}{InnerField: "inner"}},
-			},
-			expected: "Access: subfieldvalue inner",
-		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := Sprintf(tt.template, tt.named)

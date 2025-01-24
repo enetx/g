@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
@@ -15,12 +13,12 @@ func main() {
 	}
 
 	orders := Slice[Order]{
-		{"foo", "alice", 1.00},
-		{"bar", "bob", 3.00},
-		{"baz", "carol", 4.00},
-		{"foo", "alice", 2.00},
-		{"bar", "carol", 1.00},
-		{"foo", "bob", 4.00},
+		{"foo", "alice", 1.458},
+		{"bar", "bob", 3.256},
+		{"baz", "carol", 4.391},
+		{"foo", "alice", 2.681},
+		{"bar", "carol", 1.866},
+		{"foo", "bob", 4.825},
 	}
 
 	// Sort by customer first, product second, and last by higher price
@@ -31,15 +29,15 @@ func main() {
 	})
 
 	orders.Iter().ForEach(func(v Order) {
-		fmt.Printf("%s %s %.2f\n", v.Product, v.Customer, v.Price)
+		Printf("{} {} {.RoundDecimal(2)}\n", v.Product, v.Customer, v.Price)
 	})
 
 	// Output:
 
-	// foo alice 2.00
-	// foo alice 1.00
-	// bar bob 3.00
-	// foo bob 4.00
-	// bar carol 1.00
-	// baz carol 4.00
+	// foo alice 2.68
+	// foo alice 1.46
+	// bar bob 3.26
+	// foo bob 4.83
+	// bar carol 1.87
+	// baz carol 4.39
 }
