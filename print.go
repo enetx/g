@@ -119,7 +119,8 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 	var autoidx, idx Int
 
 	for idx < length {
-		if tmpl[idx] == '\\' && idx+1 < length {
+		char := tmpl[idx]
+		if char == '\\' && idx+1 < length {
 			next := tmpl[idx+1]
 			if next == '{' || next == '}' {
 				builder.WriteByte(next)
@@ -129,10 +130,10 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 			}
 		}
 
-		if tmpl[idx] == '{' {
+		if char == '{' {
 			cidx := tmpl[idx+1:].Index("}")
 			if cidx.IsNegative() {
-				builder.WriteByte(tmpl[idx])
+				builder.WriteByte(char)
 				idx++
 
 				continue

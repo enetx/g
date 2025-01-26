@@ -23,7 +23,7 @@ func main() {
 	Printf("Struct field: {1.Field}, Sub-Field: {1.Sub.InnerField.Upper}\n", structExample)
 
 	// Methods
-	Printf("{.SubString(0,-1,2)}\n", String("somestring"))
+	Printf("{.SubString(0,-1,2).Center(9,=)}\n", String("somestring"))
 
 	Printf("Hex: {1.Hex}, Binary: {1.Binary}\n", Int(255))
 
