@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/xml"
 	"html"
 	"net/url"
 	"strconv"
@@ -37,9 +36,23 @@ func (d decode) Base64() Result[String] {
 	return Ok(String(decoded))
 }
 
-// JSON encodes the provided data as JSON and returns the result as Result[String].
-func (encode) JSON(data any) Result[String] {
-	jsonData, err := json.Marshal(data)
+// // JSON encodes the provided string as JSON and returns the result as Result[String].
+// func (e encode) JSON() Result[String] {
+// 	var buf bytes.Buffer
+// 	encoder := json.NewEncoder(&buf)
+// 	encoder.SetEscapeHTML(false)
+//
+// 	err := encoder.Encode(e.str)
+// 	if err != nil {
+// 		return Err[String](err)
+// 	}
+//
+// 	return Ok(String(buf.String()))
+// }
+
+// JSON encodes the provided string as JSON and returns the result as Result[String].
+func (e encode) JSON() Result[String] {
+	jsonData, err := json.Marshal(e.str)
 	if err != nil {
 		return Err[String](err)
 	}
@@ -47,45 +60,15 @@ func (encode) JSON(data any) Result[String] {
 	return Ok(String(jsonData))
 }
 
-// JSON decodes the wrapped String using JSON and unmarshals it into the provided data object.
-func (d decode) JSON(data any) Result[String] {
-	err := json.Unmarshal(d.str.Bytes(), data)
+// JSON decodes the provided JSON string and returns the result as Result[String].
+func (d decode) JSON() Result[String] {
+	var data String
+	err := json.Unmarshal(d.str.Bytes(), &data)
 	if err != nil {
 		return Err[String](err)
 	}
 
-	return Ok(d.str)
-}
-
-// XML encodes the provided data as XML and returns the result as Result[String].
-// The optional prefix and indent String values can be provided for XML indentation.
-func (encode) XML(data any, s ...String) Result[String] {
-	var (
-		prefix string
-		indent string
-	)
-
-	if len(s) > 1 {
-		prefix = s[0].Std()
-		indent = s[1].Std()
-	}
-
-	xmlData, err := xml.MarshalIndent(data, prefix, indent)
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(String(xmlData))
-}
-
-// XML decodes the wrapped String using XML and unmarshals it into the provided data object.
-func (d decode) XML(data any) Result[String] {
-	err := xml.Unmarshal(d.str.Bytes(), data)
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(d.str)
+	return Ok(data)
 }
 
 // URL encodes the input string, escaping reserved characters as per RFC 2396.

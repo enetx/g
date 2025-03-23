@@ -12,7 +12,7 @@ import (
 )
 
 // NewFile returns a new File instance with the given name.
-func NewFile(name String) *File { return &File{name: name} }
+func NewFile[T ~string](name T) *File { return &File{name: String(name)} }
 
 // Lines returns a new iterator instance that can be used to read the file
 // line by line.

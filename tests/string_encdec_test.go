@@ -1,80 +1,43 @@
 package g_test
 
 import (
-	"reflect"
 	"testing"
 
 	. "github.com/enetx/g"
 )
 
-func TestStringJSON(t *testing.T) {
-	// Test case 1: Encoding a struct
-	type Person struct {
-		Name string
-		Age  int
+// Tests
+func TestEncodeJSON(t *testing.T) {
+	input := String("test")
+	result := input.Encode().JSON()
+	if result.IsErr() {
+		t.Fatalf("Expected no error, got %v", result.Err())
 	}
 
-	person := Person{Name: "John", Age: 30}
-	expectedResult1 := String(`{"Name":"John","Age":30}`)
-	result1 := String("").Encode().JSON(person).Ok()
-	if !result1.Eq(expectedResult1) {
-		t.Errorf("Test case 1 failed: Expected result is %v, got %v", expectedResult1, result1)
-	}
-
-	// Test case 2: Encoding a map
-	data2 := map[string]any{"Name": "Alice", "Age": 25}
-	expectedResult2 := String(`{"Age":25,"Name":"Alice"}`)
-	result2 := String("").Encode().JSON(data2).Ok()
-	if !result2.Eq(expectedResult2) {
-		t.Errorf("Test case 2 failed: Expected result is %v, got %v", expectedResult2, result2)
-	}
-
-	// Test case 3: Encoding an array
-	data3 := []int{1, 2, 3}
-	expectedResult3 := String("[1,2,3]")
-	result3 := String("").Encode().JSON(data3).Ok()
-	if !result3.Eq(expectedResult3) {
-		t.Errorf("Test case 3 failed: Expected result is %v, got %v", expectedResult3, result3)
-	}
-
-	// Test case 4: Encoding a nil value
-	expectedResult4 := String("null")
-	result4 := String("").Encode().JSON(nil).Ok()
-	if !result4.Eq(expectedResult4) {
-		t.Errorf("Test case 4 failed: Expected result is %v, got %v", expectedResult4, result4)
+	expected := String("\"test\"")
+	if result.Ok() != expected {
+		t.Fatalf("Expected %s, got %s", expected, result.Ok())
 	}
 }
 
-func TestStringJSONDecode(t *testing.T) {
-	// Test case 1: Decoding a valid JSON string into a struct
-	type Person struct {
-		Name string
-		Age  int
+func TestDecodeJSON(t *testing.T) {
+	input := String("\"test\"")
+	result := input.Decode().JSON()
+	if result.IsErr() {
+		t.Fatalf("Expected no error, got %v", result.Err())
 	}
 
-	inputJSON1 := `{"Name":"John","Age":30}`
-	var person1 Person
-	expectedResult1 := String(inputJSON1)
-	result1 := String(inputJSON1).Decode().JSON(&person1).Ok()
-	if !result1.Eq(expectedResult1) {
-		t.Errorf("Test case 1 failed: Expected result is %v, got %v", expectedResult1, result1)
+	expected := "test"
+	if result.Ok() != String(expected) {
+		t.Fatalf("Expected %s, got %s", expected, result.Ok())
 	}
-	expectedPerson1 := Person{Name: "John", Age: 30}
-	if !reflect.DeepEqual(person1, expectedPerson1) {
-		t.Errorf("Test case 1 failed: Decoded struct is not equal to expected struct")
-	}
+}
 
-	// Test case 2: Decoding a valid JSON string into a map
-	inputJSON2 := `{"Name":"Alice","Age":25}`
-	var data2 map[string]any
-	expectedResult2 := String(inputJSON2)
-	result2 := String(inputJSON2).Decode().JSON(&data2).Ok()
-	if !result2.Eq(expectedResult2) {
-		t.Errorf("Test case 2 failed: Expected result is %v, got %v", expectedResult2, result2)
-	}
-	expectedData2 := map[string]any{"Name": "Alice", "Age": float64(25)}
-	if !reflect.DeepEqual(data2, expectedData2) {
-		t.Errorf("Test case 2 failed: Decoded map is not equal to expected map")
+func TestDecodeJSONError(t *testing.T) {
+	input := String("invalid json")
+	result := input.Decode().JSON()
+	if !result.IsErr() {
+		t.Fatal("Expected an error, but got none")
 	}
 }
 
@@ -268,39 +231,6 @@ func TestStringBinaryEncodingAndDecoding(t *testing.T) {
 		t.Errorf("Test case 2 failed: Error occurred during decoding: %v", result2.Err())
 	} else if result2.Ok().Ne(expectedStr2) {
 		t.Errorf("Test case 2 failed: Expected decoded string is %s, got %s", expectedStr2, result2.Ok())
-	}
-}
-
-func TestXMLEncodingAndDecoding(t *testing.T) {
-	// Define a struct to represent data for testing XML encoding and decoding
-	type Person struct {
-		Name  string `xml:"name"`
-		Age   int    `xml:"age"`
-		City  string `xml:"city"`
-		Email string `xml:"email"`
-	}
-
-	// Test case 1: Encoding data to XML
-	inputData1 := Person{Name: "John", Age: 30, City: "New York", Email: "john@example.com"}
-	expectedXML1 := String(
-		"<Person><name>John</name><age>30</age><city>New York</city><email>john@example.com</email></Person>",
-	)
-	result1 := String("").Encode().XML(inputData1)
-	if !result1.Ok().Eq(expectedXML1) {
-		t.Errorf("Test case 1 failed: Expected XML is %s, got %s", expectedXML1, result1.Ok())
-	}
-
-	// Test case 2: Decoding XML back to data
-	xmlData2 := String(
-		"<Person><name>Alice</name><age>25</age><city>London</city><email>alice@example.com</email></Person>",
-	)
-	var decodedData2 Person
-	expectedData2 := Person{Name: "Alice", Age: 25, City: "London", Email: "alice@example.com"}
-	result2 := xmlData2.Decode().XML(&decodedData2)
-	if result2.IsErr() {
-		t.Errorf("Test case 2 failed: Error occurred during XML decoding: %v", result2.Err())
-	} else if decodedData2 != expectedData2 {
-		t.Errorf("Test case 2 failed: Expected decoded data is %+v, got %+v", expectedData2, decodedData2)
 	}
 }
 

@@ -20,9 +20,7 @@ func main() {
 
 	NewString("12").ToInt().Ok().Println()
 
-	var jsonSet Set[int]
-
-	str.Encode().JSON(SetOf(1, 2, 3, 4)).Unwrap().Decode().JSON(&jsonSet).Unwrap()
+	str.Encode().JSON().Unwrap().Decode().JSON().Unwrap()
 
 	fmt.Println(str.Decompress().Flate().Err())
 	fmt.Println(str.Decompress().Flate().UnwrapOr("some value"))
