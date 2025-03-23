@@ -171,7 +171,7 @@ func (ms *MapSafe[K, V]) String() string {
 		builder.Write(Sprintf("{}:{}, ", k, v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Sprintf("MapSafe\\{{}\\}").Std()
 }
 
 // Print writes the key-value pairs of the MapSafe to the standard output (console)

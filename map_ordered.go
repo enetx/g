@@ -356,7 +356,7 @@ func (mo MapOrd[K, V]) String() string {
 
 	mo.Iter().ForEach(func(k K, v V) { builder.Write(Sprintf("{}:{}, ", k, v)) })
 
-	return builder.String().StripSuffix(", ").Format("MapOrd\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Sprintf("MapOrd\\{{}\\}").Std()
 }
 
 // Clear removes all key-value pairs from the ordered Map.

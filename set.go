@@ -280,7 +280,7 @@ func (s Set[T]) String() string {
 
 	s.Iter().ForEach(func(v T) { builder.Write(Sprintf("{}, ", v)) })
 
-	return builder.String().StripSuffix(", ").Format("Set\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Sprintf("Set\\{{}\\}").Std()
 }
 
 // Print writes the elements of the Set to the standard output (console)

@@ -632,8 +632,8 @@ func (s String) SubString(start, end Int, step ...Int) String {
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
 
-// Format applies a specified format to the String object.
-func (s String) Format(format String) String { return Sprintf(format, s) }
+// Sprintf applies a specified format to the String object.
+func (s String) Sprintf(template String) String { return Sprintf(template, s) }
 
 // Truncate shortens the String to the specified maximum length. If the String exceeds the
 // specified length, it is truncated, and an ellipsis ("...") is appended to indicate the truncation.

@@ -584,7 +584,7 @@ func (sl Slice[T]) String() string {
 		builder.Write(Sprintf("{}, ", v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("Slice[{}]").Std()
+	return builder.String().StripSuffix(", ").Sprintf("Slice[{}]").Std()
 }
 
 // Push appends the provided elements to the slice and modifies the original slice.

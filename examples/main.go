@@ -206,5 +206,5 @@ func main() {
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 
-	NewString("Hello").Format("{} world").Println()
+	NewString("Hello").Sprintf("{} world").Println()
 }
