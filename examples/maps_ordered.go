@@ -16,11 +16,11 @@ func main() {
 	gos := NewMapOrd[int, *Slice[int]]()
 
 	for i := range 5 {
-		gos.GetOrSet(i, ref.Of(NewSlice[int]())).AppendInPlace(i)
+		gos.GetOrSet(i, ref.Of(NewSlice[int]())).Push(i)
 	}
 
 	for i := range 10 {
-		gos.GetOrSet(i, ref.Of(NewSlice[int]())).AppendInPlace(i)
+		gos.GetOrSet(i, ref.Of(NewSlice[int]())).Push(i)
 	}
 
 	gos.Println()
@@ -38,11 +38,15 @@ func main() {
 	god := NewMapOrd[int, Slice[int]]()
 
 	for i := range 5 {
-		god.Set(i, god.Get(i).Some().Append(i))
+		value := god.Get(i).Some()
+		value.Push(i)
+		god.Set(i, value)
 	}
 
 	for i := range 10 {
-		god.Set(i, god.Get(i).Some().Append(i))
+		value := god.Get(i).Some()
+		value.Push(i)
+		god.Set(i, value)
 	}
 
 	god.Println()
@@ -50,17 +54,15 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////
 
 	ms := NewMapOrd[Int, Int]()
-	ms.
-		Set(11, 99).
-		Set(12, 2).
-		Set(1, 22).
-		Set(2, 32).
-		Set(222, 2)
+	ms.Set(11, 99)
+	ms.Set(12, 2)
+	ms.Set(1, 22)
+	ms.Set(2, 32)
+	ms.Set(222, 2)
 
 	ms1 := ms.Clone()
-	ms1.
-		Set(888, 000).
-		Set(888, 300)
+	ms1.Set(888, 000)
+	ms1.Set(888, 300)
 
 	if r := ms1.Get(888); r.IsSome() {
 		r.Some().Println()
@@ -87,11 +89,10 @@ func main() {
 	fmt.Println(ms.Contains(22))
 
 	msstr := NewMapOrd[String, String]()
-	msstr.
-		Set("aaa", "CCC").
-		Set("ccc", "AAA").
-		Set("bbb", "DDD").
-		Set("ddd", "BBB")
+	msstr.Set("aaa", "CCC")
+	msstr.Set("ccc", "AAA")
+	msstr.Set("bbb", "DDD")
+	msstr.Set("ddd", "BBB")
 
 	fmt.Println("before sort:", msstr)
 

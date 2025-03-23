@@ -11,7 +11,7 @@ import (
 func genSet() Set[String] {
 	slice := NewSlice[String](0, 10000)
 	for i := range 10000 {
-		slice = slice.Append(Int(i).String())
+		slice.Push(Int(i).String())
 	}
 
 	return SetOf(slice...)

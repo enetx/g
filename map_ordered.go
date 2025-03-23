@@ -140,18 +140,12 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, 
 //
 // - fn func(a, b Pair[K, V]) cmp.Ordering: The custom comparison function used for sorting the ordered Map.
 //
-// Returns:
-//
-// - MapOrd[K, V]: Same ordered Map, sorted according to the custom comparison
-// function.
-//
 // Example usage:
 //
 //	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Key.Cmp(b.Key) })
 //	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Value.Cmp(b.Value) })
-func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) MapOrd[K, V] {
+func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) {
 	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a, b)) })
-	return mo
 }
 
 // SortByKey sorts the ordered MapOrd[K, V] by the keys using a custom comparison function.
@@ -160,16 +154,11 @@ func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) MapOrd[K, V
 //
 // - fn func(a, b K) cmp.Ordering: The custom comparison function used for sorting the keys.
 //
-// Returns:
-//
-// - MapOrd[K, V]: The same ordered MapOrd, sorted by the keys according to the custom comparison function.
-//
 // Example usage:
 //
 //	hmapo.SortByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
-func (mo MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) MapOrd[K, V] {
+func (mo MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) {
 	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Key, b.Key)) })
-	return mo
 }
 
 // SortByValue sorts the ordered MapOrd[K, V] by the values using a custom comparison function.
@@ -178,16 +167,11 @@ func (mo MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) MapOrd[K, V] {
 //
 // - fn func(a, b V) cmp.Ordering: The custom comparison function used for sorting the values.
 //
-// Returns:
-//
-// - MapOrd[K, V]: The same ordered MapOrd, sorted by the values according to the custom comparison function.
-//
 // Example usage:
 //
 //	hmapo.SortByValue(func(a, b g.Int) cmp.Ordering { return a.Cmp(b) })
-func (mo MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) MapOrd[K, V] {
+func (mo MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
 	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Value, b.Value)) })
-	return mo
 }
 
 // Clone creates a new ordered Map with the same key-value pairs.
@@ -199,10 +183,7 @@ func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
 }
 
 // Copy copies key-value pairs from the source ordered Map to the current ordered Map.
-func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
-	src.Iter().ForEach(func(k K, v V) { mo.Set(k, v) })
-	return *mo
-}
+func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) { src.Iter().ForEach(func(k K, v V) { mo.Set(k, v) }) }
 
 // ToMap converts the ordered Map to a standard Map.
 // func (mo MapOrd[K, V]) ToMap() Map[K, V] {
@@ -213,16 +194,14 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) MapOrd[K, V] {
 // }
 
 // Set sets the value for the specified key in the ordered Map.
-func (mo *MapOrd[K, V]) Set(key K, value V) *MapOrd[K, V] {
+func (mo *MapOrd[K, V]) Set(key K, value V) {
 	if i := mo.index(key); i != -1 {
 		(*mo)[i].Value = value
-		return mo
+		return
 	}
 
 	mp := Pair[K, V]{key, value}
 	*mo = append(*mo, mp)
-
-	return mo
 }
 
 // Get retrieves the value for the specified key, along with a boolean indicating whether the key
@@ -334,14 +313,12 @@ func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
 func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
 
 // Delete removes the specified keys from the ordered Map.
-func (mo *MapOrd[K, V]) Delete(keys ...K) MapOrd[K, V] {
+func (mo *MapOrd[K, V]) Delete(keys ...K) {
 	for _, key := range keys {
 		if i := mo.index(key); i != -1 {
 			*mo = append((*mo)[:i], (*mo)[i+1:]...)
 		}
 	}
-
-	return *mo
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
@@ -383,7 +360,7 @@ func (mo MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() MapOrd[K, V] { return mo.Delete(mo.Keys()...) }
+func (mo *MapOrd[K, V]) Clear() { mo.Delete(mo.Keys()...) }
 
 // Contains checks if the ordered Map contains the specified key.
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }

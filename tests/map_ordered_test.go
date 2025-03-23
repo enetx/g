@@ -34,7 +34,9 @@ func TestMapOrdIterReverse(t *testing.T) {
 		{
 			name: "multiple elements",
 			actions: func(m MapOrd[int, int]) MapOrd[int, int] {
-				m.Set(1, 100).Set(2, 200).Set(3, 300)
+				m.Set(1, 100)
+				m.Set(2, 200)
+				m.Set(3, 300)
 				return m
 			},
 			expected: []Pair[int, int]{{3, 300}, {2, 200}, {1, 100}},
@@ -61,21 +63,19 @@ func TestMapOrdIterReverse(t *testing.T) {
 func TestMapOrdIterSortBy(t *testing.T) {
 	// Sample data
 	data := NewMapOrd[int, string]()
-	data.
-		Set(1, "d").
-		Set(3, "b").
-		Set(2, "c").
-		Set(5, "e").
-		Set(4, "a")
+	data.Set(1, "d")
+	data.Set(3, "b")
+	data.Set(2, "c")
+	data.Set(5, "e")
+	data.Set(4, "a")
 
 	// Expected result
 	expected := NewMapOrd[int, string]()
-	expected.
-		Set(1, "d").
-		Set(2, "c").
-		Set(3, "b").
-		Set(4, "a").
-		Set(5, "e")
+	expected.Set(1, "d")
+	expected.Set(2, "c")
+	expected.Set(3, "b")
+	expected.Set(4, "a")
+	expected.Set(5, "e")
 
 	sortedItems := data.Iter().
 		SortBy(func(a, b Pair[int, string]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }).
@@ -87,12 +87,11 @@ func TestMapOrdIterSortBy(t *testing.T) {
 	}
 
 	expected = NewMapOrd[int, string]()
-	expected.
-		Set(4, "a").
-		Set(3, "b").
-		Set(2, "c").
-		Set(1, "d").
-		Set(5, "e")
+	expected.Set(4, "a")
+	expected.Set(3, "b")
+	expected.Set(2, "c")
+	expected.Set(1, "d")
+	expected.Set(5, "e")
 
 	sortedItems = data.Iter().
 		SortBy(func(a, b Pair[int, string]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) }).
@@ -107,18 +106,16 @@ func TestMapOrdIterSortBy(t *testing.T) {
 func TestMapOrdIterStepBy(t *testing.T) {
 	// Test case 1: StepBy with a step size of 2
 	mapData := NewMapOrd[string, int]()
-	mapData.
-		Set("one", 1).
-		Set("two", 2).
-		Set("three", 3).
-		Set("four", 4).
-		Set("five", 5)
+	mapData.Set("one", 1)
+	mapData.Set("two", 2)
+	mapData.Set("three", 3)
+	mapData.Set("four", 4)
+	mapData.Set("five", 5)
 
 	expectedResult := NewMapOrd[string, int]()
-	expectedResult.
-		Set("one", 1).
-		Set("three", 3).
-		Set("five", 5)
+	expectedResult.Set("one", 1)
+	expectedResult.Set("three", 3)
+	expectedResult.Set("five", 5)
 
 	iter := mapData.Iter().StepBy(2)
 	result := iter.Collect()
@@ -129,15 +126,15 @@ func TestMapOrdIterStepBy(t *testing.T) {
 
 	// Test case 2: StepBy with a step size of 3
 	mapData = NewMapOrd[string, int]()
-	mapData.
-		Set("one", 1).
-		Set("two", 2).
-		Set("three", 3).
-		Set("four", 4).
-		Set("five", 5)
+	mapData.Set("one", 1)
+	mapData.Set("two", 2)
+	mapData.Set("three", 3)
+	mapData.Set("four", 4)
+	mapData.Set("five", 5)
 
 	expectedResult = NewMapOrd[string, int]()
-	expectedResult.Set("one", 1).Set("four", 4)
+	expectedResult.Set("one", 1)
+	expectedResult.Set("four", 4)
 
 	iter = mapData.Iter().StepBy(3)
 	result = iter.Collect()
@@ -149,9 +146,9 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	// Test case 3: StepBy with a step size larger than the map length
 
 	mapData = NewMapOrd[string, int]()
-	mapData.Set("one", 1).
-		Set("two", 2).
-		Set("three", 3)
+	mapData.Set("one", 1)
+	mapData.Set("two", 2)
+	mapData.Set("three", 3)
 
 	expectedResult = NewMapOrd[string, int]()
 	expectedResult.Set("one", 1)
@@ -165,15 +162,14 @@ func TestMapOrdIterStepBy(t *testing.T) {
 
 	// Test case 4: StepBy with a step size of 1
 	mapData = NewMapOrd[string, int]()
-	mapData.Set("one", 1).
-		Set("two", 2).
-		Set("three", 3)
+	mapData.Set("one", 1)
+	mapData.Set("two", 2)
+	mapData.Set("three", 3)
 
 	expectedResult = NewMapOrd[string, int]()
-	expectedResult.
-		Set("one", 1).
-		Set("two", 2).
-		Set("three", 3)
+	expectedResult.Set("one", 1)
+	expectedResult.Set("two", 2)
+	expectedResult.Set("three", 3)
 
 	iter = mapData.Iter().StepBy(1)
 	result = iter.Collect()
@@ -474,9 +470,9 @@ func TestMapOrdSortBy(t *testing.T) {
 		{"c", 3},
 		{"a", 1},
 	}
-	sortedByKey := m.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) })
+	m.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) })
 	expectedKeyOrder := []string{"a", "b", "c"}
-	for i, p := range sortedByKey {
+	for i, p := range m {
 		if p.Key != expectedKeyOrder[i] {
 			t.Errorf("Expected key at index %d to be %s, got %s", i, expectedKeyOrder[i], p.Key)
 		}
@@ -488,9 +484,9 @@ func TestMapOrdSortBy(t *testing.T) {
 		{"b", 1},
 		{"c", 2},
 	}
-	sortedByValue := m2.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
+	m2.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 	expectedValueOrder := []int{1, 2, 3}
-	for i, p := range sortedByValue {
+	for i, p := range m2 {
 		if p.Value != expectedValueOrder[i] {
 			t.Errorf("Expected value at index %d to be %d, got %d", i, expectedValueOrder[i], p.Value)
 		}
@@ -620,8 +616,8 @@ func TestMapOrdFromMap(t *testing.T) {
 	m.Set("b", 2)
 	m.Set("c", 3)
 
-	mapOrd := m.ToMapOrd().
-		SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
+	mapOrd := m.ToMapOrd()
+	mapOrd.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []Pair[string, int]{
 		{"a", 1},

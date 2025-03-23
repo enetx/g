@@ -174,8 +174,11 @@ func TestSliceIterCombinations(t *testing.T) {
 }
 
 func TestSliceIterSortBy(t *testing.T) {
-	sl1 := NewSlice[int]().Append(3, 1, 4, 1, 5)
-	expected1 := NewSlice[int]().Append(1, 1, 3, 4, 5)
+	sl1 := NewSlice[int]()
+	sl1.Push(3, 1, 4, 1, 5)
+
+	expected1 := NewSlice[int]()
+	expected1.Push(1, 1, 3, 4, 5)
 
 	actual1 := sl1.Iter().SortBy(cmp.Cmp).Collect()
 
@@ -183,8 +186,10 @@ func TestSliceIterSortBy(t *testing.T) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
 	}
 
-	sl2 := NewSlice[string]().Append("foo", "bar", "baz")
-	expected2 := NewSlice[string]().Append("foo", "baz", "bar")
+	sl2 := NewSlice[string]()
+	sl2.Push("foo", "bar", "baz")
+	expected2 := NewSlice[string]()
+	expected2.Push("foo", "baz", "bar")
 
 	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).Collect()
 
@@ -403,34 +408,34 @@ func TestSliceIterChunks(t *testing.T) {
 		},
 		{
 			name:     "single chunk",
-			input:    NewSlice[int]().Append(1, 2, 3),
-			expected: []Slice[int]{NewSlice[int]().Append(1, 2, 3)},
+			input:    Slice[int]{1, 2, 3},
+			expected: []Slice[int]{{1, 2, 3}},
 			size:     3,
 		},
 		{
 			name:  "multiple chunks",
-			input: NewSlice[int]().Append(1, 2, 3, 4, 5, 6),
+			input: Slice[int]{1, 2, 3, 4, 5, 6},
 			expected: []Slice[int]{
-				NewSlice[int]().Append(1, 2),
-				NewSlice[int]().Append(3, 4),
-				NewSlice[int]().Append(5, 6),
+				{1, 2},
+				{3, 4},
+				{5, 6},
 			},
 			size: 2,
 		},
 		{
 			name:  "last chunk is smaller",
-			input: NewSlice[int]().Append(1, 2, 3, 4, 5),
+			input: Slice[int]{1, 2, 3, 4, 5},
 			expected: []Slice[int]{
-				NewSlice[int]().Append(1, 2),
-				NewSlice[int]().Append(3, 4),
-				NewSlice[int]().Append(5),
+				{1, 2},
+				{3, 4},
+				{5},
 			},
 			size: 2,
 		},
 		{
 			name:     "chunk size bigger than slice length",
-			input:    NewSlice[int]().Append(1, 2, 3, 4),
-			expected: []Slice[int]{NewSlice[int]().Append(1, 2, 3, 4)},
+			input:    Slice[int]{1, 2, 3, 4},
+			expected: []Slice[int]{{1, 2, 3, 4}},
 			size:     5,
 		},
 	}
@@ -455,8 +460,10 @@ func TestSliceIterChunks(t *testing.T) {
 
 func TestSliceIterAll(t *testing.T) {
 	sl1 := NewSlice[int]()
-	sl2 := NewSlice[int]().Append(1, 2, 3)
-	sl3 := NewSlice[int]().Append(2, 4, 6)
+	sl2 := NewSlice[int]()
+	sl2.Push(1, 2, 3)
+	sl3 := NewSlice[int]()
+	sl3.Push(2, 4, 6)
 
 	testCases := []struct {
 		f    func(int) bool
@@ -502,21 +509,24 @@ func TestSliceIterAny(t *testing.T) {
 		t.Errorf("Expected false for empty slice, got true")
 	}
 
-	sl2 := NewSlice[int]().Append(1, 2, 3)
+	sl2 := NewSlice[int]()
+	sl2.Push(1, 2, 3)
 	f2 := func(x int) bool { return x < 1 }
 
 	if sl2.Iter().Any(f2) {
 		t.Errorf("Expected false for slice with no matching elements, got true")
 	}
 
-	sl3 := NewSlice[string]().Append("foo", "bar")
+	sl3 := NewSlice[string]()
+	sl3.Push("foo", "bar")
 	f3 := func(x string) bool { return x == "bar" }
 
 	if !sl3.Iter().Any(f3) {
 		t.Errorf("Expected true for slice with one matching element, got false")
 	}
 
-	sl4 := NewSlice[int]().Append(1, 2, 3, 4, 5)
+	sl4 := NewSlice[int]()
+	sl4.Push(1, 2, 3, 4, 5)
 	f4 := func(x int) bool { return x%2 == 0 }
 
 	if !sl4.Iter().Any(f4) {
@@ -536,7 +546,7 @@ func TestSliceIterFold(t *testing.T) {
 func TestSliceIterFilter(t *testing.T) {
 	var sl Slice[int]
 
-	sl = sl.Append(1, 2, 3, 4, 5)
+	sl.Push(1, 2, 3, 4, 5)
 	result := sl.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect()
 
 	if result.Len() != 2 {
@@ -583,9 +593,12 @@ func TestSliceIterExcludeZeroValues(t *testing.T) {
 }
 
 func TestSliceIterForEach(t *testing.T) {
-	sl1 := NewSlice[int]().Append(1, 2, 3, 4, 5)
-	sl2 := NewSlice[string]().Append("foo", "bar", "baz")
-	sl3 := NewSlice[float64]().Append(1.1, 2.2, 3.3, 4.4)
+	sl1 := NewSlice[int]()
+	sl1.Push(1, 2, 3, 4, 5)
+	sl2 := NewSlice[string]()
+	sl2.Push("foo", "bar", "baz")
+	sl3 := NewSlice[float64]()
+	sl3.Push(1.1, 2.2, 3.3, 4.4)
 
 	var result1 []int
 
@@ -777,7 +790,11 @@ func TestSliceIterEnumerate(t *testing.T) {
 	enumerated := seq.Iter().Enumerate().Collect()
 
 	expected := NewMapOrd[Int, string]()
-	expected.Set(0, "bbb").Set(1, "ddd").Set(2, "xxx").Set(3, "aaa").Set(4, "ccc")
+	expected.Set(0, "bbb")
+	expected.Set(1, "ddd")
+	expected.Set(2, "xxx")
+	expected.Set(3, "aaa")
+	expected.Set(4, "ccc")
 
 	for i, v := range enumerated {
 		if expected[i] != v {
@@ -935,29 +952,29 @@ func TestSliceIterCounter(t *testing.T) {
 	sl2 := Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
 	expected1 := NewMapOrd[int, Int]()
-	expected1.
-		Set(3, 1).
-		Set(5, 1).
-		Set(1, 2).
-		Set(2, 2).
-		Set(4, 3).
-		SortByKey(cmp.Cmp)
+	expected1.Set(3, 1)
+	expected1.Set(5, 1)
+	expected1.Set(1, 2)
+	expected1.Set(2, 2)
+	expected1.Set(4, 3)
+	expected1.SortByKey(cmp.Cmp)
 
-	result1 := sl1.Iter().Counter().Collect().SortByKey(cmp.Cmp)
+	result1 := sl1.Iter().Counter().Collect()
+	result1.SortByKey(cmp.Cmp)
 	if !result1.Eq(expected1) {
 		t.Errorf("Counter() returned %v, expected %v", result1, expected1)
 	}
 
 	// Test with string values
 	expected2 := NewMapOrd[string, Int]()
-	expected2.
-		Set("banana", 1).
-		Set("grape", 1).
-		Set("orange", 2).
-		Set("apple", 3).
-		SortByKey(cmp.Cmp)
+	expected2.Set("banana", 1)
+	expected2.Set("grape", 1)
+	expected2.Set("orange", 2)
+	expected2.Set("apple", 3)
+	expected2.SortByKey(cmp.Cmp)
 
-	result2 := sl2.Iter().Counter().Collect().SortByKey(cmp.Cmp)
+	result2 := sl2.Iter().Counter().Collect()
+	result2.SortByKey(cmp.Cmp)
 	if !result2.Eq(expected2) {
 		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
 	}

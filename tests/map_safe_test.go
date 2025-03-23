@@ -105,7 +105,8 @@ func TestMapSafe(t *testing.T) {
 
 	t.Run("TestCopy", func(t *testing.T) {
 		src := NewMapSafe[string, int]()
-		src.Set("key1", 1).Set("key2", 2)
+		src.Set("key1", 1)
+		src.Set("key2", 2)
 		dest := NewMapSafe[string, int]()
 		dest.Copy(src)
 		if !dest.Contains("key1") || !dest.Contains("key2") {
@@ -115,9 +116,11 @@ func TestMapSafe(t *testing.T) {
 
 	t.Run("TestEq", func(t *testing.T) {
 		ms1 := NewMapSafe[string, int]()
-		ms1.Set("key1", 1).Set("key2", 2)
+		ms1.Set("key1", 1)
+		ms1.Set("key2", 2)
 		ms2 := NewMapSafe[string, int]()
-		ms2.Set("key1", 1).Set("key2", 2)
+		ms2.Set("key1", 1)
+		ms2.Set("key2", 2)
 		if !ms1.Eq(ms2) {
 			t.Fatal("Equality check failed for identical maps")
 		}

@@ -236,9 +236,10 @@ func (d *Dir) Join(elem ...String) Result[String] {
 		return Err[String](path.Err())
 	}
 
-	paths := SliceOf(elem...).Insert(0, path.Ok()).ToStringSlice()
+	se := SliceOf(elem...)
+	se.Insert(0, path.Ok())
 
-	return Ok(String(filepath.Join(paths...)))
+	return Ok(String(filepath.Join(se.ToStringSlice()...)))
 }
 
 // SetPath sets the path of the current directory.

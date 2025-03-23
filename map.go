@@ -67,18 +67,13 @@ func (m Map[K, V]) Contains(key K) bool {
 func (m Map[K, V]) Clone() Map[K, V] { return maps.Clone(m) }
 
 // Copy copies the source Map's key-value pairs to the target Map.
-func (m Map[K, V]) Copy(src Map[K, V]) Map[K, V] {
-	maps.Copy(m, src)
-	return m
-}
+func (m Map[K, V]) Copy(src Map[K, V]) { maps.Copy(m, src) }
 
 // Delete removes the specified keys from the Map.
-func (m Map[K, V]) Delete(keys ...K) Map[K, V] {
+func (m Map[K, V]) Delete(keys ...K) {
 	for _, key := range keys {
 		delete(m, key)
 	}
-
-	return m
 }
 
 // Std converts the Map to a regular Go map.
@@ -208,7 +203,7 @@ func (m Map[K, V]) Ne(other Map[K, V]) bool { return !m.Eq(other) }
 func (m Map[K, V]) NotEmpty() bool { return !m.Empty() }
 
 // Set sets the value for the given key in the Map.
-func (m Map[K, V]) Set(key K, value V) Map[K, V] { m[key] = value; return m }
+func (m Map[K, V]) Set(key K, value V) { m[key] = value }
 
 // Print writes the key-value pairs of the Map to the standard output (console)
 // and returns the Map unchanged.

@@ -67,7 +67,7 @@ func (ms *MapSafe[K, V]) Clone() *MapSafe[K, V] {
 }
 
 // Copy copies the source MapSafe's key-value pairs to the target MapSafe.
-func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) *MapSafe[K, V] {
+func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 	src.mu.RLock()
 	defer src.mu.RUnlock()
 
@@ -75,18 +75,14 @@ func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) *MapSafe[K, V] {
 	defer ms.mu.Unlock()
 
 	ms.data.Copy(src.data)
-
-	return ms
 }
 
 // Delete removes the specified keys from the MapSafe.
-func (ms *MapSafe[K, V]) Delete(keys ...K) *MapSafe[K, V] {
+func (ms *MapSafe[K, V]) Delete(keys ...K) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
 	ms.data.Delete(keys...)
-
-	return ms
 }
 
 // Eq checks if two MapSafes are equal.
@@ -109,13 +105,11 @@ func (ms *MapSafe[K, V]) Get(key K) Option[V] {
 }
 
 // Set sets the value for the given key in the MapSafe.
-func (ms *MapSafe[K, V]) Set(key K, value V) *MapSafe[K, V] {
+func (ms *MapSafe[K, V]) Set(key K, value V) {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
 	ms.data.Set(key, value)
-
-	return ms
 }
 
 // Len returns the number of key-value pairs in the MapSafe.
@@ -151,12 +145,11 @@ func (ms *MapSafe[K, V]) GetOrSet(key K, defaultValue V) V {
 }
 
 // Clear removes all key-value pairs from the MapSafe.
-func (ms *MapSafe[K, V]) Clear() *MapSafe[K, V] {
+func (ms *MapSafe[K, V]) Clear() {
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
 	clear(ms.data)
-	return ms
 }
 
 // Empty checks if the MapSafe is empty.

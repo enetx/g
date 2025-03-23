@@ -9,7 +9,7 @@ func main() {
 		Some().
 		Println() // 4
 
-	m := NewMap[Int, Int]().Set(1, 11).Set(2, 22).Set(3, 33)
+	m := Map[Int, Int]{1: 11, 2: 22, 3: 33}
 	m.
 		Iter().
 		Find(func(_, v Int) bool { return v == 22 }).

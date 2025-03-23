@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	ns1 := NewSlice[String]().Append("aaa")
-	ns2 := NewSlice[String]().Append("bbb", "ccc")
-	ns3 := NewSlice[String]().Append("ccc", "dddd", "wwwww")
+	ns1 := Slice[String]{"aaa"}
+	ns2 := Slice[String]{"bbb", "ccc"}
+	ns3 := Slice[String]{"ccc", "dddd", "wwwww"}
 
 	nx := SliceOf(ns3, ns2, ns1, ns2)
 

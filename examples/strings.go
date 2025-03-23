@@ -25,7 +25,7 @@ func main() {
 	for ss.ContainsAll("[", "]") {
 		var cut String
 		ss, cut = ss.Cut("[", "]")
-		cuted.AppendInPlace(cut)
+		cuted.Push(cut)
 	}
 
 	cuted.Println()

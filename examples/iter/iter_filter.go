@@ -30,7 +30,7 @@ func main() {
 	fi.Collect().Println() // Slice[ccc]
 
 	// Example 3: Exclude a key from a map and print the result
-	NewMap[int, string]().Set(88, "aa").Set(99, "bb").Set(199, "ii").
+	Map[int, string]{88: "aa", 99: "bb", 199: "ii"}.
 		Iter().
 		Exclude(func(k int, _ string) bool { return k == 99 }).
 		Collect().

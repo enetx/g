@@ -14,7 +14,7 @@ func BenchmarkAppendInPlace(b *testing.B) {
 	slice := NewSlice[String]()
 
 	for i := range 10000000 {
-		slice = slice.Append(Int(i).String())
+		slice = append(slice, Int(i).String())
 	}
 }
 
@@ -24,6 +24,6 @@ func BenchmarkAppend(b *testing.B) {
 	slice := NewSlice[String]()
 
 	for i := range 10000000 {
-		slice.AppendInPlace(Int(i).String())
+		slice.Push(Int(i).String())
 	}
 }

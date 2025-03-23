@@ -63,8 +63,10 @@ func main() {
 
 	result := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-	result.Delete(1).Println()  // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
-	result.Delete(-9).Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
+	result.Delete(1)
+	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
+	result.Delete(-9)
+	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 
 	result.SubSlice(1, -3).Println()            // Slice[2, 3, 4, 5, 6, 7]
 	result.SubSlice(-3, result.Len()).Println() // Slice[8, 9, 10]
@@ -73,7 +75,8 @@ func main() {
 
 	result = result.RandomSample(5)
 
-	result.Clone().Append(999).Println()
+	result = result.Clone()
+	result.Push(999)
 	result.Println()
 	fmt.Printf("%#v\n", result.Std())
 
@@ -84,37 +87,46 @@ func main() {
 
 	slice = Slice[int]{1, 2, 3, 4, 5}.Println()
 
-	slice.Cut(1, 3).Println()  // Slice[1, 4, 5]
-	slice.Cut(-4, 3).Println() // Slice[1, 4, 5]
-	slice.Cut(-3, 4).Println() // Slice[1, 2, 5]
+	sc := slice.Clone()
+	sc.Cut(1, 3)
+	sc.Println() // Slice[1, 4, 5]
+
+	sc = slice.Clone()
+	sc.Cut(-4, 3)
+	sc.Println() // Slice[1, 4, 5]
+
+	sc = slice.Clone()
+	sc.Cut(-3, 4)
+	sc.Println() // Slice[1, 2, 5]
 
 	// InPlace Methods
 	sipl := NewSlice[int]()
 
-	sipl.AppendInPlace(1)
-	sipl.AppendInPlace(2)
-	sipl.AppendInPlace(3)
+	sipl.Push(1)
+	sipl.Push(2)
+	sipl.Push(3)
 
-	sipl.DeleteInPlace(1)
+	sipl.Delete(1)
 	sipl.Fill(999999)
 
-	sipl.InsertInPlace(0, 22, 33, 44)
-	sipl.AddUniqueInPlace(22, 22, 22, 33, 44, 55)
+	sipl.Insert(0, 22, 33, 44)
+	sipl.AddUnique(22, 22, 22, 33, 44, 55)
 
 	sipl.Println()
 
 	slicea := Slice[string]{"a", "b", "c", "d"}
-	slicea.InsertInPlace(2, "e", "f")
+	slicea.Insert(2, "e", "f")
 	slicea.Println()
 
 	slice = Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
 	slice = slice.Iter().Exclude(f.IsZero).Collect()
 
-	slice.DeleteInPlace(0)
+	slice.Delete(0)
 	slice.Println()
 
 	sll := NewSlice[int](0, 100000)
-	sll = sll.Append(1).Clip()
+	sll.Push(1)
+	sll.Clip()
 
 	fmt.Println(sll.Cap())
 

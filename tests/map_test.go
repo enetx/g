@@ -178,7 +178,7 @@ func TestMapCopy(t *testing.T) {
 
 func TestMapAdd(t *testing.T) {
 	m := Map[string, string]{}
-	m = m.Set("key", "value")
+	m.Set("key", "value")
 
 	if m["key"] != "value" {
 		t.Error("Expected value to be 'value'")
@@ -188,7 +188,7 @@ func TestMapAdd(t *testing.T) {
 func TestMapDelete(t *testing.T) {
 	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
-	m = m.Delete("a", "b")
+	m.Delete("a", "b")
 
 	if m.Len() != 1 {
 		t.Errorf("Expected length of 1, got %d", m.Len())
@@ -630,22 +630,32 @@ func TestMapNotEmpty(t *testing.T) {
 
 func TestMapIterChain(t *testing.T) {
 	// Test case 1: Concatenate two iterators
-	iter1 := NewMap[int, string]().Set(1, "a").Iter()
-	iter2 := NewMap[int, string]().Set(2, "b").Iter()
+	iter1 := NewMap[int, string]()
+	iter1.Set(1, "a")
 
-	concatenated := iter1.Chain(iter2).Collect()
+	iter2 := NewMap[int, string]()
+	iter2.Set(2, "b")
 
-	expected := NewMap[int, string]().Set(1, "a").Set(2, "b")
+	concatenated := iter1.Iter().Chain(iter2.Iter()).Collect()
+
+	expected := NewMap[int, string]()
+	expected.Set(1, "a")
+	expected.Set(2, "b")
+
 	if !reflect.DeepEqual(concatenated, expected) {
 		t.Errorf("Expected concatenated map to be %v, got %v", expected, concatenated)
 	}
 
 	// Test case 2: Concatenate three iterators
-	iter3 := NewMap[int, string]().Set(3, "c").Iter()
+	iter3 := NewMap[int, string]()
+	iter3.Set(3, "c")
 
-	concatenated2 := iter1.Chain(iter2, iter3).Collect()
+	concatenated2 := iter1.Iter().Chain(iter2.Iter(), iter3.Iter()).Collect()
 
-	expected2 := NewMap[int, string]().Set(1, "a").Set(2, "b").Set(3, "c")
+	expected2 := NewMap[int, string]()
+	expected2.Set(1, "a")
+	expected2.Set(2, "b")
+	expected2.Set(3, "c")
 	if !reflect.DeepEqual(concatenated2, expected2) {
 		t.Errorf("Expected concatenated map to be %v, got %v", expected2, concatenated2)
 	}
@@ -653,7 +663,7 @@ func TestMapIterChain(t *testing.T) {
 
 func TestMapIterCount(t *testing.T) {
 	// Test case 1: Count elements in a non-empty map
-	iter := NewMap[int, string]().Set(1, "a").Set(2, "b").Iter()
+	iter := Map[int, string]{1: "a", 2: "b"}.Iter()
 
 	count := iter.Count()
 
@@ -675,12 +685,12 @@ func TestMapIterCount(t *testing.T) {
 
 func TestMapIterExclude(t *testing.T) {
 	// Test case 1: Exclude even values
-	m := NewMap[int, string]().
-		Set(1, "a").
-		Set(2, "b").
-		Set(3, "c").
-		Set(4, "d").
-		Set(5, "e")
+	m := NewMap[int, string]()
+	m.Set(1, "a")
+	m.Set(2, "b")
+	m.Set(3, "c")
+	m.Set(4, "d")
+	m.Set(5, "e")
 
 	notEven := m.Iter().
 		Exclude(func(k int, v string) bool {
@@ -688,10 +698,10 @@ func TestMapIterExclude(t *testing.T) {
 		}).
 		Collect()
 
-	expected := NewMap[int, string]().
-		Set(1, "a").
-		Set(3, "c").
-		Set(5, "e")
+	expected := NewMap[int, string]()
+	expected.Set(1, "a")
+	expected.Set(3, "c")
+	expected.Set(5, "e")
 
 	if !notEven.Eq(expected) {
 		t.Errorf("Excluded result incorrect, expected: %v, got: %v", expected, notEven)
@@ -711,12 +721,12 @@ func TestMapIterExclude(t *testing.T) {
 
 func TestMapIterFind(t *testing.T) {
 	// Test case 1: Find an existing element
-	m := NewMap[int, string]().
-		Set(1, "a").
-		Set(2, "b").
-		Set(3, "c").
-		Set(4, "d").
-		Set(5, "e")
+	m := NewMap[int, string]()
+	m.Set(1, "a")
+	m.Set(2, "b")
+	m.Set(3, "c")
+	m.Set(4, "d")
+	m.Set(5, "e")
 
 	found := m.Iter().
 		Find(func(k int, v string) bool {

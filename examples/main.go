@@ -77,7 +77,7 @@ func main() {
 	fl.Round().Println() // 13
 
 	// slices
-	sl := NewSlice[String]().Append(a, b, c, d, e) // declaration and assignation
+	sl := Slice[String]{a, b, c, d, e} // declaration and assignation
 
 	sl.Shuffle()
 
@@ -87,7 +87,11 @@ func main() {
 
 	sl.Iter().Map(String.Upper).Collect().Println()
 
-	counter := sl.Append(sl...).Append("ddd").Iter().Counter().Collect()
+	slc := sl.Clone()
+	slc.Push(sl...)
+	slc.Push("ddd")
+
+	counter := slc.Iter().Counter().Collect()
 
 	counter.SortBy(func(a, b Pair[String, Int]) cmp.Ordering {
 		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
@@ -118,7 +122,7 @@ func main() {
 	fmt.Println(sl1.Iter().Fold(0, func(index, value int) int { return index + value })) // 15
 
 	sl3 := Slice[String]{} // declaration and assignation
-	sl3 = sl3.Append("aaaaa", "bbbbb")
+	sl3.Push("aaaaa", "bbbbb")
 
 	fmt.Println(sl3.Last().Count("b")) // 5
 
@@ -141,7 +145,8 @@ func main() {
 	m2[88] = "BBB"
 	m2.Set(77, "CCC")
 
-	m2.Delete(99).Println()
+	m2.Delete(99)
+	m2.Println()
 	m2.Iter().Keys().Collect().Println()
 
 	m2.Println()
@@ -201,5 +206,5 @@ func main() {
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 
-	NewString("Hello").Format("%s world").Println()
+	NewString("Hello").Format("{} world").Println()
 }

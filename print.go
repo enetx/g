@@ -104,7 +104,7 @@ func Sprintf[T ~string](template T, args ...any) String {
 		case Named:
 			named = x
 		default:
-			positional = positional.Append(x)
+			positional = append(positional, x)
 		}
 	}
 

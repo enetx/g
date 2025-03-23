@@ -14,7 +14,8 @@ func main() {
 
 		// Example 2
 	str := String("I love ice cream. Ice cream is delicious.")
-	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect().Append("")
+	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect()
+	matches.Push("")
 
 	str = str.ReplaceMulti(matches...)
 	str.Println() // I love ice .   is delicious.

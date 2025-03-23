@@ -952,7 +952,7 @@ func (seq SeqSlice[V]) Unique() SeqSlice[V] {
 		seen := NewSet[any]()
 		seq(func(v V) bool {
 			if !seen.Contains(v) {
-				seen.Add(v)
+				seen.Insert(v)
 				return yield(v)
 			}
 			return true

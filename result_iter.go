@@ -197,7 +197,7 @@ func (seq SeqResult[V]) Unique() SeqResult[V] {
 				return false
 			}
 			if !seen.Contains(v.Ok()) {
-				seen.Add(v.Ok())
+				seen.Insert(v.Ok())
 				return yield(v)
 			}
 			return true

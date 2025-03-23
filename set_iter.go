@@ -39,7 +39,7 @@ func (seq SeqSet[V]) Collect() Set[V] {
 	collection := NewSet[V]()
 
 	seq(func(v V) bool {
-		collection.Add(v)
+		collection.Insert(v)
 		return true
 	})
 

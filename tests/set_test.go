@@ -311,7 +311,7 @@ func TestSetToSlice(t *testing.T) {
 func TestSetString(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := NewSet[int]()
-	set1.Add(1)
+	set1.Insert(1)
 	expected1 := "Set{1}"
 	if str := set1.String(); str != expected1 {
 		t.Errorf("Expected string representation to be %s, got %s", expected1, str)
@@ -597,7 +597,7 @@ func TestSetIterInspect(t *testing.T) {
 
 	// Create a new iterator with Inspect and collect the elements
 	s.Iter().Inspect(func(v int) {
-		inspectedElements.Add(v)
+		inspectedElements.Insert(v)
 	}).Collect()
 
 	if !inspectedElements.Eq(s) {

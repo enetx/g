@@ -41,7 +41,7 @@ func main() {
 	even = s.Iter().Filter(f.IsEven).Collect()
 	even.Println()
 
-	s = s.Remove(1)
+	s.Remove(1)
 	s.Println()
 
 	// iterate over set

@@ -28,7 +28,7 @@ func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 func SetOf[T comparable](values ...T) Set[T] {
 	set := NewSet[T](Int(len(values)))
 	for _, v := range values {
-		set.Add(v)
+		set.Insert(v)
 	}
 
 	return set
@@ -56,22 +56,18 @@ func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 // in a functional style, enabling operations like mapping or filtering.
 func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
 
-// Add adds the provided elements to the set and returns the modified set.
-func (s Set[T]) Add(values ...T) Set[T] {
+// Insert adds the provided elements to the set.
+func (s Set[T]) Insert(values ...T) {
 	for _, v := range values {
 		s[v] = struct{}{}
 	}
-
-	return s
 }
 
 // Remove removes the specified values from the Set.
-func (s Set[T]) Remove(values ...T) Set[T] {
+func (s Set[T]) Remove(values ...T) {
 	for _, v := range values {
 		delete(s, v)
 	}
-
-	return s
 }
 
 // Len returns the number of values in the Set.
@@ -270,7 +266,7 @@ func (s Set[T]) Eq(other Set[T]) bool {
 func (s Set[T]) Ne(other Set[T]) bool { return !s.Eq(other) }
 
 // Clear removes all values from the Set.
-func (s Set[T]) Clear() Set[T] { return s.Remove(s.ToSlice()...) }
+func (s Set[T]) Clear() { s.Remove(s.ToSlice()...) }
 
 // Empty checks if the Set is empty.
 func (s Set[T]) Empty() bool { return len(s) == 0 }

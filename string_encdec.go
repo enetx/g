@@ -36,20 +36,6 @@ func (d decode) Base64() Result[String] {
 	return Ok(String(decoded))
 }
 
-// // JSON encodes the provided string as JSON and returns the result as Result[String].
-// func (e encode) JSON() Result[String] {
-// 	var buf bytes.Buffer
-// 	encoder := json.NewEncoder(&buf)
-// 	encoder.SetEscapeHTML(false)
-//
-// 	err := encoder.Encode(e.str)
-// 	if err != nil {
-// 		return Err[String](err)
-// 	}
-//
-// 	return Ok(String(buf.String()))
-// }
-
 // JSON encodes the provided string as JSON and returns the result as Result[String].
 func (e encode) JSON() Result[String] {
 	jsonData, err := json.Marshal(e.str)
