@@ -14,14 +14,14 @@ func BenchmarkSprintf(b *testing.B) {
 
 	b.Run("fmt.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = fmt.Sprintf("Hello, %s!", name)
 		}
 	})
 
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Sprintf("Hello, {}!", name)
 		}
 	})
@@ -30,14 +30,14 @@ func BenchmarkSprintf(b *testing.B) {
 func BenchmarkSprintfPositional(b *testing.B) {
 	b.Run("fmt.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = fmt.Sprintf("%[2]s comes before %[1]s", "World", "Hello")
 		}
 	})
 
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Sprintf("{2} comes before {1}", "World", "Hello")
 		}
 	})
@@ -48,14 +48,14 @@ func BenchmarkSprintfNamedAccess(b *testing.B) {
 
 	b.Run("fmt.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = fmt.Sprintf("Email: %s", data["email"])
 		}
 	})
 
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Sprintf("Email: {email}", data)
 		}
 	})
@@ -66,14 +66,14 @@ func BenchmarkSprintfFormatSpecifiers(b *testing.B) {
 
 	b.Run("fmt.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = fmt.Sprintf("Hex: %x, Binary: %b", num, num)
 		}
 	})
 
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = Sprintf("Hex: {1.Hex}, Binary: {1.Binary}", num)
 		}
 	})

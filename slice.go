@@ -306,30 +306,6 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 	}
 }
 
-// AddUnique appends unique elements from the provided arguments to the current slice.
-//
-// The function iterates over the provided elements and checks if they are already present
-// in the slice. If an element is not already present, it is appended to the slice.
-//
-// Parameters:
-//
-// - elems (...T): A variadic list of elements to be appended to the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	slice.AddUnique(3, 4, 5, 6, 7)
-//	fmt.Println(slice)
-//
-// Output: [1 2 3 4 5 6 7].
-func (sl *Slice[T]) AddUnique(elems ...T) {
-	for _, elem := range elems {
-		if !sl.Contains(elem) {
-			*sl = append(*sl, elem)
-		}
-	}
-}
-
 // Get returns the element at the given index, handling negative indices as counting from the end
 // of the slice.
 func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
@@ -469,26 +445,6 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	return slice
 }
 
-// Cut removes a range of elements from the Slice in-place.
-// It modifies the original slice by creating two slices: one from the
-// beginning of the original slice up to the specified start index
-// (exclusive), and another from the specified end index (inclusive)
-// to the end of the original slice. These two slices are then
-// concatenated to form the modified original Slice.
-//
-// Parameters:
-//
-// - start (Int): The start index of the range to be removed.
-//
-// - end (Int): The end index of the range to be removed.
-//
-// Note:
-//
-// The function also supports negative indices. Negative indices are counted
-// from the end of the slice. For example, -1 means the last element, -2
-// means the second-to-last element, and so on.
-func (sl *Slice[T]) Cut(start, end Int) { sl.Replace(start, end) }
-
 // Random returns a random element from the slice.
 //
 // The function uses the crypto/rand package to generate a random index within the bounds of the
@@ -587,8 +543,130 @@ func (sl Slice[T]) String() string {
 	return builder.String().StripSuffix(", ").Sprintf("Slice[{}]").Std()
 }
 
+// Append appends the provided elements to the slice and returns the modified slice.
+func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
+
+// Prepend prepends the provided elements to the slice and returns the modified slice.
+func (sl Slice[T]) Prepend(elems ...T) Slice[T] { return append(elems, sl...) }
+
+// AppendUnique appends unique elements from the provided arguments to the current slice.
+//
+// The function iterates over the provided elements and checks if they are already present
+// in the slice. If an element is not already present, it is appended to the slice. The
+// resulting slice is returned, containing the unique elements from both the original
+// slice and the provided elements.
+//
+// Parameters:
+//
+// - elems (...T): A variadic list of elements to be appended to the slice.
+//
+// Returns:
+//
+// - Slice[T]: A new slice containing the unique elements from both the original slice
+// and the provided elements.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	slice = slice.AppendUnique(3, 4, 5, 6, 7)
+//	fmt.Println(slice)
+//
+// Output: [1 2 3 4 5 6 7].
+func (sl Slice[T]) AppendUnique(elems ...T) Slice[T] {
+	for _, elem := range elems {
+		if !sl.Contains(elem) {
+			sl = append(sl, elem)
+		}
+	}
+
+	return sl
+}
+
+// PrependUnique prepends unique elements from the provided arguments to the current slice.
+//
+// The function iterates over the provided elements and checks if they are already present
+// in the slice. If an element is not already present, it is prepended to the beginning of the slice.
+// The resulting slice is returned.
+//
+// Example:
+//
+//	slice := g.Slice[int]{3, 4, 5}
+//	slice = slice.PrependUnique(1, 2, 3, 4)
+//	fmt.Println(slice) // [1 2 3 4 5]
+func (sl Slice[T]) PrependUnique(elems ...T) Slice[T] {
+	var unique []T
+	for _, elem := range elems {
+		if !sl.Contains(elem) {
+			unique = append(unique, elem)
+		}
+	}
+	return append(unique, sl...)
+}
+
 // Push appends the provided elements to the slice and modifies the original slice.
 func (sl *Slice[T]) Push(elems ...T) { *sl = append(*sl, elems...) }
+
+// PushFront inserts the provided elements at the beginning of the slice.
+// It modifies the original slice in place.
+//
+// Example:
+//
+//	s := g.Slice[int]{3, 4, 5}
+//	s.PushFront(1, 2)
+//	fmt.Println(s) // [1 2 3 4 5]
+func (sl *Slice[T]) PushFront(elems ...T) {
+	if len(elems) == 0 {
+		return
+	}
+
+	*sl = append(elems, *sl...)
+}
+
+// PushUnique appends unique elements from the provided arguments to the current slice.
+//
+// The function iterates over the provided elements and checks if they are already present
+// in the slice. If an element is not already present, it is appended to the slice.
+//
+// Parameters:
+//
+// - elems (...T): A variadic list of elements to be appended to the slice.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	slice.PushUnique(3, 4, 5, 6, 7)
+//	fmt.Println(slice)
+//
+// Output: [1 2 3 4 5 6 7].
+func (sl *Slice[T]) PushUnique(elems ...T) {
+	for _, elem := range elems {
+		if !sl.Contains(elem) {
+			sl.Push(elem)
+		}
+	}
+}
+
+// PushFrontUnique prepends unique elements to the beginning of the slice in place.
+//
+// It modifies the current slice, adding only those elements that are not already present.
+//
+// Example:
+//
+//	slice := g.Slice[int]{3, 4, 5}
+//	slice.PushFrontUnique(1, 2, 3, 4)
+//	fmt.Println(slice) // [1 2 3 4 5]
+func (sl *Slice[T]) PushFrontUnique(elems ...T) {
+	var unique []T
+	for _, elem := range elems {
+		if !sl.Contains(elem) {
+			unique = append(unique, elem)
+		}
+	}
+
+	if len(unique) > 0 {
+		*sl = append(unique, *sl...)
+	}
+}
 
 // Cap returns the capacity of the Slice.
 func (sl Slice[T]) Cap() Int { return Int(cap(sl)) }
@@ -629,12 +707,30 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 	return true
 }
 
-// Delete removes the element at the specified index from the slice and modifies the
-// original slice.
-func (sl *Slice[T]) Delete(i Int) {
-	i = sl.bound(i)
-	copy((*sl)[i:], (*sl)[i+1:])
-	*sl = (*sl)[:len(*sl)-1]
+// Delete removes an element or a range of elements from the Slice in-place.
+// It modifies the original Slice by creating two slices: one from the
+// beginning of the Slice up to the specified `start` index (exclusive),
+// and another from the `end` index (inclusive) to the end of the Slice.
+// These two slices are then concatenated to form the modified Slice.
+//
+// Parameters:
+//
+//   - start (Int): The starting index of the element or range to be removed.
+//   - end (Int, optional): The end index of the range to be removed.
+//     If omitted, only the element at the `start` index is removed.
+//
+// Note:
+//
+// The function supports negative indices. Negative values are counted from
+// the end of the Slice: for example, -1 refers to the last element, -2 to
+// the second-to-last, and so on.
+func (sl *Slice[T]) Delete(start Int, end ...Int) {
+	j := start + 1
+	if len(end) != 0 {
+		j = end[0]
+	}
+
+	sl.Replace(start, j)
 }
 
 // Empty returns true if the slice is empty.
@@ -665,7 +761,6 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 // Parameters:
 //
 // - index (Int): The index at which to set the new value.
-//
 // - val (T): The new value to be set at the specified index.
 //
 // Returns:

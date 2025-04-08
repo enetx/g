@@ -19,9 +19,8 @@ func genMO() MapOrd[String, int] {
 
 func BenchmarkMoContains(b *testing.B) {
 	mo := genMO()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		_ = mo.Contains("9999")
 	}
 }
@@ -32,16 +31,15 @@ func BenchmarkMoEq(b *testing.B) {
 
 	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		_ = mo.Eq(mo2)
 	}
 }
 
 func BenchmarkMoGet(b *testing.B) {
 	mo := genMO()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		_ = mo.Get("9999")
 	}
 }

@@ -8,7 +8,7 @@ import (
 
 // go test -bench=. -benchmem -count=4
 
-func BenchmarkAppendInPlace(b *testing.B) {
+func BenchmarkAppend(b *testing.B) {
 	b.ResetTimer()
 
 	slice := NewSlice[String]()
@@ -18,7 +18,7 @@ func BenchmarkAppendInPlace(b *testing.B) {
 	}
 }
 
-func BenchmarkAppend(b *testing.B) {
+func BenchmarkPush(b *testing.B) {
 	b.ResetTimer()
 
 	slice := NewSlice[String]()

@@ -101,15 +101,13 @@ func (bs Bytes) Contains(obs Bytes) bool { return bytes.Contains(bs, obs) }
 
 // ContainsAny checks if the Bytes contains any of the specified Bytes.
 func (bs Bytes) ContainsAny(obss ...Bytes) bool {
-	return Slice[Bytes](obss).
-		Iter().
+	return Slice[Bytes](obss).Iter().
 		Any(func(obs Bytes) bool { return bs.Contains(obs) })
 }
 
 // ContainsAll checks if the Bytes contains all of the specified Bytes.
 func (bs Bytes) ContainsAll(obss ...Bytes) bool {
-	return Slice[Bytes](obss).
-		Iter().
+	return Slice[Bytes](obss).Iter().
 		All(func(obs Bytes) bool { return bs.Contains(obs) })
 }
 

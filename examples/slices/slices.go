@@ -88,15 +88,15 @@ func main() {
 	slice = Slice[int]{1, 2, 3, 4, 5}.Println()
 
 	sc := slice.Clone()
-	sc.Cut(1, 3)
+	sc.Delete(1, 3)
 	sc.Println() // Slice[1, 4, 5]
 
 	sc = slice.Clone()
-	sc.Cut(-4, 3)
+	sc.Delete(-4, 3)
 	sc.Println() // Slice[1, 4, 5]
 
 	sc = slice.Clone()
-	sc.Cut(-3, 4)
+	sc.Delete(-3, 4)
 	sc.Println() // Slice[1, 2, 5]
 
 	// InPlace Methods
@@ -110,7 +110,7 @@ func main() {
 	sipl.Fill(999999)
 
 	sipl.Insert(0, 22, 33, 44)
-	sipl.AddUnique(22, 22, 22, 33, 44, 55)
+	sipl.PushUnique(22, 22, 22, 33, 44, 55)
 
 	sipl.Println()
 

@@ -244,6 +244,85 @@ func TestMapOrdIterRange(t *testing.T) {
 	})
 }
 
+func TestMapOrdDelete(t *testing.T) {
+	t.Run("Delete single existing key", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+		m.Set(1, "a")
+		m.Set(2, "b")
+		m.Set(3, "c")
+
+		m.Delete(2)
+
+		expected := NewMapOrd[int, string]()
+		expected.Set(1, "a")
+		expected.Set(3, "c")
+
+		if m.Ne(expected) {
+			t.Errorf("Expected %v, got %v", expected, m)
+		}
+	})
+
+	t.Run("Delete multiple keys", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+		m.Set(1, "a")
+		m.Set(2, "b")
+		m.Set(3, "c")
+		m.Set(4, "d")
+
+		m.Delete(2, 4)
+
+		expected := NewMapOrd[int, string]()
+		expected.Set(1, "a")
+		expected.Set(3, "c")
+
+		if m.Ne(expected) {
+			t.Errorf("Expected %v, got %v", expected, m)
+		}
+	})
+
+	t.Run("Delete non-existing key", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+		m.Set(1, "a")
+		m.Set(2, "b")
+
+		m.Delete(3) // key 3 does not exist
+
+		expected := NewMapOrd[int, string]()
+		expected.Set(1, "a")
+		expected.Set(2, "b")
+
+		if m.Ne(expected) {
+			t.Errorf("Expected %v, got %v", expected, m)
+		}
+	})
+
+	t.Run("Delete all keys", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+		m.Set(1, "a")
+		m.Set(2, "b")
+
+		m.Delete(1, 2)
+
+		expected := NewMapOrd[int, string]()
+
+		if m.Ne(expected) {
+			t.Errorf("Expected empty map, got %v", m)
+		}
+	})
+
+	t.Run("Delete from empty map", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+
+		m.Delete(1, 2, 3)
+
+		expected := NewMapOrd[int, string]()
+
+		if m.Ne(expected) {
+			t.Errorf("Expected empty map, got %v", m)
+		}
+	})
+}
+
 func TestMapOrdNe(t *testing.T) {
 	// Test case 1: Maps are equal
 	m1 := NewMapOrd[int, string]()

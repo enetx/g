@@ -11,6 +11,99 @@ import (
 	"github.com/enetx/g/f"
 )
 
+func TestPrependUnique(t *testing.T) {
+	s := Slice[int]{3, 4, 5}
+	result := s.PrependUnique(1, 2, 3, 4)
+	expected := Slice[int]{1, 2, 3, 4, 5}
+
+	if len(result) != len(expected) {
+		t.Errorf("expected length %d, got %d", len(expected), len(result))
+	}
+
+	for i, v := range expected {
+		if result[i] != v {
+			t.Errorf("at index %d: expected %v, got %v", i, v, result[i])
+		}
+	}
+}
+
+func TestPushFrontUnique(t *testing.T) {
+	s := Slice[int]{3, 4, 5}
+	s.PushFrontUnique(1, 2, 3, 4)
+	expected := Slice[int]{1, 2, 3, 4, 5}
+
+	if len(s) != len(expected) {
+		t.Errorf("expected length %d, got %d", len(expected), len(s))
+	}
+
+	for i, v := range expected {
+		if s[i] != v {
+			t.Errorf("at index %d: expected %v, got %v", i, v, s[i])
+		}
+	}
+}
+
+func TestPrependUniqueEmpty(t *testing.T) {
+	s := Slice[int]{}
+	result := s.PrependUnique(1, 2, 3)
+	expected := Slice[int]{1, 2, 3}
+
+	for i, v := range expected {
+		if result[i] != v {
+			t.Errorf("at index %d: expected %v, got %v", i, v, result[i])
+		}
+	}
+}
+
+func TestPushFrontUniqueEmpty(t *testing.T) {
+	s := Slice[int]{}
+	s.PushFrontUnique(1, 2, 3)
+	expected := Slice[int]{1, 2, 3}
+
+	for i, v := range expected {
+		if s[i] != v {
+			t.Errorf("at index %d: expected %v, got %v", i, v, s[i])
+		}
+	}
+}
+
+func TestPushFront(t *testing.T) {
+	tests := []struct {
+		name     string
+		initial  Slice[int]
+		input    []int
+		expected Slice[int]
+	}{
+		{
+			name:     "basic prepend",
+			initial:  Slice[int]{3, 4, 5},
+			input:    []int{1, 2},
+			expected: Slice[int]{1, 2, 3, 4, 5},
+		},
+		{
+			name:     "prepend nothing",
+			initial:  Slice[int]{3, 4, 5},
+			input:    []int{},
+			expected: Slice[int]{3, 4, 5},
+		},
+		{
+			name:     "prepend to empty",
+			initial:  Slice[int]{},
+			input:    []int{1, 2, 3},
+			expected: Slice[int]{1, 2, 3},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.initial.PushFront(tt.input...)
+			if !tt.initial.Eq(tt.expected) {
+				t.Errorf("PushFront() = %v, want %v", tt.initial, tt.expected)
+			}
+		})
+	}
+}
+
 func TestSliceUnpack(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -134,7 +227,7 @@ func TestSliceInsert(t *testing.T) {
 	slice.Insert(2, "e", "f")
 	expected := Slice[string]{"a", "b", "e", "f", "c", "d"}
 	if !slice.Eq(expected) {
-		t.Errorf("InsertInPlace(2) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Insert(2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at the start
@@ -142,7 +235,7 @@ func TestSliceInsert(t *testing.T) {
 	slice.Insert(0, "x", "y")
 	expected = Slice[string]{"x", "y", "a", "b", "c", "d"}
 	if !slice.Eq(expected) {
-		t.Errorf("InsertInPlace(0) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Insert(0) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at the end
@@ -150,7 +243,7 @@ func TestSliceInsert(t *testing.T) {
 	slice.Insert(slice.Len(), "x", "y")
 	expected = Slice[string]{"a", "b", "c", "d", "x", "y"}
 	if !slice.Eq(expected) {
-		t.Errorf("InsertInPlace(end) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Insert(end) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion with negative index
@@ -158,7 +251,7 @@ func TestSliceInsert(t *testing.T) {
 	slice.Insert(-2, "x", "y")
 	expected = Slice[string]{"a", "b", "x", "y", "c", "d"}
 	if !slice.Eq(expected) {
-		t.Errorf("InsertInPlace(-2) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Insert(-2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test insertion at index 0 with an empty slice
@@ -166,7 +259,7 @@ func TestSliceInsert(t *testing.T) {
 	slice.Insert(0, "x", "y")
 	expected = Slice[string]{"x", "y"}
 	if !slice.Eq(expected) {
-		t.Errorf("InsertInPlace(0) with empty slice failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Insert(0) with empty slice failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
@@ -432,30 +525,30 @@ func TestSliceClone(t *testing.T) {
 	}
 }
 
-func TestSliceCut(t *testing.T) {
+func TestSliceDelete2(t *testing.T) {
 	slice := Slice[int]{1, 2, 3, 4, 5}
 
 	// Test normal range
-	slice.Cut(1, 3)
+	slice.Delete(1, 3)
 	expected := Slice[int]{1, 4, 5}
 	if !slice.Eq(expected) {
-		t.Errorf("Cut(1, 3) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Delete(1, 3) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test range with negative indices
 	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
-	slice.Cut(-3, -2)
+	slice.Delete(-3, -2)
 	expected = Slice[int]{1, 2, 4, 5}
 	if !slice.Eq(expected) {
-		t.Errorf("Cut(-3, -2) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Delete(-3, -2) failed. Expected %v, but got %v", expected, slice)
 	}
 
 	// Test empty range
 	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
-	slice.Cut(0, 5)
+	slice.Delete(0, 5)
 	expected = Slice[int]{}
 	if !slice.Eq(expected) {
-		t.Errorf("Cut(0, 5) failed. Expected %v, but got %v", expected, slice)
+		t.Errorf("Delete(0, 5) failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
@@ -628,88 +721,6 @@ func TestSliceReplace(t *testing.T) {
 	}
 }
 
-func TestSliceReplaceInPlaceM(t *testing.T) {
-	// Test replacement in the middle
-	slice := Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(1, 1, "zz", "xx")
-	expected := Slice[string]{"a", "zz", "xx", "b", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(1, 1) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement with same start and end indices
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(2, 2, "zz", "xx")
-	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from i to the end
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(2, slice.Len(), "zz", "xx")
-	expected = Slice[string]{"a", "b", "zz", "xx"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(2, end) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from the start to j
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(0, 2, "zz", "xx")
-	expected = Slice[string]{"zz", "xx", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(start, 2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test empty replacement
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(2, 2) // No replacement, should remain unchanged
-	expected = Slice[string]{"a", "b", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(2, 2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from negative index to positive index
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(-2, 2, "zz", "xx")
-	expected = Slice[string]{"a", "b", "zz", "xx", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(-2, 2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from positive index to negative index
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(1, -1, "zz", "xx")
-	expected = Slice[string]{"a", "zz", "xx", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(1, -1) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from negative index to negative index
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(-3, -2, "zz", "xx")
-	expected = Slice[string]{"a", "zz", "xx", "c", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(-3, -2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement from negative index to positive index including negative values
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(-3, 3, "zz", "xx")
-	expected = Slice[string]{"a", "zz", "xx", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(-3, 3) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test replacement with empty slice
-	slice = Slice[string]{"a", "b", "c", "d"}
-	slice.Replace(1, 3)
-	expected = Slice[string]{"a", "d"}
-	if !slice.Eq(expected) {
-		t.Errorf("ReplaceInPlace(1, 3) with empty slice failed. Expected %v, but got %v", expected, slice)
-	}
-}
-
 func TestSliceContainsAny(t *testing.T) {
 	testCases := []struct {
 		sl     Slice[int]
@@ -872,7 +883,7 @@ func TestSlicePush(t *testing.T) {
 
 	expected := Slice[int]{1, 2, 3, 4, 5, 6}
 	if !initialSlice.Eq(expected) {
-		t.Errorf("AppendInPlace failed. Expected: %v, Got: %v", expected, initialSlice)
+		t.Errorf("Push failed. Expected: %v, Got: %v", expected, initialSlice)
 	}
 }
 
@@ -1083,12 +1094,12 @@ func TestSliceRandom(t *testing.T) {
 	}
 }
 
-func TestSliceAddUnique(t *testing.T) {
+func TestSlicePushUnique(t *testing.T) {
 	// Test cases for Int
-	testAddUnique(t, SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
+	testPushUnique(t, SliceOf(1, 2, 3, 4, 5), []int{3, 4, 5, 6, 7}, []int{1, 2, 3, 4, 5, 6, 7})
 
 	// Test cases for Float
-	testAddUnique(
+	testPushUnique(
 		t,
 		SliceOf(1.1, 2.2, 3.3, 4.4, 5.5),
 		[]float64{3.3, 4.4, 5.5, 6.6, 7.7},
@@ -1096,7 +1107,7 @@ func TestSliceAddUnique(t *testing.T) {
 	)
 
 	// Test cases for String
-	testAddUnique(
+	testPushUnique(
 		t,
 		SliceOf("apple", "banana", "orange", "grape"),
 		[]string{"orange", "grape", "kiwi"},
@@ -1106,10 +1117,10 @@ func TestSliceAddUnique(t *testing.T) {
 	// Add more test cases for other types as needed
 }
 
-func testAddUnique[T comparable](t *testing.T, sl Slice[T], elems, expected []T) {
-	sl.AddUnique(elems...)
+func testPushUnique[T comparable](t *testing.T, sl Slice[T], elems, expected []T) {
+	sl.PushUnique(elems...)
 	if !sl.Eq(SliceOf(expected...)) {
-		t.Errorf("Slice AddUniqueInPlace method failed for type %T. Expected: %v, Got: %v", sl[0], expected, sl)
+		t.Errorf("Slice PushUnique method failed for type %T. Expected: %v, Got: %v", sl[0], expected, sl)
 	}
 }
 

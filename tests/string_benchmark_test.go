@@ -18,36 +18,32 @@ func genText() String {
 
 func BenchmarkSplit(b *testing.B) {
 	text := genText()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		text.Split("\n").Collect()
 	}
 }
 
 func BenchmarkSplitStd(b *testing.B) {
 	text := genText().Std()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		strings.Split(text, "\n")
 	}
 }
 
 func BenchmarkFields(b *testing.B) {
 	text := genText()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		text.Fields().Collect()
 	}
 }
 
 func BenchmarkFieldsStd(b *testing.B) {
 	text := genText().Std()
-	b.ResetTimer()
 
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		strings.Fields(text)
 	}
 }

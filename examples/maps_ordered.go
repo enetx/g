@@ -38,15 +38,11 @@ func main() {
 	god := NewMapOrd[int, Slice[int]]()
 
 	for i := range 5 {
-		value := god.Get(i).Some()
-		value.Push(i)
-		god.Set(i, value)
+		god.Set(i, god.Get(i).Some().Append(i))
 	}
 
 	for i := range 10 {
-		value := god.Get(i).Some()
-		value.Push(i)
-		god.Set(i, value)
+		god.Set(i, god.Get(i).Some().Append(i))
 	}
 
 	god.Println()
@@ -61,7 +57,7 @@ func main() {
 	ms.Set(222, 2)
 
 	ms1 := ms.Clone()
-	ms1.Set(888, 000)
+	ms1.Set(888, 0o00)
 	ms1.Set(888, 300)
 
 	if r := ms1.Get(888); r.IsSome() {

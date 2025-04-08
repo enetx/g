@@ -316,7 +316,7 @@ func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
 func (mo *MapOrd[K, V]) Delete(keys ...K) {
 	for _, key := range keys {
 		if i := mo.index(key); i != -1 {
-			*mo = append((*mo)[:i], (*mo)[i+1:]...)
+			*mo = slices.Delete(*mo, i, i+1)
 		}
 	}
 }

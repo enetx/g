@@ -21,15 +21,11 @@ func main() {
 	gos2 := NewMap[int, Slice[int]]()
 
 	for i := range 5 {
-		value := gos2.Get(i).Some() // get the value at index i, or the default if it does not exist
-		value.Push(i)
-		gos2.Set(i, value)
+		gos2.Set(i, gos2.Get(i).Some().Append(i))
 	}
 
 	for i := range 10 {
-		value := gos2.Get(i).Some()
-		value.Push(i)
-		gos2.Set(i, value)
+		gos2.Set(i, gos2.Get(i).Some().Append(i))
 	}
 
 	gos2.Println()
@@ -38,16 +34,12 @@ func main() {
 
 	god := NewMap[int, Slice[int]]()
 
-	for i := range 5 {
-		value := god.Get(i).Some()
-		value.Push(i)
-		god[i] = value
+	for i := range 10 {
+		god[i] = god.Get(i).Some().Append(i)
 	}
 
 	for i := range 10 {
-		value := god.Get(i).Some()
-		value.Push(i)
-		god[i] = value
+		god[i] = god.Get(i).Some().Append(i)
 	}
 
 	god.Println()

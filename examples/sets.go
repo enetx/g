@@ -50,5 +50,5 @@ func main() {
 	}
 
 	s = SetOf(1, 2, 3)
-	TransformSet(s, NewInt) // Set[g.Int]
+	MapSeqSet(s, NewInt) // Set[g.Int]
 }
