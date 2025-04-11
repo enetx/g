@@ -67,6 +67,9 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
+// Ptr returns a pointer to the current Slice value.
+func (sl Slice[T]) Ptr() *Slice[T] { return &sl }
+
 // Transform applies a transformation function to the Slice and returns the result.
 func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl) }
 

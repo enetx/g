@@ -4,16 +4,15 @@ import (
 	"fmt"
 
 	. "github.com/enetx/g"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
-	gos := NewMap[string, *int]()
+	gos := NewMap[string, *Int]()
 
-	gos.GetOrSet("root", ref.Of(3))
+	gos.GetOrSet("root", Int(3).Ptr())
 	fmt.Println(*gos.Get("root").Some() == 3)
 
-	*gos.GetOrSet("root", ref.Of(10)) *= 2
+	*gos.GetOrSet("root", Int(10).Ptr()) *= 2
 	fmt.Println(*gos.Get("root").Some() == 6)
 
 	//////////////////////////////////////////////////////////////////////////

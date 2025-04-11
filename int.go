@@ -15,6 +15,9 @@ import (
 // NewInt creates a new Int with the provided int value.
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
+// Ptr returns a pointer to the current Int value.
+func (i Int) Ptr() *Int { return &i }
+
 // Transform applies a transformation function to the Int and returns the result.
 func (i Int) Transform(fn func(Int) Int) Int { return fn(i) }
 

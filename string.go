@@ -17,6 +17,9 @@ import (
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
+// Ptr returns a pointer to the current String value.
+func (s String) Ptr() *String { return &s }
+
 // Transform applies a transformation function to the String and returns the result.
 func (s String) Transform(fn func(String) String) String { return fn(s) }
 

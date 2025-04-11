@@ -13,7 +13,7 @@ func TestPool(t *testing.T) {
 	pool := NewPool[int]()
 
 	successCount := int32(0)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		pool.Go(func() Result[int] {
 			if i%2 == 0 {
 				atomic.AddInt32(&successCount, 1)
@@ -55,12 +55,12 @@ func TestPool(t *testing.T) {
 
 func TestPoolLimit(t *testing.T) {
 	pool := NewPool[int]()
-	pool.Limit(-1)
+	pool.Limit(0)
 
 	activeGoroutines := int32(0)
 	maxObserved := int32(0)
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		pool.Go(func() Result[int] {
 			cur := atomic.AddInt32(&activeGoroutines, 1)
 			if cur > atomic.LoadInt32(&maxObserved) {
@@ -117,7 +117,7 @@ func TestPoolCancel(t *testing.T) {
 	pool.Context(ctx)
 	pool.Context(nil)
 
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		pool.Go(func() Result[int] {
 			if i == 3 {
 				pool.Cancel()

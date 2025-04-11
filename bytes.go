@@ -14,6 +14,9 @@ import (
 // NewBytes creates a new Bytes value.
 func NewBytes[T ~string | ~[]byte](bs T) Bytes { return Bytes(bs) }
 
+// Ptr returns a pointer to the current Bytes value.
+func (bs Bytes) Ptr() *Bytes { return &bs }
+
 // Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
 

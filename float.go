@@ -14,6 +14,9 @@ import (
 // NewFloat creates a new Float with the provided value.
 func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return Float(float) }
 
+// Ptr returns a pointer to the current Float value.
+func (f Float) Ptr() *Float { return &f }
+
 // Transform applies a transformation function to the Float and returns the result.
 func (f Float) Transform(fn func(Float) Float) Float { return fn(f) }
 

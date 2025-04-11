@@ -35,6 +35,9 @@ func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
 	return make(MapOrd[K, V], 0, size[0])
 }
 
+// Ptr returns a pointer to the current MapOrd value.
+func (mo MapOrd[K, V]) Ptr() *MapOrd[K, V] { return &mo }
+
 // Transform applies a transformation function to the MapOrd and returns the result.
 func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
 

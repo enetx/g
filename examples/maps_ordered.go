@@ -5,7 +5,6 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
@@ -16,11 +15,11 @@ func main() {
 	gos := NewMapOrd[int, *Slice[int]]()
 
 	for i := range 5 {
-		gos.GetOrSet(i, ref.Of(NewSlice[int]())).Push(i)
+		gos.GetOrSet(i, NewSlice[int]().Ptr()).Push(i)
 	}
 
 	for i := range 10 {
-		gos.GetOrSet(i, ref.Of(NewSlice[int]())).Push(i)
+		gos.GetOrSet(i, NewSlice[int]().Ptr()).Push(i)
 	}
 
 	gos.Println()
