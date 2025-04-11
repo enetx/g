@@ -82,8 +82,6 @@ func (m Map[K, V]) Delete(keys ...K) {
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
 
-func (m Map[K, V]) Ref() *Map[K, V] { return &m }
-
 // ToMapOrd converts a standard Map to an ordered Map.
 func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
