@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"unsafe"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
@@ -17,6 +18,10 @@ const (
 type data struct {
 	name String
 	age  Int
+}
+
+func unsafeString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }
 
 func main() {
@@ -40,8 +45,10 @@ func main() {
 			dataMap := mapPool.Get().(Map[String, data])
 			dataMap.Clear()
 
+			buf := NewBytes()
+
 			for i := range ITEMS_NUM {
-				name := i.String()
+				name := i.StringBuf(&buf)
 
 				dataMap.Set(name, data{name: name, age: i})
 				if val := dataMap.Get(name); val.IsSome() && val.Some().name.Eq(name) {
@@ -61,13 +68,11 @@ func main() {
 		func(acc, val time.Duration) time.Duration {
 			return acc + val
 		})
-
 	taskMin := results.MinBy(cmp.Cmp)
 	taskMax := results.MaxBy(cmp.Cmp)
-
 	taskAvg := taskSum / TASKS_NUM
-
 	total := time.Since(start).Seconds()
+
 	fmt.Printf(
 		" - finished in %.4fs, task avg %.4fs, min %.4fs, max %.4fs\n",
 		total,

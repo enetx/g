@@ -23,7 +23,7 @@ func TestFloat_Ptr(t *testing.T) {
 }
 
 func TestBytes_Ptr(t *testing.T) {
-	bs := NewBytes("hello")
+	bs := Bytes("hello")
 	ptr := bs.Ptr()
 	if string(*ptr) != string(bs) {
 		t.Errorf("expected %q, got %q", bs, *ptr)

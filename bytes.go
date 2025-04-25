@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
+	"unsafe"
 
 	"github.com/enetx/g/cmp"
 	"golang.org/x/text/cases"
@@ -13,7 +14,21 @@ import (
 )
 
 // NewBytes creates a new Bytes value.
-func NewBytes[T ~string | ~[]byte](bs T) Bytes { return Bytes(bs) }
+func NewBytes(size ...Int) Bytes {
+	var (
+		length   Int
+		capacity Int
+	)
+
+	switch {
+	case len(size) > 1:
+		length, capacity = size[0], size[1]
+	case len(size) == 1:
+		length, capacity = size[0], size[0]
+	}
+
+	return make([]byte, length, capacity)
+}
 
 // Ptr returns a pointer to the current Bytes value.
 func (bs Bytes) Ptr() *Bytes { return &bs }
@@ -138,6 +153,11 @@ func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs).IsGt() }
 
 // String returns the Bytes as an String.
 func (bs Bytes) String() String { return String(bs) }
+
+// StringUnsafe converts the Bytes into a String without copying memory.
+// Warning: the resulting String shares the same underlying memory as the original Bytes.
+// If the Bytes is modified later, the String will reflect those changes and may cause undefined behavior.
+func (bs Bytes) StringUnsafe() String { return String(*(*string)(unsafe.Pointer(&bs))) }
 
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }

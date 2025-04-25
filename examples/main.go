@@ -158,7 +158,7 @@ func main() {
 	m3 := Map[string, string]{"test": "rest"} // declaration and assignation
 	fmt.Println(m3.Contains("test"))
 
-	ub := NewBytes("abcdef\u0301\u031dg")
+	ub := Bytes("abcdef\u0301\u031dg")
 	ub.NormalizeNFC().Reverse().Println()
 
 	NewString("abcde丂g").Reverse().Println()

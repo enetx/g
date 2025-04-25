@@ -65,6 +65,38 @@ func (i Int) Float() Float { return Float(i) }
 // String returns the Int as an String.
 func (i Int) String() String { return String(strconv.Itoa(int(i))) }
 
+// StringBuf converts the Int to a String using the provided buffer without extra allocations when possible.
+// If the buffer is too small, it will be automatically resized to fit the value.
+// For values between 0 and 9, a single byte is written directly for maximum performance.
+//
+// Example:
+//
+//	buf := NewBytes()
+//	name := Int(42).StringBuf(&buf)
+//	fmt.Println(name)
+//
+// Note:
+// The returned String shares the underlying memory with the buffer.
+// Do not modify the buffer after calling this method unless the String is no longer needed.
+func (i Int) StringBuf(buf *Bytes) String {
+	if i >= 0 && i <= 9 {
+		if cap(*buf) < 1 {
+			*buf = NewBytes(1)
+		}
+
+		*buf = (*buf)[:1]
+		(*buf)[0] = '0' + byte(i)
+	} else {
+		if cap(*buf) < 20 {
+			*buf = NewBytes(0, 20)
+		}
+
+		*buf = strconv.AppendInt((*buf)[:0], int64(i), 10)
+	}
+
+	return buf.StringUnsafe()
+}
+
 // Std returns the Int as an int.
 func (i Int) Std() int { return int(i) }
 
