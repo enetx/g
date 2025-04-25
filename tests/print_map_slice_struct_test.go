@@ -123,7 +123,7 @@ func TestSprintfMapSliceStruct(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.template, tt.args...)
+			result := Format(tt.template, tt.args...)
 			if result != String(tt.expected) {
 				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
 			}
@@ -171,7 +171,7 @@ func TestSprintfComplex(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.template, tt.named)
+			result := Format(tt.template, tt.named)
 			if result != String(tt.expected) {
 				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
 			}

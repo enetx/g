@@ -11,6 +11,27 @@ import (
 	"github.com/enetx/g/f"
 )
 
+func TestSliceIntoIter(t *testing.T) {
+	s := SliceOf(1, 2, 3, 4, 5)
+
+	if len(s) != 5 {
+		t.Fatalf("expected slice to have 5 elements, got %d", len(s))
+	}
+
+	iter := s.IntoIter()
+
+	if len(s) != 0 {
+		t.Fatalf("expected slice to be empty after IntoIter, got %d elements", len(s))
+	}
+
+	result := iter.Map(func(x int) int { return x * 10 }).Collect()
+
+	expected := SliceOf(10, 20, 30, 40, 50)
+	if !result.Eq(expected) {
+		t.Errorf("expected result %v, got %v", expected, result)
+	}
+}
+
 func TestSliceIterFromChan(t *testing.T) {
 	// Create a channel and populate it with some test data
 	ch := make(chan int)

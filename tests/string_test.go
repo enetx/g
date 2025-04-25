@@ -544,7 +544,7 @@ func TestStringChunks(t *testing.T) {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
 	}
 
-	if chunks.Get(0) != str {
+	if chunks.Get(0).Some() != str {
 		t.Errorf("Expected chunk to be %v, but got %v", str, chunks.Get(0))
 	}
 

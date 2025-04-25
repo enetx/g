@@ -1,6 +1,7 @@
 package g
 
 import (
+	"fmt"
 	"maps"
 )
 
@@ -22,6 +23,38 @@ func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
 					return
 				}
 			}
+		}
+	}
+}
+
+// IntoIter returns a consuming iterator (SeqMap[K, V]) over the MapSafe's key-value pairs.
+// The iterator transfers ownership by removing the elements from the underlying map
+// as they are iterated over. After iteration, the map will be empty.
+//
+// Returns:
+//
+// A SeqMap[K, V] that yields key-value pairs and removes them from the MapSafe.
+//
+// Example:
+//
+//	m := g.NewMapSafe[string, int]()
+//	m.Set("a", 1)
+//	m.Set("b", 2)
+//	m.IntoIter().ForEach(func(k string, v int) {
+//		fmt.Println(k, v)
+//	})
+//	m.Len() // Output: 0
+func (ms *MapSafe[K, V]) IntoIter() SeqMap[K, V] {
+	return func(yield func(K, V) bool) {
+		ms.mu.Lock()
+		defer ms.mu.Unlock()
+
+		for k, v := range ms.data {
+			if !yield(k, v) {
+				break
+			}
+
+			delete(ms.data, k)
 		}
 	}
 }
@@ -168,10 +201,10 @@ func (ms *MapSafe[K, V]) String() string {
 	builder := NewBuilder()
 
 	for k, v := range ms.data {
-		builder.Write(Sprintf("{}:{}, ", k, v))
+		builder.Write(Format("{}:{}, ", k, v))
 	}
 
-	return builder.String().StripSuffix(", ").Sprintf("MapSafe\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
 }
 
 // Print writes the key-value pairs of the MapSafe to the standard output (console)
@@ -180,7 +213,7 @@ func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	Print(ms)
+	fmt.Print(ms)
 	return ms
 }
 
@@ -190,6 +223,6 @@ func (ms *MapSafe[K, V]) Println() *MapSafe[K, V] {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	Println(ms)
+	fmt.Println(ms)
 	return ms
 }

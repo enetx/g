@@ -1,12 +1,10 @@
 package g
 
+import "fmt"
+
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {
-	if len(size) == 0 {
-		return make(Set[T], 0)
-	}
-
-	return make(Set[T], size[0])
+	return make(Set[T], Slice[Int](size).Get(0).Some())
 }
 
 // TransformSet applies the given function to each element of a Set and returns a new Set
@@ -58,6 +56,31 @@ func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
 func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
+
+// IntoIter returns a consuming iterator (SeqSet[T]) for the Set,
+// transferring ownership of its elements and clearing the original Set.
+//
+// After calling IntoIter, the original Set is emptied and should not be reused
+// unless reassigned or repopulated.
+//
+// Returns:
+//
+// A SeqSet[T] that yields the elements of the Set and consumes them in the process.
+//
+// Example:
+//
+//	s := g.SetOf(1, 2, 3)
+//	iter := s.IntoIter()
+//	s.Len() // 0
+//	iter.ForEach(func(v int) {
+//	    fmt.Println(v)
+//	})
+func (s *Set[T]) IntoIter() SeqSet[T] {
+	data := *s
+	*s = nil
+
+	return seqSet(data)
+}
 
 // Insert adds the provided elements to the set.
 func (s Set[T]) Insert(values ...T) {
@@ -281,15 +304,15 @@ func (s Set[T]) NotEmpty() bool { return !s.Empty() }
 func (s Set[T]) String() string {
 	builder := NewBuilder()
 
-	s.Iter().ForEach(func(v T) { builder.Write(Sprintf("{}, ", v)) })
+	s.Iter().ForEach(func(v T) { builder.Write(Format("{}, ", v)) })
 
-	return builder.String().StripSuffix(", ").Sprintf("Set\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Format("Set\\{{}\\}").Std()
 }
 
 // Print writes the elements of the Set to the standard output (console)
 // and returns the Set unchanged.
-func (s Set[T]) Print() Set[T] { Print(s); return s }
+func (s Set[T]) Print() Set[T] { fmt.Print(s); return s }
 
 // Println writes the elements of the Set to the standard output (console) with a newline
 // and returns the Set unchanged.
-func (s Set[T]) Println() Set[T] { Println(s); return s }
+func (s Set[T]) Println() Set[T] { fmt.Println(s); return s }

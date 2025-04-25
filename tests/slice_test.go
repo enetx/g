@@ -554,7 +554,7 @@ func TestSliceDelete2(t *testing.T) {
 
 func TestSliceLast(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 4, 5}
-	if sl.Last() != 5 {
+	if sl.Last().Unwrap() != 5 {
 		t.Error("Last() failed")
 	}
 }
@@ -568,10 +568,10 @@ func TestSliceLen(t *testing.T) {
 
 func TestSlicePop(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 4, 5}
-	last, sl := sl.Pop()
+	last := sl.Pop()
 
-	if last != 5 {
-		t.Errorf("Expected 5, got %v", last)
+	if last.Unwrap() != 5 {
+		t.Errorf("Expected 5, got %v", last.Unwrap())
 	}
 
 	if sl.Len() != 4 {

@@ -10,14 +10,14 @@ import (
 )
 
 // NewPool[T any] creates a new goroutine pool.
-func NewPool[T any]() *Pool[T] {
+func NewPool[T any](size ...Int) *Pool[T] {
 	ctx, cancel := context.WithCancelCause(context.Background())
 
 	return &Pool[T]{
 		ctx:       ctx,
 		cancel:    cancel,
 		semaphore: nil,
-		results:   NewMapSafe[int, Result[T]](),
+		results:   NewMapSafe[int, Result[T]](Slice[Int](size).Get(0).Some()),
 	}
 }
 
@@ -85,7 +85,7 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 	p.Cancel()
 	p.semaphore = nil
 
-	return p.results.Values()
+	return p.results.IntoIter().Values().Collect()
 }
 
 // Limit sets the maximum number of concurrently running tasks.
@@ -155,14 +155,10 @@ func (p *Pool[T]) Reset() {
 	}
 
 	p.Cancel()
-	p.ClearResults()
 	p.ClearMetrics()
 	p.semaphore = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
 }
-
-// ClearResults removes all stored task results from the pool.
-func (p *Pool[T]) ClearResults() { p.results.Clear() }
 
 // ClearMetrics resets both total tasks and failed tasks counters to zero.
 func (p *Pool[T]) ClearMetrics() {

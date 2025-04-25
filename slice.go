@@ -94,6 +94,36 @@ func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl
 // in a functional style, enabling operations like mapping or filtering.
 func (sl Slice[T]) Iter() SeqSlice[T] { return seqSlice(sl) }
 
+// IntoIter returns a consuming iterator (SeqSlice[T]) for the Slice,
+// transferring ownership of its elements and clearing the original Slice.
+//
+// This method is useful when you no longer need access to the original Slice
+// and want to process its elements in a functional, sequential manner.
+// After calling IntoIter, the original Slice is emptied and should not be reused
+// unless reassigned.
+//
+// Returns:
+//
+// A SeqSlice[T] that yields the elements of the Slice and consumes them in the process.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	iterator := slice.IntoIter()
+//	result := iterator.Map(func(x int) int {
+//		return x * 2
+//	}).Collect()
+//	slice.Println() // Output: Slice[]
+//
+// The 'IntoIter' method enables ownership-like semantics, allowing
+// iteration with transformation while invalidating the original Slice.
+func (sl *Slice[T]) IntoIter() SeqSlice[T] {
+	data := *sl
+	*sl = nil
+
+	return seqSlice(data)
+}
+
 // IterReverse returns an iterator (SeqSlice[T]) for the Slice that allows for sequential iteration
 // over its elements in reverse order. This method is useful when you need to traverse the elements
 // from the end to the beginning.
@@ -258,7 +288,18 @@ func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
 //	slice.Insert(2, "e", "f")
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
-func (sl *Slice[T]) Insert(i Int, values ...T) { sl.Replace(i, i, values...) }
+func (sl *Slice[T]) Insert(i Int, values ...T) {
+	if sl.Empty() {
+		if i != 0 {
+			panic(Errorf("runtime error: slice bounds out of range [{}] with length 0", i))
+		}
+
+		sl.Push(values...)
+		return
+	}
+
+	sl.Replace(i, i, values...)
+}
 
 // Replace replaces the elements of sl[i:j] with the given values,
 // and modifies the original slice in place. Replace panics if sl[i:j]
@@ -279,8 +320,18 @@ func (sl *Slice[T]) Insert(i Int, values ...T) { sl.Replace(i, i, values...) }
 //
 // After the Replace operation, the resulting slice will be: ["a", "e", "f", "d"].
 func (sl *Slice[T]) Replace(i, j Int, values ...T) {
-	i = sl.bound(i)
-	j = sl.bound(j)
+	ii := sl.bound(i)
+	jj := sl.bound(j)
+
+	if ii.IsErr() {
+		panic(ii.Err())
+	}
+
+	if jj.IsErr() {
+		panic(jj.Err())
+	}
+
+	i, j = ii.Ok(), jj.Ok()
 
 	if i > j {
 		*sl = (*sl)[:0]
@@ -311,7 +362,14 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 
 // Get returns the element at the given index, handling negative indices as counting from the end
 // of the slice.
-func (sl Slice[T]) Get(index Int) T { return sl[sl.bound(index)] }
+func (sl Slice[T]) Get(index Int) Option[T] {
+	i := sl.bound(index)
+	if i.IsErr() {
+		return None[T]()
+	}
+
+	return Some(sl[i.Ok()])
+}
 
 // Shuffle shuffles the elements in the slice randomly.
 // This method modifies the original slice in place.
@@ -419,14 +477,24 @@ func (sl Slice[T]) Join(sep ...T) String {
 //
 // Output: [2 4 6].
 func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
-	_step := Int(1)
-
-	if len(step) != 0 {
-		_step = step[0]
+	if sl.Empty() {
+		return sl
 	}
 
-	start = sl.bound(start, struct{}{})
-	end = sl.bound(end, struct{}{})
+	_step := Slice[Int](step).Get(0).UnwrapOr(1)
+
+	ii := sl.bound(start, struct{}{})
+	jj := sl.bound(end, struct{}{})
+
+	if ii.IsErr() {
+		panic(ii.Err())
+	}
+
+	if jj.IsErr() {
+		panic(jj.Err())
+	}
+
+	start, end = ii.Ok(), jj.Ok()
 
 	if (start >= end && _step > 0) || (start <= end && _step < 0) || _step == 0 {
 		return NewSlice[T]()
@@ -540,10 +608,10 @@ func (sl Slice[T]) String() string {
 	builder := NewBuilder()
 
 	for _, v := range sl {
-		builder.Write(Sprintf("{}, ", v))
+		builder.Write(Format("{}, ", v))
 	}
 
-	return builder.String().StripSuffix(", ").Sprintf("Slice[{}]").Std()
+	return builder.String().StripSuffix(", ").Format("Slice[{}]").Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.
@@ -617,13 +685,7 @@ func (sl *Slice[T]) Push(elems ...T) { *sl = append(*sl, elems...) }
 //	s := g.Slice[int]{3, 4, 5}
 //	s.PushFront(1, 2)
 //	fmt.Println(s) // [1 2 3 4 5]
-func (sl *Slice[T]) PushFront(elems ...T) {
-	if len(elems) == 0 {
-		return
-	}
-
-	*sl = append(elems, *sl...)
-}
+func (sl *Slice[T]) PushFront(elems ...T) { *sl = append(elems, *sl...) }
 
 // PushUnique appends unique elements from the provided arguments to the current slice.
 //
@@ -686,13 +748,7 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
-	for _, v := range values {
-		if sl.Contains(v) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(values, sl.Contains)
 }
 
 // ContainsAll checks if the Slice contains all elements from another Slice.
@@ -728,19 +784,14 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 // the end of the Slice: for example, -1 refers to the last element, -2 to
 // the second-to-last, and so on.
 func (sl *Slice[T]) Delete(start Int, end ...Int) {
-	j := start + 1
-	if len(end) != 0 {
-		j = end[0]
-	}
-
-	sl.Replace(start, j)
+	sl.Replace(start, Slice[Int](end).Get(0).UnwrapOr(start+1))
 }
 
 // Empty returns true if the slice is empty.
 func (sl Slice[T]) Empty() bool { return len(sl) == 0 }
 
 // Last returns the last element of the slice.
-func (sl Slice[T]) Last() T { return sl.Get(-1) }
+func (sl Slice[T]) Last() Option[T] { return sl.Get(-1) }
 
 // Ne returns true if the slice is not equal to the provided other slice.
 func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
@@ -755,8 +806,19 @@ func (sl Slice[T]) NeBy(other Slice[T], fn func(x, y T) bool) bool { return !sl.
 // NotEmpty checks if the Slice is not empty.
 func (sl Slice[T]) NotEmpty() bool { return !sl.Empty() }
 
-// Pop returns the last element of the slice and a new slice without the last element.
-func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
+// Pop removes and returns the last element of the slice.
+// It mutates the original slice by removing the last element.
+// It returns None if the slice is empty.
+func (sl *Slice[T]) Pop() Option[T] {
+	if sl.Len() == 0 {
+		return None[T]()
+	}
+
+	last := (*sl)[sl.Len()-1]
+	*sl = (*sl)[:sl.Len()-1]
+
+	return Some(last)
+}
 
 // Set sets the value at the specified index in the slice and returns the modified slice.
 // This method modifies the original slice in place.
@@ -777,7 +839,14 @@ func (sl Slice[T]) Pop() (T, Slice[T]) { return sl.Last(), sl.SubSlice(0, -1) }
 // fmt.Println(slice)
 //
 // Output: [1 2 99 4 5].
-func (sl Slice[T]) Set(index Int, val T) { sl[sl.bound(index)] = val }
+func (sl Slice[T]) Set(index Int, val T) {
+	i := sl.bound(index)
+	if i.IsErr() {
+		panic(i.Err())
+	}
+
+	sl[i.Ok()] = val
+}
 
 // Len returns the length of the slice.
 func (sl Slice[T]) Len() Int { return Int(len(sl)) }
@@ -803,10 +872,18 @@ func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 //
 // Output: [1 4 3 2 5].
 func (sl Slice[T]) Swap(i, j Int) {
-	i = sl.bound(i)
-	j = sl.bound(j)
+	ii := sl.bound(i)
+	jj := sl.bound(j)
 
-	sl.swap(i, j)
+	if ii.IsErr() {
+		panic(ii.Err())
+	}
+
+	if jj.IsErr() {
+		panic(jj.Err())
+	}
+
+	sl.swap(ii.Ok(), jj.Ok())
 }
 
 func (sl Slice[T]) swap(i, j Int) { sl[i], sl[j] = sl[j], sl[i] }
@@ -825,11 +902,11 @@ func (sl Slice[T]) Std() []T { return sl }
 
 // Print writes the elements of the Slice to the standard output (console)
 // and returns the Slice unchanged.
-func (sl Slice[T]) Print() Slice[T] { Print(sl); return sl }
+func (sl Slice[T]) Print() Slice[T] { fmt.Print(sl); return sl }
 
 // Println writes the elements of the Slice to the standard output (console) with a newline
 // and returns the Slice unchanged.
-func (sl Slice[T]) Println() Slice[T] { Println(sl); return sl }
+func (sl Slice[T]) Println() Slice[T] { fmt.Println(sl); return sl }
 
 // Unpack assigns values of the slice's elements to the variables passed as pointers.
 // If the number of variables passed is greater than the length of the slice,
@@ -877,7 +954,11 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 //	fmt.Println(minInt) // Output: 1
 func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
-func (sl Slice[T]) bound(i Int, subslice ...struct{}) Int {
+func (sl Slice[T]) bound(i Int, subslice ...struct{}) Result[Int] {
+	if sl.Empty() {
+		return Err[Int](fmt.Errorf("runtime error: slice is empty"))
+	}
+
 	ii := i
 	if ii < 0 {
 		ii += sl.Len()
@@ -889,8 +970,8 @@ func (sl Slice[T]) bound(i Int, subslice ...struct{}) Int {
 	}
 
 	if ii > sl.Len() || ii < negative {
-		panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", i, len(sl)))
+		return Err[Int](Errorf("runtime error: slice bounds out of range [{}] with length {}", i, len(sl)))
 	}
 
-	return ii
+	return Ok(ii)
 }

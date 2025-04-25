@@ -1,6 +1,7 @@
 package g
 
 import (
+	"fmt"
 	"maps"
 
 	"github.com/enetx/g/f"
@@ -8,11 +9,7 @@ import (
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
 func NewMap[K comparable, V any](size ...Int) Map[K, V] {
-	if len(size) == 0 {
-		return make(Map[K, V], 0)
-	}
-
-	return make(Map[K, V], size[0])
+	return make(Map[K, V], Slice[Int](size).Get(0).Some())
 }
 
 // Ptr returns a pointer to the current Map value.
@@ -41,6 +38,31 @@ func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
 func (m Map[K, V]) Iter() SeqMap[K, V] { return seqMap(m) }
+
+// IntoIter returns a consuming iterator (SeqMap[K, V]) for the Map,
+// transferring ownership of its key-value pairs and clearing the original Map.
+//
+// After calling IntoIter, the original Map is emptied and should not be reused
+// unless reassigned or repopulated.
+//
+// Returns:
+//
+// - SeqMap[K, V], yielding all key-value pairs, consuming them in the process.
+//
+// Example usage:
+//
+//	m := g.Map[string, int]{"a": 1, "b": 2}
+//	iter := m.IntoIter()
+//	m.Len() // 0
+//	iter.ForEach(func(k string, v int) {
+//	    fmt.Println(k, v)
+//	})
+func (m *Map[K, V]) IntoIter() SeqMap[K, V] {
+	data := *m
+	*m = nil
+
+	return seqMap(data)
+}
 
 // Invert inverts the keys and values of the Map, returning a new Map with values as keys and
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
@@ -131,10 +153,10 @@ func (m Map[K, V]) String() string {
 	builder := NewBuilder()
 
 	for k, v := range m {
-		builder.Write(Sprintf("{}:{}, ", k, v))
+		builder.Write(Format("{}:{}, ", k, v))
 	}
 
-	return builder.String().StripSuffix(", ").Sprintf("Map\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Format("Map\\{{}\\}").Std()
 }
 
 // GetOrSet returns the value for a key. If the key exists in the Map, it returns the associated value.
@@ -210,8 +232,8 @@ func (m Map[K, V]) Set(key K, value V) { m[key] = value }
 
 // Print writes the key-value pairs of the Map to the standard output (console)
 // and returns the Map unchanged.
-func (m Map[K, V]) Print() Map[K, V] { Print(m); return m }
+func (m Map[K, V]) Print() Map[K, V] { fmt.Print(m); return m }
 
 // Println writes the key-value pairs of the Map to the standard output (console) with a newline
 // and returns the Map unchanged.
-func (m Map[K, V]) Println() Map[K, V] { Println(m); return m }
+func (m Map[K, V]) Println() Map[K, V] { fmt.Println(m); return m }

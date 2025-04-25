@@ -8,6 +8,30 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestSetIntoIter(t *testing.T) {
+	set := SetOf(1, 2, 3)
+
+	if set.Len() != 3 {
+		t.Fatalf("expected set size 3, got %d", set.Len())
+	}
+
+	collected := make(map[int]bool)
+
+	set.IntoIter().ForEach(func(v int) {
+		collected[v] = true
+	})
+
+	if set.Len() != 0 {
+		t.Fatalf("expected set to be empty after IntoIter, got size %d", set.Len())
+	}
+
+	for _, v := range []int{1, 2, 3} {
+		if !collected[v] {
+			t.Errorf("expected value %d to be collected", v)
+		}
+	}
+}
+
 func TestSetOf(t *testing.T) {
 	// Test empty values
 	emptySet := SetOf[int]()

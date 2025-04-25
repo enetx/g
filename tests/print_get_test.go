@@ -49,7 +49,7 @@ func TestSprintfGet(t *testing.T) {
 		},
 		{
 			name:     "Slice Index Access",
-			template: "Index 1: {1.Get(1)}",
+			template: "Index 1: {1.Get(1).Some}",
 			args: []any{
 				Slice[string]{"first", "second", "third"},
 			},
@@ -57,7 +57,7 @@ func TestSprintfGet(t *testing.T) {
 		},
 		{
 			name:     "Nested Slice Access",
-			template: "Nested Index: {1.Get(1).Get(0)}",
+			template: "Nested Index: {1.Get(1).Some.Get(0).Some}",
 			args: []any{
 				Slice[Slice[Int]]{{100, 200}, {300, 400}},
 			},
@@ -81,7 +81,7 @@ func TestSprintfGet(t *testing.T) {
 		},
 		{
 			name:     "Full Complexity",
-			template: "Access: {1.Get(map).Some.Get(slice).Some.Get(1).Some.Get(0).Get(field).Some}",
+			template: "Access: {1.Get(map).Some.Get(slice).Some.Get(1).Some.Get(0).Some.Get(field).Some}",
 			args: []any{
 				Map[String, Map[string, Map[String, Slice[Map[string, string]]]]]{
 					"map": {
@@ -99,7 +99,7 @@ func TestSprintfGet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.template, tt.args...)
+			result := Format(tt.template, tt.args...)
 			if result != String(tt.expected) {
 				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
 			}
@@ -123,7 +123,7 @@ func TestSprintfGetNamed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.template, tt.named)
+			result := Format(tt.template, tt.named)
 			if result != String(tt.expected) {
 				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
 			}

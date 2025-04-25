@@ -2,6 +2,7 @@ package g
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -124,10 +125,7 @@ func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
 			return r
 		}
 
-		fmode := FileDefault
-		if len(mode) != 0 {
-			fmode = mode[0]
-		}
+		fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
 
 		if r := f.OpenFile(os.O_APPEND|os.O_CREATE|os.O_WRONLY, fmode); r.IsErr() {
 			return r
@@ -373,11 +371,11 @@ func (f *File) Path() Result[String] { return f.filePath() }
 
 // Print writes the content of the File to the standard output (console)
 // and returns the File unchanged.
-func (f *File) Print() *File { Print(f); return f }
+func (f *File) Print() *File { fmt.Print(f); return f }
 
 // Println writes the content of the File to the standard output (console) with a newline
 // and returns the File unchanged.
-func (f *File) Println() *File { Println(f); return f }
+func (f *File) Println() *File { fmt.Println(f); return f }
 
 // Read opens the named file with a read-lock and returns its contents.
 func (f *File) Read() Result[String] {
@@ -525,17 +523,14 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 		}
 	}
 
-	fmode := FileDefault
-	if len(mode) != 0 {
-		fmode = mode[0]
-	}
-
 	filePath := f.filePath()
 	if filePath.IsErr() {
 		return Err[*File](filePath.Err())
 	}
 
 	f = NewFile(filePath.Ok())
+
+	fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
 
 	if r := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode); r.IsErr() {
 		return Err[*File](r.Err())

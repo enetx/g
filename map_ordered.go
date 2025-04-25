@@ -1,6 +1,7 @@
 package g
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/enetx/g/cmp"
@@ -28,11 +29,7 @@ import (
 //
 // Creates a new ordered Map with an initial size of 10.
 func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
-	if len(size) == 0 {
-		return make(MapOrd[K, V], 0)
-	}
-
-	return make(MapOrd[K, V], 0, size[0])
+	return make(MapOrd[K, V], 0, Slice[Int](size).Get(0).Some())
 }
 
 // Ptr returns a pointer to the current MapOrd value.
@@ -89,6 +86,35 @@ func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
 // in a functional style, enabling operations like mapping or filtering.
 func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return seqMapOrd(mo) }
+
+// IntoIter returns a consuming iterator (SeqMapOrd[K, V]) for the ordered Map,
+// transferring ownership of its key-value pairs and clearing the original MapOrd.
+//
+// After calling IntoIter, the original MapOrd is emptied and should not be reused
+// unless reassigned or repopulated.
+//
+// Returns:
+//
+// A SeqMapOrd[K, V], yielding all key-value pairs in insertion order, consuming them in the process.
+//
+// Example usage:
+//
+//	m := g.NewMapOrd[string, int]()
+//	m.Set("a", 1)
+//	m.Set("b", 2)
+//
+//	iter := m.IntoIter()
+//	m.Len() // 0
+//
+//	iter.ForEach(func(k string, v int) {
+//	    fmt.Println(k, v)
+//	})
+func (mo *MapOrd[K, V]) IntoIter() SeqMapOrd[K, V] {
+	data := *mo
+	*mo = nil
+
+	return seqMapOrd(data)
+}
 
 // IterReverse returns an iterator (SeqMapOrd[K, V]) for the ordered Map that allows for sequential iteration
 // over its key-value pairs in reverse order. This method is useful when you need to process the elements
@@ -357,9 +383,9 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 func (mo MapOrd[K, V]) String() string {
 	builder := NewBuilder()
 
-	mo.Iter().ForEach(func(k K, v V) { builder.Write(Sprintf("{}:{}, ", k, v)) })
+	mo.Iter().ForEach(func(k K, v V) { builder.Write(Format("{}:{}, ", k, v)) })
 
-	return builder.String().StripSuffix(", ").Sprintf("MapOrd\\{{}\\}").Std()
+	return builder.String().StripSuffix(", ").Format("MapOrd\\{{}\\}").Std()
 }
 
 // Clear removes all key-value pairs from the ordered Map.
@@ -383,8 +409,8 @@ func (mo MapOrd[K, V]) NotEmpty() bool { return !mo.Empty() }
 
 // Print writes the key-value pairs of the MapOrd to the standard output (console)
 // and returns the MapOrd unchanged.
-func (mo MapOrd[K, V]) Print() MapOrd[K, V] { Print(mo); return mo }
+func (mo MapOrd[K, V]) Print() MapOrd[K, V] { fmt.Print(mo); return mo }
 
 // Println writes the key-value pairs of the MapOrd to the standard output (console) with a newline
 // and returns the MapOrd unchanged.
-func (mo MapOrd[K, V]) Println() MapOrd[K, V] { Println(mo); return mo }
+func (mo MapOrd[K, V]) Println() MapOrd[K, V] { fmt.Println(mo); return mo }

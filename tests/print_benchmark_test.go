@@ -22,7 +22,7 @@ func BenchmarkSprintf(b *testing.B) {
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			_ = Sprintf("Hello, {}!", name)
+			_ = Format("Hello, {}!", name)
 		}
 	})
 }
@@ -38,7 +38,7 @@ func BenchmarkSprintfPositional(b *testing.B) {
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			_ = Sprintf("{2} comes before {1}", "World", "Hello")
+			_ = Format("{2} comes before {1}", "World", "Hello")
 		}
 	})
 }
@@ -56,7 +56,7 @@ func BenchmarkSprintfNamedAccess(b *testing.B) {
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			_ = Sprintf("Email: {email}", data)
+			_ = Format("Email: {email}", data)
 		}
 	})
 }
@@ -74,7 +74,7 @@ func BenchmarkSprintfFormatSpecifiers(b *testing.B) {
 	b.Run("g.Sprintf", func(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
-			_ = Sprintf("Hex: {1.Hex}, Binary: {1.Binary}", num)
+			_ = Format("Hex: {1.Hex}, Binary: {1.Binary}", num)
 		}
 	})
 }

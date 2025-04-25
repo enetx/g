@@ -42,7 +42,7 @@ func TestSprinfAutoIndexAndNumeric(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.format, tt.args...)
+			result := Format(tt.format, tt.args...)
 			if string(result) != tt.expected {
 				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
@@ -263,7 +263,7 @@ func TestSprintf(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.format, tt.args)
+			result := Format(tt.format, tt.args)
 			if result != String(tt.expected) {
 				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
@@ -317,7 +317,7 @@ func TestSprintfFormatWithErrors(t *testing.T) {
 
 	for _, tt := range errorTests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.format, tt.args)
+			result := Format(tt.format, tt.args)
 			if result != String(tt.expected) {
 				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
@@ -370,7 +370,7 @@ func TestSprintfTrimSetModifier(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := Sprintf(tt.format, tt.args)
+			result := Format(tt.format, tt.args)
 			if result != String(tt.expected) {
 				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}

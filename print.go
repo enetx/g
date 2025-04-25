@@ -1,53 +1,89 @@
 package g
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"os"
 	"reflect"
 	"strconv"
 
 	"github.com/enetx/g/f"
 )
 
-var (
-
-	// Print writes the output to standard output using the default formats for its operands.
-	// It returns the number of bytes written and any write error encountered.
-	// func Print(a ...any) (int, error) { return fmt.Print(a...) }
-	Print = fmt.Print
-
-	// Println writes the output to standard output followed by a newline using the default formats for its operands.
-	// It returns the number of bytes written and any write error encountered.
-	Println = fmt.Println
-
-	// Fprint writes the output to w using the default formats for its operands.
-	// It returns the number of bytes written and any write error encountered.
-	Fprint = fmt.Fprint
-
-	// Fprintln writes the output to w followed by a newline using the default formats for its operands.
-	// It returns the number of bytes written and any write error encountered.
-	Fprintln = fmt.Fprintln
-)
-
-// Fprintf formats according to a format specifier and writes to w.
-// It returns the number of bytes written and any write error encountered.
-func Fprintf[T ~string](w io.Writer, format T, args ...any) (int, error) {
-	return w.Write(Sprintf(format, args...).Bytes())
+// Write formats according to a format specifier and writes to w.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	res := g.Write(os.Stdout, "Hello, {}!\n", "world")
+//	if res.IsErr() { log.Fatal(res.Err()) }
+func Write[T ~string](w io.Writer, format T, args ...any) Result[int] {
+	return ResultOf(io.WriteString(w, Format(format, args...).Std()))
 }
 
-// Printf formats according to a format specifier and writes to standard output.
-// It returns the number of bytes written and any write error encountered.
-func Printf[T ~string](format T, args ...any) { Sprintf(format, args...).Print() }
+// Writeln formats according to a format specifier, appends a newline, and writes to w.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	res := g.Writeln(os.Stdout, "Hello, {}", "world")
+//	if res.IsErr() { log.Fatal(res.Err()) }
+func Writeln[T ~string](w io.Writer, format T, args ...any) Result[int] {
+	return ResultOf(io.WriteString(w, Format(format, args...).Append("\n").Std()))
+}
 
-// Sprint formats using the default formats for its operands and returns the resulting String.
-// Spaces are added between operands when neither is a string.
-func Sprint(a ...any) String { return NewString(fmt.Sprint(a...)) }
+// Print formats according to a format specifier and writes to os.Stdout.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	g.Print("Hello, {}!\n", "world")
+func Print[T ~string](format T, args ...any) Result[int] {
+	return Write(os.Stdout, format, args...)
+}
 
-// Sprintln formats using the default formats for its operands and returns the resulting String.
-// Spaces are added between operands when neither is a string. A newline is appended.
-func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
+// Println formats according to a format specifier, appends a newline, and writes to os.Stdout.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	g.Println("Hello, {}", "world")
+func Println[T ~string](format T, args ...any) Result[int] {
+	return Writeln(os.Stdout, format, args...)
+}
 
-// Sprintf processes a template string and replaces placeholders with corresponding values from the provided arguments.
+// Eprint formats according to a format specifier and writes to os.Stderr.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	g.Eprint("Error: {}", "file not found")
+func Eprint[T ~string](format T, args ...any) Result[int] {
+	return Write(os.Stderr, format, args...)
+}
+
+// Eprintln formats according to a format specifier, appends a newline, and writes to os.Stderr.
+// It returns a Result containing the number of bytes written or an error.
+//
+// Example:
+//
+//	g.Eprintln("Error: {}", "permission denied")
+func Eprintln[T ~string](format T, args ...any) Result[int] {
+	return Writeln(os.Stderr, format, args...)
+}
+
+// Errorf formats according to a format specifier and returns it as an error.
+//
+// Example:
+//
+//	err := g.Errorf("could not open {}: {}", filename, err)
+//	if err != nil { /* ... */ }
+func Errorf[T ~string](format T, args ...any) error {
+	return errors.New(Format(format, args...).Std())
+}
+
+// Format processes a template string and replaces placeholders with corresponding values from the provided arguments.
 // It supports numeric, named, and auto-indexed placeholders, as well as dynamic invocation of methods on values.
 //
 // If a placeholder cannot resolve a value or an invoked method fails, the placeholder remains unchanged in the output.
@@ -75,25 +111,27 @@ func Sprintln(a ...any) String { return String(fmt.Sprintln(a...)) }
 // Usage:
 //
 //	// Example 1: Numeric placeholders
-//	result := g.Sprintf("{1} + {2} = {3}", 1, 2, 3)
+//	result := g.Format("{1} + {2} = {3}", 1, 2, 3)
 //
 //	// Example 2: Named placeholders
 //	named := g.Named{
 //		"name": "Alice",
 //		"age":  30,
 //	}
-//	result := g.Sprintf("My name is {name} and I am {age} years old.", named)
+//	result := g.Format("My name is {name} and I am {age} years old.", named)
 //
 //	// Example 3: Method invocation on values
-//	result := g.Sprintf("Hex: {1.Hex}, Binary: {1.Binary}", g.Int(255))
+//	result := g.Format("Hex: {1.Hex}, Binary: {1.Binary}", g.Int(255))
 //
 //	// Example 4: Fallbacks and chaining
 //	named := g.Named{
 //		"name": g.String("   john  "),
 //		"city": g.String("New York"),
 //	}
-//	result := g.Sprintf("Hello, {name.Trim.Title}. Welcome to {city?Unknown}!", named)
-func Sprintf[T ~string](template T, args ...any) String {
+//	result := g.Format("Hello, {name.Trim.Title}. Welcome to {city?Unknown}!", named)
+func Format[T ~string](template T, args ...any) String {
+	tmpl := String(template)
+
 	var (
 		named      Named
 		positional Slice[any]
@@ -103,12 +141,14 @@ func Sprintf[T ~string](template T, args ...any) String {
 		switch x := arg.(type) {
 		case Named:
 			named = x
+		case nil:
+			positional = append(positional, "<nil>")
 		default:
 			positional = append(positional, x)
 		}
 	}
 
-	return parseTmpl(String(template), named, positional)
+	return parseTmpl(tmpl, named, positional)
 }
 
 func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
@@ -200,7 +240,7 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 			})
 	}
 
-	return Sprint(value)
+	return String(fmt.Sprint(value))
 }
 
 func resolveValue(key, fall String, named Named, positional Slice[any]) any {

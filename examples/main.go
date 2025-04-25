@@ -81,9 +81,9 @@ func main() {
 
 	sl.Shuffle()
 
-	fmt.Println(sl.Get(-1) == "eee")
-	fmt.Println(sl.Get(1) == "bbb")
-	fmt.Println(sl.Get(-2) == "ddd")
+	fmt.Println(sl.Get(-1).Some() == "eee")
+	fmt.Println(sl.Get(1).Some() == "bbb")
+	fmt.Println(sl.Get(-2).Some() == "ddd")
 
 	sl.Iter().Map(String.Upper).Collect().Println()
 
@@ -124,7 +124,7 @@ func main() {
 	sl3 := Slice[String]{} // declaration and assignation
 	sl3.Push("aaaaa", "bbbbb")
 
-	fmt.Println(sl3.Last().Count("b")) // 5
+	fmt.Println(sl3.Last().Some().Count("b")) // 5
 
 	sl4 := SliceOf([]string{"root", "toor"}...).Random()
 	NewString(sl4).Upper().Println()
@@ -152,8 +152,8 @@ func main() {
 	m2.Println()
 	fmt.Println(m2.Std())
 
-	fmt.Println(m2.Invert().Iter().Values().Collect().Get(0))        // return int type
-	fmt.Println(m2.Invert().Iter().Keys().Collect().Get(0).(string)) // return any type, need assert to type
+	fmt.Println(m2.Invert().Iter().Values().Collect().Get(0))               // return int type
+	fmt.Println(m2.Invert().Iter().Keys().Collect().Get(0).Some().(string)) // return any type, need assert to type
 
 	m3 := Map[string, string]{"test": "rest"} // declaration and assignation
 	fmt.Println(m3.Contains("test"))
@@ -206,5 +206,5 @@ func main() {
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))
 
-	NewString("Hello").Sprintf("{} world").Println()
+	NewString("Hello").Format("{} world").Println()
 }

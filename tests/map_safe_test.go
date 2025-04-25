@@ -7,6 +7,39 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestMapSafeIntoIter(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Set("a", 1)
+	ms.Set("b", 2)
+	ms.Set("c", 3)
+
+	if ms.Len() != 3 {
+		t.Fatalf("expected Len = 3, got %d", ms.Len())
+	}
+
+	collected := make(map[string]int)
+
+	ms.IntoIter().ForEach(func(k string, v int) {
+		collected[k] = v
+	})
+
+	if ms.Len() != 0 {
+		t.Fatalf("expected map to be empty after IntoIter, got Len = %d", ms.Len())
+	}
+
+	expected := map[string]int{"a": 1, "b": 2, "c": 3}
+	if len(collected) != len(expected) {
+		t.Fatalf("expected %d collected items, got %d", len(expected), len(collected))
+	}
+
+	for k, v := range expected {
+		got, ok := collected[k]
+		if !ok || got != v {
+			t.Errorf("expected %q: %d, got %d (ok=%v)", k, v, got, ok)
+		}
+	}
+}
+
 func TestMapSafe(t *testing.T) {
 	t.Run("TestNewMapSafe", func(t *testing.T) {
 		ms := NewMapSafe[string, int]()
@@ -69,6 +102,7 @@ func TestMapSafe(t *testing.T) {
 		ms.Set("key1", 1)
 		ms.Set("key2", 2)
 		ms.Set("key3", 2)
+
 		ms.Iter().ForEach(func(k string, _ int) {
 			if k == "key2" {
 				ms.Set("key2", 44)
@@ -77,9 +111,11 @@ func TestMapSafe(t *testing.T) {
 				ms.Delete(k)
 			}
 		})
+
 		if v := ms.Get("key2"); v.IsNone() || v.Some() != 44 {
 			t.Fatal("Key 'key2' was not changed during iteration")
 		}
+
 		if v := ms.Get("key1"); v.IsSome() {
 			t.Fatal("Key 'key1' was not deleted during iteration")
 		}
@@ -154,7 +190,7 @@ func TestMapSafe(t *testing.T) {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
-				ms.Set(Sprintf("key{}", i), i)
+				ms.Set(Format("key{}", i), i)
 			}(i)
 		}
 		wg.Wait()

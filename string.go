@@ -1,6 +1,7 @@
 package g
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -635,8 +636,8 @@ func (s String) SubString(start, end Int, step ...Int) String {
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
 
-// Sprintf applies a specified format to the String object.
-func (s String) Sprintf(template String) String { return Sprintf(template, s) }
+// Format applies a specified format to the String object.
+func (s String) Format(template String) String { return Format(template, s) }
 
 // Truncate shortens the String to the specified maximum length. If the String exceeds the
 // specified length, it is truncated, and an ellipsis ("...") is appended to indicate the truncation.
@@ -782,11 +783,11 @@ func writePadding(output *Builder, pad String, padlen, remains Int) {
 
 // Print writes the content of the String to the standard output (console)
 // and returns the String unchanged.
-func (s String) Print() String { Print(s); return s }
+func (s String) Print() String { fmt.Print(s); return s }
 
 // Println writes the content of the String to the standard output (console) with a newline
 // and returns the String unchanged.
-func (s String) Println() String { Println(s); return s }
+func (s String) Println() String { fmt.Println(s); return s }
 
 // trimStringStart returns a slice of the string s, with all leading
 // white space removed, as defined by Unicode.

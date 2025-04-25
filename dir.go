@@ -2,6 +2,7 @@ package g
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -138,15 +139,12 @@ func (d *Dir) Remove() Result[*Dir] {
 //	}
 //	destinationDir := destinationDirResult.Ok()
 func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
-	follow := true
-	if len(followLinks) != 0 {
-		follow = followLinks[0]
-	}
-
 	root := d.Path()
 	if root.IsErr() {
 		return Err[*Dir](root.Err())
 	}
+
+	follow := Slice[bool](followLinks).Get(0).UnwrapOr(true)
 
 	walker := func(f *File) error {
 		path := f.Path()
@@ -203,11 +201,7 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 //	dir := g.NewDir("path/to/directory")
 //	createdDir := dir.Create(0755) // Optional mode argument
 func (d *Dir) Create(mode ...os.FileMode) Result[*Dir] {
-	dmode := DirDefault
-	if len(mode) != 0 {
-		dmode = mode[0]
-	}
-
+	dmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(DirDefault)
 	if err := os.Mkdir(d.path.Std(), dmode); err != nil {
 		return Err[*Dir](err)
 	}
@@ -282,15 +276,12 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 		return Ok(d)
 	}
 
-	dmode := DirDefault
-	if len(mode) != 0 {
-		dmode = mode[0]
-	}
-
 	path := d.Path()
 	if path.IsErr() {
 		return Err[*Dir](path.Err())
 	}
+
+	dmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(DirDefault)
 
 	err := os.MkdirAll(path.Ok().Std(), dmode)
 	if err != nil {
@@ -318,7 +309,9 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 //	dir.Rename("path/to/new_directory")
 func (d *Dir) Rename(newpath String) Result[*Dir] {
 	ps := String(os.PathSeparator)
-	_, np := newpath.StripSuffix(ps).Split(ps).Collect().Pop()
+
+	np := newpath.StripSuffix(ps).Split(ps).Collect()
+	_ = np.Pop()
 
 	if rd := NewDir(np.Join(ps)).CreateAll(); rd.IsErr() {
 		return rd
@@ -519,8 +512,8 @@ func (d *Dir) String() String { return d.path }
 
 // Print writes the content of the Dir to the standard output (console)
 // and returns the Dir unchanged.
-func (d *Dir) Print() *Dir { Print(d); return d }
+func (d *Dir) Print() *Dir { fmt.Print(d); return d }
 
 // Println writes the content of the Dir to the standard output (console) with a newline
 // and returns the Dir unchanged.
-func (d *Dir) Println() *Dir { Println(d); return d }
+func (d *Dir) Println() *Dir { fmt.Println(d); return d }
