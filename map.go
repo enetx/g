@@ -12,9 +12,6 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 	return make(Map[K, V], Slice[Int](size).Get(0).Some())
 }
 
-// Ptr returns a pointer to the current Map value.
-func (m Map[K, V]) Ptr() *Map[K, V] { return &m }
-
 // Transform applies a transformation function to the Map and returns the result.
 func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
 

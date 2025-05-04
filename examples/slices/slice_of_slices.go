@@ -9,6 +9,7 @@ import (
 
 func main() {
 	ns1 := Slice[String]{"aaa"}
+
 	ns2 := Slice[String]{"bbb", "ccc"}
 	ns3 := Slice[String]{"ccc", "dddd", "wwwww"}
 
@@ -49,7 +50,7 @@ func main() {
 	m := NewMap[string, Slice[Slice[String]]]()
 	m.Set("one", nx)
 
-	fmt.Println(m.Get("one").Some().Last().Contains("aaa"))
+	fmt.Println(m.Get("one").Some().Last().Some().Contains("aaa"))
 
 	nested := Slice[any]{1, 2, Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
 	flattened := nested.Iter().Flatten().Collect()

@@ -13,6 +13,12 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+var (
+	lower = cases.Lower(language.Und)
+	upper = cases.Upper(language.Und)
+	title = cases.Title(language.Und)
+)
+
 // NewBytes creates a new Bytes value.
 func NewBytes(size ...Int) Bytes {
 	var (
@@ -30,24 +36,38 @@ func NewBytes(size ...Int) Bytes {
 	return make([]byte, length, capacity)
 }
 
-// Ptr returns a pointer to the current Bytes value.
-func (bs Bytes) Ptr() *Bytes { return &bs }
-
 // Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
 
-// Reverse returns a new Bytes with the order of its runes reversed.
+// ReverseOptimized returns a new Bytes with the order of its runes reversed.
 func (bs Bytes) Reverse() Bytes {
-	reversed := make(Bytes, bs.Len())
-	i := 0
+	n := len(bs)
+	rev := make(Bytes, n)
+	isASCII := true
 
-	for bs.Len() > 0 {
-		r, size := utf8.DecodeLastRune(bs)
-		bs = bs[:bs.Len().Std()-size]
-		i += utf8.EncodeRune(reversed[i:], r)
+	for _, b := range bs {
+		if b >= utf8.RuneSelf {
+			isASCII = false
+			break
+		}
 	}
 
-	return reversed
+	if isASCII || !utf8.Valid(bs) {
+		for i, b := range bs {
+			rev[n-1-i] = b
+		}
+
+		return rev
+	}
+
+	w := 0
+	for i := n; i > 0; {
+		r, size := utf8.DecodeLastRune(bs[:i])
+		w += utf8.EncodeRune(rev[w:], r)
+		i -= size
+	}
+
+	return rev
 }
 
 // Replace replaces the first 'n' occurrences of 'oldB' with 'newB' in the Bytes.
@@ -60,10 +80,10 @@ func (bs Bytes) ReplaceAll(oldB, newB Bytes) Bytes { return bytes.ReplaceAll(bs,
 func (bs Bytes) Trim() Bytes { return bytes.TrimSpace(bs) }
 
 // TrimStart removes leading white space from the Bytes.
-func (bs Bytes) TrimStart() Bytes { return trimBytesStart(bs) }
+func (bs Bytes) TrimStart() Bytes { return bytes.TrimLeftFunc(bs, unicode.IsSpace) }
 
 // TrimEnd removes trailing white space from the Bytes.
-func (bs Bytes) TrimEnd() Bytes { return trimBytesEnd(bs) }
+func (bs Bytes) TrimEnd() Bytes { return bytes.TrimRightFunc(bs, unicode.IsSpace) }
 
 // TrimSet trims the specified set of characters from both the beginning and end of the Bytes.
 func (bs Bytes) TrimSet(cutset String) Bytes { return bytes.Trim(bs, cutset.Std()) }
@@ -82,23 +102,24 @@ func (bs Bytes) StripSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cu
 
 // Split splits the Bytes by the specified separator and returns the iterator.
 func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
-	var separator []byte
-	if len(sep) != 0 {
-		separator = sep[0]
-	}
-
-	return splitBytes(bs, separator, 0)
+	return transformSeq(bytes.SplitSeq(bs, Slice[Bytes](sep).Get(0).Some()), func(b []byte) Bytes { return Bytes(b) })
 }
 
 // SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
-func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] { return splitBytes(bs, sep, sep.Len()) }
+func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
+	return transformSeq(bytes.SplitAfterSeq(bs, sep), func(b []byte) Bytes { return Bytes(b) })
+}
 
 // Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
-func (bs Bytes) Fields() SeqSlice[Bytes] { return fieldsBytes(bs) }
+func (bs Bytes) Fields() SeqSlice[Bytes] {
+	return transformSeq(bytes.FieldsSeq(bs), func(b []byte) Bytes { return Bytes(b) })
+}
 
 // FieldsBy splits the Bytes into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
-func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] { return fieldsbyBytes(bs, fn) }
+func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
+	return transformSeq(bytes.FieldsFuncSeq(bs, fn), func(b []byte) Bytes { return Bytes(b) })
+}
 
 // Add appends the given Bytes to the current Bytes.
 func (bs Bytes) Add(obs Bytes) Bytes { return append(bs, obs...) }
@@ -159,6 +180,17 @@ func (bs Bytes) String() String { return String(bs) }
 // If the Bytes is modified later, the String will reflect those changes and may cause undefined behavior.
 func (bs Bytes) StringUnsafe() String { return String(*(*string)(unsafe.Pointer(&bs))) }
 
+// StringSafe converts Bytes to String safely.
+// It uses unsafe conversion only if the underlying memory layout allows it.
+func (bs Bytes) StringSafe() String {
+	s := bs.StringUnsafe()
+	if len(s) != len(bs) {
+		return String(string(bs))
+	}
+
+	return String(s)
+}
+
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
 
@@ -204,17 +236,56 @@ func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }
 // Repeat returns a new Bytes consisting of the current Bytes repeated 'count' times.
 func (bs Bytes) Repeat(count Int) Bytes { return bytes.Repeat(bs, count.Std()) }
 
+// Reset resets the length of the Bytes slice to zero, preserving its capacity.
+func (bs *Bytes) Reset() { *bs = (*bs)[:0] }
+
 // Runes returns the Bytes as a slice of runes.
 func (bs Bytes) Runes() []rune { return bytes.Runes(bs) }
 
 // Title converts the Bytes to title case.
-func (bs Bytes) Title() Bytes { return cases.Title(language.English).Bytes(bs) }
+func (bs Bytes) Title() Bytes { return title.Bytes(bs) }
 
 // Lower converts the Bytes to lowercase.
-func (bs Bytes) Lower() Bytes { return cases.Lower(language.English).Bytes(bs) }
+func (bs Bytes) Lower() Bytes {
+	for _, b := range bs {
+		if b >= utf8.RuneSelf {
+			return lower.Bytes(bs)
+		}
+	}
+
+	out := make(Bytes, len(bs))
+
+	for i, b := range bs {
+		if 'A' <= b && b <= 'Z' {
+			out[i] = b + ('a' - 'A')
+		} else {
+			out[i] = b
+		}
+	}
+
+	return out
+}
 
 // Upper converts the Bytes to uppercase.
-func (bs Bytes) Upper() Bytes { return cases.Upper(language.English).Bytes(bs) }
+func (bs Bytes) Upper() Bytes {
+	for _, b := range bs {
+		if b >= utf8.RuneSelf {
+			return upper.Bytes(bs)
+		}
+	}
+
+	out := make(Bytes, len(bs))
+
+	for i, b := range bs {
+		if 'a' <= b && b <= 'z' {
+			out[i] = b - ('a' - 'A')
+		} else {
+			out[i] = b
+		}
+	}
+
+	return out
+}
 
 // Print writes the content of the Bytes to the standard output (console)
 // and returns the Bytes unchanged.
@@ -223,79 +294,3 @@ func (bs Bytes) Print() Bytes { fmt.Print(bs); return bs }
 // Println writes the content of the Bytes to the standard output (console) with a newline
 // and returns the Bytes unchanged.
 func (bs Bytes) Println() Bytes { fmt.Println(bs); return bs }
-
-// trimBytesStart trims the leading whitespace characters from the byte slice.
-func trimBytesStart(s []byte) []byte {
-	start := 0
-
-	for ; start < len(s); start++ {
-		c := s[start]
-		if c >= utf8.RuneSelf {
-			return trimBytesFuncStart(s[start:], unicode.IsSpace)
-		}
-
-		if asciiSpace[c] == 0 {
-			break
-		}
-	}
-
-	if start == len(s) {
-		return nil
-	}
-
-	return s[start:]
-}
-
-// trimBytesEnd trims the trailing whitespace characters from the byte slice.
-func trimBytesEnd(s []byte) []byte {
-	stop := len(s)
-
-	for ; stop > 0; stop-- {
-		c := s[stop-1]
-		if c >= utf8.RuneSelf {
-			return trimBytesFuncEnd(s[:stop], unicode.IsSpace)
-		}
-
-		if asciiSpace[c] == 0 {
-			break
-		}
-	}
-
-	if stop == 0 {
-		return nil
-	}
-
-	return s[:stop]
-}
-
-// Helper function to trim leading characters using a unicode function
-func trimBytesFuncStart(s []byte, fn func(rune) bool) []byte {
-	start := 0
-
-	for start < len(s) {
-		r, size := utf8.DecodeRune(s[start:])
-		if !fn(r) {
-			break
-		}
-
-		start += size
-	}
-
-	return s[start:]
-}
-
-// Helper function to trim trailing characters using a unicode function
-func trimBytesFuncEnd(s []byte, fn func(rune) bool) []byte {
-	stop := len(s)
-
-	for stop > 0 {
-		r, size := utf8.DecodeLastRune(s[:stop])
-		if !fn(r) {
-			break
-		}
-
-		stop -= size
-	}
-
-	return s[:stop]
-}

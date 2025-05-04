@@ -7,8 +7,11 @@ import (
 	"regexp"
 	"testing"
 	"unicode"
+	"unicode/utf8"
 
 	. "github.com/enetx/g"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 func TestBytes(t *testing.T) {
@@ -739,22 +742,68 @@ func TestToRunes(t *testing.T) {
 }
 
 func TestBytesLower(t *testing.T) {
-	// Test case where the Bytes are converted to lowercase
-	bs := Bytes("Hello World")
-	lower := bs.Lower()
-	expected := Bytes("hello world")
-	if !reflect.DeepEqual(lower, expected) {
-		t.Errorf("Lower failed. Expected: %s, Got: %s", expected, lower)
+	tests := []struct {
+		name     string
+		input    Bytes
+		expected Bytes
+	}{
+		{"Empty", Bytes(""), Bytes("")},
+		{"AlreadyLower", Bytes("hello world"), Bytes("hello world")},
+		{"ASCII Mixed", Bytes("Hello WORLD"), Bytes("hello world")},
+		{"DigitsAndLetters", Bytes("ABC123xyz"), Bytes("abc123xyz")},
+		{"Punctuation", Bytes("Hello-World!"), Bytes("hello-world!")},
+		{"Cyrillic", Bytes("ПрИвЕт Мир"), cases.Lower(language.English).Bytes([]byte("ПрИвЕт Мир"))},
+		{"Chinese", Bytes("你好世界"), cases.Lower(language.English).Bytes([]byte("你好世界"))},
+		{"Emoji", Bytes("Go🚀Lang"), cases.Lower(language.English).Bytes([]byte("Go🚀Lang"))},
+		{"MixedSeparator", Bytes("foo_bar"), Bytes("foo_bar")},
+		{"InvalidUTF8", Bytes([]byte{0xff, 0xfe, 0xfd}), Bytes([]byte{0xff, 0xfe, 0xfd})},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.input.Lower()
+			if !bytes.Equal([]byte(got), []byte(tc.expected)) {
+				t.Errorf("%s: Lower(%q) = %q; want %q",
+					tc.name, []byte(tc.input), []byte(got), []byte(tc.expected))
+			}
+
+			if utf8.Valid([]byte(tc.input)) && !utf8.Valid([]byte(got)) {
+				t.Errorf("%s: result is invalid UTF-8: %x", tc.name, []byte(got))
+			}
+		})
 	}
 }
 
 func TestBytesUpper(t *testing.T) {
-	// Test case where the Bytes are converted to uppercase
-	bs := Bytes("hello world")
-	upper := bs.Upper()
-	expected := Bytes("HELLO WORLD")
-	if !reflect.DeepEqual(upper, expected) {
-		t.Errorf("Upper failed. Expected: %s, Got: %s", expected, upper)
+	tests := []struct {
+		name     string
+		input    Bytes
+		expected Bytes
+	}{
+		{"Empty", Bytes(""), Bytes("")},
+		{"AlreadyUpper", Bytes("HELLO WORLD"), Bytes("HELLO WORLD")},
+		{"ASCII Mixed", Bytes("Hello world"), Bytes("HELLO WORLD")},
+		{"DigitsAndLetters", Bytes("abc123XYZ"), Bytes("ABC123XYZ")},
+		{"Punctuation", Bytes("foo-bar!"), Bytes("FOO-BAR!")},
+		{"Cyrillic", Bytes("ПрИвЕт Мир"), cases.Upper(language.English).Bytes([]byte("ПрИвЕт Мир"))},
+		{"Chinese", Bytes("你好世界"), cases.Upper(language.English).Bytes([]byte("你好世界"))},
+		{"Emoji", Bytes("Go🚀Lang"), cases.Upper(language.English).Bytes([]byte("Go🚀Lang"))},
+		{"MixedSeparator", Bytes("foo_bar"), Bytes("FOO_BAR")},
+		{"InvalidUTF8", Bytes([]byte{0xff, 0xfe, 0xfd}), Bytes([]byte{0xff, 0xfe, 0xfd})},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.input.Upper()
+			if !bytes.Equal([]byte(got), []byte(tc.expected)) {
+				t.Errorf("%s: Upper(%q) = %q; want %q",
+					tc.name, []byte(tc.input), []byte(got), []byte(tc.expected))
+			}
+
+			if utf8.Valid([]byte(tc.input)) && !utf8.Valid([]byte(got)) {
+				t.Errorf("%s: result is invalid UTF-8: %x", tc.name, []byte(got))
+			}
+		})
 	}
 }
 
@@ -785,26 +834,45 @@ func TestBytesTrimSpace(t *testing.T) {
 }
 
 func TestBytesTitle(t *testing.T) {
-	// Test case where the Bytes are converted to title case
-	bs := Bytes("hello world")
-	title := bs.Title()
-	expected := Bytes("Hello World")
-	if !reflect.DeepEqual(title, expected) {
-		t.Errorf("Title failed. Expected: %s, Got: %s", expected, title)
+	tests := []struct {
+		name     string
+		input    Bytes
+		expected Bytes
+	}{
+		{"Empty", Bytes(""), Bytes("")},
+		{"SingleWordLower", Bytes("hello"), Bytes("Hello")},
+		{"SingleWordUpper", Bytes("HELLO"), Bytes("Hello")},
+		{"Sentence", Bytes("hello world"), Bytes("Hello World")},
+		{"AlreadyTitle", Bytes("Hello World"), Bytes("Hello World")},
+		{"LeadingTrailingSpaces", Bytes("  hello world  "), Bytes("  Hello World  ")},
+		{"TabsNewline", Bytes("foo\tbar\nbaz"), Bytes("Foo\tBar\nBaz")},
+		{"Punctuation", Bytes("hello-world"), Bytes("Hello-World")},
+		{"NumbersAndWords", Bytes("123abc 456def"), Bytes("123Abc 456Def")},
+		{"NumbersThenWord", Bytes("123abc abc"), Bytes("123Abc Abc")},
+		{"Chinese", Bytes("你好 世界"), Bytes("你好 世界")},            // no casing in CJK
+		{"Cyrillic", Bytes("привет мир"), Bytes("Привет Мир")}, // uses Unicode fallback
+		{"MixedASCIIUnicode", Bytes("Go 🚀 Language"), cases.Title(language.English).Bytes([]byte("Go 🚀 Language"))},
+		{"Emoji", Bytes("😊 emoji 😊"), cases.Title(language.English).Bytes([]byte("😊 emoji 😊"))},
+		{"MixedSeparator", Bytes("rock-n-roll"), Bytes("Rock-N-Roll")},
+		{"MultipleSpaces", Bytes("  multiple   spaces "), Bytes("  Multiple   Spaces ")},
 	}
 
-	// Test case where the Bytes are already in title case
-	bs = Bytes("Hello World")
-	title = bs.Title()
-	if !reflect.DeepEqual(title, bs) {
-		t.Errorf("Title failed. Expected: %s, Got: %s", bs, title)
-	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.input.Title()
+			if !bytes.Equal([]byte(got), []byte(tc.expected)) {
+				t.Errorf("%s: Title(%q) = %q; want %q",
+					tc.name,
+					[]byte(tc.input),
+					[]byte(got),
+					[]byte(tc.expected),
+				)
+			}
 
-	// Test case where the Bytes are empty
-	bs = Bytes("")
-	title = bs.Title()
-	if !reflect.DeepEqual(title, bs) {
-		t.Errorf("Title failed. Expected: %s, Got: %s", bs, title)
+			if !utf8.Valid([]byte(got)) {
+				t.Errorf("%s: result is invalid UTF-8: %x", tc.name, []byte(got))
+			}
+		})
 	}
 }
 

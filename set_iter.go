@@ -239,6 +239,8 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return transformSet(seq, transform) }
 
+// transformSet applies a transformation function to each element of a SeqSet[V],
+// producing a new SeqSet[U]. The result elements must be comparable, as required by sets.
 func transformSet[V, U comparable](seq SeqSet[V], fn func(V) U) SeqSet[U] {
 	return func(yield func(U) bool) {
 		seq(func(v V) bool {

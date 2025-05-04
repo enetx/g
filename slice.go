@@ -61,14 +61,11 @@ func NewSlice[T any](size ...Int) Slice[T] {
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
-	return transformSlice(sl.Iter(), fn).Collect()
+	return transformSeqSlice(sl.Iter(), fn).Collect()
 }
 
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
-
-// Ptr returns a pointer to the current Slice value.
-func (sl Slice[T]) Ptr() *Slice[T] { return &sl }
 
 // Transform applies a transformation function to the Slice and returns the result.
 func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl) }
@@ -923,12 +920,12 @@ func (sl Slice[T]) Println() Slice[T] { fmt.Println(sl); return sl }
 //	slice.Unpack(&a, &b, &c)
 //	fmt.Println(a, b, c) // Output: 1 2 3
 func (sl Slice[T]) Unpack(vars ...*T) {
-	if len(vars) > len(sl) {
-		vars = vars[:len(sl)]
-	}
+	n := min(len(sl), len(vars))
 
-	for i, v := range vars {
-		*v = sl[i]
+	for i := range n {
+		if vars[i] != nil {
+			*vars[i] = sl[i]
+		}
 	}
 }
 

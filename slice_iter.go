@@ -626,9 +626,32 @@ func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] {
 // Output: [2 4 6].
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return transformSlice(seq, transform) }
+func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] { return transformSeqSlice(seq, transform) }
 
-func transformSlice[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
+// reduceSeqSlices transforms a SeqSlices[V] into a SeqSlice[U] by applying a function `fn`
+// to each slice ([]V) and producing a single value of type U for each.
+// It is useful when you want to reduce or map entire sub-slices (e.g., [][]byte → []Bytes).
+func reduceSeqSlices[V, U any, S ~[]V](seq SeqSlices[V], fn func(S) U) SeqSlice[U] {
+	return func(yield func(U) bool) {
+		seq(func(sl []V) bool {
+			return yield(fn(S(sl)))
+		})
+	}
+}
+
+// transformSeqSlice applies a transformation function to each element of a SeqSlice[V],
+// producing a SeqSlice[U]. This is equivalent to mapping over a sequence.
+func transformSeqSlice[V, U any](seq SeqSlice[V], fn func(V) U) SeqSlice[U] {
+	return func(yield func(U) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
+}
+
+// transformSeq converts a generic iter.Seq[V] into a SeqSlice[U] by mapping each element
+// with the provided transformation function `fn`.
+func transformSeq[V, U any](seq iter.Seq[V], fn func(V) U) SeqSlice[U] {
 	return func(yield func(U) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))

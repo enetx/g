@@ -15,9 +15,6 @@ import (
 // NewInt creates a new Int with the provided int value.
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
-// Ptr returns a pointer to the current Int value.
-func (i Int) Ptr() *Int { return &i }
-
 // Transform applies a transformation function to the Int and returns the result.
 func (i Int) Transform(fn func(Int) Int) Int { return fn(i) }
 
@@ -79,19 +76,16 @@ func (i Int) String() String { return String(strconv.Itoa(int(i))) }
 // The returned String shares the underlying memory with the buffer.
 // Do not modify the buffer after calling this method unless the String is no longer needed.
 func (i Int) StringBuf(buf *Bytes) String {
-	if i >= 0 && i <= 9 {
-		if cap(*buf) < 1 {
-			*buf = NewBytes(1)
-		}
-
-		*buf = (*buf)[:1]
-		(*buf)[0] = '0' + byte(i)
+	if cap(*buf) < 20 {
+		*buf = NewBytes(0, 20)
 	} else {
-		if cap(*buf) < 20 {
-			*buf = NewBytes(0, 20)
-		}
+		*buf = (*buf)[:0]
+	}
 
-		*buf = strconv.AppendInt((*buf)[:0], int64(i), 10)
+	if i >= 0 && i <= 9 {
+		*buf = append(*buf, '0'+byte(i))
+	} else {
+		*buf = strconv.AppendInt(*buf, int64(i), 10)
 	}
 
 	return buf.StringUnsafe()

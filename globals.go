@@ -1,6 +1,8 @@
 package g
 
-import "os"
+import (
+	"os"
+)
 
 const (
 	ASCII_LETTERS   String = ASCII_LOWERCASE + ASCII_UPPERCASE

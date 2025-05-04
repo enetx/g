@@ -490,14 +490,14 @@ func TestStringRandom(t *testing.T) {
 
 func TestStringChunks(t *testing.T) {
 	str := String("")
-	chunks := str.Chunks(3)
+	chunks := str.Chunks(3).Collect()
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(10)
+	chunks = str.Chunks(10).Collect()
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -508,7 +508,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(2)
+	chunks = str.Chunks(2).Collect()
 
 	if chunks.Len() != 3 {
 		t.Errorf("Expected 3 chunks, but got %v", chunks.Len())
@@ -523,7 +523,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello world")
-	chunks = str.Chunks(3)
+	chunks = str.Chunks(3).Collect()
 
 	if chunks.Len() != 4 {
 		t.Errorf("Expected 4 chunks, but got %v", chunks.Len())
@@ -538,7 +538,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(5)
+	chunks = str.Chunks(5).Collect()
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -549,7 +549,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(-1)
+	chunks = str.Chunks(-1).Collect()
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)

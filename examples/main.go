@@ -189,7 +189,7 @@ func main() {
 	to.Encode().Octal().Println()
 	to.Encode().Octal().Decode().Octal().Unwrap().Println()
 
-	to.Encode().Binary().Chunks(8).Join(" ").Println()
+	to.Encode().Binary().Chunks(8).Collect().Join(" ").Println()
 	to.Encode().Binary().Decode().Binary().Unwrap().Println()
 
 	toi := Int(1234567890)

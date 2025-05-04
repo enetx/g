@@ -6,70 +6,126 @@ import (
 	. "github.com/enetx/g"
 )
 
-func TestStringUnsafe(t *testing.T) {
-	original := Bytes("hello unsafe")
-	str := original.StringUnsafe()
+func TestStringUnsafeMethods(t *testing.T) {
+	t.Run("Lower", func(t *testing.T) {
+		in := String("HELLO World!")
+		got := in.Lower()
+		want := String("hello world!")
+		if got != want {
+			t.Errorf("Lower() = %q, want %q", got, want)
+		}
+	})
 
-	if str != "hello unsafe" {
-		t.Errorf("StringUnsafe() = %q, want %q", str, "hello unsafe")
-	}
+	t.Run("Upper", func(t *testing.T) {
+		in := String("hello World!")
+		got := in.Upper()
+		want := String("HELLO WORLD!")
+		if got != want {
+			t.Errorf("Upper() = %q, want %q", got, want)
+		}
+	})
 
-	bs := str.BytesUnsafe()
-	if !bs.Eq(original) {
-		t.Errorf("BytesUnsafe() after StringUnsafe() mismatch: got %q, want %q", bs, original)
-	}
-}
+	t.Run("Title", func(t *testing.T) {
+		in := String("hello world")
+		got := in.Title()
+		want := String("Hello World")
+		if got != want {
+			t.Errorf("Title() = %q, want %q", got, want)
+		}
+	})
 
-func TestBytesUnsafe(t *testing.T) {
-	original := String("unsafe back")
-	bs := original.BytesUnsafe()
+	t.Run("Trim", func(t *testing.T) {
+		in := String("  padded  ")
+		got := in.Trim()
+		want := String("padded")
+		if got != want {
+			t.Errorf("Trim() = %q, want %q", got, want)
+		}
+	})
 
-	if bs.String() != "unsafe back" {
-		t.Errorf("BytesUnsafe() = %q, want %q", bs.String(), "unsafe back")
-	}
+	t.Run("TrimStart", func(t *testing.T) {
+		in := String("  start")
+		got := in.TrimStart()
+		want := String("start")
+		if got != want {
+			t.Errorf("TrimStart() = %q, want %q", got, want)
+		}
+	})
 
-	str := bs.StringUnsafe()
-	if str != original {
-		t.Errorf("StringUnsafe() after BytesUnsafe() mismatch: got %q, want %q", str, original)
-	}
-}
+	t.Run("TrimEnd", func(t *testing.T) {
+		in := String("end  ")
+		got := in.TrimEnd()
+		want := String("end")
+		if got != want {
+			t.Errorf("TrimEnd() = %q, want %q", got, want)
+		}
+	})
 
-func BenchmarkUnsafeString(b *testing.B) {
-	original := Bytes("this is a very fast conversion without copy")
+	t.Run("TrimSet", func(t *testing.T) {
+		in := String("@@@trimmed@@@")
+		got := in.TrimSet("@")
+		want := String("trimmed")
+		if got != want {
+			t.Errorf("TrimSet() = %q, want %q", got, want)
+		}
+	})
 
-	b.ReportAllocs()
+	t.Run("TrimStartSet", func(t *testing.T) {
+		in := String("***start")
+		got := in.TrimStartSet("*")
+		want := String("start")
+		if got != want {
+			t.Errorf("TrimStartSet() = %q, want %q", got, want)
+		}
+	})
 
-	for b.Loop() {
-		_ = original.StringUnsafe()
-	}
-}
+	t.Run("TrimEndSet", func(t *testing.T) {
+		in := String("end###")
+		got := in.TrimEndSet("#")
+		want := String("end")
+		if got != want {
+			t.Errorf("TrimEndSet() = %q, want %q", got, want)
+		}
+	})
 
-func BenchmarkUnsafeStringStd(b *testing.B) {
-	original := Bytes("this is a very fast conversion without copy")
+	t.Run("StripPrefix", func(t *testing.T) {
+		in := String("prefixText")
+		got := in.StripPrefix("prefix")
+		want := String("Text")
+		if got != want {
+			t.Errorf("StripPrefix() = %q, want %q", got, want)
+		}
+	})
 
-	b.ReportAllocs()
+	t.Run("StripSuffix", func(t *testing.T) {
+		in := String("TextSuffix")
+		got := in.StripSuffix("Suffix")
+		want := String("Text")
+		if got != want {
+			t.Errorf("StripSuffix() = %q, want %q", got, want)
+		}
+	})
 
-	for b.Loop() {
-		_ = String(string(original))
-	}
-}
+	t.Run("Reverse", func(t *testing.T) {
+		in := String("abc")
+		got := in.Reverse()
+		want := String("cba")
+		if got != want {
+			t.Errorf("Reverse() = %q, want %q", got, want)
+		}
+	})
 
-func BenchmarkUnsafeBytes(b *testing.B) {
-	original := String("this is a very fast conversion without copy")
+	t.Run("Invalid UTF-8 Reverse", func(t *testing.T) {
+		in := String(string([]byte{0xff, 0xfe, 0xfd}))
+		_ = in.Reverse() // just ensure no panic
+	})
 
-	b.ReportAllocs()
-
-	for b.Loop() {
-		_ = original.BytesUnsafe()
-	}
-}
-
-func BenchmarkUnsafeBytesStd(b *testing.B) {
-	original := String("this is a very fast conversion without copy")
-
-	b.ReportAllocs()
-
-	for b.Loop() {
-		_ = Bytes([]byte(original.Std()))
-	}
+	t.Run("Mixed Runes and ASCII Lower", func(t *testing.T) {
+		in := String("ABCф")
+		got := in.Lower()
+		want := String("abcф")
+		if got != want {
+			t.Errorf("Lower() = %q, want %q", got, want)
+		}
+	})
 }

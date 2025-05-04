@@ -11,16 +11,16 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 )
 
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
-// Ptr returns a pointer to the current String value.
-func (s String) Ptr() *String { return &s }
+// Clone returns a copy of the String.
+// It ensures that the returned String does not share underlying memory with the original String,
+// making it safe to modify or store independently.
+func (s String) Clone() String { return String(strings.Clone(s.Std())) }
 
 // Transform applies a transformation function to the String and returns the result.
 func (s String) Transform(fn func(String) String) String { return fn(s) }
@@ -136,27 +136,25 @@ func (s String) ToFloat() Result[Float] {
 }
 
 // Title converts the String to title case.
-func (s String) Title() String { return String(cases.Title(language.English).String(s.Std())) }
+func (s String) Title() String { return s.BytesSafe().Title().StringSafe() }
 
 // Lower returns the String in lowercase.
-func (s String) Lower() String { return String(cases.Lower(language.English).String(s.Std())) }
+func (s String) Lower() String { return s.BytesSafe().Lower().StringSafe() }
 
 // Upper returns the String in uppercase.
-func (s String) Upper() String { return String(cases.Upper(language.English).String(s.Std())) }
+func (s String) Upper() String { return s.BytesSafe().Upper().StringSafe() }
 
 // Trim removes leading and trailing white space from the String.
 func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
 
 // TrimStart removes leading white space from the String.
-func (s String) TrimStart() String { return trimStringStart(s) }
+func (s String) TrimStart() String { return String(strings.TrimLeftFunc(s.Std(), unicode.IsSpace)) }
 
 // TrimEnd removes trailing white space from the String.
-func (s String) TrimEnd() String { return trimStringEnd(s) }
+func (s String) TrimEnd() String { return String(strings.TrimRightFunc(s.Std(), unicode.IsSpace)) }
 
 // TrimSet removes the specified set of characters from both the beginning and end of the String.
-func (s String) TrimSet(cutset String) String {
-	return String(strings.Trim(s.Std(), cutset.Std()))
-}
+func (s String) TrimSet(cutset String) String { return String(strings.Trim(s.Std(), cutset.Std())) }
 
 // TrimStartSet removes the specified set of characters from the beginning of the String.
 func (s String) TrimStartSet(cutset String) String {
@@ -209,8 +207,8 @@ func (s String) ReplaceAll(oldS, newS String) String {
 //	)
 //	// replaced contains "Greetings, universe! This is an example."
 func (s String) ReplaceMulti(oldnew ...String) String {
-	on := Slice[String](oldnew).ToStringSlice()
-	return String(strings.NewReplacer(on...).Replace(s.Std()))
+	pairs := TransformSlice(Slice[String](oldnew), String.Std)
+	return String(strings.NewReplacer(pairs...).Replace(s.Std()))
 }
 
 // Remove removes all occurrences of specified substrings from the String.
@@ -232,11 +230,8 @@ func (s String) ReplaceMulti(oldnew ...String) String {
 //	)
 //	// modified contains ", world! This is a ."
 func (s String) Remove(matches ...String) String {
-	for _, match := range matches {
-		s = s.ReplaceAll(match, "")
-	}
-
-	return s
+	pairs := TransformSlice(Slice[String](matches).Iter().Intersperse("").Collect().Append(""), String.Std)
+	return String(strings.NewReplacer(pairs...).Replace(s.Std()))
 }
 
 // ReplaceNth returns a new String instance with the nth occurrence of oldS
@@ -346,14 +341,20 @@ func (s String) EndsWithAny(suffixes ...String) bool {
 }
 
 // Lines splits the String by lines and returns the iterator.
-func (s String) Lines() SeqSlice[String] { return linesString(s) }
+func (s String) Lines() SeqSlice[String] {
+	return transformSeq(strings.Lines(s.Std()), NewString).Map(String.TrimEnd)
+}
 
 // Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
-func (s String) Fields() SeqSlice[String] { return fieldsString(s) }
+func (s String) Fields() SeqSlice[String] {
+	return transformSeq(strings.FieldsSeq(s.Std()), NewString)
+}
 
 // FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
-func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] { return fieldsbyString(s, fn) }
+func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] {
+	return transformSeq(strings.FieldsFuncSeq(s.Std(), fn), NewString)
+}
 
 // Split splits the String by the specified separator and returns the iterator.
 func (s String) Split(sep ...String) SeqSlice[String] {
@@ -362,11 +363,13 @@ func (s String) Split(sep ...String) SeqSlice[String] {
 		separator = sep[0]
 	}
 
-	return splitString(s, separator, 0)
+	return transformSeq(strings.SplitSeq(s.Std(), separator.Std()), NewString)
 }
 
 // SplitAfter splits the String after each instance of the specified separator and returns the iterator.
-func (s String) SplitAfter(sep String) SeqSlice[String] { return splitString(s, sep, sep.Len()) }
+func (s String) SplitAfter(sep String) SeqSlice[String] {
+	return transformSeq(strings.SplitAfterSeq(s.Std(), sep.Std()), NewString)
+}
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
 // The n parameter controls the number of substrings to return:
@@ -399,16 +402,25 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 //	chunks := text.Chunks(4)
 //
 // chunks contains {"Hell", "o, W", "orld", "!"}.
-func (s String) Chunks(size Int) Slice[String] {
-	if size <= 0 || s.Empty() {
-		return nil
+func (s String) Chunks(size Int) SeqSlice[String] {
+	if size.Lte(0) || s.Empty() {
+		return func(func(String) bool) {}
 	}
 
-	if size >= s.Len() {
-		return Slice[String]{s}
+	runes := []rune(s)
+	if size.Gte(Int(len(runes))) {
+		return func(yield func(String) bool) { yield(s) }
 	}
 
-	return TransformSlice(s.Split().Chunks(size).Collect(), func(ch Slice[String]) String { return ch.Join() })
+	n := size.Std()
+	return func(yield func(String) bool) {
+		for i := 0; i < len(runes); i += n {
+			end := min(i+n, len(runes))
+			if !yield(String(runes[i:end])) {
+				return
+			}
+		}
+	}
 }
 
 // Cut returns two String values. The first String contains the remainder of the
@@ -457,25 +469,20 @@ func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
 		return s, ""
 	}
 
-	endIndex := s[startIndex+start.Len():].Index(end)
+	startEnd := startIndex + start.Len()
+	endIndex := s[startEnd:].Index(end)
 	if endIndex == -1 {
 		return s, ""
 	}
 
-	cut := s[startIndex+start.Len() : startIndex+start.Len()+endIndex]
-
-	startCutIndex := startIndex
-	endCutIndex := startIndex + start.Len() + endIndex
+	cut := s[startEnd : startEnd+endIndex]
 
 	if len(rmtags) != 0 && !rmtags[0] {
-		startCutIndex += start.Len()
-	} else {
-		endCutIndex += end.Len()
+		startEnd += end.Len()
+		return s[:startIndex] + s[startIndex:startEnd+endIndex] + s[startEnd+endIndex:], cut
 	}
 
-	remainder := s[:startCutIndex] + s[endCutIndex:]
-
-	return remainder, cut
+	return s[:startIndex] + s[startEnd+endIndex+end.Len():], cut
 }
 
 // Similarity calculates the similarity between two Strings using the
@@ -579,6 +586,17 @@ func (s String) Bytes() Bytes { return Bytes(s) }
 // the Bytes may become invalid or cause undefined behavior.
 func (s String) BytesUnsafe() Bytes { return Bytes(*(*[]byte)(unsafe.Pointer(&s))) }
 
+// BytesSafe converts String to Bytes safely.
+// It uses unsafe conversion only if the underlying memory layout allows it.
+func (s String) BytesSafe() Bytes {
+	b := s.BytesUnsafe()
+	if len(b) != len(s) {
+		return append(Bytes(nil), s...)
+	}
+
+	return b
+}
+
 // Index returns the index of the first instance of the specified substring in the String, or -1
 // if substr is not present in s.
 func (s String) Index(substr String) Int { return Int(strings.Index(s.Std(), substr.Std())) }
@@ -621,7 +639,7 @@ func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
 func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(), count.Std())) }
 
 // Reverse reverses the String.
-func (s String) Reverse() String { return s.Bytes().Reverse().String() }
+func (s String) Reverse() String { return s.BytesSafe().Reverse().StringSafe() }
 
 // Runes returns the String as a slice of runes.
 func (s String) Runes() Slice[rune] { return []rune(s) }
@@ -795,73 +813,3 @@ func (s String) Print() String { fmt.Print(s); return s }
 // Println writes the content of the String to the standard output (console) with a newline
 // and returns the String unchanged.
 func (s String) Println() String { fmt.Println(s); return s }
-
-// trimStringStart returns a slice of the string s, with all leading
-// white space removed, as defined by Unicode.
-func trimStringStart(s String) String {
-	start := 0
-
-	for ; start < len(s); start++ {
-		c := s[start]
-		if c >= utf8.RuneSelf {
-			return trimStringFuncStart(s[start:], unicode.IsSpace)
-		}
-
-		if asciiSpace[c] == 0 {
-			break
-		}
-	}
-
-	return s[start:]
-}
-
-// trimStringEnd returns a slice of the string s, with all trailing
-// white space removed, as defined by Unicode.
-func trimStringEnd(s String) String {
-	stop := len(s)
-
-	for ; stop > 0; stop-- {
-		c := s[stop-1]
-		if c >= utf8.RuneSelf {
-			return trimStringFuncEnd(s[:stop], unicode.IsSpace)
-		}
-
-		if asciiSpace[c] == 0 {
-			break
-		}
-	}
-
-	return s[:stop]
-}
-
-// Helper function to trim leading characters using a unicode function.
-func trimStringFuncStart(s String, fn func(rune) bool) String {
-	start := 0
-
-	for start < len(s) {
-		r, size := utf8.DecodeRuneInString(s[start:].Std())
-		if !fn(r) {
-			break
-		}
-
-		start += size
-	}
-
-	return s[start:]
-}
-
-// Helper function to trim trailing characters using a unicode function.
-func trimStringFuncEnd(s String, fn func(rune) bool) String {
-	stop := len(s)
-
-	for stop > 0 {
-		r, size := utf8.DecodeLastRuneInString(s[:stop].Std())
-		if !fn(r) {
-			break
-		}
-
-		stop -= size
-	}
-
-	return s[:stop]
-}

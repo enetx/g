@@ -70,7 +70,6 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 				if p.cancelOnError {
 					p.Cancel(errors.New("cancel on error"))
 				}
-
 				atomic.AddInt32(&p.failedTasks, 1)
 			}
 
