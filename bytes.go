@@ -180,17 +180,6 @@ func (bs Bytes) String() String { return String(bs) }
 // If the Bytes is modified later, the String will reflect those changes and may cause undefined behavior.
 func (bs Bytes) StringUnsafe() String { return String(*(*string)(unsafe.Pointer(&bs))) }
 
-// StringSafe converts Bytes to String safely.
-// It uses unsafe conversion only if the underlying memory layout allows it.
-func (bs Bytes) StringSafe() String {
-	s := bs.StringUnsafe()
-	if len(s) != len(bs) {
-		return String(string(bs))
-	}
-
-	return String(s)
-}
-
 // Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
 

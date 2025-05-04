@@ -136,13 +136,13 @@ func (s String) ToFloat() Result[Float] {
 }
 
 // Title converts the String to title case.
-func (s String) Title() String { return s.BytesSafe().Title().StringSafe() }
+func (s String) Title() String { return String(title.String(s.Std())) }
 
 // Lower returns the String in lowercase.
-func (s String) Lower() String { return s.BytesSafe().Lower().StringSafe() }
+func (s String) Lower() String { return s.Bytes().Lower().String() }
 
 // Upper returns the String in uppercase.
-func (s String) Upper() String { return s.BytesSafe().Upper().StringSafe() }
+func (s String) Upper() String { return s.Bytes().Upper().String() }
 
 // Trim removes leading and trailing white space from the String.
 func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
@@ -586,17 +586,6 @@ func (s String) Bytes() Bytes { return Bytes(s) }
 // the Bytes may become invalid or cause undefined behavior.
 func (s String) BytesUnsafe() Bytes { return Bytes(*(*[]byte)(unsafe.Pointer(&s))) }
 
-// BytesSafe converts String to Bytes safely.
-// It uses unsafe conversion only if the underlying memory layout allows it.
-func (s String) BytesSafe() Bytes {
-	b := s.BytesUnsafe()
-	if len(b) != len(s) {
-		return append(Bytes(nil), s...)
-	}
-
-	return b
-}
-
 // Index returns the index of the first instance of the specified substring in the String, or -1
 // if substr is not present in s.
 func (s String) Index(substr String) Int { return Int(strings.Index(s.Std(), substr.Std())) }
@@ -639,7 +628,7 @@ func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
 func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(), count.Std())) }
 
 // Reverse reverses the String.
-func (s String) Reverse() String { return s.BytesSafe().Reverse().StringSafe() }
+func (s String) Reverse() String { return s.Bytes().Reverse().String() }
 
 // Runes returns the String as a slice of runes.
 func (s String) Runes() Slice[rune] { return []rune(s) }
