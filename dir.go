@@ -1,22 +1,11 @@
 package g
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 )
-
-// SkipWalk is used as a return value from the walker function to indicate that
-// the file or directory named in the call should be skipped. It is not returned
-// as an error by any function.
-var SkipWalk = errors.New("skip")
-
-// StopWalk is used as a return value from the walker function to indicate that
-// all remaining files and directories should be skipped. It is not returned
-// as an error by any function.
-var StopWalk = errors.New("stop")
 
 // NewDir returns a new Dir instance with the given path.
 func NewDir(path String) *Dir { return &Dir{path: path} }
@@ -139,6 +128,15 @@ func (d *Dir) Remove() Result[*Dir] {
 //	}
 //	destinationDir := destinationDirResult.Ok()
 func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
+	files := NewSlice[*File]()
+
+	for r := range d.Walk() {
+		if r.IsErr() {
+			return Err[*Dir](r.Err())
+		}
+		files.Push(r.Ok())
+	}
+
 	root := d.Path()
 	if root.IsErr() {
 		return Err[*Dir](root.Err())
@@ -146,40 +144,42 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 
 	follow := Slice[bool](followLinks).Get(0).UnwrapOr(true)
 
-	walker := func(f *File) error {
+	for f := range files.Iter() {
 		path := f.Path()
 		if path.IsErr() {
-			return path.Err()
+			return Err[*Dir](path.Err())
 		}
 
 		relpath, err := filepath.Rel(root.Ok().Std(), path.Ok().Std())
 		if err != nil {
-			return err
+			return Err[*Dir](err)
 		}
 
 		destpath := NewDir(dest).Join(String(relpath))
 		if destpath.IsErr() {
-			return destpath.Err()
+			return Err[*Dir](destpath.Err())
 		}
 
 		stat := f.Stat()
 		if stat.IsErr() {
-			return stat.Err()
+			return Err[*Dir](stat.Err())
 		}
 
 		if stat.Ok().IsDir() {
 			if !follow && f.IsLink() {
-				return SkipWalk
+				continue
 			}
 
-			return NewDir(destpath.Ok()).CreateAll(stat.Ok().Mode()).Err()
+			if r := NewDir(destpath.Ok()).CreateAll(stat.Ok().Mode()); r.IsErr() {
+				return r
+			}
+
+			continue
 		}
 
-		return f.Copy(destpath.Ok(), stat.Ok().Mode()).Err()
-	}
-
-	if err := d.Walk(walker); err != nil {
-		return Err[*Dir](err)
+		if r := f.Copy(destpath.Ok(), stat.Ok().Mode()); r.IsErr() {
+			return Err[*Dir](r.Err())
+		}
 	}
 
 	return Ok(NewDir(dest))
@@ -391,20 +391,22 @@ func (d *Dir) Read() SeqResult[*File] {
 			return
 		}
 
+		dpath := d.Path()
+		if dpath.IsErr() {
+			yield(Err[*File](dpath.Err()))
+			return
+		}
+
+		base := dpath.Ok()
+
 		for _, entry := range entries {
-			dpath := d.Path()
-			if dpath.IsErr() {
-				yield(Err[*File](dpath.Err()))
+			full := NewDir(base).Join(String(entry.Name()))
+			if full.IsErr() {
+				yield(Err[*File](full.Err()))
 				return
 			}
 
-			file := NewDir(dpath.Ok()).Join(String(entry.Name()))
-			if file.IsErr() {
-				yield(Err[*File](file.Err()))
-				return
-			}
-
-			if !yield(Ok(NewFile(file.Ok()))) {
+			if !yield(Ok(NewFile(full.Ok()))) {
 				return
 			}
 		}
@@ -447,64 +449,57 @@ func (d *Dir) Glob() SeqResult[*File] {
 	})
 }
 
-// Walk recursively traverses the directory structure and applies the walker function to each file and directory.
+// Walk returns a lazy sequence of all files and directories under the current Dir.
+// You can customize inclusion/exclusion using SeqResult methods (Exclude, Filter, etc.).
 //
-// Parameters:
+// Example usage:
 //
-// - walker: A function that takes a *File as an argument and returns an error.
-// It is applied to each file and directory encountered during the walk.
-//
-// Returns:
-//
-// - error: An error indicating any issues that occurred during the walk. If no errors occurred, it returns nil.
-func (d *Dir) Walk(walker func(f *File) error) error {
-	var walkErr error
+//	NewDir("path/to/dir").
+//	  Walk().
+//	  Exclude((*File).IsLink).
+//	  ForEach(func(r Result[*File]) {
+//	      if r.IsOk() {
+//	          fmt.Println(r.Ok().Path().Ok().Std())
+//	      }
+//	  })
+func (d *Dir) Walk() SeqResult[*File] {
+	return func(yield func(Result[*File]) bool) {
+		stack := SliceOf(d)
 
-	d.Read().Range(func(r Result[*File]) bool {
-		if r.IsErr() {
-			walkErr = r.Err()
-			return false
-		}
+		for stack.NotEmpty() {
+			current := stack.Pop()
+			if current.IsNone() {
+				break
+			}
 
-		file := r.Ok()
+			current.Some().Read().Range(func(r Result[*File]) bool {
+				if r.IsErr() {
+					return yield(r)
+				}
 
-		if err := walker(file); err != nil {
-			switch {
-			case errors.Is(err, SkipWalk):
+				file := r.Ok()
+				if !yield(Ok(file)) {
+					return false
+				}
+
+				stat := file.Stat()
+				if stat.IsErr() {
+					return yield(Err[*File](stat.Err()))
+				}
+
+				if stat.Ok().IsDir() {
+					path := file.Path()
+					if path.IsErr() {
+						return yield(Err[*File](path.Err()))
+					}
+
+					stack.Push(NewDir(path.Ok()))
+				}
+
 				return true
-			case errors.Is(err, StopWalk):
-				return false
-			default:
-				walkErr = err
-				return false
-			}
+			})
 		}
-
-		stat := file.Stat()
-		if stat.IsErr() {
-			walkErr = stat.Err()
-			return false
-		}
-
-		if stat.Ok().IsDir() {
-			filePath := file.Path()
-			if filePath.IsErr() {
-				walkErr = filePath.Err()
-				return false
-			}
-
-			subdir := NewDir(filePath.Ok())
-
-			if err := subdir.Walk(walker); err != nil {
-				walkErr = err
-				return false
-			}
-		}
-
-		return true
-	})
-
-	return walkErr
+	}
 }
 
 // String returns the String representation of the current directory's path.

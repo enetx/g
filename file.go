@@ -2,6 +2,7 @@ package g
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -63,6 +64,62 @@ func (f *File) Lines() SeqResult[String] {
 	}
 }
 
+// LinesRaw returns a new iterator instance that reads the file line by line,
+// yielding each line as a Bytes slice (raw []byte).
+//
+// This version avoids intermediate string allocations by working directly with byte slices.
+// The returned Bytes are copies of the scanner buffer and are safe to retain.
+//
+// Returns:
+//
+// - SeqResult[Bytes]: An iterator over raw byte lines from the file.
+//
+// Example usage:
+//
+//	g.NewFile("text.txt").
+//		LinesRaw().                // Read raw byte lines
+//		Filter(func(b g.Bytes) bool {
+//			return len(b) > 0
+//		}).
+//		ForEach(func(line g.Result[g.Bytes]) {
+//			line.Ok().Print()
+//		})
+//
+// Output:
+// LINE_1
+// LINE_2
+// ...
+//
+// Note: Each line is copied before yielding to avoid scanner buffer reuse issues.
+func (f *File) LinesRaw() SeqResult[Bytes] {
+	return func(yield func(Result[Bytes]) bool) {
+		if f.file == nil {
+			if r := f.Open(); r.IsErr() {
+				yield(Err[Bytes](r.Err()))
+				return
+			}
+		}
+
+		defer f.Close()
+
+		scanner := bufio.NewScanner(f.file)
+		scanner.Split(bufio.ScanLines)
+
+		for scanner.Scan() {
+			line := make(Bytes, len(scanner.Bytes()))
+			copy(line, scanner.Bytes())
+			if !yield(Ok(line)) {
+				return
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			yield(Err[Bytes](err))
+			return
+		}
+	}
+}
+
 // Chunks returns a new iterator instance that can be used to read the file
 // in fixed-size chunks of the specified size in bytes.
 //
@@ -87,6 +144,11 @@ func (f *File) Lines() SeqResult[String] {
 //	// UPPERCASED_CHUNK3
 func (f *File) Chunks(size Int) SeqResult[String] {
 	return func(yield func(Result[String]) bool) {
+		if size.Lte(0) {
+			yield(Err[String](errors.New("chunk size must be > 0")))
+			return
+		}
+
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
 				yield(Err[String](r.Err()))
@@ -110,6 +172,73 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 			}
 
 			if !yield(Ok(String(buffer[:n]))) {
+				return
+			}
+		}
+	}
+}
+
+// ChunksRaw returns a new iterator instance that reads the file in fixed-size
+// chunks of bytes, yielding each chunk as a Bytes slice.
+//
+// This method avoids intermediate string allocations and operates directly on byte slices.
+// Each chunk is copied from the underlying buffer to make it safe for downstream use.
+//
+// Parameters:
+//
+// - size (Int): The size of each chunk in bytes. Must be > 0.
+//
+// Returns:
+//
+// - SeqResult[Bytes]: An iterator over raw byte chunks from the file.
+//
+// Example usage:
+//
+//	g.NewFile("text.txt").
+//		ChunksRaw(128).            // Read raw 128-byte chunks
+//		ForEach(func(chunk g.Result[g.Bytes]) {
+//			chunk.Ok().Print()
+//		})
+//
+// Output:
+// RAW_CHUNK_1
+// RAW_CHUNK_2
+// ...
+//
+// Note: Each chunk is copied from the buffer to ensure memory safety.
+func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
+	return func(yield func(Result[Bytes]) bool) {
+		if size.Lte(0) {
+			yield(Err[Bytes](errors.New("chunk size must be > 0")))
+			return
+		}
+
+		if f.file == nil {
+			if r := f.Open(); r.IsErr() {
+				yield(Err[Bytes](r.Err()))
+				return
+			}
+		}
+
+		defer f.Close()
+
+		buf := make([]byte, size)
+
+		for {
+			n, err := f.file.Read(buf)
+			if err != nil && err != io.EOF {
+				yield(Err[Bytes](err))
+				return
+			}
+
+			if n == 0 {
+				break
+			}
+
+			chunk := make(Bytes, n)
+			copy(chunk, buf[:n])
+
+			if !yield(Ok(chunk)) {
 				return
 			}
 		}

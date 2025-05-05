@@ -150,7 +150,9 @@ func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] {
 		seq(func(v V) bool {
 			buf = append(buf, v)
 			if len(buf) == int(n) {
-				if !yield(buf) {
+				chunk := make([]V, n)
+				copy(chunk, buf)
+				if !yield(chunk) {
 					return false
 				}
 				buf = buf[:0]
@@ -159,7 +161,9 @@ func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] {
 		})
 
 		if len(buf) > 0 {
-			yield(buf)
+			chunk := make([]V, len(buf))
+			copy(chunk, buf)
+			yield(chunk)
 		}
 	}
 }
@@ -241,7 +245,7 @@ func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
 		}
 
 		indices := make([]int, k)
-		for i := 0; i < k; i++ {
+		for i := range k {
 			indices[i] = i
 		}
 
@@ -252,7 +256,9 @@ func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
 				buf[i] = s[idx]
 			}
 
-			if !yield(buf) {
+			chunk := make([]V, k)
+			copy(chunk, buf)
+			if !yield(chunk) {
 				return
 			}
 
@@ -260,13 +266,11 @@ func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
 			for i >= 0 && indices[i] == n-k+i {
 				i--
 			}
-
 			if i < 0 {
 				return
 			}
 
 			indices[i]++
-
 			for j := i + 1; j < k; j++ {
 				indices[j] = indices[j-1] + 1
 			}
@@ -750,7 +754,9 @@ func (seq SeqSlice[V]) Permutations() SeqSlices[V] {
 				buf[i] = s[v]
 			}
 
-			if !yield(buf) {
+			chunk := make([]V, n)
+			copy(chunk, buf)
+			if !yield(chunk) {
 				return
 			}
 
@@ -758,7 +764,6 @@ func (seq SeqSlice[V]) Permutations() SeqSlices[V] {
 			for i > 0 && indices[i-1] >= indices[i] {
 				i--
 			}
-
 			if i <= 0 {
 				return
 			}
@@ -1089,7 +1094,9 @@ func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] {
 				buf[size] = v
 				size++
 				if size == int(n) {
-					return yield(buf)
+					chunk := make([]V, n)
+					copy(chunk, buf)
+					return yield(chunk)
 				}
 				return true
 			}
@@ -1097,7 +1104,10 @@ func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] {
 			copy(buf, buf[1:])
 			buf[n-1] = v
 
-			return yield(buf)
+			chunk := make([]V, n)
+			copy(chunk, buf)
+
+			return yield(chunk)
 		})
 	}
 }

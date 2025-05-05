@@ -469,86 +469,43 @@ func TestDir_Copy(t *testing.T) {
 }
 
 func TestDir_Walk(t *testing.T) {
-	// Create a temporary directory for testing
 	testDir := createTempDir(t)
 	defer os.RemoveAll(testDir)
 
-	// Create some test files and directories within the test directory
-	if err := os.WriteFile(testDir+"/file1.txt", []byte("File 1 content"), 0644); err != nil {
-		t.Fatalf("TestDir_Walk: Failed to create test file 1: %v", err)
-	}
+	createTestFiles(testDir)
 
-	if err := os.Mkdir(testDir+"/subdir", 0755); err != nil {
-		t.Fatalf("TestDir_Walk: Failed to create test directory: %v", err)
-	}
+	var visited Slice[string]
 
-	if err := os.WriteFile(testDir+"/subdir/file2.txt", []byte("File 2 content"), 0644); err != nil {
-		t.Fatalf("TestDir_Walk: Failed to create test file 2: %v", err)
-	}
-
-	if err := os.WriteFile(testDir+"/subdir/file2.txt", []byte("File 2 content"), 0644); err != nil {
-		t.Fatalf("TestDir_Walk: Failed to create test file 2: %v", err)
-	}
-
-	if err := os.Symlink(testDir, testDir+"/link"); err != nil {
-		t.Fatalf("Failed to create symbolic link: %s", err)
-	}
-
-	// Define a slice to store the paths of visited files and directories
-	visited := make([]string, 0)
-
-	// Define the walker function
-	walker := func(f *File) error {
-		path := f.Path()
-		if path.IsErr() {
-			return path.Err()
-		}
-
-		if f.IsDir() && f.Dir().Ok().IsLink() {
-			return SkipWalk
-		}
-
-		if f.IsLink() {
-			return nil
-		}
-
-		visited = append(visited, path.Ok().Std())
-		return nil
-	}
-
-	// Create a Dir instance representing the test directory
-	testDirInstance := NewDir(String(testDir))
-
-	// Perform the walk operation
-	if err := testDirInstance.Walk(walker); err != nil {
-		t.Fatalf("TestDir_Walk: Walk operation failed: %v", err)
-	}
-
-	// Verify that the walker function was applied to all files and directories
-	expectedPaths := []string{testDir + "/file1.txt", testDir + "/subdir", testDir + "/subdir/file2.txt"}
-	for _, expectedPath := range expectedPaths {
-		found := false
-		for _, v := range visited {
-			if v == expectedPath {
-				found = true
-				break
+	NewDir(String(testDir)).Walk().
+		Exclude(func(f *File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
+		ForEach(func(r Result[*File]) {
+			if r.IsErr() {
+				t.Fatalf("unexpected error during Walk: %v", r.Err())
 			}
-		}
-		if !found {
-			t.Errorf("TestDir_Walk: Expected path not visited: %s", expectedPath)
+			visited.Push(r.Ok().Path().Ok().Std())
+		})
+
+	expected := []string{
+		filepath.Join(testDir, "file1.txt"),
+		filepath.Join(testDir, "file2.txt"),
+		filepath.Join(testDir, "subdir1"),
+		filepath.Join(testDir, "subdir2"),
+	}
+
+	for _, exp := range expected {
+		if !visited.Contains(exp) {
+			t.Errorf("TestDir_Walk: expected %q to be visited, got %v", exp, visited)
 		}
 	}
 }
 
 func createTestFiles(dir string) {
-	// Create some test files and directories inside the provided directory
 	os.Mkdir(filepath.Join(dir, "subdir1"), 0755)
 	os.Mkdir(filepath.Join(dir, "subdir2"), 0755)
 	os.Create(filepath.Join(dir, "file1.txt"))
 	os.Create(filepath.Join(dir, "file2.txt"))
 }
 
-// createTempDir creates a temporary directory for testing and returns its path.
 func createTempDir(t *testing.T) string {
 	tempDir, err := os.MkdirTemp("", "testdir")
 	if err != nil {
