@@ -2,28 +2,21 @@ package g
 
 import (
 	"fmt"
-	"maps"
+
+	"github.com/enetx/g/f"
 )
 
 // NewMapSafe creates a new instance of MapSafe with an optional initial size.
-func NewMapSafe[K comparable, V any](size ...Int) *MapSafe[K, V] {
-	return &MapSafe[K, V]{data: NewMap[K, V](size...)}
-}
+func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} }
 
 // Iter provides a thread-safe iterator over the MapSafe's key-value pairs.
 func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
-	ms.mu.RLock()
-	keys := maps.Keys(ms.data)
-	ms.mu.RUnlock()
-
 	return func(yield func(K, V) bool) {
-		for k := range keys {
-			if v := ms.Get(k); v.IsSome() {
-				if !yield(k, v.Some()) {
-					return
-				}
-			}
-		}
+		ms.data.Range(func(key, value any) bool {
+			k := key.(K)
+			v := value.(V)
+			return yield(k, v)
+		})
 	}
 }
 
@@ -46,15 +39,18 @@ func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
 //	m.Len() // Output: 0
 func (ms *MapSafe[K, V]) IntoIter() SeqMap[K, V] {
 	return func(yield func(K, V) bool) {
-		ms.mu.Lock()
-		defer ms.mu.Unlock()
+		var keys []K
+		ms.data.Range(func(key, _ any) bool {
+			keys = append(keys, key.(K))
+			return true
+		})
 
-		for k, v := range ms.data {
-			if !yield(k, v) {
-				break
+		for _, k := range keys {
+			if val := ms.GetAndDelete(k); val.IsSome() {
+				if !yield(k, val.Some()) {
+					return
+				}
 			}
-
-			delete(ms.data, k)
 		}
 	}
 }
@@ -69,88 +65,97 @@ func (ms *MapSafe[K, V]) Values() Slice[V] { return ms.Iter().Values().Collect()
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
 // types are guaranteed to be comparable.
 func (ms *MapSafe[K, V]) Invert() *MapSafe[any, K] {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	res := NewMapSafe[any, K]()
+	ms.data.Range(func(key, value any) bool {
+		res.data.Store(value, key.(K))
+		return true
+	})
 
-	result := NewMapSafe[any, K](ms.Len())
-	for k, v := range ms.data {
-		result.data.Set(v, k)
-	}
-
-	return result
+	return res
 }
 
 // Contains checks if the MapSafe contains the specified key.
 func (ms *MapSafe[K, V]) Contains(key K) bool {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
-	return ms.data.Contains(key)
+	_, ok := ms.data.Load(key)
+	return ok
 }
 
 // Clone creates a new MapSafe that is a copy of the original MapSafe.
 func (ms *MapSafe[K, V]) Clone() *MapSafe[K, V] {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	res := NewMapSafe[K, V]()
+	ms.data.Range(func(key, value any) bool {
+		res.data.Store(key, value)
+		return true
+	})
 
-	result := NewMapSafe[K, V]()
-	result.data = maps.Clone(ms.data)
-
-	return result
+	return res
 }
 
 // Copy copies the source MapSafe's key-value pairs to the target MapSafe.
 func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
-	src.mu.RLock()
-	defer src.mu.RUnlock()
-
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.data.Copy(src.data)
+	src.data.Range(func(key, value any) bool {
+		ms.data.Store(key, value)
+		return true
+	})
 }
 
 // Delete removes the specified keys from the MapSafe.
 func (ms *MapSafe[K, V]) Delete(keys ...K) {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.data.Delete(keys...)
+	for _, k := range keys {
+		ms.data.Delete(k)
+	}
 }
 
 // Eq checks if two MapSafes are equal.
 func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	n := ms.Len()
+	if n != other.Len() {
+		return false
+	}
 
-	other.mu.RLock()
-	defer other.mu.RUnlock()
+	if n == 0 {
+		return true
+	}
 
-	return ms.data.Eq(other.data)
+	res := true
+
+	key := ms.Iter().Take(1).Keys().Collect()[0]
+	comparable := f.IsComparable(ms.Get(key).Some())
+
+	ms.data.Range(func(key, value any) bool {
+		ov, ok := other.data.Load(key)
+		if !ok || (comparable && !f.Eq(value)(ov)) || (!comparable && !f.Eqd(value)(ov)) {
+			res = false
+			return false
+		}
+
+		return true
+	})
+
+	return res
 }
 
 // Get retrieves the value associated with the given key.
 func (ms *MapSafe[K, V]) Get(key K) Option[V] {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	if v, ok := ms.data.Load(key); ok {
+		return Some(v.(V))
+	}
 
-	return ms.data.Get(key)
+	return None[V]()
 }
 
 // Set sets the value for the given key in the MapSafe.
-func (ms *MapSafe[K, V]) Set(key K, value V) {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.data.Set(key, value)
-}
+func (ms *MapSafe[K, V]) Set(key K, value V) { ms.data.Store(key, value) }
 
 // Len returns the number of key-value pairs in the MapSafe.
 func (ms *MapSafe[K, V]) Len() Int {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
+	count := 0
+	ms.data.Range(func(_, _ any) bool {
+		count++
+		return true
+	})
 
-	return ms.data.Len()
+	return Int(count)
 }
 
 // Ne checks if two MapSafes are not equal.
@@ -160,49 +165,44 @@ func (ms *MapSafe[K, V]) Ne(other *MapSafe[K, V]) bool { return !ms.Eq(other) }
 func (ms *MapSafe[K, V]) NotEmpty() bool { return !ms.Empty() }
 
 // GetOrSet retrieves the value for a key, or sets it to a default value if the key does not exist.
-func (ms *MapSafe[K, V]) GetOrSet(key K, defaultValue V) V {
-	ms.mu.RLock()
-	value, ok := ms.data[key]
-	ms.mu.RUnlock()
+func (ms *MapSafe[K, V]) GetOrSet(key K, value V) (V, bool) {
+	actual, loaded := ms.data.LoadOrStore(key, value)
+	return actual.(V), loaded
+}
 
-	if ok {
-		return value
+// GetAndDelete retrieves and removes the value for a key from the map.
+// It returns Some(value) if the key was present, or None if it was not.
+func (ms *MapSafe[K, V]) GetAndDelete(key K) Option[V] {
+	if value, loaded := ms.data.LoadAndDelete(key); loaded {
+		return Some(value.(V))
 	}
 
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.data[key] = defaultValue
-
-	return defaultValue
+	return None[V]()
 }
 
 // Clear removes all key-value pairs from the MapSafe.
 func (ms *MapSafe[K, V]) Clear() {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
+	var keys []K
+	ms.data.Range(func(key, _ any) bool {
+		keys = append(keys, key.(K))
+		return true
+	})
 
-	clear(ms.data)
+	for _, k := range keys {
+		ms.data.Delete(k)
+	}
 }
 
 // Empty checks if the MapSafe is empty.
-func (ms *MapSafe[K, V]) Empty() bool {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
-	return ms.data.Empty()
-}
+func (ms *MapSafe[K, V]) Empty() bool { return ms.Len() == 0 }
 
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
 	builder := NewBuilder()
-
-	for k, v := range ms.data {
-		builder.Write(Format("{}:{}, ", k, v))
-	}
+	ms.data.Range(func(key, value any) bool {
+		builder.Write(Format("{}:{}, ", key, value))
+		return true
+	})
 
 	return builder.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
 }
@@ -210,9 +210,6 @@ func (ms *MapSafe[K, V]) String() string {
 // Print writes the key-value pairs of the MapSafe to the standard output (console)
 // and returns the MapSafe unchanged.
 func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
 	fmt.Print(ms)
 	return ms
 }
@@ -220,9 +217,6 @@ func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] {
 // Println writes the key-value pairs of the MapSafe to the standard output (console) with a newline
 // and returns the MapSafe unchanged.
 func (ms *MapSafe[K, V]) Println() *MapSafe[K, V] {
-	ms.mu.RLock()
-	defer ms.mu.RUnlock()
-
 	fmt.Println(ms)
 	return ms
 }

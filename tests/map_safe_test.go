@@ -164,11 +164,11 @@ func TestMapSafe(t *testing.T) {
 
 	t.Run("TestGetOrSet", func(t *testing.T) {
 		ms := NewMapSafe[string, int]()
-		value := ms.GetOrSet("key1", 42)
+		value, _ := ms.GetOrSet("key1", 42)
 		if value != 42 {
 			t.Fatalf("Expected value 42, got %v", value)
 		}
-		value = ms.GetOrSet("key1", 100)
+		value, _ = ms.GetOrSet("key1", 100)
 		if value != 42 {
 			t.Fatalf("Expected value 42 (existing), got %v", value)
 		}
@@ -186,7 +186,7 @@ func TestMapSafe(t *testing.T) {
 	t.Run("TestConcurrentAccess", func(t *testing.T) {
 		ms := NewMapSafe[String, int]()
 		wg := sync.WaitGroup{}
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()

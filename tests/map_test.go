@@ -31,15 +31,15 @@ func TestMapFromStd(t *testing.T) {
 func TestMapClear(t *testing.T) {
 	// Test case 1: Clearing an empty map
 	emptyMap := Map[string, int]{}
-	clearedEmptyMap := emptyMap.Clear()
-	if !clearedEmptyMap.Empty() {
+	emptyMap.Clear()
+	if !emptyMap.Empty() {
 		t.Errorf("Test case 1 failed: Cleared empty map should be empty")
 	}
 
 	// Test case 2: Clearing a non-empty map
 	testMap := Map[string, int]{"a": 1, "b": 2, "c": 3}
-	clearedTestMap := testMap.Clear()
-	if !clearedTestMap.Empty() {
+	testMap.Clear()
+	if !testMap.Empty() {
 		t.Errorf("Test case 2 failed: Cleared test map should be empty")
 	}
 }

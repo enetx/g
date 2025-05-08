@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
 	"time"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/pkg/ref"
 )
 
 const (
@@ -18,11 +21,17 @@ type data struct {
 	age  Int
 }
 
+var dataMapPool = sync.Pool{
+	New: func() any {
+		return ref.Of(NewMap[String, data](ITEMS_NUM))
+	},
+}
+
 func main() {
 	start := time.Now()
 
-	pool := NewPool[time.Duration](TASKS_NUM)
-	pool.Limit(50)
+	pool := NewPool[time.Duration]()
+	pool.Limit(runtime.NumCPU())
 
 	for range TASKS_NUM {
 		pool.Go(func() Result[time.Duration] {
@@ -30,11 +39,13 @@ func main() {
 
 			var sum uint64
 
-			dataMap := NewMap[String, data](ITEMS_NUM)
+			dataMap := dataMapPool.Get().(*Map[String, data])
+			dataMap.Clear()
+
+			defer dataMapPool.Put(dataMap)
 
 			for i := range ITEMS_NUM {
 				name := i.String()
-
 				dataMap.Set(name, data{name: name, age: i})
 				if val := dataMap.Get(name); val.IsSome() && val.Some().name.Eq(name) {
 					sum += uint64(val.Some().age)

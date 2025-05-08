@@ -28,10 +28,10 @@ func main() {
 	s := SliceOf[Int](1, 2, 3, 4, 5)
 
 	ss := TransformSlice(s, Int.String) // g.Slice[g.String]
-	ss.Get(0).Sprintf("hello %s").Println()
+	ss.Get(0).Some().Format("hello %s").Println()
 
 	is := TransformSlice(ss, func(s String) Int { return s.ToInt().Unwrap() }) // g.Slice[g.Int]
-	is.Get(0).Add(99).Println()
+	is.Get(0).Some().Add(99).Println()
 
 	////////////////////////////////////////////////////////////////////////////
 

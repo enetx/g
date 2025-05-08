@@ -104,7 +104,6 @@ func (m Map[K, V]) Std() map[K]V { return m }
 // ToMapOrd converts a standard Map to an ordered Map.
 func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
-
 	for k, v := range m {
 		mo.Set(k, v)
 	}
@@ -115,7 +114,9 @@ func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 // ToMapSafe converts a standard Map to a thread-safe Map.
 func (m Map[K, V]) ToMapSafe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
-	ms.data = m
+	for k, v := range m {
+		ms.Set(k, v)
+	}
 
 	return ms
 }
@@ -133,7 +134,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	}
 
 	key := m.Iter().Take(1).Keys().Collect()[0]
-	comparable := f.IsComparable(key) && f.IsComparable(m[key])
+	comparable := f.IsComparable(m[key])
 
 	for k, v1 := range m {
 		v2, ok := other[k]
@@ -201,7 +202,7 @@ func (m Map[K, V]) GetOrSet(key K, defaultValue V) V {
 }
 
 // Clear removes all key-value pairs from the Map.
-func (m Map[K, V]) Clear() Map[K, V] { clear(m); return m }
+func (m Map[K, V]) Clear() { clear(m) }
 
 // Empty checks if the Map is empty.
 func (m Map[K, V]) Empty() bool { return len(m) == 0 }

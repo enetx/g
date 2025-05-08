@@ -62,12 +62,9 @@ type (
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
 	MapOrd[K, V any] []Pair[K, V]
 
-	// MapSafe is a thread-safe wrapper around a generic map.
-	// It provides synchronized access to the underlying map to ensure
-	// data consistency in concurrent environments.
+	// MapSafe is a concurrent-safe generic map built on sync.Map.
 	MapSafe[K comparable, V any] struct {
-		mu   sync.RWMutex // Mutex to synchronize access to the map.
-		data Map[K, V]    // The underlying map storing key-value pairs.
+		data sync.Map
 	}
 
 	// Named is a map-like type that stores key-value pairs for resolving named
@@ -91,6 +88,21 @@ type (
 
 	// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
 	SeqMap[K comparable, V any] iter.Seq2[K, V]
+
+	// SeqSlicePar is a parallel iterator over a slice of elements of type T.
+	// It uses a fixed-size pool of worker goroutines to process elements concurrently.
+	SeqSlicePar[V any] struct {
+		src     SeqSlice[V]
+		workers Int
+		process func(V) (V, bool)
+	}
+
+	// SeqMapPar is the parallel version of SeqMap[K,V].
+	SeqMapPar[K comparable, V any] struct {
+		src     SeqMap[K, V]
+		workers Int
+		process func(Pair[K, V]) (Pair[K, V], bool)
+	}
 
 	// Pool[T any] is a goroutine pool that allows parallel task execution.
 	Pool[T any] struct {

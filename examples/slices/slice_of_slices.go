@@ -27,7 +27,7 @@ func main() {
 
 	nx = nx.Iter().Dedup().Collect().Println()
 
-	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return b.Get(0).Cmp(a.Get(0)) })
+	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return b[0].Cmp(a[0]) })
 	nx.Println()
 
 	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return a.Len().Cmp(b.Len()) })
@@ -53,7 +53,7 @@ func main() {
 	fmt.Println(m.Get("one").Some().Last().Some().Contains("aaa"))
 
 	nested := Slice[any]{1, 2, Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
-	flattened := nested.Iter().Flatten().Collect()
+	flattened := nested.Iter().Parallel(10).Flatten().Collect()
 	fmt.Println(flattened)
 
 	nestedSlice := Slice[any]{
@@ -64,8 +64,9 @@ func main() {
 		SliceOf(4.5, 6.7),
 	}
 
-	nestedSlice.Println()                            // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
-	nestedSlice.Iter().Flatten().Collect().Println() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+	nestedSlice.Println()                                         // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
+	nestedSlice.Iter().Flatten().Collect().Println()              // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+	nestedSlice.Iter().Parallel(10).Flatten().Collect().Println() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
 
 	nestedSlice2 := Slice[any]{
 		1,
@@ -78,6 +79,7 @@ func main() {
 		SliceOf(MapOrd[int, int]{{1, 1}}, MapOrd[int, int]{{2, 2}}),
 	}
 
-	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], {1 1}, {2 2}]
+	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], MapOrd{1:1}, MapOrd{2:2}]
 	nestedSlice2.Iter().Flatten().Collect().Println()
+	nestedSlice2.Iter().Parallel(10).Flatten().Collect().Println()
 }

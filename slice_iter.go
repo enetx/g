@@ -9,6 +9,19 @@ import (
 	"github.com/enetx/g/f"
 )
 
+// Parallel runs this SeqSlice in parallel using the given number of workers.
+func (seq SeqSlice[V]) Parallel(workers Int) SeqSlicePar[V] {
+	if workers.Lte(0) {
+		workers = 1
+	}
+
+	return SeqSlicePar[V]{
+		src:     seq,
+		workers: workers,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
+
 // Pull converts the “push-style” iterator sequence seq
 // into a “pull-style” iterator accessed by the two functions
 // next and stop.
@@ -521,32 +534,28 @@ func (seq SeqSlice[V]) ForEach(fn func(v V)) {
 // The resulting iterator will contain elements from each iterator in sequence.
 func (seq SeqSlice[V]) Flatten() SeqSlice[V] {
 	return func(yield func(V) bool) {
-		seq(func(item V) bool {
-			stack := []reflect.Value{reflect.ValueOf(item)}
-
-			for len(stack) > 0 {
-				val := stack[len(stack)-1]
-				stack = stack[:len(stack)-1]
-
-				for val.Kind() == reflect.Interface || val.Kind() == reflect.Ptr {
-					if val.IsNil() {
-						goto skip
-					}
-					val = val.Elem()
-				}
-
-				if val.Kind() == reflect.Slice {
-					for i := val.Len() - 1; i >= 0; i-- {
-						stack = append(stack, val.Index(i))
-					}
-				} else {
-					if !yield(val.Interface().(V)) {
+		var flatten func(item any) bool
+		flatten = func(item any) bool {
+			rv := reflect.ValueOf(item)
+			switch rv.Kind() {
+			case reflect.Slice, reflect.Array:
+				for i := range rv.Len() {
+					if !flatten(rv.Index(i).Interface()) {
 						return false
 					}
 				}
-			skip:
+			default:
+				if v, ok := item.(V); ok {
+					if !yield(v) {
+						return false
+					}
+				}
 			}
 			return true
+		}
+
+		seq(func(item V) bool {
+			return flatten(item)
 		})
 	}
 }

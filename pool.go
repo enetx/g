@@ -10,14 +10,14 @@ import (
 )
 
 // NewPool[T any] creates a new goroutine pool.
-func NewPool[T any](size ...Int) *Pool[T] {
+func NewPool[T any]() *Pool[T] {
 	ctx, cancel := context.WithCancelCause(context.Background())
 
 	return &Pool[T]{
 		ctx:       ctx,
 		cancel:    cancel,
 		semaphore: nil,
-		results:   NewMapSafe[int, Result[T]](Slice[Int](size).Get(0).Some()),
+		results:   NewMapSafe[int, Result[T]](),
 	}
 }
 
@@ -89,13 +89,13 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 
 // Limit sets the maximum number of concurrently running tasks.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
+	if len(p.semaphore) > 0 {
+		panic("cannot change semaphore limit while tasks are running")
+	}
+
 	if workers <= 0 {
 		p.semaphore = nil
 		return p
-	}
-
-	if len(p.semaphore) > 0 {
-		panic("cannot change semaphore limit while tasks are running")
 	}
 
 	if runtime.GOOS != "windows" {

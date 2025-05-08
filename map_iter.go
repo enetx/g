@@ -2,6 +2,19 @@ package g
 
 import "iter"
 
+// IterPar parallelizes the SeqMap using the specified number of workers.
+func (seq SeqMap[K, V]) Parallel(workers Int) SeqMapPar[K, V] {
+	if workers.Lte(0) {
+		workers = 1
+	}
+
+	return SeqMapPar[K, V]{
+		src:     seq,
+		workers: workers,
+		process: func(p Pair[K, V]) (Pair[K, V], bool) { return p, true },
+	}
+}
+
 // Pull converts the “push-style” iterator sequence seq
 // into a “pull-style” iterator accessed by the two functions
 // next and stop.
