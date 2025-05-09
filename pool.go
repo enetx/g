@@ -3,7 +3,9 @@ package g
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
+	"runtime/debug"
 	"sync/atomic"
 
 	"github.com/enetx/g/internal/rlimit"
@@ -49,6 +51,15 @@ func (p *Pool[T]) done() {
 	p.wg.Done()
 }
 
+func (p *Pool[T]) error(index int32, err error) {
+	atomic.AddInt32(&p.failedTasks, 1)
+	if p.cancelOnError {
+		p.Cancel(err)
+	}
+
+	p.results.Set(int(index), Err[T](err))
+}
+
 // Go launches an asynchronous task fn() in its own goroutine.
 func (p *Pool[T]) Go(fn func() Result[T]) {
 	if !p.acquire() {
@@ -61,20 +72,28 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 
 	go func(index int32) {
 		defer p.done()
-
-		select {
-		case <-p.ctx.Done():
-		default:
-			result := fn()
-			if result.IsErr() {
-				if p.cancelOnError {
-					p.Cancel(errors.New("cancel on error"))
-				}
-				atomic.AddInt32(&p.failedTasks, 1)
+		defer func() {
+			if r := recover(); r != nil {
+				p.error(index, epanic(r))
 			}
+		}()
 
-			p.results.Set(int(index), result)
+		if p.ctx.Err() != nil {
+			return
 		}
+
+		if fn == nil {
+			p.error(index, errors.New("nil function provided"))
+			return
+		}
+
+		result := fn()
+		if result.IsErr() {
+			p.error(index, result.Err())
+			return
+		}
+
+		p.results.Set(int(index), result)
 	}(index)
 }
 
@@ -89,7 +108,7 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 
 // Limit sets the maximum number of concurrently running tasks.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
-	if len(p.semaphore) > 0 {
+	if p.semaphore != nil && len(p.semaphore) > 0 {
 		panic("cannot change semaphore limit while tasks are running")
 	}
 
@@ -100,6 +119,10 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 
 	if runtime.GOOS != "windows" {
 		workers = rlimit.RlimitStack(workers)
+	}
+
+	if workers < 1 {
+		workers = 1
 	}
 
 	p.semaphore = make(chan struct{}, workers)
@@ -155,6 +178,7 @@ func (p *Pool[T]) Reset() {
 
 	p.Cancel()
 	p.ClearMetrics()
+	p.results.Clear()
 	p.semaphore = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
 }
@@ -173,3 +197,15 @@ func (p *Pool[T]) ActiveTasks() int { return int(atomic.LoadInt32(&p.activeTasks
 
 // FailedTasks returns the number of tasks that have completed with an error.
 func (p *Pool[T]) FailedTasks() int { return int(atomic.LoadInt32(&p.failedTasks)) }
+
+func epanic(r any) error {
+	stack := debug.Stack()
+	switch x := r.(type) {
+	case string:
+		return fmt.Errorf("panic: %s\n%s", x, stack)
+	case error:
+		return fmt.Errorf("panic: %w\n%s", x, stack)
+	default:
+		return fmt.Errorf("panic: %v\n%s", x, stack)
+	}
+}

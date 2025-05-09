@@ -22,7 +22,6 @@ func main() {
 			}
 
 			if taskID == 7 {
-				// pool.Cancel()
 				pool.Cancel(errors.New("case 7, cancel"))
 			}
 

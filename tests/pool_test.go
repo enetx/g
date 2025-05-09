@@ -3,11 +3,80 @@ package g_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	. "github.com/enetx/g"
 )
+
+func TestGoPanic(t *testing.T) {
+	t.Run("PanicWithoutCancelOnError", func(t *testing.T) {
+		pool := NewPool[int]()
+
+		pool.Go(func() Result[int] {
+			panic("test panic")
+		})
+
+		results := pool.Wait()
+
+		if len(results) != 1 {
+			t.Fatalf("Expected 1 result, got %d", len(results))
+		}
+
+		if results[0].Err() == nil {
+			t.Fatal("Expected error in result, got nil")
+		}
+
+		if !strings.Contains(results[0].Err().Error(), "panic: test panic") {
+			t.Errorf("Expected error to contain 'panic: test panic', got %q", results[0].Err().Error())
+		}
+
+		if pool.FailedTasks() != 1 {
+			t.Errorf("Expected 1 failed task, got %d", pool.FailedTasks())
+		}
+
+		if pool.GetContext().Err() == nil {
+			t.Error("Expected pool to be cancelled after Wait")
+		}
+	})
+
+	t.Run("PanicWithCancelOnError", func(t *testing.T) {
+		pool := NewPool[int]()
+		pool.Limit(1)
+		pool.CancelOnError()
+
+		pool.Go(func() Result[int] {
+			panic("test panic")
+		})
+
+		pool.Go(func() Result[int] {
+			return Ok(42)
+		})
+
+		results := pool.Wait()
+
+		if len(results) != 1 {
+			t.Fatalf("Expected 1 result, got %d", len(results))
+		}
+
+		if results[0].IsOk() {
+			t.Fatal("Expected error in result, got nil")
+		}
+
+		if !strings.Contains(results[0].Err().Error(), "panic: test panic") {
+			t.Errorf("Expected error to contain 'panic: test panic', got %q", results[0].Err().Error())
+		}
+
+		if pool.FailedTasks() != 1 {
+			t.Errorf("Expected 1 failed task, got %d", pool.FailedTasks())
+		}
+
+		if !errors.Is(pool.Cause(), results[0].Err()) {
+			t.Errorf("Expected pool cancellation cause to match panic error, got %v", pool.Cause())
+		}
+	})
+}
 
 func TestPool(t *testing.T) {
 	pool := NewPool[int]()
