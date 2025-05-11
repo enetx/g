@@ -18,24 +18,10 @@ func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn
 // Entry returns an MapEntry object for the given key, providing fine‑grained
 // control over insertion and modification of its value.
 //
-// Parameters:
-//
-//   - key K: the key whose entry you want to inspect or manipulate.
-//
-// Returns:
-//
-//   - MapEntry[K, V]: a handle exposing helper methods such as
-//   - OrSet			– insert a value if vacant and return it
-//   - OrSetBy			– lazily insert a value produced by a function
-//   - OrDefault		– insert V’s zero-value if vacant
-//   - AndModify		– mutate the existing value in place
-//   - Set				– unconditionally set the value
-//   - Delete			– remove the key entirely
-//
 // Example:
 //
 //	m := g.NewMap[string,int]()
-//	// Insert 1 if "foo" is absent, otherwise increment the existing value.
+//	// Insert 1 if "foo" is absent, then increment it
 //	m.Entry("foo").
 //	    OrSet(1).
 //	    AndModify(func(v *int) { *v++ })

@@ -59,6 +59,22 @@ func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 	return anymo
 }
 
+// Entry returns a MapOrdEntry object for the given key, providing fine-grained
+// control over insertion, mutation, and deletion of its value in the ordered Map,
+// while preserving the insertion order.
+//
+// Example:
+//
+//	mo := g.NewMapOrd[string,int]()
+//	// Insert 1 if "foo" is absent, then increment it
+//	mo.Entry("foo").
+//	    OrSet(1).
+//	    AndModify(func(v *int) { *v++ })
+//
+// The entire operation requires only a single key lookup and works without
+// additional allocations.
+func (mo *MapOrd[K, V]) Entry(key K) MapOrdEntry[K, V] { return MapOrdEntry[K, V]{mo, key} }
+
 // Iter returns an iterator (SeqMapOrd[K, V]) for the ordered Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the ordered Map.

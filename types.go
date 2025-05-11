@@ -70,6 +70,13 @@ type (
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
 	MapOrd[K, V any] []Pair[K, V]
 
+	// MapOrdEntry provides a view into a single key of an ordered Map (MapOrd),
+	// enabling fluent insertion, mutation, and deletion while preserving entry order.
+	MapOrdEntry[K, V any] struct {
+		mo  *MapOrd[K, V]
+		key K
+	}
+
 	// MapSafe is a concurrent-safe generic map built on sync.Map.
 	MapSafe[K comparable, V any] struct {
 		data sync.Map
