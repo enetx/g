@@ -1,20 +1,10 @@
 package main
 
 import (
-	"fmt"
-
 	. "github.com/enetx/g"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
-	gos := NewMap[string, *Int]()
-	gos.GetOrSet("root", ref.Of(Int(3)))
-	fmt.Println(*gos.Get("root").Some() == 3)
-
-	*gos.GetOrSet("root", ref.Of(Int(10))) *= 2
-	fmt.Println(*gos.Get("root").Some() == 6)
-
 	//////////////////////////////////////////////////////////////////////////
 
 	gos2 := NewMap[int, Slice[int]]()

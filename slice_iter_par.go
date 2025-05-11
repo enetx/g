@@ -227,7 +227,6 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 
 	go func() {
 		defer close(in)
-
 		p.src(func(v V) bool {
 			select {
 			case in <- v:
@@ -245,9 +244,9 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 		go func() {
 			defer wg.Done()
 			for v := range in {
-				if v2, ok := p.process(v); ok {
+				if mid, ok := p.process(v); ok {
 					select {
-					case out <- v2:
+					case out <- mid:
 					case <-done:
 						return
 					}

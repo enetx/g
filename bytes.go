@@ -2,6 +2,7 @@ package g
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"unicode"
 	"unicode/utf8"
@@ -93,6 +94,19 @@ func (bs Bytes) TrimStartSet(cutset String) Bytes { return bytes.TrimLeft(bs, cu
 
 // TrimEndSet removes the specified set of characters from the end of the Bytes.
 func (bs Bytes) TrimEndSet(cutset String) Bytes { return bytes.TrimRight(bs, cutset.Std()) }
+
+// Int returns the byte slice as a Int.
+func (bs Bytes) Int() Int {
+	var buffer [8]byte
+	b := bs
+
+	if len(b) > len(buffer) {
+		b = b[len(b)-len(buffer):]
+	}
+
+	copy(buffer[len(buffer)-len(b):], b)
+	return Int(binary.BigEndian.Uint64(buffer[:]))
+}
 
 // StripPrefix trims the specified Bytes prefix from the Bytes.
 func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }

@@ -270,39 +270,6 @@ func (mo MapOrd[K, V]) Shuffle() {
 	}
 }
 
-// GetOrSet returns the value for a key. If the key does not exist, it returns the default value
-// instead and also sets the default value for the key in the ordered Map. This function is useful
-// when you want to access the value associated with a key in the ordered Map, and if the key does
-// not exist, you want to return a specified default value and set that default value for the key.
-//
-// Parameters:
-//
-// - key K: The key to search for in the ordered Map.
-//
-// - defaultValue V: The default value to return if the key is not found in the ordered Map.
-// If the key is not found, this default value will also be set for the key in the ordered Map.
-//
-// Returns:
-//
-// - V: The value associated with the specified key if found, or the provided default value if the key is not found.
-//
-// Example usage:
-//
-//	value := mo.GetOrSet("some_key", "default_value")
-//
-// Retrieves the value associated with the key "some_key" or returns "default_value" if the key is
-// not found, and sets "default_value" as the value for "some_key" in the ordered Map if it's not
-// present.
-func (mo *MapOrd[K, V]) GetOrSet(key K, defaultValue V) V {
-	if value := mo.Get(key); value.IsSome() {
-		return value.Some()
-	}
-
-	mo.Set(key, defaultValue)
-
-	return defaultValue
-}
-
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
 func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {

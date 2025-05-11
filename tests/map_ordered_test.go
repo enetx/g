@@ -498,26 +498,6 @@ func TestMapOrdInvert(t *testing.T) {
 	}
 }
 
-func TestMapOrdGetOrSet(t *testing.T) {
-	// Test case 1: Key exists
-	m := NewMapOrd[string, int]()
-	m.Set("key1", 10)
-	defaultValue := 20
-	result := m.GetOrSet("key1", defaultValue)
-	if result != 10 {
-		t.Errorf("Expected value to be 10, got %d", result)
-	}
-
-	// Test case 2: Key doesn't exist
-	result = m.GetOrSet("key2", defaultValue)
-	if result != defaultValue {
-		t.Errorf("Expected value to be %d, got %d", defaultValue, result)
-	}
-	if value := m.Get("key2"); value.Some() != defaultValue {
-		t.Errorf("Expected key2 to be set with default value")
-	}
-}
-
 func TestMapOrdClone(t *testing.T) {
 	// Test case 1: Map with elements
 	m := NewMapOrd[int, string]()

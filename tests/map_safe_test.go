@@ -7,6 +7,30 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestMapSafeGetAndSet(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+
+	prev := ms.GetAndSet("x", 10)
+
+	if prev.IsSome() {
+		t.Errorf("expected None, got Some(%v)", prev.Some())
+	}
+
+	if val := ms.Get("x"); val.IsNone() || val.Some() != 10 {
+		t.Errorf("expected 10, got %v", val)
+	}
+
+	prev = ms.GetAndSet("x", 42)
+
+	if prev.IsNone() || prev.Some() != 10 {
+		t.Errorf("expected Some(10), got %v", prev)
+	}
+
+	if val := ms.Get("x"); val.IsNone() || val.Some() != 42 {
+		t.Errorf("expected 42, got %v", val)
+	}
+}
+
 func TestMapSafeIntoIter(t *testing.T) {
 	ms := NewMapSafe[string, int]()
 	ms.Set("a", 1)

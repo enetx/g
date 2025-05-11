@@ -170,8 +170,24 @@ func (ms *MapSafe[K, V]) GetOrSet(key K, value V) (V, bool) {
 	return actual.(V), loaded
 }
 
-// GetAndDelete retrieves and removes the value for a key from the map.
-// It returns Some(value) if the key was present, or None if it was not.
+// GetAndSet atomically sets a new value for the given key and returns the previous value, if any.
+//
+// Returns:
+//   - Some(previous) if the key was present before the update.
+//   - None if the key did not exist.
+func (ms *MapSafe[K, V]) GetAndSet(key K, value V) Option[V] {
+	if previous, loaded := ms.data.Swap(key, value); loaded {
+		return Some(previous.(V))
+	}
+
+	return None[V]()
+}
+
+// GetAndDelete atomically retrieves and removes the value for the given key.
+//
+// Returns:
+//   - Some(value) if the key existed and was removed.
+//   - None if the key was not present.
 func (ms *MapSafe[K, V]) GetAndDelete(key K) Option[V] {
 	if value, loaded := ms.data.LoadAndDelete(key); loaded {
 		return Some(value.(V))
@@ -181,17 +197,7 @@ func (ms *MapSafe[K, V]) GetAndDelete(key K) Option[V] {
 }
 
 // Clear removes all key-value pairs from the MapSafe.
-func (ms *MapSafe[K, V]) Clear() {
-	var keys []K
-	ms.data.Range(func(key, _ any) bool {
-		keys = append(keys, key.(K))
-		return true
-	})
-
-	for _, k := range keys {
-		ms.data.Delete(k)
-	}
-}
+func (ms *MapSafe[K, V]) Clear() { ms.data.Clear() }
 
 // Empty checks if the MapSafe is empty.
 func (ms *MapSafe[K, V]) Empty() bool { return ms.Len() == 0 }

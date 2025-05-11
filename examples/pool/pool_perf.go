@@ -8,7 +8,6 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/ref"
 )
 
 const (
@@ -23,7 +22,7 @@ type data struct {
 
 var dataMapPool = sync.Pool{
 	New: func() any {
-		return ref.Of(NewMap[String, data](ITEMS_NUM))
+		return NewMap[String, data](ITEMS_NUM)
 	},
 }
 
@@ -39,13 +38,13 @@ func main() {
 
 			var sum uint64
 
-			dataMap := dataMapPool.Get().(*Map[String, data])
-			dataMap.Clear()
-
+			dataMap := dataMapPool.Get().(Map[String, data])
 			defer dataMapPool.Put(dataMap)
+			dataMap.Clear()
 
 			for i := range ITEMS_NUM {
 				name := i.String()
+
 				dataMap.Set(name, data{name: name, age: i})
 				if val := dataMap.Get(name); val.IsSome() && val.Some().name.Eq(name) {
 					sum += uint64(val.Some().age)

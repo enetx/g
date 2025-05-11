@@ -50,6 +50,14 @@ type (
 	// Map is a generic alias for a map.
 	Map[K comparable, V any] map[K]V
 
+	// MapEntry provides a view into a single key of a Map.
+	// It exposes a fluent, chain-friendly interface for inspecting, inserting,
+	// mutating, or deleting a value with a single key lookup.
+	MapEntry[K comparable, V any] struct {
+		m   Map[K, V]
+		key K
+	}
+
 	// Set is a generic alias for a set implemented using a map.
 	Set[T comparable] map[T]struct{}
 

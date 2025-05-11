@@ -5,37 +5,12 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func main() {
 	// var mo g.MapOrd[int, string]
 	// mo := g.MapOrd[int, string]{}
 	// mo := make(g.MapOrd[int, string], 0)
-
-	gos := NewMapOrd[int, *Slice[int]]()
-
-	for i := range 5 {
-		ns := NewSlice[int]()
-		gos.GetOrSet(i, ref.Of(ns)).Push(i)
-	}
-
-	for i := range 10 {
-		ns := NewSlice[int]()
-		gos.GetOrSet(i, ref.Of(ns)).Push(i)
-	}
-
-	gos.Println()
-	gos.Shuffle()
-	gos.Println()
-
-	//////////////////////////////////////////////////////////////////////////
-
-	for _, m := range gos {
-		fmt.Println(m.Key, m.Value)
-	}
-
-	//////////////////////////////////////////////////////////////////////////
 
 	god := NewMapOrd[int, Slice[int]]()
 

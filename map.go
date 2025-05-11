@@ -15,6 +15,35 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 // Transform applies a transformation function to the Map and returns the result.
 func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
 
+// Entry returns an MapEntry object for the given key, providing fine‑grained
+// control over insertion and modification of its value.
+//
+// Parameters:
+//
+//   - key K: the key whose entry you want to inspect or manipulate.
+//
+// Returns:
+//
+//   - MapEntry[K, V]: a handle exposing helper methods such as
+//   - OrSet			– insert a value if vacant and return it
+//   - OrSetBy			– lazily insert a value produced by a function
+//   - OrDefault		– insert V’s zero-value if vacant
+//   - AndModify		– mutate the existing value in place
+//   - Set				– unconditionally set the value
+//   - Delete			– remove the key entirely
+//
+// Example:
+//
+//	m := g.NewMap[string,int]()
+//	// Insert 1 if "foo" is absent, otherwise increment the existing value.
+//	m.Entry("foo").
+//	    OrSet(1).
+//	    AndModify(func(v *int) { *v++ })
+//
+// The entire operation requires only a single key lookup and works without
+// additional allocations.
+func (m Map[K, V]) Entry(key K) MapEntry[K, V] { return MapEntry[K, V]{m, key} }
+
 // Iter returns an iterator (SeqMap[K, V]) for the Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the Map.
@@ -155,50 +184,6 @@ func (m Map[K, V]) String() string {
 	}
 
 	return builder.String().StripSuffix(", ").Format("Map\\{{}\\}").Std()
-}
-
-// GetOrSet returns the value for a key. If the key exists in the Map, it returns the associated value.
-// If the key does not exist, it sets the key to the provided default value and returns that value.
-// This function is useful when you want to both retrieve and potentially set a default value for keys
-// that may or may not be present in the Map.
-//
-// Parameters:
-//
-// - key K: The key for which to retrieve the value.
-//
-// - defaultValue V: The default value to return if the key does not exist in the Map.
-// If the key is not found, this default value will also be set for the key in the Map.
-//
-// Returns:
-//
-// - V: The value associated with the key if it exists in the Map, or the default value if the key is not found.
-//
-// Eaxmple usage:
-//
-//	// Create a new ordered Map called "gos" with string keys and integer pointers as values
-//	gos := g.NewMap[string, *int]()
-//
-//	// Use GetOrSet to set the value for the key "root" to 3 if it doesn't exist,
-//	// and then print whether the value is equal to 3.
-//	gos.GetOrSet("root", ref.Of(3))
-//	fmt.Println(*gos.Get("root") == 3) // Should print "true"
-//
-//	// Use GetOrSet to retrieve the value for the key "root" (which is 3), multiply it by 2,
-//	// and then print whether the value is equal to 6.
-//	*gos.GetOrSet("root", ref.Of(10)) *= 2
-//	fmt.Println(*gos.Get("root") == 6) // Should print "true"
-//
-// In this example, you first create an ordered Map "gos" with string keys and integer pointers as values.
-// Then, you use GetOrSet to set and retrieve values for the key "root" with default values of 3 and perform
-// multiplication operations, demonstrating the behavior of GetOrSet.
-func (m Map[K, V]) GetOrSet(key K, defaultValue V) V {
-	if value, ok := m[key]; ok {
-		return value
-	}
-
-	m[key] = defaultValue
-
-	return defaultValue
 }
 
 // Clear removes all key-value pairs from the Map.

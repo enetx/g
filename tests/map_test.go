@@ -7,7 +7,6 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/ref"
 )
 
 func TestMapFromStd(t *testing.T) {
@@ -425,29 +424,6 @@ func TestMapGet(t *testing.T) {
 	value2 := map1.Get(key2)
 	if value2.IsSome() {
 		t.Errorf("Test case 2 failed, got %v", value2.Some())
-	}
-}
-
-func TestMapGetOrSet(t *testing.T) {
-	// Create a new ordered Map called "m" with string keys and integer pointers as values
-	m := NewMap[string, *int]()
-
-	// Use GetOrSet to set the value for the key "root" to 3 if it doesn't exist
-	m.GetOrSet("root", ref.Of(3))
-
-	// Check if the value for the key "root" is equal to 3
-	value := m.Get("root").Some()
-	if *value != 3 {
-		t.Errorf("Expected value 3 for key 'root', but got %v", *value)
-	}
-
-	// Use GetOrSet to retrieve the value for the key "root" (which is 3), multiply it by 2
-	*m.GetOrSet("root", ref.Of(10)) *= 2
-
-	// Check if the value for the key "root" is equal to 6
-	value = m.Get("root").Some()
-	if *value != 6 {
-		t.Errorf("Expected value 6 for key 'root', but got %v", *value)
 	}
 }
 
