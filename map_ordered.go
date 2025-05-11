@@ -65,7 +65,7 @@ func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 //
 // Example:
 //
-//	mo := g.NewMapOrd[string,int]()
+//	mo := g.NewMapOrd[string, int]()
 //	// Insert 1 if "foo" is absent, then increment it
 //	mo.Entry("foo").
 //	    OrSet(1).

@@ -31,8 +31,8 @@ func (e MapOrdEntry[K, V]) OrDefault() MapOrdEntry[K, V] {
 	return e
 }
 
-// AndModify applies fn to the existing value (if any) and returns the entry.
-func (e MapOrdEntry[K, V]) AndModify(fn func(*V)) MapOrdEntry[K, V] {
+// Transform applies fn to the existing value (if any) and returns the entry.
+func (e MapOrdEntry[K, V]) Transform(fn func(*V)) MapOrdEntry[K, V] {
 	if i := e.mo.index(e.key); i != -1 {
 		value := (*e.mo)[i].Value
 		fn(&value)

@@ -51,13 +51,13 @@ func TestMapOrdEntryOrDefault(t *testing.T) {
 	}
 }
 
-func TestMapOrdEntryAndModify(t *testing.T) {
+func TestMapOrdEntryTransform(t *testing.T) {
 	mo := NewMapOrd[string, int]()
-	mo.Entry("x").AndModify(func(v *int) { *v = 5 })
+	mo.Entry("x").Transform(func(v *int) { *v = 5 })
 	if mo.Get("x").IsSome() {
 		t.Error("expected x to remain vacant after AndModify on empty")
 	}
-	mo.Entry("y").OrSet(2).AndModify(func(v *int) { *v *= 3 })
+	mo.Entry("y").OrSet(2).Transform(func(v *int) { *v *= 3 })
 	if got := mo.Get("y").Unwrap(); got != 6 {
 		t.Errorf("expected y=6, got %d", got)
 	}
@@ -77,7 +77,7 @@ func TestMapOrdEntrySetAndDelete(t *testing.T) {
 
 func TestMapOrdEntryChaining(t *testing.T) {
 	mo := NewMapOrd[string, int]()
-	mo.Entry("chain").OrSet(1).AndModify(func(v *int) { *v++ }).Set(100).Delete()
+	mo.Entry("chain").OrSet(1).Transform(func(v *int) { *v++ }).Set(100).Delete()
 	if mo.Get("chain").IsSome() {
 		t.Error("expected chain to be deleted after chained operations")
 	}

@@ -16,8 +16,8 @@ func main() {
 	mo.Entry("alpha").OrSet(10)
 	fmt.Println(`After OrSet("alpha", 10):`, mo)
 
-	// 2) AndModify: multiply the existing "alpha" value by 2
-	mo.Entry("alpha").AndModify(func(v *int) { *v *= 2 })
+	// 2) Transform: multiply the existing "alpha" value by 2
+	mo.Entry("alpha").Transform(func(v *int) { *v *= 2 })
 	fmt.Println(`After AndModify(*2) on "alpha":`, mo)
 
 	// 3) OrSetBy: lazy insertion won't run since "alpha" already exists

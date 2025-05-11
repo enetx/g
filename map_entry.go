@@ -31,12 +31,12 @@ func (e MapEntry[K, V]) OrDefault() MapEntry[K, V] {
 	return e
 }
 
-// AndModify applies `fn` to the existing value if present, and returns the Entry.
+// Transform applies `fn` to the existing value if present, and returns the Entry.
 // If the key is vacant, it does nothing.
-func (e MapEntry[K, V]) AndModify(fn func(*V)) MapEntry[K, V] {
-	if v, ok := e.m[e.key]; ok {
-		fn(&v)
-		e.m[e.key] = v
+func (e MapEntry[K, V]) Transform(fn func(*V)) MapEntry[K, V] {
+	if value, ok := e.m[e.key]; ok {
+		fn(&value)
+		e.m[e.key] = value
 	}
 
 	return e

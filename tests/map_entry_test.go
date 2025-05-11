@@ -50,13 +50,13 @@ func TestEntryOrDefault(t *testing.T) {
 	}
 }
 
-func TestEntryAndModify(t *testing.T) {
+func TestEntryTransform(t *testing.T) {
 	m := NewMap[string, int]()
-	m.Entry("x").AndModify(func(v *int) { *v = 5 })
+	m.Entry("x").Transform(func(v *int) { *v = 5 })
 	if m.Get("x").IsSome() {
 		t.Error("expected x to remain vacant after AndModify on empty")
 	}
-	m.Entry("y").OrSet(2).AndModify(func(v *int) { *v *= 3 })
+	m.Entry("y").OrSet(2).Transform(func(v *int) { *v *= 3 })
 	if got := m.Get("y").Unwrap(); got != 6 {
 		t.Errorf("expected y=6, got %d", got)
 	}
@@ -76,7 +76,7 @@ func TestEntrySetAndDelete(t *testing.T) {
 
 func TestEntryChaining(t *testing.T) {
 	m := NewMap[string, int]()
-	m.Entry("chain").OrSet(1).AndModify(func(v *int) { *v++ }).Set(5).Delete()
+	m.Entry("chain").OrSet(1).Transform(func(v *int) { *v++ }).Set(5).Delete()
 	if m.Get("chain").IsSome() {
 		t.Error("expected chain to be deleted after chained operations")
 	}

@@ -20,7 +20,7 @@ func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn
 //
 // Example:
 //
-//	m := g.NewMap[string,int]()
+//	m := g.NewMap[string, int]()
 //	// Insert 1 if "foo" is absent, then increment it
 //	m.Entry("foo").
 //	    OrSet(1).

@@ -7,11 +7,11 @@ import (
 )
 
 func main() {
-	// Example 1: basic OrSet, AndModify, Get, Println
+	// Example 1: basic OrSet, Transform, Get, Println
 	m := NewMap[string, Int]()
 	m.Entry("root").
 		OrSet(1).
-		AndModify(func(i *Int) { *i++ })
+		Transform(func(i *Int) { *i++ })
 	m.Entry("root").Get().Some().Println() // prints: 2
 
 	// Example 2: accumulating slices per key
@@ -20,13 +20,13 @@ func main() {
 	for i := range 5 {
 		m2.Entry(i).
 			OrDefault().
-			AndModify(func(sl *Slice[int]) { sl.Push(i) })
+			Transform(func(sl *Slice[int]) { sl.Push(i) })
 	}
 
 	for i := range 10 {
 		m2.Entry(i).
 			OrDefault().
-			AndModify(func(sl *Slice[int]) { sl.Push(i) })
+			Transform(func(sl *Slice[int]) { sl.Push(i) })
 	}
 
 	m2.Println() // prints: Map{0:[0 0] 1:[1 1] ... 4:[4 4] 5:[5] ... 9:[9]}
@@ -38,7 +38,7 @@ func main() {
 			fmt.Println("initializing users slice")
 			return Slice[string]{"alice", "bob"}
 		}).
-		AndModify(func(sl *Slice[string]) { sl.Push("charlie") })
+		Transform(func(sl *Slice[string]) { sl.Push("charlie") })
 	fmt.Println("m3:", m3)
 	// Output:
 	// initializing users slice
@@ -56,7 +56,7 @@ func main() {
 	m5 := NewMap[string, Int]()
 	m5.Entry("a").
 		OrDefault().
-		AndModify(func(i *Int) { *i += 5 }).
+		Transform(func(i *Int) { *i += 5 }).
 		Set(42)
 	fmt.Println("m5:", m5) // Map{a:42}
 }
