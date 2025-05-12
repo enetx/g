@@ -11,27 +11,17 @@ import (
 	"github.com/enetx/g/pkg/constraints"
 )
 
-// Range returns a SeqSlice[T] that yields a sequence of integer values of type T,
-// beginning at start, advancing by step, and stopping before reaching stop.
-// The generated sequence is:
+// Range returns a SeqSlice[T] yielding a sequence of integers of type T,
+// starting at start, incrementing by step, and ending before stop (exclusive).
 //
-//	start, start+step, start+2*step, …
+//   - If step is omitted, it defaults to 1.
+//   - If step is 0, the sequence is empty.
+//   - If step does not move toward stop (e.g., positive step with start > stop),
+//     the sequence is empty.
 //
-// Iteration ends when:
-//   - step > 0 and the next value would be ≥ stop
-//   - step < 0 and the next value would be ≤ stop
-//
-// If no step is provided, it defaults to 1. If step == 0, the iterator yields nothing.
-// If the step value does not progress toward stop, iteration will repeat until the
-// yield function returns false.
-//
-// Example:
-//
-//	// generates [0, 1, 2, 3, 4]
-//	g.Range(0, 5).Collect().Print()
-//
-//	// generates [5, 4, 3, 2, 1]
-//	g.Range(5, 0, -1).Collect().Print()
+// Examples:
+//   - Range(0, 5) yields [0, 1, 2, 3, 4]
+//   - Range(5, 0, -1) yields [5, 4, 3, 2, 1]
 func Range[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
 	st := Slice[T](step).Get(0).UnwrapOr(1)
 
@@ -39,18 +29,8 @@ func Range[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
 		return func(func(T) bool) {}
 	}
 
-	if st > 0 {
-		return func(yield func(T) bool) {
-			for i := start; i < stop; i += st {
-				if !yield(i) {
-					return
-				}
-			}
-		}
-	}
-
 	return func(yield func(T) bool) {
-		for i := start; i > stop; i += st {
+		for i := start; (st > 0 && i < stop) || (st < 0 && i > stop); i += st {
 			if !yield(i) {
 				return
 			}

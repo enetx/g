@@ -8,7 +8,6 @@ import (
 
 func main() {
 	start := time.Now()
-
 	limit := 10000
 
 	total := Range(2, limit).Filter(isPrime).Count()
