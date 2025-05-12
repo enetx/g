@@ -107,14 +107,14 @@ type (
 	// SeqSlicePar is a parallel iterator over a slice of elements of type T.
 	// It uses a fixed-size pool of worker goroutines to process elements concurrently.
 	SeqSlicePar[V any] struct {
-		src     SeqSlice[V]
+		seq     SeqSlice[V]
 		workers Int
 		process func(V) (V, bool)
 	}
 
 	// SeqMapPar is the parallel version of SeqMap[K,V].
 	SeqMapPar[K comparable, V any] struct {
-		src     SeqMap[K, V]
+		seq     SeqMap[K, V]
 		workers Int
 		process func(Pair[K, V]) (Pair[K, V], bool)
 	}

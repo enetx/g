@@ -24,7 +24,7 @@ func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn
 //	// Insert 1 if "foo" is absent, then increment it
 //	m.Entry("foo").
 //	    OrSet(1).
-//	    AndModify(func(v *int) { *v++ })
+//	    Transform(func(v *int) { *v++ })
 //
 // The entire operation requires only a single key lookup and works without
 // additional allocations.

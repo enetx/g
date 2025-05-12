@@ -69,7 +69,7 @@ func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 //	// Insert 1 if "foo" is absent, then increment it
 //	mo.Entry("foo").
 //	    OrSet(1).
-//	    AndModify(func(v *int) { *v++ })
+//	    Transform(func(v *int) { *v++ })
 //
 // The entire operation requires only a single key lookup and works without
 // additional allocations.

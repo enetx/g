@@ -1,16 +1,22 @@
 package g
 
-import "iter"
+import (
+	"iter"
+	"runtime"
+)
 
 // IterPar parallelizes the SeqMap using the specified number of workers.
-func (seq SeqMap[K, V]) Parallel(workers Int) SeqMapPar[K, V] {
-	if workers.Lte(0) {
-		workers = 1
+func (seq SeqMap[K, V]) Parallel(workers ...Int) SeqMapPar[K, V] {
+	numCPU := Int(runtime.NumCPU())
+	count := Slice[Int](workers).Get(0).UnwrapOr(numCPU)
+
+	if count.Lte(0) {
+		count = numCPU
 	}
 
 	return SeqMapPar[K, V]{
-		src:     seq,
-		workers: workers,
+		seq:     seq,
+		workers: count,
 		process: func(p Pair[K, V]) (Pair[K, V], bool) { return p, true },
 	}
 }

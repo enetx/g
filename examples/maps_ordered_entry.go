@@ -18,7 +18,7 @@ func main() {
 
 	// 2) Transform: multiply the existing "alpha" value by 2
 	mo.Entry("alpha").Transform(func(v *int) { *v *= 2 })
-	fmt.Println(`After AndModify(*2) on "alpha":`, mo)
+	fmt.Println(`After Transform(*2) on "alpha":`, mo)
 
 	// 3) OrSetBy: lazy insertion won't run since "alpha" already exists
 	mo.Entry("alpha").OrSetBy(func() int {

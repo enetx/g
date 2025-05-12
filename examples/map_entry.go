@@ -52,7 +52,7 @@ func main() {
 	m4.Entry("count").Delete()
 	fmt.Println("after delete:", m4) // Map{}
 
-	// Example 5: chaining OrDefault, AndModify, Set
+	// Example 5: chaining OrDefault, Transform, Set
 	m5 := NewMap[string, Int]()
 	m5.Entry("a").
 		OrDefault().

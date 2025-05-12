@@ -15,7 +15,7 @@ func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
 	go func() {
 		defer close(in)
 
-		p.src(func(k K, v V) bool {
+		p.seq(func(k K, v V) bool {
 			select {
 			case in <- Pair[K, V]{k, v}:
 				return true
@@ -82,7 +82,7 @@ func (p SeqMapPar[K, V]) Filter(fn func(K, V) bool) SeqMapPar[K, V] {
 	prev := p.process
 
 	return SeqMapPar[K, V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
 			if mid, ok := prev(pair); ok && fn(mid.Key, mid.Value) {
@@ -103,7 +103,7 @@ func (p SeqMapPar[K, V]) Map(transform func(K, V) (K, V)) SeqMapPar[K, V] {
 	prev := p.process
 
 	return SeqMapPar[K, V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
 			if mid, ok := prev(pair); ok {
@@ -160,14 +160,14 @@ func (p SeqMapPar[K, V]) Any(fn func(K, V) bool) bool {
 // Chain concatenates this SeqMapPar with others, preserving process and workers.
 func (p SeqMapPar[K, V]) Chain(others ...SeqMapPar[K, V]) SeqMapPar[K, V] {
 	seq := func(yield func(K, V) bool) {
-		p.src(yield)
+		p.seq(yield)
 		for _, o := range others {
-			o.src(yield)
+			o.seq(yield)
 		}
 	}
 
 	return SeqMapPar[K, V]{
-		src:     seq,
+		seq:     seq,
 		workers: p.workers,
 		process: p.process,
 	}
@@ -179,7 +179,7 @@ func (p SeqMapPar[K, V]) Skip(n Int) SeqMapPar[K, V] {
 	var cnt int64
 
 	return SeqMapPar[K, V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
 			if mid, ok := prev(pair); ok {
@@ -198,7 +198,7 @@ func (p SeqMapPar[K, V]) Take(n Int) SeqMapPar[K, V] {
 	var cnt int64
 
 	return SeqMapPar[K, V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
 			if mid, ok := prev(pair); ok {

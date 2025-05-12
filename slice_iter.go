@@ -4,20 +4,72 @@ import (
 	"context"
 	"iter"
 	"reflect"
+	"runtime"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
+	"github.com/enetx/g/pkg/constraints"
 )
 
+// Range returns a SeqSlice[T] that yields a sequence of integer values of type T,
+// beginning at start, advancing by step, and stopping before reaching stop.
+// The generated sequence is:
+//
+//	start, start+step, start+2*step, …
+//
+// Iteration ends when:
+//   - step > 0 and the next value would be ≥ stop
+//   - step < 0 and the next value would be ≤ stop
+//
+// If no step is provided, it defaults to 1. If step == 0, the iterator yields nothing.
+// If the step value does not progress toward stop, iteration will repeat until the
+// yield function returns false.
+//
+// Example:
+//
+//	// generates [0, 1, 2, 3, 4]
+//	g.Range(0, 5).Collect().Print()
+//
+//	// generates [5, 4, 3, 2, 1]
+//	g.Range(5, 0, -1).Collect().Print()
+func Range[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
+	st := Slice[T](step).Get(0).UnwrapOr(1)
+
+	if st == 0 {
+		return func(func(T) bool) {}
+	}
+
+	if st > 0 {
+		return func(yield func(T) bool) {
+			for i := start; i < stop; i += st {
+				if !yield(i) {
+					return
+				}
+			}
+		}
+	}
+
+	return func(yield func(T) bool) {
+		for i := start; i > stop; i += st {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
 // Parallel runs this SeqSlice in parallel using the given number of workers.
-func (seq SeqSlice[V]) Parallel(workers Int) SeqSlicePar[V] {
-	if workers.Lte(0) {
-		workers = 1
+func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
+	numCPU := Int(runtime.NumCPU())
+	count := Slice[Int](workers).Get(0).UnwrapOr(numCPU)
+
+	if count.Lte(0) {
+		count = numCPU
 	}
 
 	return SeqSlicePar[V]{
-		src:     seq,
-		workers: workers,
+		seq:     seq,
+		workers: count,
 		process: func(v V) (V, bool) { return v, true },
 	}
 }

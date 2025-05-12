@@ -1,7 +1,6 @@
 package main
 
 import (
-	"runtime"
 	"time"
 
 	. "github.com/enetx/g"
@@ -11,15 +10,11 @@ func main() {
 	start := time.Now()
 
 	limit := 10000
-	numCPU := Int(runtime.NumCPU())
 
-	sl := NewSlice[int](0, Int(limit))
-	for i := range limit {
-		sl.Push(i)
-	}
+	total := Range(2, limit).Filter(isPrime).Count()
 
-	total := sl.Iter().Parallel(numCPU).Filter(isPrime).Count()
-	Println("Computed prime({1}) = {2} in {3.Seconds} seconds.", limit, total, time.Since(start))
+	Println("Computed prime({1}) = {2} in {3.Seconds} seconds.",
+		limit, total, time.Since(start))
 }
 
 func isPrime(n int) bool {

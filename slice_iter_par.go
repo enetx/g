@@ -39,14 +39,14 @@ func (p SeqSlicePar[V]) Any(fn func(V) bool) bool {
 // Chain concatenates this SeqSlicePar with others, preserving process and worker count.
 func (p SeqSlicePar[V]) Chain(others ...SeqSlicePar[V]) SeqSlicePar[V] {
 	seq := func(yield func(V) bool) {
-		p.src(yield)
+		p.seq(yield)
 		for _, o := range others {
-			o.src(yield)
+			o.seq(yield)
 		}
 	}
 
 	return SeqSlicePar[V]{
-		src:     seq,
+		seq:     seq,
 		workers: p.workers,
 		process: p.process,
 	}
@@ -84,7 +84,7 @@ func (p SeqSlicePar[V]) Filter(fn func(V) bool) SeqSlicePar[V] {
 	prev := p.process
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok && fn(mid) {
@@ -134,7 +134,7 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 			return true
 		}
 
-		p.src(func(v V) bool {
+		p.seq(func(v V) bool {
 			if mid, ok := p.process(v); ok {
 				return recurse(mid)
 			}
@@ -143,7 +143,7 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 	}
 
 	return SeqSlicePar[V]{
-		src:     seq,
+		seq:     seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) { return v, true },
 	}
@@ -173,7 +173,7 @@ func (p SeqSlicePar[V]) Inspect(fn func(V)) SeqSlicePar[V] {
 	prev := p.process
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(x V) (V, bool) {
 			if mid, ok := prev(x); ok {
@@ -191,7 +191,7 @@ func (p SeqSlicePar[V]) Map(fn func(V) V) SeqSlicePar[V] {
 	prev := p.process
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
@@ -227,7 +227,7 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 
 	go func() {
 		defer close(in)
-		p.src(func(v V) bool {
+		p.seq(func(v V) bool {
 			select {
 			case in <- v:
 				return true
@@ -273,7 +273,7 @@ func (p SeqSlicePar[V]) Skip(n Int) SeqSlicePar[V] {
 	var cnt int64
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok && atomic.AddInt64(&cnt, 1) > int64(n) {
@@ -290,7 +290,7 @@ func (p SeqSlicePar[V]) Take(n Int) SeqSlicePar[V] {
 	var cnt int64
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok && atomic.AddInt64(&cnt, 1) <= int64(n) {
@@ -308,7 +308,7 @@ func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 	seen := NewMapSafe[any, any]()
 
 	return SeqSlicePar[V]{
-		src:     p.src,
+		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {

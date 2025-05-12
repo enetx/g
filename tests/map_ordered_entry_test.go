@@ -55,7 +55,7 @@ func TestMapOrdEntryTransform(t *testing.T) {
 	mo := NewMapOrd[string, int]()
 	mo.Entry("x").Transform(func(v *int) { *v = 5 })
 	if mo.Get("x").IsSome() {
-		t.Error("expected x to remain vacant after AndModify on empty")
+		t.Error("expected x to remain vacant after Transform on empty")
 	}
 	mo.Entry("y").OrSet(2).Transform(func(v *int) { *v *= 3 })
 	if got := mo.Get("y").Unwrap(); got != 6 {
