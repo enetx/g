@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"strings"
 
 	. "github.com/enetx/g"
@@ -133,21 +132,16 @@ func main() {
 	TransformSlice([]string{"AAA", "BBB"}, NewString).Iter().Map(String.Lower).Collect().Println()
 	SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Println()
 
-	SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11).Iter().
+	Range(0, 11).
 		Filter(isPrime).
 		ForEach(func(n int) { fmt.Printf("%d is a prime number\n", n) })
 }
 
 func isPrime(n int) bool {
-	if n <= 1 {
-		return false
-	}
-
-	for i := 2; i <= int(math.Sqrt(float64(n))); i++ {
+	for i := 2; i*i <= n; i++ {
 		if n%i == 0 {
 			return false
 		}
 	}
-
-	return true
+	return n > 1
 }

@@ -1,13 +1,32 @@
 package g_test
 
 import (
+	"sync/atomic"
 	"testing"
+	"time"
 
 	. "github.com/enetx/g"
 )
 
+// FnPair increments in-flight count, updates max, sleeps, then decrements.
+func (cc *concurrentCounter) FnPair(k, v int) {
+	cur := atomic.AddInt64(&cc.inFlight, 1)
+
+	for {
+		prev := atomic.LoadInt64(&cc.maxInFlight)
+		if cur <= prev || atomic.CompareAndSwapInt64(&cc.maxInFlight, prev, cur) {
+			break
+		}
+	}
+
+	time.Sleep(cc.sleep)
+	atomic.AddInt64(&cc.inFlight, -1)
+}
+
+// assertMapContains checks that map values match expected.
 func assertMapContains(t *testing.T, m Map[int, int], expected map[int]int) {
 	t.Helper()
+
 	for k, v := range expected {
 		opt := m.Get(k)
 		if !opt.IsSome() {
@@ -15,94 +34,154 @@ func assertMapContains(t *testing.T, m Map[int, int], expected map[int]int) {
 			continue
 		}
 		if opt.Some() != v {
-			t.Errorf("for key %d, expected value %d, got %d", k, v, opt.Some())
+			t.Errorf("for key %d, expected %d, got %d", k, v, opt.Some())
 		}
 	}
 }
 
-func TestSeqMapParCollectCount(t *testing.T) {
+// TestCollectCountParallel tests Collect and Count with parallelism.
+func TestCollectCountParallel(t *testing.T) {
 	m := NewMap[int, int]()
 	m.Set(1, 10)
 	m.Set(2, 20)
 	m.Set(3, 30)
 
-	par := m.Iter().Parallel(2)
-	col := par.Collect()
-	expected := map[int]int{1: 10, 2: 20, 3: 30}
-	assertMapContains(t, col, expected)
-	if got := par.Count(); got != 3 {
-		t.Errorf("Count: expected 3, got %d", got)
+	workers := Int(3)
+
+	cc := &concurrentCounter{sleep: 20 * time.Millisecond}
+	col := m.Iter().Parallel(workers).
+		Inspect(cc.FnPair).
+		Collect()
+
+	assertMapContains(t, col, map[int]int{1: 10, 2: 20, 3: 30})
+
+	if cc.Max() < 2 {
+		t.Errorf("expected parallel Collect, got max %d", cc.Max())
+	}
+
+	cc2 := &concurrentCounter{sleep: 20 * time.Millisecond}
+	cnt := m.Iter().Parallel(workers).
+		Inspect(cc2.FnPair).
+		Count()
+
+	if cnt.Std() != 3 {
+		t.Errorf("Count: expected 3, got %d", cnt.Std())
+	}
+
+	if cc2.Max() < 2 {
+		t.Errorf("expected parallel Count, got max %d", cc2.Max())
 	}
 }
 
-func TestSeqMapParFilterMap(t *testing.T) {
+// TestFilterMapParallel tests Filter and Map with parallelism.
+func TestFilterMapParallel(t *testing.T) {
 	m := NewMap[int, int]()
 	m.Set(1, 1)
 	m.Set(2, 2)
 	m.Set(3, 3)
 
-	par := m.Iter().Parallel(3).Filter(func(_, v int) bool { return v%2 == 1 })
-	col := par.Collect()
-	expected := map[int]int{1: 1, 3: 3}
-	assertMapContains(t, col, expected)
-	if got := par.Count(); got != 2 {
-		t.Errorf("Filter Count: expected 2, got %d", got)
+	workers := Int(2)
+	cc := &concurrentCounter{sleep: 15 * time.Millisecond}
+
+	res := m.Iter().Parallel(workers).
+		Inspect(cc.FnPair).
+		Filter(func(_, v int) bool { return v%2 == 1 }).
+		Map(func(k, v int) (int, int) { return k, v * v }).
+		Collect()
+
+	assertMapContains(t, res, map[int]int{1: 1, 3: 9})
+	if cc.Max() < 2 {
+		t.Errorf("expected parallel Filter+Map, got max %d", cc.Max())
 	}
 }
 
-func TestSeqMapParMapTransform(t *testing.T) {
-	m := NewMap[int, int]()
-	m.Set(1, 2)
-	m.Set(2, 3)
-
-	par := m.Iter().Parallel(4).Map(func(k, v int) (int, int) { return k, v * v })
-	col := par.Collect()
-	expected := map[int]int{1: 4, 2: 9}
-	assertMapContains(t, col, expected)
-}
-
-func TestSeqMapParTakeSkip(t *testing.T) {
+// TestTakeSkipParallel tests Take and Skip with parallelism.
+func TestTakeSkipParallel(t *testing.T) {
 	m := NewMap[int, int]()
 	m.Set(1, 100)
 	m.Set(2, 200)
 	m.Set(3, 300)
 
-	takePar := m.Iter().Parallel(2).Take(2)
-	if got := takePar.Count(); got != 2 {
-		t.Errorf("Take Count: expected 2, got %d", got)
+	workers := Int(2)
+
+	cc1 := &concurrentCounter{sleep: 10 * time.Millisecond}
+	cnt1 := m.Iter().Parallel(workers).
+		Inspect(cc1.FnPair).
+		Take(2).Count()
+
+	if cnt1.Std() != 2 {
+		t.Errorf("Take: expected 2, got %d", cnt1.Std())
 	}
 
-	skipPar := m.Iter().Parallel(2).Skip(1)
-	if got := skipPar.Count(); got != 2 {
-		t.Errorf("Skip Count: expected 2, got %d", got)
+	if cc1.Max() < 2 {
+		t.Errorf("expected parallel Take, got max %d", cc1.Max())
+	}
+
+	cc2 := &concurrentCounter{sleep: 10 * time.Millisecond}
+	cnt2 := m.Iter().Parallel(workers).
+		Inspect(cc2.FnPair).
+		Skip(1).Count()
+
+	if cnt2.Std() != 2 {
+		t.Errorf("Skip: expected 2, got %d", cnt2.Std())
+	}
+
+	if cc2.Max() < 2 {
+		t.Errorf("expected parallel Skip, got max %d", cc2.Max())
 	}
 }
 
-func TestSeqMapParChainAllAnyFind(t *testing.T) {
+// TestChainAllAnyFindParallel tests Chain, All, Any, Find with parallelism.
+func TestChainAllAnyFindParallel(t *testing.T) {
 	m1 := NewMap[int, int]()
 	m1.Set(1, 1)
 	m1.Set(2, 2)
-
 	m2 := NewMap[int, int]()
 	m2.Set(3, 3)
 
-	chain := m1.Iter().Parallel(2).Chain(m2.Iter().Parallel(2))
-	if got := chain.Count(); got != 3 {
-		t.Errorf("Chain Count: expected 3, got %d", got)
+	workers := Int(2)
+
+	cc := &concurrentCounter{sleep: 10 * time.Millisecond}
+	chain := m1.Iter().Parallel(workers).
+		Inspect(cc.FnPair).
+		Chain(m2.Iter().Parallel(workers).
+			Inspect(cc.FnPair))
+
+	if chain.Count().Std() != 3 {
+		t.Errorf("Chain Count: expected 3, got %d", chain.Count().Std())
 	}
 
-	if !chain.All(func(_, v int) bool { return v > 0 }) {
-		t.Error("All: expected all values > 0")
+	if cc.Max() < 2 {
+		t.Errorf("expected parallel Chain, got max %d", cc.Max())
+	}
+
+	ccAll := &concurrentCounter{sleep: 5 * time.Millisecond}
+	all := chain.
+		Inspect(ccAll.FnPair).
+		All(func(_, v int) bool { return v > 0 })
+
+	if !all {
+		t.Error("All: expected true")
+	}
+
+	if ccAll.Max() < 2 {
+		t.Errorf("expected parallel All, got max %d", ccAll.Max())
 	}
 
 	if !chain.Any(func(_, v int) bool { return v == 2 }) {
-		t.Error("Any: expected to find value 2")
+		t.Error("Any: expected true for v==2")
 	}
 
-	op := chain.Find(func(k, _ int) bool { return k == 3 })
-	if !op.IsSome() {
-		t.Error("Find: expected to find key 3")
-	} else if pair := op.Some(); pair.Key != 3 || pair.Value != 3 {
-		t.Errorf("Find: expected (3,3), got (%d,%d)", pair.Key, pair.Value)
+	ccFind := &concurrentCounter{sleep: 5 * time.Millisecond}
+	opt := chain.
+		Inspect(ccFind.FnPair).
+		Find(func(k, _ int) bool { return k == 3 })
+
+	if !opt.IsSome() || opt.Some().Key != 3 {
+		t.Error("Find: expected key 3")
+	}
+
+	if ccFind.Max() < 2 {
+		t.Errorf("expected parallel Find, got max %d", ccFind.Max())
 	}
 }

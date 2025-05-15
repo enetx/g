@@ -54,24 +54,33 @@ func (p SeqSlicePar[V]) Chain(others ...SeqSlicePar[V]) SeqSlicePar[V] {
 
 // Collect gathers all processed elements into a Slice.
 func (p SeqSlicePar[V]) Collect() Slice[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
 	var result []V
-	p.Range(func(v V) bool {
+	for v := range ch {
 		result = append(result, v)
-		return true
-	})
+	}
 
 	return result
 }
 
 // Count returns the total number of elements processed.
 func (p SeqSlicePar[V]) Count() Int {
-	var count Int
+	var count atomic.Int64
 	p.Range(func(V) bool {
-		count++
+		count.Add(1)
 		return true
 	})
 
-	return count
+	return Int(count.Load())
 }
 
 // Exclude removes elements for which fn returns true, in parallel.
@@ -205,15 +214,39 @@ func (p SeqSlicePar[V]) Map(fn func(V) V) SeqSlicePar[V] {
 
 // Partition splits elements into two slices: those satisfying fn, and the rest.
 func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
-	left, right := make([]V, 0), make([]V, 0)
-	p.Range(func(v V) bool {
-		if fn(v) {
+	leftCh := make(chan V)
+	rightCh := make(chan V)
+
+	go func() {
+		defer close(leftCh)
+		defer close(rightCh)
+		p.Range(func(v V) bool {
+			if fn(v) {
+				leftCh <- v
+			} else {
+				rightCh <- v
+			}
+			return true
+		})
+	}()
+
+	var left, right []V
+	for leftCh != nil || rightCh != nil {
+		select {
+		case v, ok := <-leftCh:
+			if !ok {
+				leftCh = nil
+				continue
+			}
 			left = append(left, v)
-		} else {
+		case v, ok := <-rightCh:
+			if !ok {
+				rightCh = nil
+				continue
+			}
 			right = append(right, v)
 		}
-		return true
-	})
+	}
 
 	return left, right
 }
@@ -221,23 +254,22 @@ func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 	in := make(chan V)
-	out := make(chan V)
 	done := make(chan struct{})
-	defer close(done)
+
+	var wg sync.WaitGroup
+	var stop atomic.Bool
 
 	go func() {
 		defer close(in)
 		p.seq(func(v V) bool {
 			select {
 			case in <- v:
-				return true
+				return !stop.Load()
 			case <-done:
 				return false
 			}
 		})
 	}()
-
-	var wg sync.WaitGroup
 
 	for range p.workers {
 		wg.Add(1)
@@ -245,9 +277,8 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 			defer wg.Done()
 			for v := range in {
 				if mid, ok := p.process(v); ok {
-					select {
-					case out <- mid:
-					case <-done:
+					if !fn(mid) {
+						stop.Store(true)
 						return
 					}
 				}
@@ -255,16 +286,8 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 		}()
 	}
 
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
-
-	for v := range out {
-		if !fn(v) {
-			return
-		}
-	}
+	wg.Wait()
+	close(done)
 }
 
 // Skip skips the first n elements.
