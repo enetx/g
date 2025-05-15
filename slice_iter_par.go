@@ -9,31 +9,35 @@ import (
 // All returns true only if fn returns true for every element.
 // It stops early on the first false.
 func (p SeqSlicePar[V]) All(fn func(V) bool) bool {
-	all := true
+	var ok atomic.Bool
+	ok.Store(true)
+
 	p.Range(func(v V) bool {
 		if !fn(v) {
-			all = false
+			ok.Store(false)
 			return false
 		}
 		return true
 	})
 
-	return all
+	return ok.Load()
 }
 
 // Any returns true if fn returns true for any element.
 // It stops early on the first true.
 func (p SeqSlicePar[V]) Any(fn func(V) bool) bool {
-	_any := false
+	var ok atomic.Bool
+	ok.Store(false)
+
 	p.Range(func(v V) bool {
 		if fn(v) {
-			_any = true
+			ok.Store(true)
 			return false
 		}
 		return true
 	})
 
-	return _any
+	return ok.Load()
 }
 
 // Chain concatenates this SeqSlicePar with others, preserving process and worker count.
@@ -107,16 +111,24 @@ func (p SeqSlicePar[V]) Filter(fn func(V) bool) SeqSlicePar[V] {
 
 // Find returns the first element satisfying fn, or None if no such element exists.
 func (p SeqSlicePar[V]) Find(fn func(V) bool) Option[V] {
-	var result Option[V]
-	p.Range(func(v V) bool {
-		if fn(v) {
-			result = Some(v)
-			return false
-		}
-		return true
-	})
+	ch := make(chan V)
 
-	return result
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			if fn(v) {
+				ch <- v
+				return false
+			}
+			return true
+		})
+	}()
+
+	if v, ok := <-ch; ok {
+		return Some(v)
+	}
+
+	return None[V]()
 }
 
 // Flatten unpacks nested slices or arrays in the source, returning a flat parallel sequence.
@@ -160,11 +172,20 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 
 // Fold reduces all elements into a single value, using fn to accumulate results.
 func (p SeqSlicePar[V]) Fold(init V, fn func(acc, v V) V) V {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
 	acc := init
-	p.Range(func(v V) bool {
+	for v := range ch {
 		acc = fn(acc, v)
-		return true
-	})
+	}
 
 	return acc
 }

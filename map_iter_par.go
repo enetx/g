@@ -7,30 +7,34 @@ import (
 
 // All returns true if fn returns true for every pair.
 func (p SeqMapPar[K, V]) All(fn func(K, V) bool) bool {
-	all := true
+	var ok atomic.Bool
+	ok.Store(true)
+
 	p.Range(func(k K, v V) bool {
 		if !fn(k, v) {
-			all = false
+			ok.Store(false)
 			return false
 		}
 		return true
 	})
 
-	return all
+	return ok.Load()
 }
 
 // Any returns true if fn returns true for any pair.
 func (p SeqMapPar[K, V]) Any(fn func(K, V) bool) bool {
-	_any := false
+	var ok atomic.Bool
+	ok.Store(false)
+
 	p.Range(func(k K, v V) bool {
 		if fn(k, v) {
-			_any = true
+			ok.Store(true)
 			return false
 		}
 		return true
 	})
 
-	return _any
+	return ok.Load()
 }
 
 // Chain concatenates this SeqMapPar with others, preserving process and workers.
@@ -52,6 +56,7 @@ func (p SeqMapPar[K, V]) Chain(others ...SeqMapPar[K, V]) SeqMapPar[K, V] {
 // Collect gathers all processed pairs into a Map.
 func (p SeqMapPar[K, V]) Collect() Map[K, V] {
 	ch := make(chan Pair[K, V])
+
 	go func() {
 		defer close(ch)
 		p.Range(func(k K, v V) bool {
@@ -102,16 +107,24 @@ func (p SeqMapPar[K, V]) Filter(fn func(K, V) bool) SeqMapPar[K, V] {
 
 // Find returns the first pair matching fn, or a zero Option if none.
 func (p SeqMapPar[K, V]) Find(fn func(K, V) bool) Option[Pair[K, V]] {
-	var result Option[Pair[K, V]]
-	p.Range(func(k K, v V) bool {
-		if fn(k, v) {
-			result = Some(Pair[K, V]{k, v})
-			return false
-		}
-		return true
-	})
+	ch := make(chan Pair[K, V])
 
-	return result
+	go func() {
+		defer close(ch)
+		p.Range(func(k K, v V) bool {
+			if fn(k, v) {
+				ch <- Pair[K, V]{k, v}
+				return false
+			}
+			return true
+		})
+	}()
+
+	if pair, ok := <-ch; ok {
+		return Some(pair)
+	}
+
+	return None[Pair[K, V]]()
 }
 
 // ForEach invokes fn on each key/value pair for side-effects,
