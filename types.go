@@ -123,7 +123,7 @@ type (
 	Pool[T any] struct {
 		ctx           context.Context          // Context for controlling cancellation and timeouts
 		cancel        context.CancelCauseFunc  // Function to cancel the context
-		semaphore     chan struct{}            // Semaphore for limiting concurrency
+		tokens        chan struct{}            // Tokens for limiting concurrency
 		results       *MapSafe[int, Result[T]] // Stores task results
 		wg            sync.WaitGroup           // Waits for all tasks to complete
 		totalTasks    int32                    // Total number of tasks submitted

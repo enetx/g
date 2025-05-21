@@ -36,10 +36,11 @@ func main() {
 		// SliceMap(words, String.Chars).
 		AsAny(). // Required if the source slice is not of type g.Slice[any]
 		Iter().
+		Map(func(a any) any { return a.(Slice[String]).Iter().Map(String.Upper).Collect().AsAny() }).
 		Flatten().
 		Collect().
 		Join().
-		Println() // alphabetagamma💛💚💙💜世界
+		Println() // ALPHABETAGAMMA💛💚💙💜世界
 
 	// Example 3: Check if the flattened slice contains a specific element
 	ch := Slice[Slice[string]]{{"a", "b", "c"}, {"d", "f", "g"}}.

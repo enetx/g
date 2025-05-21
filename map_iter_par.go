@@ -24,7 +24,6 @@ func (p SeqMapPar[K, V]) All(fn func(K, V) bool) bool {
 // Any returns true if fn returns true for any pair.
 func (p SeqMapPar[K, V]) Any(fn func(K, V) bool) bool {
 	var ok atomic.Bool
-	ok.Store(false)
 
 	p.Range(func(k K, v V) bool {
 		if fn(k, v) {
@@ -173,26 +172,23 @@ func (p SeqMapPar[K, V]) Map(transform func(K, V) (K, V)) SeqMapPar[K, V] {
 
 // Range applies fn to each processed pair in parallel, stopping early if fn returns false.
 func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
-	in := make(chan Pair[K, V])
-	done := make(chan struct{})
-
+	in := make(chan Pair[K, V], p.workers)
 	var wg sync.WaitGroup
 	var stop atomic.Bool
 
 	go func() {
 		defer close(in)
 		p.seq(func(k K, v V) bool {
-			select {
-			case in <- Pair[K, V]{k, v}:
-				return !stop.Load()
-			case <-done:
+			if stop.Load() {
 				return false
 			}
+			in <- Pair[K, V]{k, v}
+			return true
 		})
 	}()
 
+	wg.Add(int(p.workers))
 	for range p.workers {
-		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for pair := range in {
@@ -207,7 +203,6 @@ func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
 	}
 
 	wg.Wait()
-	close(done)
 }
 
 // Skip drops the first n pairs.

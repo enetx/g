@@ -27,7 +27,6 @@ func (p SeqSlicePar[V]) All(fn func(V) bool) bool {
 // It stops early on the first true.
 func (p SeqSlicePar[V]) Any(fn func(V) bool) bool {
 	var ok atomic.Bool
-	ok.Store(false)
 
 	p.Range(func(v V) bool {
 		if fn(v) {
@@ -133,6 +132,8 @@ func (p SeqSlicePar[V]) Find(fn func(V) bool) Option[V] {
 
 // Flatten unpacks nested slices or arrays in the source, returning a flat parallel sequence.
 func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
+	prev := p.process
+
 	seq := func(yield func(V) bool) {
 		var recurse func(any) bool
 
@@ -156,7 +157,7 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 		}
 
 		p.seq(func(v V) bool {
-			if mid, ok := p.process(v); ok {
+			if mid, ok := prev(v); ok {
 				return recurse(mid)
 			}
 			return true
@@ -274,26 +275,23 @@ func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
 
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqSlicePar[V]) Range(fn func(V) bool) {
-	in := make(chan V)
-	done := make(chan struct{})
-
+	in := make(chan V, p.workers)
 	var wg sync.WaitGroup
 	var stop atomic.Bool
 
 	go func() {
 		defer close(in)
 		p.seq(func(v V) bool {
-			select {
-			case in <- v:
-				return !stop.Load()
-			case <-done:
+			if stop.Load() {
 				return false
 			}
+			in <- v
+			return true
 		})
 	}()
 
+	wg.Add(int(p.workers))
 	for range p.workers {
-		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for v := range in {
@@ -308,7 +306,6 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 	}
 
 	wg.Wait()
-	close(done)
 }
 
 // Skip skips the first n elements.
@@ -349,7 +346,7 @@ func (p SeqSlicePar[V]) Take(n Int) SeqSlicePar[V] {
 // Unique removes duplicate elements, preserving the first occurrence.
 func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 	prev := p.process
-	seen := NewMapSafe[any, any]()
+	seen := NewMapSafe[any, struct{}]()
 
 	return SeqSlicePar[V]{
 		seq:     p.seq,

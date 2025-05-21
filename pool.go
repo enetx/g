@@ -16,36 +16,31 @@ func NewPool[T any]() *Pool[T] {
 	ctx, cancel := context.WithCancelCause(context.Background())
 
 	return &Pool[T]{
-		ctx:       ctx,
-		cancel:    cancel,
-		semaphore: nil,
-		results:   NewMapSafe[int, Result[T]](),
+		ctx:     ctx,
+		cancel:  cancel,
+		tokens:  nil,
+		results: NewMapSafe[int, Result[T]](),
 	}
 }
 
 func (p *Pool[T]) acquire() bool {
-	if p.semaphore != nil {
-		select {
-		case p.semaphore <- struct{}{}:
-			return true
-		case <-p.ctx.Done():
-			return false
-		}
+	if p.tokens == nil {
+		return p.ctx.Err() == nil
 	}
 
 	select {
+	case p.tokens <- struct{}{}:
+		return true
 	case <-p.ctx.Done():
 		return false
-	default:
-		return true
 	}
 }
 
 func (p *Pool[T]) done() {
 	defer atomic.AddInt32(&p.activeTasks, -1)
 
-	if p.semaphore != nil {
-		<-p.semaphore
+	if p.tokens != nil {
+		<-p.tokens
 	}
 
 	p.wg.Done()
@@ -101,19 +96,19 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 func (p *Pool[T]) Wait() Slice[Result[T]] {
 	p.wg.Wait()
 	p.Cancel()
-	p.semaphore = nil
+	p.tokens = nil
 
 	return p.results.IntoIter().Values().Collect()
 }
 
 // Limit sets the maximum number of concurrently running tasks.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
-	if p.semaphore != nil && len(p.semaphore) > 0 {
+	if p.tokens != nil && len(p.tokens) > 0 {
 		panic("cannot change semaphore limit while tasks are running")
 	}
 
 	if workers <= 0 {
-		p.semaphore = nil
+		p.tokens = nil
 		return p
 	}
 
@@ -125,7 +120,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 		workers = 1
 	}
 
-	p.semaphore = make(chan struct{}, workers)
+	p.tokens = make(chan struct{}, workers)
 
 	return p
 }
@@ -154,14 +149,12 @@ func (p *Pool[T]) GetContext() context.Context { return p.ctx }
 
 // Cancel cancels all tasks in the pool.
 func (p *Pool[T]) Cancel(err ...error) {
-	if p.cancel != nil {
-		cause := context.Canceled
-		if len(err) != 0 {
-			cause = err[0]
-		}
-
-		p.cancel(cause)
+	cause := context.Canceled
+	if len(err) > 0 && err[0] != nil {
+		cause = err[0]
 	}
+
+	p.cancel(cause)
 }
 
 // Cause returns the reason for the cancellation of the pool's context.
@@ -170,17 +163,19 @@ func (p *Pool[T]) Cancel(err ...error) {
 func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 
 // Reset restores the pool to its initial state: cancels all tasks, clears results and metrics,
-// and creates a new context. If there are any active tasks, it will panic.
-func (p *Pool[T]) Reset() {
+// and creates a new context.
+func (p *Pool[T]) Reset() error {
 	if p.ActiveTasks() > 0 {
-		panic("cannot reset while tasks are running")
+		return errors.New("cannot reset while tasks are running")
 	}
 
 	p.Cancel()
 	p.ClearMetrics()
 	p.results.Clear()
-	p.semaphore = nil
+	p.tokens = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
+
+	return nil
 }
 
 // ClearMetrics resets both total tasks and failed tasks counters to zero.
