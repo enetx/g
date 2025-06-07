@@ -8,6 +8,7 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/pool"
 )
 
 const (
@@ -29,11 +30,11 @@ var dataMapPool = sync.Pool{
 func main() {
 	start := time.Now()
 
-	pool := NewPool[time.Duration]()
-	pool.Limit(runtime.NumCPU())
+	p := pool.New[time.Duration]()
+	p.Limit(runtime.NumCPU())
 
 	for range TASKS_NUM {
-		pool.Go(func() Result[time.Duration] {
+		p.Go(func() Result[time.Duration] {
 			start := time.Now()
 
 			var sum uint64
@@ -55,7 +56,7 @@ func main() {
 		})
 	}
 
-	results := TransformSlice(pool.Wait(), Result[time.Duration].Ok)
+	results := TransformSlice(p.Wait(), Result[time.Duration].Ok)
 
 	taskSum := results.Iter().Fold(0, func(acc, val time.Duration) time.Duration { return acc + val })
 	taskMin := results.MinBy(cmp.Cmp)

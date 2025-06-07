@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/constraints"
+	"github.com/enetx/g/constraints"
 )
 
 // NewFloat creates a new Float with the provided value.

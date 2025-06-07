@@ -232,6 +232,7 @@ func (seq SeqMapOrd[K, V]) Chain(seqs ...SeqMapOrd[K, V]) SeqMapOrd[K, V] {
 // Count consumes the iterator, counting the number of iterations and returning it.
 func (seq SeqMapOrd[K, V]) Count() Int {
 	var counter Int
+
 	seq(func(K, V) bool {
 		counter++
 		return true

@@ -7,20 +7,21 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Microsecond)
 	defer cancel()
 
-	pool := NewPool[int]() // Create a new pool for managing tasks
-	pool.
+	p := pool.New[int]() // Create a new pool for managing tasks
+	p.
 		Limit(1).    // Set the concurrency limit to 1, ensuring that only one task runs at a time
 		Context(ctx) // Associate the context with the pool for timeout or cancellation control
 
 	// Launch 10 tasks in the pool
 	for taskID := range 10 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			// Simulate an error for task ID 2
 			if taskID == 2 {
 				return Err[int](errors.New("case 2"))
@@ -28,7 +29,7 @@ func main() {
 
 			// Cancel the pool when task ID 7 is reached
 			if taskID == 7 {
-				pool.Cancel()
+				p.Cancel()
 				return Err[int](errors.New("case 7"))
 			}
 
@@ -38,9 +39,9 @@ func main() {
 	}
 
 	// Wait for all tasks to complete and print the results
-	pool.Wait().Println()
+	p.Wait().Println()
 
-	if cause := pool.Cause(); cause != nil {
+	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)
 	}
 }

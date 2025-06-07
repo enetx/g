@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 
-	"github.com/enetx/g/pkg/constraints"
+	"github.com/enetx/g/constraints"
 )
 
 // N generates a random non-negative integer within the range [0, max).

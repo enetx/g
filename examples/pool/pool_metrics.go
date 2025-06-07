@@ -6,11 +6,12 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func main() {
-	// Create a new pool for managing tasks
-	pool := NewPool[int]().
+	// Create a new p for managing tasks
+	p := pool.New[int]().
 		Limit(1) // Set the concurrency limit to 1, ensuring that only one task runs at a time
 
 	metricsDone := make(chan struct{}) // Channel to synchronize the completion of the metrics goroutine
@@ -28,10 +29,10 @@ func main() {
 			select {
 			case <-ticker.C:
 				fmt.Printf("\r\033[2K[Metrics] Total: %d, Active: %d, Failed: %d",
-					pool.TotalTasks(), pool.ActiveTasks(), pool.FailedTasks())
-			case <-pool.GetContext().Done():
+					p.TotalTasks(), p.ActiveTasks(), p.FailedTasks())
+			case <-p.GetContext().Done():
 				fmt.Printf("\r\033[2KAll tasks completed. Total: %d, Failed: %d\n",
-					pool.TotalTasks(), pool.FailedTasks())
+					p.TotalTasks(), p.FailedTasks())
 				return
 			}
 		}
@@ -39,7 +40,7 @@ func main() {
 
 	// Launch 10 tasks in the pool
 	for taskID := range 10 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			// Simulate task execution with a random delay
 			time.Sleep(time.Duration(Int(500).RandomRange(1000)) * time.Millisecond)
 
@@ -50,7 +51,7 @@ func main() {
 
 			// Cancel the pool when task ID 7 is reached
 			if taskID == 7 {
-				pool.Cancel()
+				p.Cancel()
 				return Err[int](errors.New("case 7"))
 			}
 
@@ -59,11 +60,11 @@ func main() {
 		})
 	}
 
-	results := pool.Wait() // Wait for all tasks to complete
-	<-metricsDone          // Wait for the metrics goroutine to finish
-	results.Println()      // Print the results
+	results := p.Wait() // Wait for all tasks to complete
+	<-metricsDone       // Wait for the metrics goroutine to finish
+	results.Println()   // Print the results
 
-	if cause := pool.Cause(); cause != nil {
+	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)
 	}
 }

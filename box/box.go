@@ -1,4 +1,4 @@
-package g
+package box
 
 import "sync/atomic"
 
@@ -46,7 +46,7 @@ type Box[T any] atomic.Pointer[T]
 //
 // Never mutate the pointer returned by Load() or passed to Update() directly.
 // Always copy before changing.
-func NewBox[T any](ptr *T) *Box[T] {
+func New[T any](ptr *T) *Box[T] {
 	b := new(atomic.Pointer[T])
 	b.Store(ptr)
 	return (*Box[T])(b)
@@ -71,12 +71,24 @@ func (b *Box[T]) Store(value *T) { (*atomic.Pointer[T])(b).Store(value) }
 // If another goroutine concurrently updates the value, Update will retry.
 // If the returned pointer equals the current one, the update is skipped.
 func (b *Box[T]) Update(apply func(current *T) *T) {
-	p := (*atomic.Pointer[T])(b)
 	for {
-		current := p.Load()
-		updated := apply(current)
-		if current == updated || p.CompareAndSwap(current, updated) {
+		if b.TryUpdate(apply) {
 			break
 		}
 	}
+}
+
+// TryUpdate applies the given function to the current value and tries
+// to replace it atomically using CompareAndSwap once.
+//
+// Returns true if the update succeeded, false if the value changed concurrently.
+//
+// Unlike Update, it does not retry on failure.
+func (b *Box[T]) TryUpdate(apply func(current *T) *T) bool {
+	p := (*atomic.Pointer[T])(b)
+
+	current := p.Load()
+	updated := apply(current)
+
+	return updated == current || p.CompareAndSwap(current, updated)
 }

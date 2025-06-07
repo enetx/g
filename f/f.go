@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/enetx/g/pkg/constraints"
+	"github.com/enetx/g/constraints"
 )
 
 // IsComparable reports whether the value v is comparable.

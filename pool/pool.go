@@ -1,4 +1,4 @@
-package g
+package pool
 
 import (
 	"context"
@@ -6,13 +6,28 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
+	"sync"
 	"sync/atomic"
 
+	. "github.com/enetx/g"
 	"github.com/enetx/g/internal/rlimit"
 )
 
-// NewPool[T any] creates a new goroutine pool.
-func NewPool[T any]() *Pool[T] {
+// Pool[T any] is a goroutine pool that allows parallel task execution.
+type Pool[T any] struct {
+	ctx           context.Context          // Context for controlling cancellation and timeouts
+	cancel        context.CancelCauseFunc  // Function to cancel the context
+	tokens        chan struct{}            // Tokens for limiting concurrency
+	results       *MapSafe[int, Result[T]] // Stores task results
+	wg            sync.WaitGroup           // Waits for all tasks to complete
+	totalTasks    int32                    // Total number of tasks submitted
+	activeTasks   int32                    // Number of currently active tasks
+	failedTasks   int32                    // Number of failed tasks
+	cancelOnError bool                     // Cancels remaining tasks if any task fails
+}
+
+// New[T any] creates a new goroutine pool.
+func New[T any]() *Pool[T] {
 	ctx, cancel := context.WithCancelCause(context.Background())
 
 	return &Pool[T]{

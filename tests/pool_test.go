@@ -8,17 +8,18 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func TestGoPanic(t *testing.T) {
 	t.Run("PanicWithoutCancelOnError", func(t *testing.T) {
-		pool := NewPool[int]()
+		p := pool.New[int]()
 
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			panic("test panic")
 		})
 
-		results := pool.Wait()
+		results := p.Wait()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -32,29 +33,29 @@ func TestGoPanic(t *testing.T) {
 			t.Errorf("Expected error to contain 'panic: test panic', got %q", results[0].Err().Error())
 		}
 
-		if pool.FailedTasks() != 1 {
-			t.Errorf("Expected 1 failed task, got %d", pool.FailedTasks())
+		if p.FailedTasks() != 1 {
+			t.Errorf("Expected 1 failed task, got %d", p.FailedTasks())
 		}
 
-		if pool.GetContext().Err() == nil {
+		if p.GetContext().Err() == nil {
 			t.Error("Expected pool to be cancelled after Wait")
 		}
 	})
 
 	t.Run("PanicWithCancelOnError", func(t *testing.T) {
-		pool := NewPool[int]()
-		pool.Limit(1)
-		pool.CancelOnError()
+		p := pool.New[int]()
+		p.Limit(1)
+		p.CancelOnError()
 
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			panic("test panic")
 		})
 
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			return Ok(42)
 		})
 
-		results := pool.Wait()
+		results := p.Wait()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -68,22 +69,22 @@ func TestGoPanic(t *testing.T) {
 			t.Errorf("Expected error to contain 'panic: test panic', got %q", results[0].Err().Error())
 		}
 
-		if pool.FailedTasks() != 1 {
-			t.Errorf("Expected 1 failed task, got %d", pool.FailedTasks())
+		if p.FailedTasks() != 1 {
+			t.Errorf("Expected 1 failed task, got %d", p.FailedTasks())
 		}
 
-		if !errors.Is(pool.Cause(), results[0].Err()) {
-			t.Errorf("Expected pool cancellation cause to match panic error, got %v", pool.Cause())
+		if !errors.Is(p.Cause(), results[0].Err()) {
+			t.Errorf("Expected pool cancellation cause to match panic error, got %v", p.Cause())
 		}
 	})
 }
 
 func TestPool(t *testing.T) {
-	pool := NewPool[int]()
+	p := pool.New[int]()
 
 	successCount := int32(0)
 	for i := range 5 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			if i%2 == 0 {
 				atomic.AddInt32(&successCount, 1)
 				return Ok(i)
@@ -92,15 +93,15 @@ func TestPool(t *testing.T) {
 		})
 	}
 
-	results := pool.Wait()
-	if pool.ActiveTasks() != 0 {
-		t.Errorf("expected no active tasks after Wait, got %d", pool.ActiveTasks())
+	results := p.Wait()
+	if p.ActiveTasks() != 0 {
+		t.Errorf("expected no active tasks after Wait, got %d", p.ActiveTasks())
 	}
-	if pool.TotalTasks() != 5 {
-		t.Errorf("expected totalTasks=5, got %d", pool.TotalTasks())
+	if p.TotalTasks() != 5 {
+		t.Errorf("expected totalTasks=5, got %d", p.TotalTasks())
 	}
-	if pool.FailedTasks() != 2 {
-		t.Errorf("expected failedTasks=2, got %d", pool.FailedTasks())
+	if p.FailedTasks() != 2 {
+		t.Errorf("expected failedTasks=2, got %d", p.FailedTasks())
 	}
 
 	if len(results) != 5 {
@@ -123,14 +124,14 @@ func TestPool(t *testing.T) {
 }
 
 func TestPoolLimit(t *testing.T) {
-	pool := NewPool[int]()
-	pool.Limit(0)
+	p := pool.New[int]()
+	p.Limit(0)
 
 	activeGoroutines := int32(0)
 	maxObserved := int32(0)
 
 	for range 5 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			cur := atomic.AddInt32(&activeGoroutines, 1)
 			if cur > atomic.LoadInt32(&maxObserved) {
 				atomic.StoreInt32(&maxObserved, cur)
@@ -141,7 +142,7 @@ func TestPoolLimit(t *testing.T) {
 		})
 	}
 
-	pool.Wait()
+	p.Wait()
 
 	if maxObserved > 2 {
 		t.Errorf("observed concurrency %d, but limit was set to 2", maxObserved)
@@ -149,53 +150,53 @@ func TestPoolLimit(t *testing.T) {
 }
 
 func TestPoolReset(t *testing.T) {
-	pool := NewPool[int]()
-	pool.Go(func() Result[int] {
+	p := pool.New[int]()
+	p.Go(func() Result[int] {
 		return Ok(1)
 	})
-	pool.Wait()
+	p.Wait()
 
-	if pool.TotalTasks() != 1 {
-		t.Errorf("expected totalTasks=1, got %d", pool.TotalTasks())
+	if p.TotalTasks() != 1 {
+		t.Errorf("expected totalTasks=1, got %d", p.TotalTasks())
 	}
 
-	pool.Reset()
+	p.Reset()
 
-	if pool.TotalTasks() != 0 {
-		t.Errorf("expected totalTasks=0 after Reset, got %d", pool.TotalTasks())
+	if p.TotalTasks() != 0 {
+		t.Errorf("expected totalTasks=0 after Reset, got %d", p.TotalTasks())
 	}
-	if pool.FailedTasks() != 0 {
-		t.Errorf("expected failedTasks=0 after Reset, got %d", pool.FailedTasks())
+	if p.FailedTasks() != 0 {
+		t.Errorf("expected failedTasks=0 after Reset, got %d", p.FailedTasks())
 	}
 
-	pool.Go(func() Result[int] {
+	p.Go(func() Result[int] {
 		return Ok(2)
 	})
 
-	results := pool.Wait()
+	results := p.Wait()
 	if len(results) != 1 {
 		t.Errorf("expected 1 result after new task, got %d", len(results))
 	}
 }
 
 func TestPoolCancel(t *testing.T) {
-	pool := NewPool[int]()
-	pool.Limit(1)
+	p := pool.New[int]()
+	p.Limit(1)
 
 	ctx := context.Background()
-	pool.Context(ctx)
-	pool.Context(nil)
+	p.Context(ctx)
+	p.Context(nil)
 
 	for i := range 100 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			if i == 3 {
-				pool.Cancel()
+				p.Cancel()
 			}
 			return Ok(1)
 		})
 	}
 
-	results := pool.Wait()
+	results := p.Wait()
 
 	if len(results) != 4 {
 		t.Errorf("expected 4 results, got %d", len(results))
@@ -205,34 +206,34 @@ func TestPoolCancel(t *testing.T) {
 }
 
 func TestPoolCause(t *testing.T) {
-	pool := NewPool[int]()
+	p := pool.New[int]()
 	cancelErr := errors.New("custom cancellation reason")
 
-	pool.Cancel(cancelErr)
+	p.Cancel(cancelErr)
 
-	if pool.Cause() == nil {
+	if p.Cause() == nil {
 		t.Errorf("expected Cause to return a non-nil error after cancellation")
-	} else if !errors.Is(pool.Cause(), cancelErr) {
-		t.Errorf("expected Cause to return %v, got %v", cancelErr, pool.Cause())
+	} else if !errors.Is(p.Cause(), cancelErr) {
+		t.Errorf("expected Cause to return %v, got %v", cancelErr, p.Cause())
 	}
 }
 
 func TestPoolCancelOnError(t *testing.T) {
-	pool := NewPool[int]().CancelOnError().Limit(1)
+	p := pool.New[int]().CancelOnError().Limit(1)
 
-	pool.Go(func() Result[int] {
+	p.Go(func() Result[int] {
 		return Err[int](errors.New("task failed 1"))
 	})
 
-	pool.Go(func() Result[int] {
+	p.Go(func() Result[int] {
 		return Err[int](errors.New("task failed 2"))
 	})
 
-	pool.Go(func() Result[int] {
+	p.Go(func() Result[int] {
 		return Ok(42)
 	})
 
-	results := pool.Wait()
+	results := p.Wait()
 
 	if len(results) != 1 {
 		t.Errorf("Expected 1 results, got %d", len(results))

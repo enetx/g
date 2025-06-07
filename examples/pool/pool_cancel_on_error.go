@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func main() {
-	pool := NewPool[int]().Limit(1).CancelOnError()
+	p := pool.New[int]().Limit(1).CancelOnError()
 
 	for taskID := range 10 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			if taskID == 4 {
 				return Err[int](errors.New("cancel on error"))
 			}
@@ -20,9 +21,9 @@ func main() {
 		})
 	}
 
-	pool.Wait().Println()
+	p.Wait().Println()
 
-	if cause := pool.Cause(); cause != nil {
+	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)
 	}
 }

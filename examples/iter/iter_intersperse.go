@@ -1,8 +1,6 @@
 package main
 
-import (
-	. "github.com/enetx/g"
-)
+import . "github.com/enetx/g"
 
 func main() {
 	// Example 1

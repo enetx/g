@@ -6,7 +6,7 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/pkg/rand"
+	"github.com/enetx/g/rand"
 )
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).

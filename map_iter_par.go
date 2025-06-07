@@ -75,6 +75,7 @@ func (p SeqMapPar[K, V]) Collect() Map[K, V] {
 // Count returns the total number of processed pairs.
 func (p SeqMapPar[K, V]) Count() Int {
 	var cnt atomic.Int64
+
 	p.Range(func(_ K, _ V) bool {
 		cnt.Add(1)
 		return true

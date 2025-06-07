@@ -8,7 +8,7 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/pkg/rand"
+	"github.com/enetx/g/rand"
 )
 
 // NewSlice creates a new Slice of the given generic type T with the specified length and

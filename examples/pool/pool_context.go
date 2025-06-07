@@ -7,31 +7,32 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Microsecond)
 	defer cancel()
 
-	pool := NewPool[int]().Limit(10).Context(ctx)
+	p := pool.New[int]().Limit(10).Context(ctx)
 
 	for taskID := range 10 {
-		pool.Go(func() Result[int] {
+		p.Go(func() Result[int] {
 			if taskID == 2 {
 				return Err[int](errors.New("case 2"))
 			}
 
 			if taskID == 7 {
-				pool.Cancel(errors.New("case 7, cancel"))
+				p.Cancel(errors.New("case 7, cancel"))
 			}
 
 			return Ok(taskID * taskID)
 		})
 	}
 
-	pool.Wait().Println()
+	p.Wait().Println()
 
-	if cause := pool.Cause(); cause != nil {
+	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)
 	}
 }

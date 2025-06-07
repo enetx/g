@@ -7,8 +7,8 @@ import (
 	"runtime"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/pkg/constraints"
 )
 
 // Range returns a SeqSlice[T] yielding a sequence of integers of type T,

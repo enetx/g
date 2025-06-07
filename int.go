@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/pkg/constraints"
-	"github.com/enetx/g/pkg/rand"
+	"github.com/enetx/g/constraints"
+	"github.com/enetx/g/rand"
 )
 
 // NewInt creates a new Int with the provided int value.
