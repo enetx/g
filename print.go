@@ -399,6 +399,14 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 func applyMod(value any, name String, params Slice[String]) any {
 	current := reflect.ValueOf(value)
 
+	for current.Kind() == reflect.Ptr || current.Kind() == reflect.Interface {
+		if current.IsNil() {
+			return value
+		}
+
+		current = current.Elem()
+	}
+
 	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
 		if result := callMethod(method, params); result.IsSome() {
 			return result.Some()

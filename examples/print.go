@@ -7,6 +7,10 @@ import (
 )
 
 func main() {
+	type User struct{ ID int64 }
+	user := &User{ID: 19}
+	Println("{.ID}", user)
+
 	// Struct access
 	type MyStruct struct {
 		Field string

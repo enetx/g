@@ -6,7 +6,7 @@ import "sync/atomic"
 // It enables safe concurrent access and updates via atomic pointer replacement.
 type Box[T any] atomic.Pointer[T]
 
-// NewBox creates a new Box wrapping the provided pointer.
+// New creates a new Box wrapping the provided pointer.
 //
 // The value stored in the Box must follow an immutable pattern:
 // it must never be mutated in-place after being stored.
@@ -36,9 +36,9 @@ type Box[T any] atomic.Pointer[T]
 //	    Port  int
 //	}
 //
-//	box := NewBox(&Config{Port: 8080})
+//	b := box.New(&Config{Port: 8080})
 //
-//	box.Update(func(c *Config) *Config {
+//	b.Update(func(c *Config) *Config {
 //	    cp := *c       // shallow copy
 //	    cp.Port = 9090 // safe update
 //	    return &cp
