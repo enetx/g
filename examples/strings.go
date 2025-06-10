@@ -60,7 +60,7 @@ func main() {
 
 	modified.Println()
 
-	num := String("hello")
+	num := String("hello title")
 
 	num.Transform(String.Title).Println() // String type
 

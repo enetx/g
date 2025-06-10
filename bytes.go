@@ -135,11 +135,11 @@ func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
 	return transformSeq(bytes.FieldsFuncSeq(bs, fn), func(b []byte) Bytes { return Bytes(b) })
 }
 
-// Add appends the given Bytes to the current Bytes.
-func (bs Bytes) Add(obs Bytes) Bytes { return append(bs, obs...) }
+// Append appends the given Bytes to the current Bytes.
+func (bs Bytes) Append(obs Bytes) Bytes { return append(bs, obs...) }
 
-// AddPrefix prepends the given Bytes to the current Bytes.
-func (bs Bytes) AddPrefix(obs Bytes) Bytes { return obs.Add(bs) }
+// Prepend prepends the given Bytes to the current Bytes.
+func (bs Bytes) Prepend(obs Bytes) Bytes { return obs.Append(bs) }
 
 // Std returns the Bytes as a byte slice.
 func (bs Bytes) Std() []byte { return bs }

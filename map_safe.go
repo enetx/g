@@ -204,13 +204,13 @@ func (ms *MapSafe[K, V]) Empty() bool { return ms.Len() == 0 }
 
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {
-	builder := NewBuilder()
+	var b Builder
 	ms.data.Range(func(key, value any) bool {
-		builder.Write(Format("{}:{}, ", key, value))
+		b.WriteString(Format("{}:{}, ", key, value))
 		return true
 	})
 
-	return builder.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
+	return b.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
 }
 
 // Print writes the key-value pairs of the MapSafe to the standard output (console)

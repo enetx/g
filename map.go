@@ -163,13 +163,13 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 
 // String returns a string representation of the Map.
 func (m Map[K, V]) String() string {
-	builder := NewBuilder()
+	var b Builder
 
 	for k, v := range m {
-		builder.Write(Format("{}:{}, ", k, v))
+		b.WriteString(Format("{}:{}, ", k, v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("Map\\{{}\\}").Std()
+	return b.String().StripSuffix(", ").Format("Map\\{{}\\}").Std()
 }
 
 // Clear removes all key-value pairs from the Map.

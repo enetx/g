@@ -9,15 +9,15 @@ import (
 func TestBuilder(t *testing.T) {
 	builder := NewBuilder()
 
-	// Test Write
-	builder.Write(String("hello"))
+	// Test WriteString
+	builder.WriteString(String("hello"))
 	expected := "hello"
 	if result := builder.String().Std(); result != expected {
 		t.Errorf("Write() = %s; want %s", result, expected)
 	}
 
-	// Test WriteBytes
-	builder.WriteBytes([]byte(" world"))
+	// Test Write
+	builder.Write([]byte(" world"))
 	expected = "hello world"
 	if result := builder.String().Std(); result != expected {
 		t.Errorf("WriteBytes() = %s; want %s", result, expected)

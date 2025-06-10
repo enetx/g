@@ -74,18 +74,18 @@ func (e encode) URL(safe ...String) String {
 		reserved = safe[0]
 	}
 
-	enc := NewBuilder()
+	var b Builder
 
 	for _, r := range e.str {
 		if reserved.ContainsRune(r) {
-			enc.WriteRune(r)
+			b.WriteRune(r)
 			continue
 		}
 
-		enc.Write(String(url.QueryEscape(string(r))))
+		_, _ = b.WriteString(String(url.QueryEscape(string(r))))
 	}
 
-	return enc.String()
+	return b.String()
 }
 
 // URL URL-decodes the wrapped String and returns the decoded result as Result[String].
@@ -147,12 +147,12 @@ func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
 
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
 func (e encode) Hex() String {
-	result := NewBuilder()
+	var b Builder
 	for i := range len(e.str) {
-		result.Write(Int(e.str[i]).Hex())
+		b.WriteString(Int(e.str[i]).Hex())
 	}
 
-	return result.String()
+	return b.String()
 }
 
 // Hex hex-decodes the wrapped String and returns the decoded result as Result[String].
@@ -177,7 +177,7 @@ func (e encode) Octal() String {
 
 // Octal returns the octal representation of the decimal-encoded string as Result[String].
 func (d decode) Octal() Result[String] {
-	result := NewBuilder()
+	var b Builder
 
 	for v := range d.str.Split(" ") {
 		n, err := strconv.ParseUint(v.Std(), 8, 32)
@@ -185,20 +185,20 @@ func (d decode) Octal() Result[String] {
 			return Err[String](err)
 		}
 
-		result.WriteRune(rune(n))
+		b.WriteRune(rune(n))
 	}
 
-	return Ok(result.String())
+	return Ok(b.String())
 }
 
 // Binary converts the wrapped String to its binary representation as an String.
 func (e encode) Binary() String {
-	result := NewBuilder()
+	var b Builder
 	for i := range len(e.str) {
-		result.Write(Int(e.str[i]).Binary())
+		b.WriteString(Int(e.str[i]).Binary())
 	}
 
-	return result.String()
+	return b.String()
 }
 
 // Binary converts the wrapped binary String back to its original String representation as Result[String].

@@ -10,7 +10,8 @@ import (
 func genText() String {
 	text := String("").Builder()
 	for range 10000 {
-		text.Write(String("").Random(1000)).WriteByte('\n')
+		text.WriteString(String("").Random(1000))
+		text.WriteByte('\n')
 	}
 
 	return text.String()

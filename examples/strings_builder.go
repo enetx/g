@@ -5,15 +5,19 @@ import (
 )
 
 func main() {
-	builder := NewString("builder\n").Builder()
+	// var b Builder
+	// b := new(Builder)
+
+	// b.WriteString("builder\n")
+
+	b := String("builder\n").Builder()
 
 	for range 10 {
-		builder.
-			Write("a").
-			WriteRune('b').
-			WriteByte('c').
-			Write("\n")
+		b.WriteString("a")
+		b.WriteRune('b')
+		b.WriteByte('c')
+		b.WriteString("\n")
 	}
 
-	builder.String().Println()
+	b.String().Println()
 }

@@ -152,7 +152,7 @@ func Format[T ~string](template T, args ...any) String {
 }
 
 func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
-	builder := NewBuilder()
+	var builder Builder
 	length := tmpl.Len()
 	builder.Grow(length)
 
@@ -191,7 +191,7 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 			}
 
 			replaced := processPlaceholder(placeholder, named, positional)
-			builder.Write(replaced)
+			builder.WriteString(replaced)
 
 			idx = eidx + 1
 		} else {

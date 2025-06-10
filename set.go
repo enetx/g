@@ -299,11 +299,11 @@ func (s Set[T]) NotEmpty() bool { return !s.Empty() }
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
-	builder := NewBuilder()
+	var b Builder
 
-	s.Iter().ForEach(func(v T) { builder.Write(Format("{}, ", v)) })
+	s.Iter().ForEach(func(v T) { b.WriteString(Format("{}, ", v)) })
 
-	return builder.String().StripSuffix(", ").Format("Set\\{{}\\}").Std()
+	return b.String().StripSuffix(", ").Format("Set\\{{}\\}").Std()
 }
 
 // Print writes the elements of the Set to the standard output (console)

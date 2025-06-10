@@ -602,13 +602,13 @@ func (sl Slice[T]) EqBy(other Slice[T], fn func(x, y T) bool) bool {
 
 // String returns a string representation of the slice.
 func (sl Slice[T]) String() string {
-	builder := NewBuilder()
+	var b Builder
 
 	for _, v := range sl {
-		builder.Write(Format("{}, ", v))
+		b.WriteString(Format("{}, ", v))
 	}
 
-	return builder.String().StripSuffix(", ").Format("Slice[{}]").Std()
+	return b.String().StripSuffix(", ").Format("Slice[{}]").Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.

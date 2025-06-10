@@ -2,53 +2,36 @@ package g
 
 import "strings"
 
-// Builder represents a string builder.
-type Builder struct{ builder *strings.Builder }
+// Builder wraps strings.Builder and provides additional type-safe methods
+// for use with the custom types String and Int.
+type Builder struct{ builder strings.Builder }
 
 // NewBuilder creates a new instance of Builder.
-func NewBuilder() *Builder { return &Builder{new(strings.Builder)} }
+func NewBuilder() *Builder { return new(Builder) }
 
-// Write appends a String to the current state of the builder.
-func (b *Builder) Write(str String) *Builder {
-	b.builder.WriteString(str.Std())
-	return b
-}
+// Write appends the given byte slice to the builder.
+func (b *Builder) Write(bs []byte) (int, error) { return b.builder.Write(bs) }
 
-// Write appends a string to the current state of the builder.
-func (b *Builder) WriteString(str string) *Builder {
-	b.builder.WriteString(str)
-	return b
-}
+// WriteString appends the given String to the builder.
+func (b *Builder) WriteString(str String) (int, error) { return b.builder.WriteString(str.Std()) }
 
-// WriteBytes appends a byte slice to the current state of the builder.
-func (b *Builder) WriteBytes(bs Bytes) *Builder {
-	b.builder.Write(bs)
-	return b
-}
+// WriteByte appends the given byte to the builder.
+func (b *Builder) WriteByte(c byte) error { return b.builder.WriteByte(c) }
 
-// WriteByte appends a byte to the current state of the builder.
-func (b *Builder) WriteByte(c byte) *Builder {
-	b.builder.WriteByte(c)
-	return b
-}
+// WriteRune appends the given rune to the builder.
+func (b *Builder) WriteRune(r rune) (int, error) { return b.builder.WriteRune(r) }
 
-// WriteRune appends a rune to the current state of the builder.
-func (b *Builder) WriteRune(r rune) *Builder {
-	b.builder.WriteRune(r)
-	return b
-}
-
-// Grow increases the capacity of the builder by n bytes.
+// Grow increases the builder’s capacity by at least n bytes.
 func (b *Builder) Grow(n Int) { b.builder.Grow(n.Std()) }
 
-// Cap returns the current capacity of the builder.
+// Cap returns the builder’s current capacity.
 func (b *Builder) Cap() Int { return Int(b.builder.Cap()) }
 
-// Len returns the current length of the string in the builder.
+// Len returns the number of bytes currently in the builder.
 func (b *Builder) Len() Int { return Int(b.builder.Len()) }
 
-// Reset clears the content of the Builder, resetting it to an empty state.
+// Reset clears the contents of the builder.
 func (b *Builder) Reset() { b.builder.Reset() }
 
-// String returns the content of the builder as a string.
+// String returns the accumulated string as a custom String type.
 func (b *Builder) String() String { return String(b.builder.String()) }

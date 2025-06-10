@@ -361,11 +361,11 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 // String returns a string representation of the ordered Map.
 func (mo MapOrd[K, V]) String() string {
-	builder := NewBuilder()
+	var b Builder
 
-	mo.Iter().ForEach(func(k K, v V) { builder.Write(Format("{}:{}, ", k, v)) })
+	mo.Iter().ForEach(func(k K, v V) { b.WriteString(Format("{}:{}, ", k, v)) })
 
-	return builder.String().StripSuffix(", ").Format("MapOrd\\{{}\\}").Std()
+	return b.String().StripSuffix(", ").Format("MapOrd\\{{}\\}").Std()
 }
 
 // Clear removes all key-value pairs from the ordered Map.

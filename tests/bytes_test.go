@@ -271,22 +271,22 @@ func TestBytesSplit(t *testing.T) {
 	}
 }
 
-func TestBytesAdd(t *testing.T) {
+func TestBytesAppend(t *testing.T) {
 	// Test case where bytes are added
 	bs1 := Bytes("hello")
 	obs1 := Bytes(" world")
-	added1 := bs1.Add(obs1)
+	added1 := bs1.Append(obs1)
 	expected1 := Bytes("hello world")
 	if !bytes.Equal(added1, expected1) {
 		t.Errorf("Add failed. Expected: %s, Got: %s", expected1, added1)
 	}
 }
 
-func TestBytesAddPrefix(t *testing.T) {
+func TestBytesPrepend(t *testing.T) {
 	// Test case where bytes are added as a prefix
 	bs1 := Bytes("world")
 	obs1 := Bytes("hello ")
-	prefixed1 := bs1.AddPrefix(obs1)
+	prefixed1 := bs1.Prepend(obs1)
 	expected1 := Bytes("hello world")
 	if !bytes.Equal(prefixed1, expected1) {
 		t.Errorf("AddPrefix failed. Expected: %s, Got: %s", expected1, prefixed1)

@@ -26,7 +26,11 @@ func (s String) Clone() String { return String(strings.Clone(s.Std())) }
 func (s String) Transform(fn func(String) String) String { return fn(s) }
 
 // Builder returns a new Builder initialized with the content of the String.
-func (s String) Builder() *Builder { return NewBuilder().Write(s) }
+func (s String) Builder() *Builder {
+	b := new(Builder)
+	b.WriteString(s)
+	return b
+}
 
 // Min returns the minimum of Strings.
 func (s String) Min(b ...String) String { return cmp.Min(append(b, s)...) }
@@ -58,13 +62,13 @@ func (String) Random(length Int, letters ...String) String {
 		chars = (ASCII_LETTERS + DIGITS).Runes()
 	}
 
-	result := NewBuilder()
+	var b Builder
 
 	for range length {
-		result.WriteRune(chars.Random())
+		b.WriteRune(chars.Random())
 	}
 
-	return result.String()
+	return b.String()
 }
 
 // IsASCII checks if all characters in the String are ASCII bytes.
@@ -711,12 +715,12 @@ func (s String) LeftJustify(length Int, pad String) String {
 		return s
 	}
 
-	output := NewBuilder()
+	var b Builder
 
-	_ = output.Write(s)
-	writePadding(output, pad, pad.LenRunes(), length-s.LenRunes())
+	_, _ = b.WriteString(s)
+	writePadding(&b, pad, pad.LenRunes(), length-s.LenRunes())
 
-	return output.String()
+	return b.String()
 }
 
 // RightJustify justifies the String to the right by adding padding to the left, up to the
@@ -740,12 +744,12 @@ func (s String) RightJustify(length Int, pad String) String {
 		return s
 	}
 
-	output := NewBuilder()
+	var b Builder
 
-	writePadding(output, pad, pad.LenRunes(), length-s.LenRunes())
-	_ = output.Write(s)
+	writePadding(&b, pad, pad.LenRunes(), length-s.LenRunes())
+	_, _ = b.WriteString(s)
 
-	return output.String()
+	return b.String()
 }
 
 // Center justifies the String by adding padding on both sides, up to the specified length.
@@ -770,28 +774,28 @@ func (s String) Center(length Int, pad String) String {
 		return s
 	}
 
-	output := NewBuilder()
+	var b Builder
 
 	remains := length - s.LenRunes()
 
-	writePadding(output, pad, pad.LenRunes(), remains/2)
-	_ = output.Write(s)
-	writePadding(output, pad, pad.LenRunes(), (remains+1)/2)
+	writePadding(&b, pad, pad.LenRunes(), remains/2)
+	_, _ = b.WriteString(s)
+	writePadding(&b, pad, pad.LenRunes(), (remains+1)/2)
 
-	return output.String()
+	return b.String()
 }
 
 // writePadding writes the padding String to the output Builder to fill the remaining length.
 // It repeats the padding String as necessary and appends any remaining runes from the padding
 // String.
-func writePadding(output *Builder, pad String, padlen, remains Int) {
+func writePadding(b *Builder, pad String, padlen, remains Int) {
 	if repeats := remains / padlen; repeats > 0 {
-		_ = output.Write(pad.Repeat(repeats))
+		_, _ = b.WriteString(pad.Repeat(repeats))
 	}
 
 	padrunes := pad.Runes()
 	for i := range remains % padlen {
-		_ = output.WriteRune(padrunes[i])
+		_, _ = b.WriteRune(padrunes[i])
 	}
 }
 
