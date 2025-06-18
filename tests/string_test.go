@@ -342,7 +342,7 @@ func TestStringToInt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.str.ToInt().Ok(); got != tt.want {
+			if got := tt.str.ToInt().UnwrapOrDefault(); got != tt.want {
 				t.Errorf("String.ToInt() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1981,7 +1981,7 @@ func TestStringToBigInt(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.input.ToBigInt()
-			if result.Some().Cmp(tc.expected) != 0 {
+			if result.UnwrapOrDefault().Cmp(tc.expected) != 0 {
 				t.Errorf("Failed %s: expected %v, got %v", tc.name, tc.expected, result)
 			}
 		})

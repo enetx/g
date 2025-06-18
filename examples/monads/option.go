@@ -34,8 +34,8 @@ func main() {
 
 	fmt.Println(addTwoOption.Unwrap()) // Output: "result: 44"
 
-	// Using Some to handle None Option with default value
-	defaultValue := noneOption.Some()
+	// Using UnwrapOrDefault to handle None Option with default value
+	defaultValue := noneOption.UnwrapOrDefault()
 	fmt.Println(defaultValue) // Output: 0 (default value for int)
 
 	// Using Then to chain operations on Option

@@ -1,22 +1,21 @@
 package g
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 )
 
-// Some creates an Option containing a non-nil value.
-func Some[T any](value T) Option[T] { return Option[T]{value: value, isSome: true} }
+// Some creates an Option containing a value.
+func Some[T any](value T) Option[T] { return Option[T]{v: value, isSome: true} }
 
-// None creates an Option containing a nil value.
+// None creates an Option representing no value.
 func None[T any]() Option[T] { return Option[T]{isSome: false} }
 
-// OptionOf creates an Option[T] based on the provided value and status flag.
-// If ok is true, it returns an Option containing the value.
-// Otherwise, it returns an Option representing no value.
+// OptionOf creates an Option[T] based on the provided value and a boolean flag.
+// If ok is true, it returns Some(value).
+// Otherwise, it returns None.
 func OptionOf[T any](value T, ok bool) Option[T] {
 	if ok {
 		return Some(value)
@@ -29,69 +28,97 @@ func OptionOf[T any](value T, ok bool) Option[T] {
 // If the input Option is None, the output Option will also be None.
 // Parameters:
 //   - o: The input Option to map over.
-//   - fn: The function to apply to the value inside the Option.
+//   - fn: The function that returns an Option to apply to the value inside the Option.
 //
 // Returns:
 //
-//	A new Option with the transformed value.
+//	A new Option with the transformed value, or None if the input was None.
 func TransformOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
-	if o.IsNone() {
-		return None[U]()
+	if o.isSome {
+		return fn(o.v)
 	}
 
-	return fn(o.Some())
+	return None[U]()
 }
 
-// Some returns the value held in the Option.
-func (o Option[T]) Some() T { return o.value }
+// Some returns the contained value of the Option.
+//
+// WARNING: If the Option is None, this method will return the zero value
+// for type T. Always check IsSome() before calling this method, or use safer alternatives
+// like Unwrap(), or UnwrapOr().
+func (o Option[T]) Some() T { return o.v }
 
-// IsSome returns true if the Option contains a non-nil value.
+// IsSome returns true if the Option contains a value.
 func (o Option[T]) IsSome() bool { return o.isSome }
 
-// IsNone returns true if the Option contains a nil value.
+// IsNone returns true if the Option represents no value.
 func (o Option[T]) IsNone() bool { return !o.isSome }
 
-// Unwrap returns the value held in the Option. If the Option contains a nil value, it panics.
+// Unwrap returns the value held in the Option. If the Option is None, it panics.
 func (o Option[T]) Unwrap() T {
 	if o.isSome {
-		return o.Some()
+		return o.v
 	}
 
-	err := errors.New("can't unwrap none value")
+	const panicMsg = "called Option.Unwrap() on a None value"
+
 	if pc, file, line, ok := runtime.Caller(1); ok {
-		out := fmt.Sprintf("[%s:%d] [%s] %v", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), err)
+		out := fmt.Sprintf("[%s:%d] [%s] %s", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), panicMsg)
 		fmt.Fprintln(os.Stderr, out)
 	}
 
-	panic(err)
+	panic(panicMsg)
 }
 
-// UnwrapOr returns the value held in the Option. If the Option contains a nil value, it returns the provided default value.
+// UnwrapOr returns the value held in the Option. If the Option is None, it returns the provided default value.
 func (o Option[T]) UnwrapOr(value T) T {
 	if o.isSome {
-		return o.Some()
+		return o.v
 	}
 
 	return value
 }
 
-// Expect returns the value held in the Option. If the Option contains a nil value, it panics with the provided message.
-func (o Option[T]) Expect(msg string) T {
+// UnwrapOrDefault returns the contained value if Some; otherwise returns the zero value for T.
+func (o Option[T]) UnwrapOrDefault() T {
 	if o.isSome {
-		return o.Some()
+		return o.v
 	}
 
-	panic(msg)
+	var zero T
+	return zero
+}
+
+// Expect returns the value held in the Option. If the Option is None, it panics with the provided message.
+func (o Option[T]) Expect(msg string) T {
+	if o.isSome {
+		return o.v
+	}
+
+	out := fmt.Sprintf("Expect() failed: %s", msg)
+	fmt.Fprintln(os.Stderr, out)
+	panic(out)
 }
 
 // Then applies the function fn to the value inside the Option and returns a new Option.
 // If the Option is None, it returns the same Option without applying fn.
 func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 	if o.isSome {
-		return fn(o.Some())
+		return fn(o.v)
 	}
 
 	return o
+}
+
+// Result converts an Option into a Result.
+// If the Option is Some, it returns an Ok Result with the value.
+// If the Option is None, it returns an Err Result with the provided error.
+func (o Option[T]) Result(err error) Result[T] {
+	if o.isSome {
+		return Ok(o.v)
+	}
+
+	return Err[T](err)
 }
 
 // String returns a string representation of the Option.
@@ -99,7 +126,7 @@ func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 // Otherwise, it returns "None".
 func (o Option[T]) String() string {
 	if o.isSome {
-		return fmt.Sprintf("Some(%v)", o.Some())
+		return fmt.Sprintf("Some(%v)", o.v)
 	}
 
 	return "None"

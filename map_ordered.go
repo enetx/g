@@ -29,7 +29,7 @@ import (
 //
 // Creates a new ordered Map with an initial size of 10.
 func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
-	return make(MapOrd[K, V], 0, Slice[Int](size).Get(0).Some())
+	return make(MapOrd[K, V], 0, Slice[Int](size).Get(0).UnwrapOrDefault())
 }
 
 // Transform applies a transformation function to the MapOrd and returns the result.

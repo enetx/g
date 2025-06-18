@@ -30,11 +30,11 @@ func (seq SeqResult[V]) All(fn func(v V) bool) Result[bool] {
 
 	seq(func(v Result[V]) bool {
 		if v.IsErr() {
-			result = Err[bool](v.Err())
+			result = Err[bool](v.err)
 			return false
 		}
 
-		if !fn(v.Ok()) {
+		if !fn(v.v) {
 			result = Ok(false)
 			return false
 		}
@@ -54,11 +54,11 @@ func (seq SeqResult[V]) Any(fn func(v V) bool) Result[bool] {
 
 	seq(func(v Result[V]) bool {
 		if v.IsErr() {
-			result = Err[bool](v.Err())
+			result = Err[bool](v.err)
 			return false
 		}
 
-		if fn(v.Ok()) {
+		if fn(v.v) {
 			result = Ok(true)
 			return false
 		}
@@ -77,10 +77,10 @@ func (seq SeqResult[V]) Collect() Result[Slice[V]] {
 
 	seq(func(v Result[V]) bool {
 		if v.IsErr() {
-			err = v.Err()
+			err = v.err
 			return false
 		}
-		collected = append(collected, v.Ok())
+		collected = append(collected, v.v)
 		return true
 	})
 
@@ -114,10 +114,10 @@ func transformResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
 	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(Err[U](v.Err()))
+				yield(Err[U](v.err))
 				return false
 			}
-			return yield(Ok(fn(v.Ok())))
+			return yield(Ok(fn(v.v)))
 		})
 	}
 }
@@ -137,7 +137,7 @@ func filterResult[V any](seq SeqResult[V], fn func(V) bool) SeqResult[V] {
 				yield(v)
 				return false
 			}
-			if fn(v.Ok()) {
+			if fn(v.v) {
 				return yield(v)
 			}
 			return true
@@ -169,16 +169,16 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 			}
 
 			if comparable {
-				if f.Eq[any](current)(v.Ok()) {
+				if f.Eq[any](current)(v.v) {
 					return true
 				}
 			} else {
-				if f.Eqd(current)(v.Ok()) {
+				if f.Eqd(current)(v.v) {
 					return true
 				}
 			}
 
-			current = v.Ok()
+			current = v.v
 			return yield(v)
 		})
 	}
@@ -196,8 +196,8 @@ func (seq SeqResult[V]) Unique() SeqResult[V] {
 				yield(v)
 				return false
 			}
-			if !seen.Contains(v.Ok()) {
-				seen.Insert(v.Ok())
+			if !seen.Contains(v.v) {
+				seen.Insert(v.v)
 				return yield(v)
 			}
 			return true
@@ -335,7 +335,7 @@ func (seq SeqResult[V]) Inspect(fn func(v V)) SeqResult[V] {
 				yield(v)
 				return false
 			}
-			fn(v.Ok())
+			fn(v.v)
 			return yield(v)
 		})
 	}
@@ -350,11 +350,11 @@ func (seq SeqResult[V]) Find(fn func(V) bool) Result[Option[V]] {
 
 	seq(func(v Result[V]) bool {
 		if v.IsErr() {
-			result = Err[Option[V]](v.Err())
+			result = Err[Option[V]](v.err)
 			return false
 		}
-		if fn(v.Ok()) {
-			result = Ok(Some(v.Ok()))
+		if fn(v.v) {
+			result = Ok(Some(v.v))
 			return false
 		}
 		return true

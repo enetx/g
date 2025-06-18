@@ -245,7 +245,7 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 
 func resolveValue(key, fall String, named Named, positional Slice[any]) any {
 	if num := key.ToInt(); num.IsOk() {
-		idx := num.Ok() - 1
+		idx := num.v - 1
 		if idx.IsNegative() || idx.Gte(positional.Len()) {
 			return nil
 		}
@@ -258,7 +258,7 @@ func resolveValue(key, fall String, named Named, positional Slice[any]) any {
 		value = Map[String, any](named).Get(fall)
 	}
 
-	return value.Some()
+	return value.UnwrapOrDefault()
 }
 
 func parseMod(segment String) (String, Slice[String]) {
@@ -331,13 +331,13 @@ func extractFromMapOrd(param String, targetType reflect.Value) Option[any] {
 	case reflect.TypeOf(String("")):
 		return slice.Get(param)
 	case reflect.TypeOf(0):
-		return slice.Get(param.ToInt().Ok().Std())
+		return slice.Get(param.ToInt().v.Std())
 	case reflect.TypeOf(Int(0)):
-		return slice.Get(param.ToInt().Ok())
+		return slice.Get(param.ToInt().v)
 	case reflect.TypeOf(0.0):
-		return slice.Get(param.ToFloat().Ok().Std())
+		return slice.Get(param.ToFloat().v.Std())
 	case reflect.TypeOf(Float(0.0)):
-		return slice.Get(param.ToFloat().Ok())
+		return slice.Get(param.ToFloat().v)
 	default:
 		return None[any]()
 	}
@@ -372,7 +372,7 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 			return None[any]()
 		}
 
-		args = append(args, arg.Ok())
+		args = append(args, arg.v)
 	}
 
 	if isVariadic {
@@ -383,7 +383,7 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 				return None[any]()
 			}
 
-			args = append(args, arg.Ok())
+			args = append(args, arg.v)
 		}
 	}
 
@@ -409,7 +409,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 
 	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
 		if result := callMethod(method, params); result.IsSome() {
-			return result.Some()
+			return result.v
 		}
 
 		return value
@@ -422,19 +422,19 @@ func applyMod(value any, name String, params Slice[String]) any {
 			return value
 		}
 
-		current = resolveIndirect(current.MapIndex(key.Ok()))
+		current = resolveIndirect(current.MapIndex(key.v))
 	case reflect.Slice, reflect.Array:
 		if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
 			if pair := extractFromMapOrd(name, current); pair.IsSome() {
-				current = reflect.ValueOf(pair.Some())
+				current = reflect.ValueOf(pair.v)
 			}
 		} else {
 			index := name.ToInt()
-			if index.IsErr() || index.Ok().Gte(Int(current.Len())) {
+			if index.IsErr() || index.v.Gte(Int(current.Len())) {
 				return value
 			}
 
-			current = current.Index(index.Ok().Std())
+			current = current.Index(index.v.Std())
 		}
 	case reflect.Struct:
 		current = current.FieldByName(name.Std())

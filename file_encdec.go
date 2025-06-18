@@ -40,9 +40,9 @@ func (fe fencode) Gob(data any) Result[*File] {
 		return r
 	}
 
-	defer r.Ok().Close()
+	defer r.v.Close()
 
-	if err := gob.NewEncoder(r.Ok().Std()).Encode(data); err != nil {
+	if err := gob.NewEncoder(r.v.Std()).Encode(data); err != nil {
 		return Err[*File](err)
 	}
 
@@ -70,9 +70,9 @@ func (fd fdecode) Gob(data any) Result[*File] {
 		return r
 	}
 
-	defer r.Ok().Close()
+	defer r.v.Close()
 
-	if err := gob.NewDecoder(r.Ok().Std()).Decode(data); err != nil {
+	if err := gob.NewDecoder(r.v.Std()).Decode(data); err != nil {
 		return Err[*File](err)
 	}
 
@@ -100,9 +100,9 @@ func (fe fencode) JSON(data any) Result[*File] {
 		return r
 	}
 
-	defer r.Ok().Close()
+	defer r.v.Close()
 
-	if err := json.NewEncoder(r.Ok().Std()).Encode(data); err != nil {
+	if err := json.NewEncoder(r.v.Std()).Encode(data); err != nil {
 		return Err[*File](err)
 	}
 
@@ -130,9 +130,9 @@ func (fd fdecode) JSON(data any) Result[*File] {
 		return r
 	}
 
-	defer r.Ok().Close()
+	defer r.v.Close()
 
-	if err := json.NewDecoder(r.Ok().Std()).Decode(data); err != nil {
+	if err := json.NewDecoder(r.v.Std()).Decode(data); err != nil {
 		return Err[*File](err)
 	}
 

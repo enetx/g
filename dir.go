@@ -25,21 +25,21 @@ func (d *Dir) Chown(uid, gid int) Result[*Dir] {
 // It returns a Result[fs.FileInfo] containing details about the directory's metadata.
 func (d *Dir) Stat() Result[fs.FileInfo] {
 	if d.Path().IsErr() {
-		return Err[fs.FileInfo](d.Path().Err())
+		return Err[fs.FileInfo](d.Path().err)
 	}
 
-	return ResultOf(os.Stat(d.Path().Ok().Std()))
+	return ResultOf(os.Stat(d.Path().v.Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
-func (d *Dir) Lstat() Result[fs.FileInfo] { return ResultOf(os.Lstat(d.Path().Ok().Std())) }
+func (d *Dir) Lstat() Result[fs.FileInfo] { return ResultOf(os.Lstat(d.Path().v.Std())) }
 
 // IsLink checks if the directory is a symbolic link.
 func (d *Dir) IsLink() bool {
 	stat := d.Lstat()
-	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
+	return stat.IsOk() && stat.v.Mode()&os.ModeSymlink != 0
 }
 
 // CreateTemp creates a new temporary directory in the specified directory with the
@@ -132,14 +132,14 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 
 	for r := range d.Walk() {
 		if r.IsErr() {
-			return Err[*Dir](r.Err())
+			return Err[*Dir](r.err)
 		}
-		files.Push(r.Ok())
+		files.Push(r.v)
 	}
 
 	root := d.Path()
 	if root.IsErr() {
-		return Err[*Dir](root.Err())
+		return Err[*Dir](root.err)
 	}
 
 	follow := Slice[bool](followLinks).Get(0).UnwrapOr(true)
@@ -147,38 +147,38 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 	for f := range files.Iter() {
 		path := f.Path()
 		if path.IsErr() {
-			return Err[*Dir](path.Err())
+			return Err[*Dir](path.err)
 		}
 
-		relpath, err := filepath.Rel(root.Ok().Std(), path.Ok().Std())
+		relpath, err := filepath.Rel(root.v.Std(), path.v.Std())
 		if err != nil {
 			return Err[*Dir](err)
 		}
 
 		destpath := NewDir(dest).Join(String(relpath))
 		if destpath.IsErr() {
-			return Err[*Dir](destpath.Err())
+			return Err[*Dir](destpath.err)
 		}
 
 		stat := f.Stat()
 		if stat.IsErr() {
-			return Err[*Dir](stat.Err())
+			return Err[*Dir](stat.err)
 		}
 
-		if stat.Ok().IsDir() {
+		if stat.v.IsDir() {
 			if !follow && f.IsLink() {
 				continue
 			}
 
-			if r := NewDir(destpath.Ok()).CreateAll(stat.Ok().Mode()); r.IsErr() {
+			if r := NewDir(destpath.v).CreateAll(stat.v.Mode()); r.IsErr() {
 				return r
 			}
 
 			continue
 		}
 
-		if r := f.Copy(destpath.Ok(), stat.Ok().Mode()); r.IsErr() {
-			return Err[*Dir](r.Err())
+		if r := f.Copy(destpath.v, stat.v.Mode()); r.IsErr() {
+			return Err[*Dir](r.err)
 		}
 	}
 
@@ -227,11 +227,11 @@ func (d *Dir) Create(mode ...os.FileMode) Result[*Dir] {
 func (d *Dir) Join(elem ...String) Result[String] {
 	path := d.Path()
 	if path.IsErr() {
-		return Err[String](path.Err())
+		return Err[String](path.err)
 	}
 
 	se := SliceOf(elem...)
-	se.Insert(0, path.Ok())
+	se.Insert(0, path.v)
 
 	return Ok(String(filepath.Join(se.ToStringSlice()...)))
 }
@@ -278,12 +278,12 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 
 	path := d.Path()
 	if path.IsErr() {
-		return Err[*Dir](path.Err())
+		return Err[*Dir](path.err)
 	}
 
 	dmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(DirDefault)
 
-	err := os.MkdirAll(path.Ok().Std(), dmode)
+	err := os.MkdirAll(path.v.Std(), dmode)
 	if err != nil {
 		return Err[*Dir](err)
 	}
@@ -364,7 +364,7 @@ func (d *Dir) Exist() bool {
 		return false
 	}
 
-	_, err := os.Stat(path.Ok().Std())
+	_, err := os.Stat(path.v.Std())
 
 	return !os.IsNotExist(err)
 }
@@ -393,20 +393,20 @@ func (d *Dir) Read() SeqResult[*File] {
 
 		dpath := d.Path()
 		if dpath.IsErr() {
-			yield(Err[*File](dpath.Err()))
+			yield(Err[*File](dpath.err))
 			return
 		}
 
-		base := dpath.Ok()
+		base := dpath.v
 
 		for _, entry := range entries {
 			full := NewDir(base).Join(String(entry.Name()))
 			if full.IsErr() {
-				yield(Err[*File](full.Err()))
+				yield(Err[*File](full.err))
 				return
 			}
 
-			if !yield(Ok(NewFile(full.Ok()))) {
+			if !yield(Ok(NewFile(full.v))) {
 				return
 			}
 		}
@@ -425,7 +425,7 @@ func (d *Dir) Read() SeqResult[*File] {
 //	dir := g.NewDir("path/to/directory/*.txt")
 //	files := dir.Glob()
 //	for file := range files {
-//	    fmt.Println(file.Ok().Name())
+//	    fmt.Println(file.V().Name())
 //	}
 func (d *Dir) Glob() SeqResult[*File] {
 	return (func(yield func(Result[*File]) bool) {
@@ -438,11 +438,11 @@ func (d *Dir) Glob() SeqResult[*File] {
 		for _, match := range matches {
 			file := NewFile(String(match)).Path()
 			if file.IsErr() {
-				yield(Err[*File](file.Err()))
+				yield(Err[*File](file.err))
 				return
 			}
 
-			if !yield(Ok(NewFile(file.Ok()))) {
+			if !yield(Ok(NewFile(file.v))) {
 				return
 			}
 		}
@@ -459,7 +459,7 @@ func (d *Dir) Glob() SeqResult[*File] {
 //	  Exclude((*File).IsLink).
 //	  ForEach(func(r Result[*File]) {
 //	      if r.IsOk() {
-//	          fmt.Println(r.Ok().Path().Ok().Std())
+//	          fmt.Println(r.V().Path().V().Std())
 //	      }
 //	  })
 func (d *Dir) Walk() SeqResult[*File] {
@@ -472,28 +472,28 @@ func (d *Dir) Walk() SeqResult[*File] {
 				break
 			}
 
-			current.Some().Read().Range(func(r Result[*File]) bool {
+			current.v.Read().Range(func(r Result[*File]) bool {
 				if r.IsErr() {
 					return yield(r)
 				}
 
-				file := r.Ok()
+				file := r.v
 				if !yield(Ok(file)) {
 					return false
 				}
 
 				stat := file.Stat()
 				if stat.IsErr() {
-					return yield(Err[*File](stat.Err()))
+					return yield(Err[*File](stat.err))
 				}
 
-				if stat.Ok().IsDir() {
+				if stat.v.IsDir() {
 					path := file.Path()
 					if path.IsErr() {
-						return yield(Err[*File](path.Err()))
+						return yield(Err[*File](path.err))
 					}
 
-					stack.Push(NewDir(path.Ok()))
+					stack.Push(NewDir(path.v))
 				}
 
 				return true

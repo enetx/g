@@ -41,7 +41,7 @@ func (f *File) Lines() SeqResult[String] {
 	return func(yield func(Result[String]) bool) {
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[String](r.Err()))
+				yield(Err[String](r.err))
 				return
 			}
 		}
@@ -95,7 +95,7 @@ func (f *File) LinesRaw() SeqResult[Bytes] {
 	return func(yield func(Result[Bytes]) bool) {
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[Bytes](r.Err()))
+				yield(Err[Bytes](r.err))
 				return
 			}
 		}
@@ -151,7 +151,7 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[String](r.Err()))
+				yield(Err[String](r.err))
 				return
 			}
 		}
@@ -215,7 +215,7 @@ func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
 
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[Bytes](r.Err()))
+				yield(Err[Bytes](r.err))
 				return
 			}
 		}
@@ -385,10 +385,10 @@ func (f *File) Create() Result[*File] {
 func (f *File) Dir() Result[*Dir] {
 	dirPath := f.dirPath()
 	if dirPath.IsErr() {
-		return Err[*Dir](dirPath.Err())
+		return Err[*Dir](dirPath.err)
 	}
 
-	return Ok(NewDir(dirPath.Ok()))
+	return Ok(NewDir(dirPath.v))
 }
 
 // Exist checks if the file exists.
@@ -396,7 +396,7 @@ func (f *File) Exist() bool {
 	if f.dirPath().IsOk() {
 		filePath := f.filePath()
 		if filePath.IsOk() {
-			_, err := os.Stat(filePath.Ok().Std())
+			_, err := os.Stat(filePath.v.Std())
 			return !os.IsNotExist(err)
 		}
 	}
@@ -417,7 +417,7 @@ func (f *File) Guard() *File {
 // MimeType returns the MIME type of the file as Result[String].
 func (f *File) MimeType() Result[String] {
 	if r := f.Open(); r.IsErr() {
-		return Err[String](r.Err())
+		return Err[String](r.err)
 	}
 
 	defer f.Close()
@@ -509,7 +509,7 @@ func (f *File) Println() *File { fmt.Println(f); return f }
 // Read opens the named file with a read-lock and returns its contents.
 func (f *File) Read() Result[String] {
 	if r := f.Open(); r.IsErr() {
-		return Err[String](r.Err())
+		return Err[String](r.err)
 	}
 
 	defer f.Close()
@@ -553,7 +553,7 @@ func (f *File) Split() (*Dir, *File) {
 		return nil, nil
 	}
 
-	dir, file := filepath.Split(path.Ok().Std())
+	dir, file := filepath.Split(path.v.Std())
 
 	return NewDir(String(dir)), NewFile(String(file))
 }
@@ -578,13 +578,13 @@ func (f *File) Lstat() Result[fs.FileInfo] {
 // IsDir checks if the file is a directory.
 func (f *File) IsDir() bool {
 	stat := f.Stat()
-	return stat.IsOk() && stat.Ok().IsDir()
+	return stat.IsOk() && stat.v.IsDir()
 }
 
 // IsLink checks if the file is a symbolic link.
 func (f *File) IsLink() bool {
 	stat := f.Lstat()
-	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
+	return stat.IsOk() && stat.v.Mode()&os.ModeSymlink != 0
 }
 
 // Std returns the underlying *os.File instance.
@@ -654,15 +654,15 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 
 	filePath := f.filePath()
 	if filePath.IsErr() {
-		return Err[*File](filePath.Err())
+		return Err[*File](filePath.err)
 	}
 
-	f = NewFile(filePath.Ok())
+	f = NewFile(filePath.v)
 
 	fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
 
 	if r := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode); r.IsErr() {
-		return Err[*File](r.Err())
+		return Err[*File](r.err)
 	}
 
 	defer f.Close()
@@ -704,24 +704,24 @@ func (f *File) dirPath() Result[String] {
 func (f *File) filePath() Result[String] {
 	dirPath := f.dirPath()
 	if dirPath.IsErr() {
-		return Err[String](dirPath.Err())
+		return Err[String](dirPath.err)
 	}
 
 	if f.IsDir() {
 		return dirPath
 	}
 
-	return Ok(String(filepath.Join(dirPath.Ok().Std(), filepath.Base(f.name.Std()))))
+	return Ok(String(filepath.Join(dirPath.v.Std(), filepath.Base(f.name.Std()))))
 }
 
 func (f *File) createAll() Result[*File] {
 	dirPath := f.dirPath()
 	if dirPath.IsErr() {
-		return Err[*File](dirPath.Err())
+		return Err[*File](dirPath.err)
 	}
 
 	if !f.Exist() {
-		if err := os.MkdirAll(dirPath.Ok().Std(), DirDefault); err != nil {
+		if err := os.MkdirAll(dirPath.v.Std(), DirDefault); err != nil {
 			return Err[*File](err)
 		}
 	}

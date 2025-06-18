@@ -116,7 +116,10 @@ func (bs Bytes) StripSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cu
 
 // Split splits the Bytes by the specified separator and returns the iterator.
 func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
-	return transformSeq(bytes.SplitSeq(bs, Slice[Bytes](sep).Get(0).Some()), func(b []byte) Bytes { return Bytes(b) })
+	return transformSeq(
+		bytes.SplitSeq(bs, Slice[Bytes](sep).Get(0).UnwrapOrDefault()),
+		func(b []byte) Bytes { return Bytes(b) },
+	)
 }
 
 // SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.

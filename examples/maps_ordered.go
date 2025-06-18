@@ -15,11 +15,11 @@ func main() {
 	god := NewMapOrd[int, Slice[int]]()
 
 	for i := range 5 {
-		god.Set(i, god.Get(i).Some().Append(i))
+		god.Set(i, god.Get(i).UnwrapOrDefault().Append(i))
 	}
 
 	for i := range 10 {
-		god.Set(i, god.Get(i).Some().Append(i))
+		god.Set(i, god.Get(i).UnwrapOrDefault().Append(i))
 	}
 
 	god.Println()

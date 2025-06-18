@@ -47,7 +47,7 @@ func (ms *MapSafe[K, V]) IntoIter() SeqMap[K, V] {
 
 		for _, k := range keys {
 			if val := ms.GetAndDelete(k); val.IsSome() {
-				if !yield(k, val.Some()) {
+				if !yield(k, val.v) {
 					return
 				}
 			}
@@ -120,7 +120,7 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 	res := true
 
 	key := ms.Iter().Take(1).Keys().Collect()[0]
-	comparable := f.IsComparable(ms.Get(key).Some())
+	comparable := f.IsComparable(ms.Get(key).v)
 
 	ms.data.Range(func(key, value any) bool {
 		ov, ok := other.data.Load(key)

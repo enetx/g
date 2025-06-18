@@ -1,6 +1,8 @@
 package g
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -321,14 +323,14 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 	jj := sl.bound(j)
 
 	if ii.IsErr() {
-		panic(ii.Err())
+		panic(ii.err)
 	}
 
 	if jj.IsErr() {
-		panic(jj.Err())
+		panic(jj.err)
 	}
 
-	i, j = ii.Ok(), jj.Ok()
+	i, j = ii.v, jj.v
 
 	if i > j {
 		*sl = (*sl)[:0]
@@ -365,7 +367,7 @@ func (sl Slice[T]) Get(index Int) Option[T] {
 		return None[T]()
 	}
 
-	return Some(sl[i.Ok()])
+	return Some(sl[i.v])
 }
 
 // Shuffle shuffles the elements in the slice randomly.
@@ -434,9 +436,17 @@ func (sl Slice[T]) ToStringSlice() []string {
 	return result
 }
 
-// Join joins the elements in the slice into a single String, separated by the provided separator
-// (if any).
+// Join joins the elements in the slice into a single String, separated by the provided separator (if any).
 func (sl Slice[T]) Join(sep ...T) String {
+	if s, ok := any(sl).(Slice[Bytes]); ok {
+		var separator Bytes
+		if len(sep) != 0 {
+			separator, _ = any(sep[0]).(Bytes)
+		}
+
+		return String(bytes.Join(TransformSlice(s, func(b Bytes) []byte { return b }), separator))
+	}
+
 	var separator string
 	if len(sep) != 0 {
 		separator = fmt.Sprint(sep[0])
@@ -484,14 +494,14 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	jj := sl.bound(end, struct{}{})
 
 	if ii.IsErr() {
-		panic(ii.Err())
+		panic(ii.err)
 	}
 
 	if jj.IsErr() {
-		panic(jj.Err())
+		panic(jj.err)
 	}
 
-	start, end = ii.Ok(), jj.Ok()
+	start, end = ii.v, jj.v
 
 	if (start >= end && _step > 0) || (start <= end && _step < 0) || _step == 0 {
 		return NewSlice[T]()
@@ -531,7 +541,8 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 // Output: <any random element from the slice>.
 func (sl Slice[T]) Random() T {
 	if sl.Empty() {
-		return *new(T)
+		var zero T
+		return zero
 	}
 
 	return sl[rand.N(sl.Len())]
@@ -839,10 +850,10 @@ func (sl *Slice[T]) Pop() Option[T] {
 func (sl Slice[T]) Set(index Int, val T) {
 	i := sl.bound(index)
 	if i.IsErr() {
-		panic(i.Err())
+		panic(i.err)
 	}
 
-	sl[i.Ok()] = val
+	sl[i.v] = val
 }
 
 // Len returns the length of the slice.
@@ -873,14 +884,14 @@ func (sl Slice[T]) Swap(i, j Int) {
 	jj := sl.bound(j)
 
 	if ii.IsErr() {
-		panic(ii.Err())
+		panic(ii.err)
 	}
 
 	if jj.IsErr() {
-		panic(jj.Err())
+		panic(jj.err)
 	}
 
-	sl.swap(ii.Ok(), jj.Ok())
+	sl.swap(ii.v, jj.v)
 }
 
 func (sl Slice[T]) swap(i, j Int) { sl[i], sl[j] = sl[j], sl[i] }
@@ -953,7 +964,7 @@ func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, 
 
 func (sl Slice[T]) bound(i Int, subslice ...struct{}) Result[Int] {
 	if sl.Empty() {
-		return Err[Int](fmt.Errorf("runtime error: slice is empty"))
+		return Err[Int](errors.New("runtime error: slice is empty"))
 	}
 
 	ii := i

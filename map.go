@@ -9,7 +9,7 @@ import (
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
 func NewMap[K comparable, V any](size ...Int) Map[K, V] {
-	return make(Map[K, V], Slice[Int](size).Get(0).Some())
+	return make(Map[K, V], Slice[Int](size).Get(0).UnwrapOrDefault())
 }
 
 // Transform applies a transformation function to the Map and returns the result.

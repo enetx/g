@@ -9,20 +9,20 @@ import (
 )
 
 // Ok returns a new Result[T] containing the given value.
-func Ok[T any](value T) Result[T] { return Result[T]{value: value} }
+func Ok[T any](value T) Result[T] { return Result[T]{v: value} }
 
 // Err returns a new Result[T] containing the given error.
 func Err[T any](err error) Result[T] {
 	if err == nil {
-		err = errors.New("Err called with nil error")
+		err = errors.New("g.Err called with a nil error")
 	}
 
 	return Result[T]{err: err}
 }
 
 // ResultOf returns a new Result[T] based on the provided value and error.
-// If err is not nil, it returns an Result containing the error.
-// Otherwise, it returns an Result containing the value.
+// If err is not nil, it returns an Err Result.
+// Otherwise, it returns an Ok Result.
 func ResultOf[T any](value T, err error) Result[T] {
 	if err != nil {
 		return Err[T](err)
@@ -31,46 +31,35 @@ func ResultOf[T any](value T, err error) Result[T] {
 	return Ok(value)
 }
 
-// TransformResult applies the given function to the value inside the Result, producing a new Result with the transformed value.
-// If the input Result contains a value, the provided function is applied to it.
-// If the input Result contains an error, the output Result will also contain the same error.
-// Parameters:
-//   - r: The input Result to map over.
-//   - fn: The function that returns a Result to apply to the value inside the Result.
-//
-// Returns:
-//
-//	A new Result with the transformed value, or the same error if the input Result contained an error.
+// TransformResult applies a function to the contained Ok value, returning a new Result.
+// If the input Result is Err, the error is propagated.
+// This is also known as 'and_then' or 'flat_map'.
 func TransformResult[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
 	if r.IsOk() {
-		return fn(r.Ok())
+		return fn(r.v)
 	}
 
-	return Err[U](r.Err())
+	return Err[U](r.err)
 }
 
-// TransformResultOf applies the given function to the value inside the Result, producing a new Result with the transformed value.
-// If the input Result contains a value, the provided function is applied to it.
-// If the input Result contains an error, the output Result will also contain the same error.
-// Parameters:
-//   - r: The input Result to map over.
-//   - fn: The function that returns a tuple (U, error) to apply to the value inside the Result.
-//
-// Returns:
-//
-//	A new Result with the transformed value, or the same error if the input Result contained an error.
+// TransformResultOf applies a function that returns a (value, error) tuple to the contained Ok value.
+// If the input Result is Err, the error is propagated.
 func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 	if r.IsOk() {
-		return ResultOf(fn(r.Ok()))
+		return ResultOf(fn(r.v))
 	}
 
-	return Err[U](r.Err())
+	return Err[U](r.err)
 }
 
 // Ok returns the value held in the Result.
-func (r Result[T]) Ok() T { return r.value }
+//
+// WARNING: If the Result contains an error, this method will return the zero value
+// for type T. Always check IsOk() before calling this method, or use safer alternatives
+// like Result(), Unwrap(), or UnwrapOr().
+func (r Result[T]) Ok() T { return r.v }
 
-// Err returns the error held in the Result.
+// Err returns the error held in the Result. If the result is Ok, it returns nil.
 func (r Result[T]) Err() error { return r.err }
 
 // IsOk returns true if the Result contains a value (no error).
@@ -79,95 +68,108 @@ func (r Result[T]) IsOk() bool { return r.err == nil }
 // IsErr returns true if the Result contains an error.
 func (r Result[T]) IsErr() bool { return r.err != nil }
 
-// Result returns the value held in the Result and its error.
+// Result returns the value and error, conforming to the standard Go multi-value return pattern.
 func (r Result[T]) Result() (T, error) {
 	if r.IsOk() {
-		return r.Ok(), nil
+		return r.v, nil
 	}
 
-	return *new(T), r.Err()
+	var zero T
+	return zero, r.err
 }
 
-// Unwrap returns the value held in the Result. If the Result contains an error, it panics.
+// Unwrap returns the value held in the Result. If the Result is Err, it panics.
 func (r Result[T]) Unwrap() T {
 	if r.IsOk() {
-		return r.Ok()
+		return r.v
 	}
 
 	if pc, file, line, ok := runtime.Caller(1); ok {
-		out := fmt.Sprintf("[%s:%d] [%s] %v", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), r.err)
+		out := fmt.Sprintf(
+			"[%s:%d] [%s] unwrapped an Err value: %v", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), r.err)
 		fmt.Fprintln(os.Stderr, out)
 	}
 
 	panic(r.err)
 }
 
-// UnwrapOr returns the value held in the Result. If the Result contains an error, it returns the provided default value.
+// UnwrapOr returns the value held in the Result. If the Result is Err, it returns the provided default value.
 func (r Result[T]) UnwrapOr(value T) T {
 	if r.IsOk() {
-		return r.Ok()
+		return r.v
 	}
 
 	return value
 }
 
-// Expect returns the value held in the Result. If the Result contains an error, it panics with the provided message.
-func (r Result[T]) Expect(msg string) T {
+// UnwrapOrDefault returns the contained value if Ok, otherwise returns the zero value for T.
+func (r Result[T]) UnwrapOrDefault() T {
 	if r.IsOk() {
-		return r.Ok()
+		return r.v
 	}
 
-	out := fmt.Sprintf("%s: %v", msg, r.err)
+	var zero T
+	return zero
+}
+
+// Expect returns the value held in the Result. If the Result is Err, it panics with the provided message.
+func (r Result[T]) Expect(msg string) T {
+	if r.IsOk() {
+		return r.v
+	}
+
+	out := fmt.Sprintf("Expect() failed: %s: %v", msg, r.err)
 	fmt.Fprintln(os.Stderr, out)
 	panic(out)
 }
 
-// Then applies the function fn to the value inside the Result and returns a new Result.
-// If the Result contains an error, it returns the same Result without applying fn.
+// Then applies a function to the contained value (if Ok) and returns the result.
+// If the Result is Err, it returns the same Err without applying the function.
 func (r Result[T]) Then(fn func(T) Result[T]) Result[T] {
 	if r.IsOk() {
-		return fn(r.Ok())
+		return fn(r.v)
 	}
 
 	return r
 }
 
-// ThenOf applies the function fn to the value inside the Result, expecting
-// fn to return a tuple (T, error), and returns a new Result based on the
-// returned tuple. If the Result contains an error, it returns the same Result
-// without applying fn.
+// ThenOf applies a function to the contained value (if Ok) and returns a new Result
+// based on the returned (T, error) tuple.
 func (r Result[T]) ThenOf(fn func(T) (T, error)) Result[T] {
 	if r.IsOk() {
-		return ResultOf(fn(r.Ok()))
+		return ResultOf(fn(r.v))
+	}
+
+	return r
+}
+
+// MapErr transforms the error in an Err Result by applying a function to it.
+// It is useful for custom error handling, like replacing one error with another.
+// If the Result is Ok, it does nothing.
+func (r Result[T]) MapErr(fn func(error) error) Result[T] {
+	if r.IsErr() {
+		return Err[T](fn(r.err))
 	}
 
 	return r
 }
 
 // Option converts a Result into an Option.
-// If the Result contains an error, it returns None.
-// If the Result contains a value, it returns Some with the value.
-// Parameters:
-//   - r: The input Result to convert into an Option.
-//
-// Returns:
-//
-//	An Option representing the value of the Result, if any.
+// If the Result is Ok, it returns Some(value).
+// If the Result is Err, it returns None.
 func (r Result[T]) Option() Option[T] {
 	if r.IsOk() {
-		return Some(r.Ok())
+		return Some(r.v)
 	}
 
 	return None[T]()
 }
 
 // String returns a string representation of the Result.
-// If the Result is Ok, it returns a string in the format "Ok(value)".
-// Otherwise, it returns "Err(result error)".
 func (r Result[T]) String() string {
 	if r.IsOk() {
-		return fmt.Sprintf("Ok(%v)", r.Ok())
+		return fmt.Sprintf("Ok(%v)", r.v)
 	}
 
-	return fmt.Sprintf("Err(%s)", r.Err().Error())
+	return fmt.Sprintf("Err(%v)", r.err)
 }

@@ -9,13 +9,13 @@ import (
 type (
 	// Result is a generic struct for representing a result value along with an error.
 	Result[T any] struct {
-		value T     // Value.
-		err   error // Associated error.
+		v   T     // Value.
+		err error // Associated error.
 	}
 
 	// Option is a generic struct for representing an optional value.
 	Option[T any] struct {
-		value  T    // Value.
+		v      T    // Value.
 		isSome bool // Indicator of value presence.
 	}
 

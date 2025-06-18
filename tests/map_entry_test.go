@@ -54,7 +54,7 @@ func TestEntryTransform(t *testing.T) {
 	m := NewMap[string, int]()
 	m.Entry("x").Transform(func(v *int) { *v = 5 })
 	if m.Get("x").IsSome() {
-		t.Error("expected x to remain vacant after Tranform on empty")
+		t.Error("expected x to remain vacant after Transform on empty")
 	}
 	m.Entry("y").OrSet(2).Transform(func(v *int) { *v *= 3 })
 	if got := m.Get("y").Unwrap(); got != 6 {
