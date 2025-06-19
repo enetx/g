@@ -66,6 +66,9 @@ func (b *Box[T]) Store(value *T) { (*atomic.Pointer[T])(b).Store(value) }
 // and returns the previous value.
 func (b *Box[T]) Swap(new *T) *T { return (*atomic.Pointer[T])(b).Swap(new) }
 
+// CompareAndSwap atomically compares the current value with old and,
+// if they are equal, swaps it with new.
+// Returns true if the swap was performed.
 func (b *Box[T]) CompareAndSwap(old, new *T) bool {
 	return (*atomic.Pointer[T])(b).CompareAndSwap(old, new)
 }

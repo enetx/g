@@ -2,7 +2,6 @@ package g
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/enetx/g/f"
 )
@@ -187,7 +186,7 @@ func (ms *MapSafe[K, V]) Ne(other *MapSafe[K, V]) bool { return !ms.Eq(other) }
 func (ms *MapSafe[K, V]) NotEmpty() bool { return !ms.Empty() }
 
 // Clear removes all key-value pairs from the MapSafe.
-func (ms *MapSafe[K, V]) Clear() { ms.data = sync.Map{} }
+func (ms *MapSafe[K, V]) Clear() { ms.data.Clear() }
 
 // Empty checks if the MapSafe is empty.
 func (ms *MapSafe[K, V]) Empty() bool { return ms.Len() == 0 }
@@ -205,13 +204,7 @@ func (ms *MapSafe[K, V]) String() string {
 }
 
 // Print writes the MapSafe to standard output.
-func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] {
-	fmt.Print(ms.String())
-	return ms
-}
+func (ms *MapSafe[K, V]) Print() *MapSafe[K, V] { fmt.Print(ms); return ms }
 
 // Println writes the MapSafe to standard output with a newline.
-func (ms *MapSafe[K, V]) Println() *MapSafe[K, V] {
-	fmt.Println(ms.String())
-	return ms
-}
+func (ms *MapSafe[K, V]) Println() *MapSafe[K, V] { fmt.Println(ms); return ms }

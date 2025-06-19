@@ -35,19 +35,19 @@ func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
 // Transform applies a transformation function to the MapOrd and returns the result.
 func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
 
-// AsAny converts each key-value pair in the MapOrd to the 'any' type.
-// It returns a new MapOrd[any, any], where both keys and values are of type 'any'.
-// This is especially useful for working with dynamic formatting tools like Sprintf,
-// where modifiers such as $get can access elements without strict typing constraints.
+// AsAny converts all key-value pairs in the MapOrd to type `any`.
+//
+// It returns a new MapOrd[any, any], where both keys and values are of type `any`.
+// This is useful when working with dynamic formatting tools like Println or Format,
+// which can access map elements dynamically when keys and values are of type `any`.
 //
 // Example:
 //
 //	mo := NewMapOrd[string, int]()
-//	mo.
-//		Set("a", 1).
-//		Set("b", 2)
+//	mo.Set("a", 1)
+//	mo.Set("b", 2)
 //
-//	Printf("{1.$get(a)} -> {1.$get(b)}\n", mo.AsAny())
+//	Println("{1.a} -> {1.b}", mo.AsAny())
 //	// Output: "a -> 1"
 func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 	anymo := make([]Pair[any, any], mo.Len())
@@ -67,9 +67,9 @@ func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
 //
 //	mo := g.NewMapOrd[string, int]()
 //	// Insert 1 if "foo" is absent, then increment it
-//	mo.Entry("foo").
-//	    OrSet(1).
-//	    Transform(func(v *int) { *v++ })
+//	e := mo.Entry("foo")
+//	e.OrSet(1).
+//	e.Transform(func(v int) int { return v + 1 })
 //
 // The entire operation requires only a single key lookup and works without
 // additional allocations.
@@ -85,14 +85,12 @@ func (mo *MapOrd[K, V]) Entry(key K) MapOrdEntry[K, V] { return MapOrdEntry[K, V
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]()
-//	iter.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Iter()
+//	m := g.NewMapOrd[int, int]()
+//	m.Set(1, 1)
+//	m.Set(2, 2)
+//	m.Set(3, 3).
 //
-//	iter.ForEach(func(k, v int) {
+//	m.Iter().ForEach(func(k, v int) {
 //	    // Process key-value pair
 //	})
 //
@@ -139,14 +137,12 @@ func (mo *MapOrd[K, V]) IntoIter() SeqMapOrd[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]()
-//	iter.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		IterReverse()
+//	m := g.NewMapOrd[int, int]()
+//	m.Set(1, 1)
+//	m.Set(2, 2)
+//	m.Set(3, 3)
 //
-//	iter.ForEach(func(k, v int) {
+//	m.IterReverse().ForEach(func(k, v int) {
 //	    // Process key-value pair in reverse order
 //	    fmt.Println("Key:", k, "Value:", v)
 //	})
@@ -251,27 +247,9 @@ func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
 	return None[V]()
 }
 
-// Get retrieves the value for the specified key, along with a boolean indicating whether the key
-// was found in the ordered Map. This function is useful when you want to access the value
-// associated with a key in the ordered Map, and also check if the key exists in the map.
+// Get returns the value associated with the given key, wrapped in Option[V].
 //
-// Parameters:
-//
-// - key K: The key to search for in the ordered Map.
-//
-// Returns:
-//
-// - V: The value associated with the specified key if found, or the zero value for the value type
-// if the key is not found.
-//
-// - bool: A boolean value indicating whether the key was found in the ordered Map.
-//
-// Example usage:
-//
-//	value, found := mo.Get("some_key")
-//
-// Retrieves the value associated with the key "some_key" and checks if the key exists in the
-// ordered Map.
+// It returns Some(value) if the key exists, or None if it does not.
 func (mo MapOrd[K, V]) Get(key K) Option[V] {
 	if i := mo.index(key); i != -1 {
 		return Some(mo[i].Value)

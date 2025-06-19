@@ -179,44 +179,12 @@ func (sl Slice[T]) Fill(val T) {
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) Int {
-	switch s := any(sl).(type) {
-	case Slice[Int]:
-		return Int(slices.Index(s, any(val).(Int)))
-	case Slice[String]:
-		return Int(slices.Index(s, any(val).(String)))
-	case Slice[Float]:
-		return Int(slices.Index(s, any(val).(Float)))
-	case Slice[string]:
-		return Int(slices.Index(s, any(val).(string)))
-	case Slice[bool]:
-		return Int(slices.Index(s, any(val).(bool)))
-	case Slice[int]:
-		return Int(slices.Index(s, any(val).(int)))
-	case Slice[int8]:
-		return Int(slices.Index(s, any(val).(int8)))
-	case Slice[int16]:
-		return Int(Int(slices.Index(s, any(val).(int16))))
-	case Slice[int32]:
-		return Int(slices.Index(s, any(val).(int32)))
-	case Slice[int64]:
-		return Int(slices.Index(s, any(val).(int64)))
-	case Slice[uint]:
-		return Int(slices.Index(s, any(val).(uint)))
-	case Slice[uint8]:
-		return Int(slices.Index(s, any(val).(uint8)))
-	case Slice[uint16]:
-		return Int(slices.Index(s, any(val).(uint16)))
-	case Slice[uint32]:
-		return Int(slices.Index(s, any(val).(uint32)))
-	case Slice[uint64]:
-		return Int(slices.Index(s, any(val).(uint64)))
-	case Slice[float32]:
-		return Int(slices.Index(s, any(val).(float32)))
-	case Slice[float64]:
-		return Int(slices.Index(s, any(val).(float64)))
-	default:
-		return sl.IndexBy(f.Eqd(val))
+	var zero T
+	if f.IsComparable(zero) {
+		return sl.IndexBy(func(v T) bool { return any(v) == any(val) })
 	}
+
+	return sl.IndexBy(f.Eqd(val))
 }
 
 // IndexBy returns the index of the first element in the slice
@@ -562,44 +530,12 @@ func (sl Slice[T]) LastIndex() Int {
 
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
-	switch o := any(other).(type) {
-	case Slice[Int]:
-		return slices.Equal(any(sl).(Slice[Int]), o)
-	case Slice[String]:
-		return slices.Equal(any(sl).(Slice[String]), o)
-	case Slice[Float]:
-		return slices.Equal(any(sl).(Slice[Float]), o)
-	case Slice[int]:
-		return slices.Equal(any(sl).(Slice[int]), o)
-	case Slice[string]:
-		return slices.Equal(any(sl).(Slice[string]), o)
-	case Slice[bool]:
-		return slices.Equal(any(sl).(Slice[bool]), o)
-	case Slice[int8]:
-		return slices.Equal(any(sl).(Slice[int8]), o)
-	case Slice[int16]:
-		return slices.Equal(any(sl).(Slice[int16]), o)
-	case Slice[int32]:
-		return slices.Equal(any(sl).(Slice[int32]), o)
-	case Slice[int64]:
-		return slices.Equal(any(sl).(Slice[int64]), o)
-	case Slice[uint]:
-		return slices.Equal(any(sl).(Slice[uint]), o)
-	case Slice[uint8]:
-		return slices.Equal(any(sl).(Slice[uint8]), o)
-	case Slice[uint16]:
-		return slices.Equal(any(sl).(Slice[uint16]), o)
-	case Slice[uint32]:
-		return slices.Equal(any(sl).(Slice[uint32]), o)
-	case Slice[uint64]:
-		return slices.Equal(any(sl).(Slice[uint64]), o)
-	case Slice[float32]:
-		return slices.Equal(any(sl).(Slice[float32]), o)
-	case Slice[float64]:
-		return slices.Equal(any(sl).(Slice[float64]), o)
-	default:
-		return sl.EqBy(other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
+	var zero T
+	if f.IsComparable(zero) {
+		return sl.EqBy(other, func(x, y T) bool { return any(x) == any(y) })
 	}
+
+	return sl.EqBy(other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
 }
 
 // EqBy reports whether two slices are equal using an equality

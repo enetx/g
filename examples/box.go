@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -113,7 +112,7 @@ func example2() {
 
 	// 10 goroutines simultaneously try to access the cache.
 	// The cache is stale, so they will all attempt to update it.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
@@ -133,18 +132,20 @@ func example2() {
 					}
 
 					// We are the first! We get to update it.
-					fmt.Printf("Goroutine %d: SUCCESS! I am updating the cache.\n", id)
+					Println("Goroutine {}: SUCCESS! I am updating the cache.", id)
 					return &Cache{
 						Data:      Format("new data from goroutine {}", id),
 						Timestamp: time.Now(),
 					}
 				})
 			} else {
-				fmt.Printf("Goroutine %d: Cache is fresh, using it.\n", id)
+				Println("Goroutine {}: Cache is fresh, using it.", id)
 			}
 		}(i)
 	}
+
 	wg.Wait()
+
 	Println("Final cache state: {}", cacheBox.Load().Data)
 }
 
