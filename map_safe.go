@@ -123,8 +123,7 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 		return true
 	}
 
-	var zero V
-	comparable := f.IsComparable(zero)
+	comparable := f.IsComparable[V]()
 
 	equal := true
 

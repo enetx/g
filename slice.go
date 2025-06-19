@@ -179,11 +179,9 @@ func (sl Slice[T]) Fill(val T) {
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) Int {
-	var zero T
-	if f.IsComparable(zero) {
+	if f.IsComparable[T]() {
 		return sl.IndexBy(func(v T) bool { return any(v) == any(val) })
 	}
-
 	return sl.IndexBy(f.Eqd(val))
 }
 
@@ -530,11 +528,9 @@ func (sl Slice[T]) LastIndex() Int {
 
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
-	var zero T
-	if f.IsComparable(zero) {
+	if f.IsComparable[T]() {
 		return sl.EqBy(other, func(x, y T) bool { return any(x) == any(y) })
 	}
-
 	return sl.EqBy(other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
 }
 

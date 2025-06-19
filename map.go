@@ -147,8 +147,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 		return true
 	}
 
-	var zero V
-	comparable := f.IsComparable(zero)
+	comparable := f.IsComparable[V]()
 
 	for k, value := range m {
 		ovalue, ok := other[k]

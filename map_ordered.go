@@ -279,7 +279,7 @@ func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
 }
 
 func (mo MapOrd[K, V]) index(key K) int {
-	if f.IsComparable(key) {
+	if f.IsComparable[K]() {
 		for i, mp := range mo {
 			if f.Eq[any](mp.Key)(key) {
 				return i
@@ -325,8 +325,7 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 		return true
 	}
 
-	var zero V
-	comparable := f.IsComparable(zero)
+	comparable := f.IsComparable[V]()
 
 	for i, mp := range mo {
 		if other.index(mp.Key) != i {

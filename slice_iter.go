@@ -388,7 +388,7 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
 	var current V
-	comparable := f.IsComparable(current)
+	comparable := f.IsComparable[V]()
 
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
