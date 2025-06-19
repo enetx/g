@@ -17,7 +17,8 @@ func main() {
 	fmt.Println(`After OrSet("alpha", 10):`, mo)
 
 	// 2) Transform: multiply the existing "alpha" value by 2
-	mo.Entry("alpha").Transform(func(v *int) { *v *= 2 })
+	mo.Entry("alpha").Transform(func(i int) int { return i * 2 })
+
 	fmt.Println(`After Transform(*2) on "alpha":`, mo)
 
 	// 3) OrSetBy: lazy insertion won't run since "alpha" already exists
@@ -25,6 +26,7 @@ func main() {
 		fmt.Println("This won't run because the key exists")
 		return 99
 	})
+
 	fmt.Println(`After OrSetBy on existing "alpha":`, mo)
 
 	// 4) OrDefault: insert the zero value (0) for new key "beta"

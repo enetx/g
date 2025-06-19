@@ -498,8 +498,17 @@ func TestSliceSortBy(t *testing.T) {
 }
 
 func TestSliceJoin(t *testing.T) {
-	sl := Slice[string]{"1", "2", "3", "4", "5"}
+	sl := String("12345").Split().Collect()
 	str := sl.Join(",")
+
+	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
+		t.Errorf("Expected 1,2,3,4,5, got %s", str.Std())
+	}
+}
+
+func TestSliceJoinBytes(t *testing.T) {
+	sl := Bytes("12345").Split().Collect()
+	str := sl.Join(Bytes(","))
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
 		t.Errorf("Expected 1,2,3,4,5, got %s", str.Std())

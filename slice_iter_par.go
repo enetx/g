@@ -353,7 +353,7 @@ func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if _, loaded := seen.GetOrSet(mid, struct{}{}); loaded {
+				if loaded := seen.Entry(mid).OrSet(struct{}{}); loaded.IsSome() {
 					var zero V
 					return zero, false
 				}

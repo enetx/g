@@ -1,55 +1,71 @@
 package g
 
+import "slices"
+
 // Get returns Some(value) if present, otherwise None.
-func (e MapOrdEntry[K, V]) Get() Option[V] { return e.mo.Get(e.key) }
-
-// OrSet inserts val if the key is vacant and returns the entry.
-func (e MapOrdEntry[K, V]) OrSet(value V) MapOrdEntry[K, V] {
-	if !e.mo.Contains(e.key) {
-		e.mo.Set(e.key, value)
-	}
-
-	return e
+func (e MapOrdEntry[K, V]) Get() Option[V] {
+	return e.mo.Get(e.key)
 }
 
-// OrSetBy inserts the value produced by fn if the key is vacant and returns the entry.
-func (e MapOrdEntry[K, V]) OrSetBy(fn func() V) MapOrdEntry[K, V] {
-	if !e.mo.Contains(e.key) {
-		e.mo.Set(e.key, fn())
+// OrSet inserts value if the key is vacant.
+// Returns Some(existing_value) if key was present, None otherwise.
+func (e MapOrdEntry[K, V]) OrSet(value V) Option[V] {
+	if i := e.mo.index(e.key); i != -1 {
+		return Some((*e.mo)[i].Value)
 	}
 
-	return e
+	e.mo.Set(e.key, value)
+
+	return None[V]()
 }
 
-// OrDefault inserts V's zero value if the key is vacant and returns the entry.
-func (e MapOrdEntry[K, V]) OrDefault() MapOrdEntry[K, V] {
-	if !e.mo.Contains(e.key) {
-		var zero V
-		e.mo.Set(e.key, zero)
+// OrSetBy inserts the value produced by fn if the key is vacant.
+// Returns Some(existing_value) if key was present, None otherwise.
+func (e MapOrdEntry[K, V]) OrSetBy(fn func() V) Option[V] {
+	if i := e.mo.index(e.key); i != -1 {
+		return Some((*e.mo)[i].Value)
 	}
 
-	return e
+	e.mo.Set(e.key, fn())
+
+	return None[V]()
 }
 
-// Transform applies fn to the existing value (if any) and returns the entry.
-func (e MapOrdEntry[K, V]) Transform(fn func(*V)) MapOrdEntry[K, V] {
+// OrDefault inserts V's zero value if the key is vacant.
+// Returns Some(existing_value) if key was present, None otherwise.
+func (e MapOrdEntry[K, V]) OrDefault() Option[V] {
+	var zero V
+	return e.OrSet(zero)
+}
+
+// Transform applies fn to the value if it exists.
+// Returns Some(updated_value) if key was present, None otherwise.
+func (e MapOrdEntry[K, V]) Transform(fn func(V) V) Option[V] {
+	if i := e.mo.index(e.key); i != -1 {
+		value := fn((*e.mo)[i].Value)
+		(*e.mo)[i].Value = value
+
+		return Some(value)
+	}
+
+	return None[V]()
+}
+
+// Set sets the value for the specified key in the ordered map.
+// Returns Some(previous_value) if the key existed, or None if it was newly inserted.
+func (e MapOrdEntry[K, V]) Set(value V) Option[V] {
+	return e.mo.Set(e.key, value)
+}
+
+// Delete removes the key from the Map.
+// Returns Some(removed_value) if present, None otherwise.
+func (e MapOrdEntry[K, V]) Delete() Option[V] {
 	if i := e.mo.index(e.key); i != -1 {
 		value := (*e.mo)[i].Value
-		fn(&value)
-		(*e.mo)[i].Value = value
+		*e.mo = slices.Delete(*e.mo, i, i+1)
+
+		return Some(value)
 	}
 
-	return e
-}
-
-// Set unconditionally sets the value for the key and returns the entry.
-func (e MapOrdEntry[K, V]) Set(value V) MapOrdEntry[K, V] {
-	e.mo.Set(e.key, value)
-	return e
-}
-
-// Delete removes the key from the ordered Map and returns the entry.
-func (e MapOrdEntry[K, V]) Delete() MapOrdEntry[K, V] {
-	e.mo.Delete(e.key)
-	return e
+	return None[V]()
 }

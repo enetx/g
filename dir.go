@@ -425,7 +425,7 @@ func (d *Dir) Read() SeqResult[*File] {
 //	dir := g.NewDir("path/to/directory/*.txt")
 //	files := dir.Glob()
 //	for file := range files {
-//	    fmt.Println(file.V().Name())
+//	    fmt.Println(file.Ok().Name())
 //	}
 func (d *Dir) Glob() SeqResult[*File] {
 	return (func(yield func(Result[*File]) bool) {
@@ -459,7 +459,7 @@ func (d *Dir) Glob() SeqResult[*File] {
 //	  Exclude((*File).IsLink).
 //	  ForEach(func(r Result[*File]) {
 //	      if r.IsOk() {
-//	          fmt.Println(r.V().Path().V().Std())
+//	          fmt.Println(r.Ok().Path().Ok().Std())
 //	      }
 //	  })
 func (d *Dir) Walk() SeqResult[*File] {

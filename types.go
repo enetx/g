@@ -57,6 +57,11 @@ type (
 		key K
 	}
 
+	MapSafeEntry[K comparable, V any] struct {
+		m   *MapSafe[K, V]
+		key K
+	}
+
 	// Set is a generic alias for a set implemented using a map.
 	Set[T comparable] map[T]struct{}
 

@@ -8,7 +8,7 @@ import (
 
 func main() {
 	// Example 1: Basic number manipulation
-	m1 := NewMap[string, Int]()
+	m1 := NewMapSafe[string, Int]()
 
 	em1 := m1.Entry("root") // Get entry for key "root"
 	em1.OrDefault()         // Insert zero value (0) if the key is missing
@@ -21,7 +21,7 @@ func main() {
 	em1.Get().Some().Println() // Print the final value: 10
 
 	// Example 2: Appending to slices in a loop
-	m2 := NewMap[int, Slice[int]]()
+	m2 := NewMapSafe[int, Slice[int]]()
 
 	for i := range 5 {
 		em2 := m2.Entry(i)
@@ -45,7 +45,7 @@ func main() {
 	m2.Println() // Output: Map{0:[0 0] 1:[1 1] ... 4:[4 4] 5:[5] ... 9:[9]}
 
 	// Example 3: Lazy initialization using OrSetBy
-	m3 := NewMap[string, Slice[string]]()
+	m3 := NewMapSafe[string, Slice[string]]()
 
 	em3 := m3.Entry("users")
 
@@ -63,7 +63,7 @@ func main() {
 	fmt.Println("m3:", m3) // Output: Map{users:[alice bob charlie]}
 
 	// Example 4: Manual delete after update
-	m4 := NewMap[string, Int]()
+	m4 := NewMapSafe[string, Int]()
 
 	em4 := m4.Entry("count")
 	em4.OrSet(10) // Insert 10 if missing
@@ -75,7 +75,7 @@ func main() {
 	fmt.Println("after delete:", m4) // Map{}
 
 	// Example 5: Combined operations
-	m5 := NewMap[string, Int]()
+	m5 := NewMapSafe[string, Int]()
 
 	em5 := m5.Entry("a")
 	em5.OrDefault() // Insert zero (0)

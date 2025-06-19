@@ -8,8 +8,8 @@ import (
 
 func TestEntryOrSet(t *testing.T) {
 	m := NewMap[string, int]()
-	e := m.Entry("foo").OrSet(42)
-	opt := e.Get()
+	m.Entry("foo").OrSet(42)
+	opt := m.Get("foo")
 	if opt.IsNone() {
 		t.Fatal("expected foo to be set, but Get returned None")
 	}
@@ -25,7 +25,8 @@ func TestEntryOrSet(t *testing.T) {
 func TestEntryOrSetBy(t *testing.T) {
 	m := NewMap[string, int]()
 	called := false
-	e := m.Entry("bar").OrSetBy(func() int { called = true; return 7 })
+	e := m.Entry("bar")
+	e.OrSetBy(func() int { called = true; return 7 })
 	if !called {
 		t.Error("expected OrSetBy fn to be called on vacant entry")
 	}
@@ -52,11 +53,13 @@ func TestEntryOrDefault(t *testing.T) {
 
 func TestEntryTransform(t *testing.T) {
 	m := NewMap[string, int]()
-	m.Entry("x").Transform(func(v *int) { *v = 5 })
+	m.Entry("x").Transform(func(int) int { return 5 })
 	if m.Get("x").IsSome() {
 		t.Error("expected x to remain vacant after Transform on empty")
 	}
-	m.Entry("y").OrSet(2).Transform(func(v *int) { *v *= 3 })
+	e := m.Entry("y")
+	e.OrSet(2)
+	e.Transform(func(v int) int { return v * 3 })
 	if got := m.Get("y").Unwrap(); got != 6 {
 		t.Errorf("expected y=6, got %d", got)
 	}
@@ -71,13 +74,5 @@ func TestEntrySetAndDelete(t *testing.T) {
 	m.Entry("a").Delete()
 	if m.Get("a").IsSome() {
 		t.Error("expected a to be deleted, but Get returned Some")
-	}
-}
-
-func TestEntryChaining(t *testing.T) {
-	m := NewMap[string, int]()
-	m.Entry("chain").OrSet(1).Transform(func(v *int) { *v++ }).Set(5).Delete()
-	if m.Get("chain").IsSome() {
-		t.Error("expected chain to be deleted after chained operations")
 	}
 }

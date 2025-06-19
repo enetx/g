@@ -235,15 +235,20 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) { src.Iter().ForEach(func(k K, v 
 // 	return m
 // }
 
-// Set sets the value for the specified key in the ordered Map.
-func (mo *MapOrd[K, V]) Set(key K, value V) {
+// Set sets the value for the specified key in the ordered Map,
+// and returns the previous value if it existed.
+func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
 	if i := mo.index(key); i != -1 {
+		prev := (*mo)[i].Value
 		(*mo)[i].Value = value
-		return
+
+		return Some(prev)
 	}
 
 	mp := Pair[K, V]{key, value}
 	*mo = append(*mo, mp)
+
+	return None[V]()
 }
 
 // Get retrieves the value for the specified key, along with a boolean indicating whether the key
@@ -342,7 +347,8 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 		return true
 	}
 
-	comparable := f.IsComparable(mo[0].Value)
+	var zero V
+	comparable := f.IsComparable(zero)
 
 	for i, mp := range mo {
 		if other.index(mp.Key) != i {

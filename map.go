@@ -139,7 +139,6 @@ func (m Map[K, V]) ToMapSafe() *MapSafe[K, V] {
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	n := len(m)
-
 	if n != len(other) {
 		return false
 	}
@@ -148,12 +147,12 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 		return true
 	}
 
-	key := m.Iter().Take(1).Keys().Collect()[0]
-	comparable := f.IsComparable(m[key])
+	var zero V
+	comparable := f.IsComparable(zero)
 
-	for k, v1 := range m {
-		v2, ok := other[k]
-		if !ok || (comparable && !f.Eq[any](v1)(v2)) || (!comparable && !f.Eqd(v1)(v2)) {
+	for k, value := range m {
+		ovalue, ok := other[k]
+		if !ok || comparable && !f.Eq[any](value)(ovalue) || !comparable && !f.Eqd(value)(ovalue) {
 			return false
 		}
 	}
@@ -196,8 +195,16 @@ func (m Map[K, V]) Ne(other Map[K, V]) bool { return !m.Eq(other) }
 // NotEmpty checks if the Map is not empty.
 func (m Map[K, V]) NotEmpty() bool { return !m.Empty() }
 
-// Set sets the value for the given key in the Map.
-func (m Map[K, V]) Set(key K, value V) { m[key] = value }
+// Set sets the value for the key and returns the previous value if it existed.
+func (m Map[K, V]) Set(key K, value V) Option[V] {
+	prev, ok := m[key]
+	m[key] = value
+	if ok {
+		return Some(prev)
+	}
+
+	return None[V]()
+}
 
 // Print writes the key-value pairs of the Map to the standard output (console)
 // and returns the Map unchanged.

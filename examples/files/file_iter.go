@@ -24,12 +24,12 @@ func main() {
 				return false // Stops the iteration if an error occurs.
 			}
 
-			if s.V().Contains("COULD") { // Checks if the line contains the substring "COULD".
+			if s.Ok().Contains("COULD") { // Checks if the line contains the substring "COULD".
 				return false // Stops the iteration if the condition is met.
 			}
 
-			fmt.Println(s.V()) // Prints the line.
-			return true        // Continues the iteration.
+			fmt.Println(s.Ok()) // Prints the line.
+			return true         // Continues the iteration.
 		})
 
 	// Example 2: Reading and processing chunks
