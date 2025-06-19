@@ -62,6 +62,14 @@ func (b *Box[T]) Load() *T { return (*atomic.Pointer[T])(b).Load() }
 // The new value should ideally be a fresh copy and not shared elsewhere.
 func (b *Box[T]) Store(value *T) { (*atomic.Pointer[T])(b).Store(value) }
 
+// Swap atomically replaces the current value with the new one
+// and returns the previous value.
+func (b *Box[T]) Swap(new *T) *T { return (*atomic.Pointer[T])(b).Swap(new) }
+
+func (b *Box[T]) CompareAndSwap(old, new *T) bool {
+	return (*atomic.Pointer[T])(b).CompareAndSwap(old, new)
+}
+
 // Update applies the given function to the current value and
 // attempts to atomically replace it with the result.
 //
@@ -91,4 +99,22 @@ func (b *Box[T]) TryUpdate(apply func(current *T) *T) bool {
 	updated := apply(current)
 
 	return updated == current || p.CompareAndSwap(current, updated)
+}
+
+// UpdateAndGet atomically updates the current value using the apply function
+// and returns the new, successfully stored value.
+// It retries if the value is updated concurrently.
+func (b *Box[T]) UpdateAndGet(apply func(current *T) *T) *T {
+	for {
+		current := b.Load()
+		updated := apply(current)
+
+		if updated == current {
+			return current
+		}
+
+		if b.CompareAndSwap(current, updated) {
+			return updated
+		}
+	}
 }
