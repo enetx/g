@@ -397,6 +397,13 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 }
 
 func applyMod(value any, name String, params Slice[String]) any {
+	switch name {
+	case "type":
+		return fmt.Sprintf("%T", value)
+	case "debug":
+		return fmt.Sprintf("%#v", value)
+	}
+
 	current := reflect.ValueOf(value)
 
 	for current.Kind() == reflect.Ptr || current.Kind() == reflect.Interface {

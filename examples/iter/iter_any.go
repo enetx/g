@@ -17,12 +17,14 @@ func main() {
 		func() {},
 		true,
 		3.14,
+		Int(11),
+		String("hello"),
 	}
 
 	fmt.Println("Comparable values:")
 
 	values.Iter().Filter(f.IsComparable).
 		ForEach(func(v any) {
-			fmt.Printf("  - %-12T: %v\n", v, v)
+			Println("{1.type} - {1.debug}", v)
 		})
 }
