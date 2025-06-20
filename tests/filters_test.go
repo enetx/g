@@ -8,25 +8,22 @@ import (
 )
 
 func TestIsComparable(t *testing.T) {
-	type customStruct struct{ X int }
-
 	tests := []struct {
-		name string
-		fn   func() bool
-		want bool
+		name  string
+		value any
+		want  bool
 	}{
-		{"Int", func() bool { return f.IsComparable[int]() }, true},
-		{"String", func() bool { return f.IsComparable[string]() }, true},
-		{"Slice", func() bool { return f.IsComparable[[]int]() }, false},
-		{"Map", func() bool { return f.IsComparable[map[string]int]() }, false},
-		{"Struct", func() bool { return f.IsComparable[customStruct]() }, true},
-		{"Func", func() bool { return f.IsComparable[func()]() }, false},
+		{"Int", 10, true},
+		{"String", "Hello", true},
+		{"Slice", []int{1, 2, 3}, false},
+		{"Map", make(map[string]int), false},
+		{"Struct", struct{ X int }{}, true},
+		{"Func", (func())(nil), false},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.fn(); got != tt.want {
-				t.Errorf("IsComparable[%s]() = %v, want %v", tt.name, got, tt.want)
+			if got := f.IsComparable(tt.value); got != tt.want {
+				t.Errorf("Comparable() = %v, want %v", got, tt.want)
 			}
 		})
 	}

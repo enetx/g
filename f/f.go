@@ -10,10 +10,7 @@ import (
 )
 
 // IsComparable reports whether the value v is comparable.
-func IsComparable[T any]() bool {
-	var t T
-	return reflect.ValueOf(t).Comparable()
-}
+func IsComparable[T any](t T) bool { return reflect.ValueOf(t).Comparable() }
 
 // IsZero is a generic function designed to check if a value is considered zero.
 func IsZero[T cmp.Ordered](v T) bool { return v == *new(T) }

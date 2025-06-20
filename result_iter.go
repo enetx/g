@@ -159,7 +159,7 @@ func (seq SeqResult[V]) Exclude(fn func(V) bool) SeqResult[V] {
 // Consecutive Ok duplicates (based on equality) are filtered out so only the first occurrence is yielded.
 func (seq SeqResult[V]) Dedup() SeqResult[V] {
 	var current V
-	comparable := f.IsComparable[V]()
+	comparable := f.IsComparable(current)
 
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
