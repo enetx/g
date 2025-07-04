@@ -4,12 +4,18 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/ref"
 )
 
+type user struct{ id *int }
+
+func (u *user) GetID() int {
+	return *u.id
+}
+
 func main() {
-	type User struct{ ID int64 }
-	user := &User{ID: 19}
-	Println("{.ID}", user)
+	user := &user{id: ref.Of(19)}
+	Println("{.GetID}", user)
 
 	// Struct access
 	type MyStruct struct {
@@ -29,7 +35,7 @@ func main() {
 	// Methods
 	Print("{.SubString(0,-1,2).Center(9,=)}\n", String("somestring"))
 
-	Print("Hex: {1.Hex}, Binary: {1.Binary}\n", Int(255))
+	Print("Hex: {.Hex}, Binary: {1.Binary}\n", Int(255))
 
 	// MapOrd example
 	mo := NewMapOrd[String, Map[String, Map[String, int]]]()

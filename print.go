@@ -186,7 +186,7 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 			if trimmed.Empty() || trimmed[0] == '.' {
 				autoidx++
 				if autoidx <= positional.Len() {
-					placeholder = autoidx.String() + placeholder
+					placeholder = autoidx.String() + trimmed
 				}
 			}
 
@@ -406,11 +406,17 @@ func applyMod(value any, name String, params Slice[String]) any {
 
 	current := reflect.ValueOf(value)
 
+	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
+		if result := callMethod(method, params); result.IsSome() {
+			return result.v
+		}
+		return value
+	}
+
 	for current.Kind() == reflect.Ptr || current.Kind() == reflect.Interface {
 		if current.IsNil() {
 			return value
 		}
-
 		current = current.Elem()
 	}
 
@@ -418,7 +424,6 @@ func applyMod(value any, name String, params Slice[String]) any {
 		if result := callMethod(method, params); result.IsSome() {
 			return result.v
 		}
-
 		return value
 	}
 

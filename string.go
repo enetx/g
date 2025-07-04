@@ -588,7 +588,7 @@ func (s String) Bytes() Bytes { return Bytes(s) }
 // Warning: the resulting Bytes shares the same underlying memory as the original String.
 // If the original String is modified through unsafe operations (rare), or if it is garbage collected,
 // the Bytes may become invalid or cause undefined behavior.
-func (s String) BytesUnsafe() Bytes { return Bytes(*(*[]byte)(unsafe.Pointer(&s))) }
+func (s String) BytesUnsafe() Bytes { return unsafe.Slice(unsafe.StringData(s.Std()), len(s)) }
 
 // Index returns the index of the first instance of the specified substring in the String, or -1
 // if substr is not present in s.
