@@ -99,7 +99,7 @@ func (s String) IsDigit() bool {
 
 // ToInt tries to parse the String as an int and returns an Int.
 func (s String) ToInt() Result[Int] {
-	hint, err := strconv.ParseInt(s.Std(), 0, 32)
+	hint, err := strconv.ParseInt(s.Std(), 0, 64)
 	if err != nil {
 		return Err[Int](err)
 	}
