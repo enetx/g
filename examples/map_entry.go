@@ -7,6 +7,13 @@ import (
 )
 
 func main() {
+	md := make(map[int][]int)
+
+	for i := range 5 {
+		md[i] = append(md[i], i)
+	}
+
+	fmt.Println(md)
 	// Example 1: Basic number manipulation
 	m1 := NewMap[string, Int]()
 

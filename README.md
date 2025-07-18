@@ -80,10 +80,10 @@ be present in the map.
 
 ```go
 func main() {
-	md := map[int][]int{}
+	md := make(map[int][]int)
 
 	for i := range 5 {
-		md[i] = append(m[i], i)
+		md[i] = append(md[i], i)
 	}
 
 	fmt.Println(md)
@@ -98,6 +98,17 @@ func main() {
 
 	for i := range 5 {
 		md.Set(i, md.Get(i).UnwrapOrDefault().Append(i))
+	}
+
+    // or
+
+	for i := range 5 {
+		entry := md.Entry(i)
+		entry.OrDefault() // Insert an empty slice if missing
+		entry.Transform(
+			func(s Slice[int]) Slice[int] {
+				return s.Append(i) // Append the current index to the slice
+			})
 	}
 
 	fmt.Println(md)
