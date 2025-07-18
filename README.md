@@ -83,12 +83,7 @@ func main() {
 	md := map[int][]int{}
 
 	for i := range 5 {
-		value, ok := md[i]
-		if !ok {
-			value = []int{}
-		}
-
-		md[i] = append(value, i)
+		md[i] = append(m[i], i)
 	}
 
 	fmt.Println(md)
@@ -104,6 +99,8 @@ func main() {
 	for i := range 5 {
 		md.Set(i, md.Get(i).UnwrapOrDefault().Append(i))
 	}
+
+	fmt.Println(md)
 }
 ```
 </td>
