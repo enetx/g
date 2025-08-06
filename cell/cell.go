@@ -51,7 +51,6 @@ func (c *Cell[T]) Replace(new T) T {
 }
 
 // Swap swaps the values of two cells.
-// This is equivalent to Rust's Cell::swap() method.
 func (c *Cell[T]) Swap(other *Cell[T]) {
 	if c == other {
 		return

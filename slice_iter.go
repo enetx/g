@@ -38,6 +38,33 @@ func Range[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
 	}
 }
 
+// RangeInclusive returns a SeqSlice[T] yielding a sequence of integers of type T,
+// starting at start, incrementing by step, and ending at stop (inclusive).
+//
+//   - If step is omitted, it defaults to 1.
+//   - If step is 0, the sequence is empty.
+//   - If step does not move toward stop (e.g., positive step with start > stop),
+//     the sequence is empty.
+//
+// Examples:
+//   - RangeInclusive(0, 5) yields [0, 1, 2, 3, 4, 5]
+//   - RangeInclusive(5, 0, -1) yields [5, 4, 3, 2, 1, 0]
+func RangeInclusive[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
+	st := Slice[T](step).Get(0).UnwrapOr(1)
+
+	if st == 0 {
+		return func(func(T) bool) {}
+	}
+
+	return func(yield func(T) bool) {
+		for i := start; (st > 0 && i <= stop) || (st < 0 && i >= stop); i += st {
+			if !yield(i) {
+				return
+			}
+		}
+	}
+}
+
 // Parallel runs this SeqSlice in parallel using the given number of workers.
 func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
 	numCPU := Int(runtime.NumCPU())

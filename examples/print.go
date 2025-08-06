@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	"github.com/enetx/g"
 	. "github.com/enetx/g"
 	"github.com/enetx/g/ref"
 )
@@ -15,15 +14,8 @@ func (u *user) GetID() int {
 }
 
 func main() {
-	a := 1
-
-	Println("{}00% loaded", a)
-	g.Println("{}00% loaded", a)
-
-	Println("%s", a)
-	g.Println("%d", a)
-
 	user := &user{id: ref.Of(19)}
+
 	Println("{.GetID}", user)
 
 	// Struct access
