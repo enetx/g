@@ -42,23 +42,6 @@ func main() {
 		fmt.Println("Now cached:", val.Some())
 	}
 
-	Println("\n=== Transform Example ===")
-
-	// Chain computations with Transform
-	lazy1 := cell.NewLazy(func() int {
-		Println("Computing base value...")
-		return 10
-	})
-
-	lazy2 := cell.Transform(lazy1, func(i int) String {
-		Println("Mapping to string...")
-		return Format("Value: {}", i*2)
-	})
-
-	Println("Transformed lazy created")
-	result := lazy2.Force()
-	Println("Final result: {}", result)
-
 	Println("\n=== Concurrent Access ===")
 
 	concurrent := cell.NewLazy(func() int {

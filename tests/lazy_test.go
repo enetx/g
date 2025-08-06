@@ -1,7 +1,6 @@
 package g
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -182,57 +181,6 @@ func TestLazyConcurrentAccess(t *testing.T) {
 	// Function should be called exactly once
 	if atomic.LoadInt64(&callCount) != 1 {
 		t.Errorf("Expected function called once, called %d times", atomic.LoadInt64(&callCount))
-	}
-}
-
-func TestLazyTransform(t *testing.T) {
-	callCount1 := 0
-	lazy1 := cell.NewLazy(func() int {
-		callCount1++
-		return 10
-	})
-
-	callCount2 := 0
-	lazy2 := cell.Transform(lazy1, func(i int) string {
-		callCount2++
-		return fmt.Sprintf("Value: %d", i*2)
-	})
-
-	// Neither function should be called yet
-	if callCount1 != 0 {
-		t.Errorf("Expected first function not called, called %d times", callCount1)
-	}
-	if callCount2 != 0 {
-		t.Errorf("Expected second function not called, called %d times", callCount2)
-	}
-
-	// Force should trigger both computations
-	result := lazy2.Force()
-	expected := "Value: 20"
-	if result != expected {
-		t.Errorf("Expected %s, got %s", expected, result)
-	}
-
-	// Both functions should be called exactly once
-	if callCount1 != 1 {
-		t.Errorf("Expected first function called once, called %d times", callCount1)
-	}
-	if callCount2 != 1 {
-		t.Errorf("Expected second function called once, called %d times", callCount2)
-	}
-
-	// Second Force should use cached result
-	result2 := lazy2.Force()
-	if result2 != expected {
-		t.Errorf("Expected %s, got %s", expected, result2)
-	}
-
-	// No additional calls
-	if callCount1 != 1 {
-		t.Errorf("Expected first function called once, called %d times", callCount1)
-	}
-	if callCount2 != 1 {
-		t.Errorf("Expected second function called once, called %d times", callCount2)
 	}
 }
 

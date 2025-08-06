@@ -66,18 +66,3 @@ func (l *LazyCell[T]) Force() T {
 func (l *LazyCell[T]) Get() Option[T] {
 	return l.cell.Get()
 }
-
-// Transform applies the given function to the lazy value, returning a new LazyCell
-// that will compute the mapped result when accessed.
-//
-// The original computation and the mapping function will only be executed
-// when Force() is called on the returned LazyCell.
-//
-// Example:
-//
-//	lazy := cell.NewLazy(func() int { return 42 })
-//	mapped := cell.Transform(lazy, func(i int) string { return fmt.Sprintf("Answer: %d", i) })
-//	result := mapped.Force() // Both computations happen here
-func Transform[T, U any](l *LazyCell[T], fn func(T) U) *LazyCell[U] {
-	return NewLazy(func() U { return fn(l.Force()) })
-}

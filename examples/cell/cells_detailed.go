@@ -130,16 +130,6 @@ func lazyCellExample() {
 		Println("Get() now returns: {}", val.Some())
 	}
 
-	// Transform example - create new LazyCell based on existing
-	stringLazy := cell.Transform(expensive, func(num int) string {
-		Println("Converting number to string...")
-		return string(Format("Number: {}", num))
-	})
-
-	Println("Transform created, calling Force():")
-	text := stringLazy.Force()
-	Println("Transform result: {}", text)
-
 	// Example with Option - LazyCell can return Option
 	maybeValue := cell.NewLazy(func() Option[string] {
 		Println("Loading config from file...")
