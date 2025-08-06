@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	. "github.com/enetx/g"
@@ -10,6 +11,27 @@ import (
 )
 
 func main() {
+	x := NewSlice[int]()
+	x.Push(0)
+	x.Push(1)
+	x.Push(2)
+
+	x = x.Clone().Append(88)
+
+	y := x.Append(3)
+	z := x.Clone().Append(4)
+
+	Println("{} {} {}", x, y, z)
+
+	x = []int{}
+	x = append(x, 0)
+	x = append(x, 1)
+	x = append(x, 2)
+	y = append(slices.Clone(x), 3)
+	z = append(x, 4)
+
+	Println("{} {} {}", x, y, z)
+
 	ws := SliceOf[String]("d", "b", "c", "a")
 
 	// ws.SortBy(String.Cmp)

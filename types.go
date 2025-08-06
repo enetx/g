@@ -19,6 +19,11 @@ type (
 		isSome bool // Indicator of value presence.
 	}
 
+	// Unit represents an empty value.
+	// Used in contexts where a function needs to return "something" but
+	// the actual value doesn't matter, only success/failure status.
+	Unit struct{}
+
 	// File is a struct that represents a file along with an iterator for reading lines.
 	File struct {
 		file  *os.File // Underlying os.File.
