@@ -1,7 +1,10 @@
 package g_test
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -164,5 +167,80 @@ func TestTransformOption(t *testing.T) {
 
 	if result2.IsSome() {
 		t.Errorf("Test 2: Expected None, got Some")
+	}
+}
+
+func TestOptionUnwrap(t *testing.T) {
+	// Test unwrapping Some value
+	some := Some(42)
+	value := some.Unwrap()
+	if value != 42 {
+		t.Errorf("Unwrap() of Some(42) should return 42, got %d", value)
+	}
+
+	// Test unwrapping None should panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Unwrap() of None should panic")
+		}
+	}()
+
+	none := None[int]()
+	none.Unwrap() // This should panic
+}
+
+func TestOptionExpect(t *testing.T) {
+	// Test expect with Some value
+	some := Some(42)
+	value := some.Expect("should have value")
+	if value != 42 {
+		t.Errorf("Expect() of Some(42) should return 42, got %d", value)
+	}
+
+	// Test expect with None should panic with message
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expect() of None should panic")
+		} else if !strings.Contains(fmt.Sprintf("%v", r), "test message") {
+			t.Error("Expect() should panic with custom message")
+		}
+	}()
+
+	none := None[int]()
+	none.Expect("test message") // This should panic with message
+}
+
+func TestOptionResult(t *testing.T) {
+	// Test Some to Result
+	some := Some(42)
+	result := some.Result(errors.New("error message"))
+	if result.IsErr() {
+		t.Error("Some should convert to Ok Result")
+	}
+	if result.Unwrap() != 42 {
+		t.Errorf("Result value should be 42, got %d", result.Unwrap())
+	}
+
+	// Test None to Result
+	none := None[int]()
+	result2 := none.Result(errors.New("test error"))
+	if result2.IsOk() {
+		t.Error("None should convert to Err Result")
+	}
+}
+
+func TestOptionString(t *testing.T) {
+	// Test Some string representation
+	some := Some(42)
+	str := some.String()
+	if !strings.Contains(str, "Some") || !strings.Contains(str, "42") {
+		t.Errorf("Some string should contain 'Some' and value, got %s", str)
+	}
+
+	// Test None string representation
+	none := None[int]()
+	str2 := none.String()
+	if !strings.Contains(str2, "None") {
+		t.Errorf("None string should contain 'None', got %s", str2)
 	}
 }

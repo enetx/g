@@ -513,3 +513,64 @@ func createTempDir(t *testing.T) string {
 	}
 	return tempDir
 }
+
+func TestDirMove(t *testing.T) {
+	// Create source directory
+	srcDir := NewDir(String(createTempDir(t)))
+	defer srcDir.Remove()
+
+	// Create a test file in source directory
+	testFilePath := srcDir.Join("testfile.txt")
+	if testFilePath.IsErr() {
+		t.Fatalf("Failed to join path: %v", testFilePath.Err())
+	}
+	testFile := NewFile(testFilePath.Ok())
+	testFile.Write(String("test content"))
+
+	// Create destination directory path
+	destPath := String(createTempDir(t) + "_moved")
+	destDir := NewDir(destPath)
+	defer destDir.Remove()
+
+	// Move directory
+	result := srcDir.Move(destPath)
+	if result.IsErr() {
+		t.Errorf("Move should succeed, got error: %v", result.Err())
+	}
+
+	// Check that destination exists
+	if !destDir.Exist() {
+		t.Error("Destination directory should exist after move")
+	}
+
+	// Check that source doesn't exist
+	if srcDir.Exist() {
+		t.Error("Source directory should not exist after move")
+	}
+
+	// Check that file was moved
+	movedFilePath := destDir.Join("testfile.txt")
+	if movedFilePath.IsErr() {
+		t.Fatalf("Failed to join moved file path: %v", movedFilePath.Err())
+	}
+	movedFile := NewFile(movedFilePath.Ok())
+	if !movedFile.Exist() {
+		t.Error("File should exist in moved directory")
+	}
+}
+
+func TestDirPrint(t *testing.T) {
+	dir := NewDir("testdir")
+	result := dir.Print()
+	if result != dir {
+		t.Errorf("Print() should return original dir unchanged")
+	}
+}
+
+func TestDirPrintln(t *testing.T) {
+	dir := NewDir("testdir")
+	result := dir.Println()
+	if result != dir {
+		t.Errorf("Println() should return original dir unchanged")
+	}
+}

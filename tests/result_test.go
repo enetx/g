@@ -2,7 +2,9 @@ package g_test
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -293,5 +295,72 @@ func TestResultOption(t *testing.T) {
 
 	if option2.IsSome() {
 		t.Errorf("Test 2: Expected None, got Some")
+	}
+}
+
+func TestResultExpect(t *testing.T) {
+	// Test Ok case
+	okResult := Ok(42)
+	value := okResult.Expect("should not panic")
+	if value != 42 {
+		t.Errorf("Ok.Expect() = %d, want %d", value, 42)
+	}
+
+	// Test Err case - should panic
+	errResult := Err[int](errors.New("test error"))
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Err.Expect() should panic, but it didn't")
+		} else {
+			expectedMsg := "Expect() failed: test message"
+			if !strings.Contains(fmt.Sprintf("%v", r), expectedMsg) {
+				t.Errorf("Expected panic message to contain '%s', got '%v'", expectedMsg, r)
+			}
+		}
+	}()
+	errResult.Expect("test message")
+}
+
+func TestResultMapErr(t *testing.T) {
+	// Test Ok case - should not change
+	okResult := Ok(42)
+	mappedOk := okResult.MapErr(func(err error) error {
+		return errors.New("new error")
+	})
+
+	if !mappedOk.IsOk() || mappedOk.Unwrap() != 42 {
+		t.Error("MapErr on Ok result should not change the result")
+	}
+
+	// Test Err case - should transform error
+	errResult := Err[int](errors.New("original error"))
+	mappedErr := errResult.MapErr(func(err error) error {
+		return errors.New("mapped error")
+	})
+
+	if !mappedErr.IsErr() {
+		t.Error("MapErr on Err result should remain Err")
+	}
+
+	if mappedErr.Err().Error() != "mapped error" {
+		t.Errorf("MapErr should transform error. Expected 'mapped error', got '%s'", mappedErr.Err().Error())
+	}
+}
+
+func TestResultString(t *testing.T) {
+	// Test Ok case
+	okResult := Ok(42)
+	okStr := okResult.String()
+	expected := "Ok(42)"
+	if okStr != expected {
+		t.Errorf("Ok.String() = '%s', want '%s'", okStr, expected)
+	}
+
+	// Test Err case
+	errResult := Err[int](errors.New("test error"))
+	errStr := errResult.String()
+	expectedErr := "Err(test error)"
+	if errStr != expectedErr {
+		t.Errorf("Err.String() = '%s', want '%s'", errStr, expectedErr)
 	}
 }

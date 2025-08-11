@@ -1343,3 +1343,205 @@ func TestSliceTransform(t *testing.T) {
 		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
 	}
 }
+
+// go test -bench=. -benchmem -count=4
+
+func BenchmarkAppend(b *testing.B) {
+	b.ResetTimer()
+
+	slice := NewSlice[String]()
+
+	for i := range 10000000 {
+		slice = append(slice, Int(i).String())
+	}
+}
+
+func BenchmarkPush(b *testing.B) {
+	b.ResetTimer()
+
+	slice := NewSlice[String]()
+
+	for i := range 10000000 {
+		slice.Push(Int(i).String())
+	}
+}
+
+func genSlice() Slice[String] {
+	slice := NewSlice[String](0, 10000)
+	for i := range 10000 {
+		slice.Push(Int(i).String())
+	}
+
+	return slice
+}
+
+func BenchmarkContains(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().Find(f.Eq(String("1000"))).IsSome()
+	}
+}
+
+func BenchmarkContains2(b *testing.B) {
+	slice := genSlice()
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		slice.Contains("10000")
+	}
+}
+
+func BenchmarkForEach(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().ForEach(func(s String) { _ = s })
+	}
+}
+
+func BenchmarkMap(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().Map(func(s String) String { return s }).Collect()
+	}
+}
+
+func BenchmarkFilter(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().Filter(func(_ String) bool { return true }).Collect()
+	}
+}
+
+func BenchmarkUnique(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().Unique().Collect()
+	}
+}
+
+func BenchmarkDedup(b *testing.B) {
+	slice := genSlice()
+
+	for b.Loop() {
+		slice.Iter().Dedup().Collect()
+	}
+}
+
+func TestSliceRandomRange(t *testing.T) {
+	slice := Slice[int]{1, 2, 3, 4, 5}
+
+	// Test valid range - RandomRange(from, to) returns random sample between from and to indices
+	result := slice.RandomRange(1, 4)
+
+	// Check length is reasonable (between 1 and 4, since it's random between 1 and 4)
+	if len(result) < 1 || len(result) > 4 {
+		t.Errorf("RandomRange(1, 4) should return slice with 1-4 elements, got %d", len(result))
+	}
+
+	// Check that returned elements are from original slice
+	for _, v := range result {
+		found := false
+		for _, original := range slice {
+			if v == original {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("RandomRange result contains element not in original slice: %v", v)
+		}
+	}
+
+	// Test with bounds larger than slice
+	result2 := slice.RandomRange(0, 10)
+	if len(result2) > len(slice) {
+		t.Errorf("RandomRange should not return more elements than in original slice")
+	}
+}
+
+func TestSlicePrepend(t *testing.T) {
+	slice := Slice[int]{3, 4, 5}
+	result := slice.Prepend(1, 2)
+	expected := Slice[int]{1, 2, 3, 4, 5}
+
+	if len(result) != 5 {
+		t.Errorf("Prepend should return slice with 5 elements, got %d", len(result))
+	}
+
+	for i, v := range result {
+		if v != expected[i] {
+			t.Errorf("Prepend result at index %d: expected %d, got %d", i, expected[i], v)
+		}
+	}
+}
+
+func TestSliceAppendUnique(t *testing.T) {
+	slice := Slice[int]{1, 2, 3}
+
+	// Append new unique elements
+	result1 := slice.AppendUnique(4, 5)
+	expected1 := Slice[int]{1, 2, 3, 4, 5}
+
+	if len(result1) != 5 {
+		t.Errorf("AppendUnique with new elements should return 5 elements, got %d", len(result1))
+	}
+
+	for i, v := range result1 {
+		if v != expected1[i] {
+			t.Errorf("AppendUnique result at index %d: expected %d, got %d", i, expected1[i], v)
+		}
+	}
+
+	// Try to append existing elements
+	result2 := slice.AppendUnique(2, 3, 6)
+	if len(result2) != 4 { // Should only add 6
+		t.Errorf("AppendUnique with duplicate elements should return 4 elements, got %d", len(result2))
+	}
+
+	// Check that 6 was added
+	if result2[3] != 6 {
+		t.Errorf("AppendUnique should add 6 as last element, got %d", result2[3])
+	}
+}
+
+func TestSliceClip(t *testing.T) {
+	slice := NewSlice[int](3, 10) // length 3, capacity 10
+	slice[0], slice[1], slice[2] = 1, 2, 3
+
+	if cap(slice) != 10 {
+		t.Errorf("Initial capacity should be 10, got %d", cap(slice))
+	}
+
+	clipped := slice.Clip()
+
+	if cap(clipped) != len(clipped) {
+		t.Errorf("After Clip(), capacity should equal length (%d), got %d", len(clipped), cap(clipped))
+	}
+
+	if len(clipped) != 3 {
+		t.Errorf("Length should remain 3, got %d", len(clipped))
+	}
+}
+
+func TestSlicePrint(t *testing.T) {
+	slice := Slice[int]{1, 2, 3}
+	result := slice.Print()
+
+	if len(result) != len(slice) {
+		t.Errorf("Print() should return original slice unchanged")
+	}
+}
+
+func TestSlicePrintln(t *testing.T) {
+	slice := Slice[int]{1, 2, 3}
+	result := slice.Println()
+
+	if len(result) != len(slice) {
+		t.Errorf("Println() should return original slice unchanged")
+	}
+}

@@ -520,3 +520,19 @@ func TestIntTransform(t *testing.T) {
 		)
 	}
 }
+
+func TestIntPrint(t *testing.T) {
+	i := Int(42)
+	result := i.Print()
+	if result != i {
+		t.Errorf("Print() should return original int unchanged")
+	}
+}
+
+func TestIntPrintln(t *testing.T) {
+	i := Int(42)
+	result := i.Println()
+	if result != i {
+		t.Errorf("Println() should return original int unchanged")
+	}
+}

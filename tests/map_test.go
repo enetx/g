@@ -840,3 +840,122 @@ func TestMapIntoIter(t *testing.T) {
 		}
 	}
 }
+
+// go test -bench=. -benchmem -count=4
+
+func genM() Map[String, int] {
+	mo := NewMap[String, int](10000)
+	for i := range 10000 {
+		mo.Set(Int(i).String(), i)
+	}
+
+	return mo
+}
+
+func BenchmarkMEq(b *testing.B) {
+	m := genM()
+	m2 := m.Clone()
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		_ = m.Eq(m2)
+	}
+}
+
+func TestMapToMapSafe(t *testing.T) {
+	m := NewMap[string, int]()
+	m.Set("key1", 1)
+	m.Set("key2", 2)
+
+	safemap := m.ToMapSafe()
+
+	if safemap.Len() != 2 {
+		t.Errorf("ToMapSafe() should preserve length, expected 2, got %d", safemap.Len())
+	}
+
+	if val1 := safemap.Get("key1"); val1.IsNone() || val1.Unwrap() != 1 {
+		t.Errorf("ToMapSafe() should preserve key1 value, got %v", val1)
+	}
+
+	if val2 := safemap.Get("key2"); val2.IsNone() || val2.Unwrap() != 2 {
+		t.Errorf("ToMapSafe() should preserve key2 value, got %v", val2)
+	}
+}
+
+func TestMapPrint(t *testing.T) {
+	m := NewMap[string, int]()
+	m.Set("key", 42)
+	result := m.Print()
+
+	if result.Len() != m.Len() {
+		t.Errorf("Print() should return original map unchanged")
+	}
+}
+
+func TestMapPrintln(t *testing.T) {
+	m := NewMap[string, int]()
+	m.Set("key", 42)
+	result := m.Println()
+
+	if result.Len() != m.Len() {
+		t.Errorf("Println() should return original map unchanged")
+	}
+}
+
+func TestMapEntryGet(t *testing.T) {
+	m := NewMap[string, int]()
+	m.Set("existing", 42)
+
+	// Test getting existing entry
+	entry := m.Entry("existing")
+	value := entry.Get()
+	if value.IsNone() || value.Unwrap() != 42 {
+		t.Errorf("Entry.Get() for existing key should return Some(42), got %v", value)
+	}
+
+	// Test getting non-existing entry
+	nonEntry := m.Entry("nonexistent")
+	value2 := nonEntry.Get()
+	if value2.IsSome() {
+		t.Errorf("Entry.Get() for non-existing key should return None, got %v", value2)
+	}
+}
+
+func TestMapEntrySet(t *testing.T) {
+	m := NewMap[string, int]()
+	entry := m.Entry("newkey")
+
+	result := entry.Set(123)
+	if result.IsSome() {
+		t.Errorf("Entry.Set() for new key should return None (no previous value), got %v", result)
+	}
+
+	// Verify the value was actually set
+	if val := m.Get("newkey"); val.IsNone() || val.Unwrap() != 123 {
+		t.Errorf("Entry.Set() should set the value in map, got %v", val)
+	}
+}
+
+func TestMapEntryDelete(t *testing.T) {
+	m := NewMap[string, int]()
+	m.Set("todelete", 99)
+
+	entry := m.Entry("todelete")
+	deleted := entry.Delete()
+
+	if deleted.IsNone() || deleted.Unwrap() != 99 {
+		t.Errorf("Entry.Delete() should return Some(deleted_value), got %v", deleted)
+	}
+
+	if val := m.Get("todelete"); val.IsSome() {
+		t.Errorf("Key should be deleted from map")
+	}
+
+	// Test deleting non-existing key
+	nonEntry := m.Entry("nonexistent")
+	deleted2 := nonEntry.Delete()
+	if deleted2.IsSome() {
+		t.Errorf("Entry.Delete() should return None when deleting non-existing key, got %v", deleted2)
+	}
+}

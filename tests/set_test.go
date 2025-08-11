@@ -679,3 +679,62 @@ func TestSetIterFind(t *testing.T) {
 		t.Error("Expected not found option to be None")
 	}
 }
+
+// go test -bench=. -benchmem -count=4
+
+func genSet() Set[String] {
+	slice := NewSlice[String](0, 10000)
+	for i := range 10000 {
+		slice.Push(Int(i).String())
+	}
+
+	return SetOf(slice...)
+}
+
+func BenchmarkSymmetricDifference(b *testing.B) {
+	set1 := genSet()
+	set2 := genSet()
+
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		set1.SymmetricDifference(set2).Collect()
+	}
+}
+
+func TestSetNotEmpty(t *testing.T) {
+	// Test empty set
+	emptySet := NewSet[int]()
+	if emptySet.NotEmpty() {
+		t.Errorf("Empty set should not be NotEmpty()")
+	}
+
+	// Test non-empty set
+	set := NewSet[int]()
+	set.Insert(42)
+	if !set.NotEmpty() {
+		t.Errorf("Non-empty set should be NotEmpty()")
+	}
+}
+
+func TestSetPrint(t *testing.T) {
+	set := NewSet[int]()
+	set.Insert(1)
+	set.Insert(2)
+	result := set.Print()
+
+	if result.Len() != set.Len() {
+		t.Errorf("Print() should return original set unchanged")
+	}
+}
+
+func TestSetPrintln(t *testing.T) {
+	set := NewSet[int]()
+	set.Insert(1)
+	set.Insert(2)
+	result := set.Println()
+
+	if result.Len() != set.Len() {
+		t.Errorf("Println() should return original set unchanged")
+	}
+}

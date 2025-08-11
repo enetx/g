@@ -750,3 +750,102 @@ func createTempFile(t *testing.T) string {
 
 	return tempFile.Name()
 }
+
+func TestFile_LinesRaw(t *testing.T) {
+	// Create a temporary file with multiple lines
+	tempFilePath := createTempFile(t)
+	defer os.Remove(tempFilePath)
+
+	testContent := "line1\nline2\nline3"
+	file := NewFile(String(tempFilePath))
+	file.Write(String(testContent))
+
+	// Test LinesRaw iterator
+	var lines []string
+	file.LinesRaw().ForEach(func(result Result[Bytes]) {
+		if result.IsErr() {
+			t.Errorf("LinesRaw: Unexpected error: %s", result.Err().Error())
+			return
+		}
+		lines = append(lines, result.Ok().String().Std())
+	})
+
+	expectedLines := []string{"line1", "line2", "line3"}
+	if len(lines) != len(expectedLines) {
+		t.Errorf("LinesRaw: Expected %d lines, got %d", len(expectedLines), len(lines))
+	}
+
+	for i, expectedLine := range expectedLines {
+		if i < len(lines) && lines[i] != expectedLine {
+			t.Errorf("LinesRaw: Line %d mismatch. Expected '%s', got '%s'", i, expectedLine, lines[i])
+		}
+	}
+}
+
+func TestFile_ChunksRaw(t *testing.T) {
+	// Create a temporary file with test content
+	tempFilePath := createTempFile(t)
+	defer os.Remove(tempFilePath)
+
+	testContent := "abcdefghijklmnop"
+	file := NewFile(String(tempFilePath))
+	file.Write(String(testContent))
+
+	// Test ChunksRaw iterator with chunk size 5
+	var chunks []string
+	file.ChunksRaw(5).ForEach(func(result Result[Bytes]) {
+		if result.IsErr() {
+			t.Errorf("ChunksRaw: Unexpected error: %s", result.Err().Error())
+			return
+		}
+		chunks = append(chunks, result.Ok().String().Std())
+	})
+
+	expectedChunks := []string{"abcde", "fghij", "klmno", "p"}
+	if len(chunks) != len(expectedChunks) {
+		t.Errorf("ChunksRaw: Expected %d chunks, got %d", len(expectedChunks), len(chunks))
+	}
+
+	for i, expectedChunk := range expectedChunks {
+		if i < len(chunks) && chunks[i] != expectedChunk {
+			t.Errorf("ChunksRaw: Chunk %d mismatch. Expected '%s', got '%s'", i, expectedChunk, chunks[i])
+		}
+	}
+
+	// Test error case with invalid chunk size
+	var errorReceived bool
+	file.ChunksRaw(0).ForEach(func(result Result[Bytes]) {
+		if result.IsErr() {
+			errorReceived = true
+			if !strings.Contains(result.Err().Error(), "chunk size must be > 0") {
+				t.Errorf("ChunksRaw: Expected specific error message, got: %s", result.Err().Error())
+			}
+		}
+	})
+
+	if !errorReceived {
+		t.Error("ChunksRaw: Expected error for chunk size <= 0, but no error was received")
+	}
+}
+
+func TestFile_Print(t *testing.T) {
+	tempFilePath := createTempFile(t)
+	defer os.Remove(tempFilePath)
+
+	file := NewFile(String(tempFilePath))
+	result := file.Print()
+	if result != file {
+		t.Errorf("Print() should return original file unchanged")
+	}
+}
+
+func TestFile_Println(t *testing.T) {
+	tempFilePath := createTempFile(t)
+	defer os.Remove(tempFilePath)
+
+	file := NewFile(String(tempFilePath))
+	result := file.Println()
+	if result != file {
+		t.Errorf("Println() should return original file unchanged")
+	}
+}

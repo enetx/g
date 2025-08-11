@@ -1393,3 +1393,139 @@ func TestBytesTransform(t *testing.T) {
 		t.Errorf("Transform failed: expected %q, got %q", expected, result)
 	}
 }
+
+var reverseTests = []struct {
+	name  string
+	input Bytes
+	want  Bytes
+}{
+	{"Empty", Bytes(""), Bytes("")},
+	{"Single ASCII", Bytes("A"), Bytes("A")},
+	{"ASCII", Bytes("ABCdef"), Bytes("fedCBA")},
+	{"Single Unicode", Bytes("Ж"), Bytes("Ж")},
+	{"Unicode", Bytes("Привет"), Bytes("тевирП")},
+	{"Chinese", Bytes("你好世界"), Bytes("界世好你")},
+	{"Hindi", Bytes("नमस्ते"), Bytes("ेत्समन")},
+	{"Mixed ASCII+Unicode", Bytes("Go🚀Lang"), Bytes("gnaL🚀oG")},
+	{"Family Emoji", Bytes("👨‍👩‍👧‍👦"), Bytes("👦‍👧‍👩‍👨")},
+	{"Combining", Bytes("é"), Bytes("é")},
+	{"Emoji Sequence", Bytes("🙂🙃🙂"), Bytes("🙂🙃🙂")},
+	{"Raw Bytes", Bytes([]byte{0, 1, 2, 3}), Bytes([]byte{3, 2, 1, 0})},
+	{"Variation Selector", Bytes("✈️"), Bytes("️✈")},
+	{"Invalid UTF-8 Bytes", Bytes([]byte{0xff, 0xfe, 0xfd}), Bytes([]byte{0xfd, 0xfe, 0xff})},
+}
+
+func TestBytesReverse(t *testing.T) {
+	for _, tt := range reverseTests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Reverse()
+			if string(got) != string(tt.want) {
+				t.Errorf("Reverse(%q) = %q; want %q", string(tt.input), string(got), string(tt.want))
+			}
+		})
+	}
+}
+
+func TestNewBytes(t *testing.T) {
+	// Test NewBytes with no arguments - should create empty bytes
+	bs1 := NewBytes()
+	if len(bs1) != 0 {
+		t.Errorf("NewBytes() should create empty bytes, got length %d", len(bs1))
+	}
+
+	// Test NewBytes with length only
+	bs2 := NewBytes(5)
+	if len(bs2) != 5 {
+		t.Errorf("NewBytes(5) should create bytes with length 5, got %d", len(bs2))
+	}
+	if cap(bs2) != 5 {
+		t.Errorf("NewBytes(5) should create bytes with capacity 5, got %d", cap(bs2))
+	}
+
+	// Test NewBytes with length and capacity
+	bs3 := NewBytes(3, 10)
+	if len(bs3) != 3 {
+		t.Errorf("NewBytes(3, 10) should create bytes with length 3, got %d", len(bs3))
+	}
+	if cap(bs3) != 10 {
+		t.Errorf("NewBytes(3, 10) should create bytes with capacity 10, got %d", cap(bs3))
+	}
+}
+
+func TestBytesStringUnsafe(t *testing.T) {
+	bs := Bytes("hello world")
+	str := bs.StringUnsafe()
+	expected := String("hello world")
+	if str != expected {
+		t.Errorf("StringUnsafe failed. Expected: %s, Got: %s", expected, str)
+	}
+}
+
+func TestBytesLen(t *testing.T) {
+	bs1 := Bytes("")
+	if bs1.Len() != 0 {
+		t.Errorf("Len() for empty bytes should be 0, got %d", bs1.Len())
+	}
+
+	bs2 := Bytes("hello")
+	if bs2.Len() != 5 {
+		t.Errorf("Len() for 'hello' should be 5, got %d", bs2.Len())
+	}
+}
+
+func TestBytesReset(t *testing.T) {
+	bs := NewBytes(5, 10)
+	// Set some data
+	copy(bs, "hello")
+
+	if bs.Len() != 5 {
+		t.Errorf("Initial length should be 5, got %d", bs.Len())
+	}
+
+	bs.Reset()
+	if bs.Len() != 0 {
+		t.Errorf("Length after Reset() should be 0, got %d", bs.Len())
+	}
+	if cap(bs) != 10 {
+		t.Errorf("Capacity after Reset() should be preserved (10), got %d", cap(bs))
+	}
+}
+
+func TestBytesPrint(t *testing.T) {
+	bs := Bytes("test print")
+	result := bs.Print()
+	if !bytes.Equal(result, bs) {
+		t.Errorf("Print() should return original bytes unchanged")
+	}
+}
+
+func TestBytesPrintln(t *testing.T) {
+	bs := Bytes("test println")
+	result := bs.Println()
+	if !bytes.Equal(result, bs) {
+		t.Errorf("Println() should return original bytes unchanged")
+	}
+}
+
+func TestBytesInt(t *testing.T) {
+	// Test with byte values - Int() converts bytes to big endian integer
+	bs1 := Bytes{0, 0, 0, 0, 0, 0, 0, 42}
+	result1 := bs1.Int()
+	if result1 != 42 {
+		t.Errorf("Int() for bytes should be 42, got %d", result1)
+	}
+
+	// Test with smaller byte array
+	bs2 := Bytes{1, 0}
+	result2 := bs2.Int()
+	if result2 != 256 {
+		t.Errorf("Int() for [1, 0] should be 256, got %d", result2)
+	}
+
+	// Test with single byte
+	bs3 := Bytes{5}
+	result3 := bs3.Int()
+	if result3 != 5 {
+		t.Errorf("Int() for [5] should be 5, got %d", result3)
+	}
+}

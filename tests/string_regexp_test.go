@@ -614,3 +614,150 @@ func TestRxFindAllSubmatchN(t *testing.T) {
 		}
 	}
 }
+
+func TestString_Regexp_Find_Additional(t *testing.T) {
+	testStr := String("Hello 123 World")
+	pattern := regexp.MustCompile(`\d+`)
+
+	result := testStr.Regexp().Find(pattern)
+
+	if result.IsNone() {
+		t.Error("Expected to find digits, but got None")
+	}
+
+	expected := String("123")
+	if !result.Unwrap().Eq(expected) {
+		t.Errorf("Find result mismatch: got %s, want %s", result.Unwrap(), expected)
+	}
+}
+
+func TestString_Regexp_Find_NoMatch_Additional(t *testing.T) {
+	testStr := String("Hello World")
+	pattern := regexp.MustCompile(`\d+`)
+
+	result := testStr.Regexp().Find(pattern)
+
+	if result.IsSome() {
+		t.Error("Expected None for no match, but got Some")
+	}
+}
+
+func TestString_Regexp_Replace_Additional(t *testing.T) {
+	testStr := String("Hello 123 World 456")
+	pattern := regexp.MustCompile(`\d+`)
+	replacement := String("XXX")
+
+	result := testStr.Regexp().Replace(pattern, replacement)
+	expected := String("Hello XXX World XXX")
+
+	if !result.Eq(expected) {
+		t.Errorf("Replace result mismatch: got %s, want %s", result, expected)
+	}
+}
+
+func TestString_Regexp_ReplaceBy_Additional(t *testing.T) {
+	testStr := String("The numbers are 42 and 100")
+	pattern := regexp.MustCompile(`\d+`)
+
+	result := testStr.Regexp().ReplaceBy(pattern, func(match String) String {
+		return String("[" + match.Std() + "]")
+	})
+
+	expected := String("The numbers are [42] and [100]")
+
+	if !result.Eq(expected) {
+		t.Errorf("ReplaceBy result mismatch: got %s, want %s", result, expected)
+	}
+}
+
+func TestString_Regexp_Match_Additional(t *testing.T) {
+	testStr := String("test@example.com")
+	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+
+	result := testStr.Regexp().Match(emailPattern)
+
+	if !result {
+		t.Error("Expected email pattern to match")
+	}
+}
+
+func TestString_Regexp_MatchAny_Additional(t *testing.T) {
+	testStr := String("The number is 42")
+
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`[a-z]+`),
+		regexp.MustCompile(`\d+`),
+		regexp.MustCompile(`[A-Z]+`),
+	}
+
+	result := testStr.Regexp().MatchAny(patterns...)
+
+	if !result {
+		t.Error("Expected at least one pattern to match")
+	}
+}
+
+func TestString_Regexp_MatchAll_Additional(t *testing.T) {
+	testStr := String("Hello123World")
+
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`[a-zA-Z]+`), // Letters
+		regexp.MustCompile(`\d+`),       // Digits
+	}
+
+	result := testStr.Regexp().MatchAll(patterns...)
+
+	if !result {
+		t.Error("Expected all patterns to match")
+	}
+}
+
+func TestString_Regexp_Split_Additional(t *testing.T) {
+	testStr := String("apple,banana,cherry")
+	pattern := regexp.MustCompile(`,`)
+
+	results := testStr.Regexp().Split(pattern)
+
+	if len(results) != 3 {
+		t.Errorf("Expected 3 parts, got %d", len(results))
+	}
+
+	expected := []String{
+		String("apple"),
+		String("banana"),
+		String("cherry"),
+	}
+
+	for i, expected := range expected {
+		if !results[i].Eq(expected) {
+			t.Errorf("Split part %d mismatch: got %s, want %s", i, results[i], expected)
+		}
+	}
+}
+
+func TestString_Regexp_FindAll_Additional(t *testing.T) {
+	testStr := String("abc 123 def 456 ghi")
+	pattern := regexp.MustCompile(`\d+`)
+
+	result := testStr.Regexp().FindAll(pattern)
+
+	if result.IsNone() {
+		t.Error("Expected Some result, got None")
+	}
+
+	matches := result.Unwrap()
+	if len(matches) != 2 {
+		t.Errorf("Expected 2 matches, got %d", len(matches))
+	}
+
+	expected1 := String("123")
+	expected2 := String("456")
+
+	if !matches[0].Eq(expected1) {
+		t.Errorf("First match mismatch: got %s, want %s", matches[0], expected1)
+	}
+
+	if !matches[1].Eq(expected2) {
+		t.Errorf("Second match mismatch: got %s, want %s", matches[1], expected2)
+	}
+}

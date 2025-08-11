@@ -4,6 +4,7 @@ import (
 	"io"
 	"math/big"
 	"reflect"
+	"strings"
 	"testing"
 	"unicode"
 
@@ -1995,5 +1996,87 @@ func TestStringTransform(t *testing.T) {
 
 	if result != expected {
 		t.Errorf("Transform failed: expected %q, got %q", expected, result)
+	}
+}
+
+func genText() String {
+	text := String("").Builder()
+	for range 10000 {
+		text.WriteString(String("").Random(1000))
+		text.WriteByte('\n')
+	}
+
+	return text.String()
+}
+
+func BenchmarkSplit(b *testing.B) {
+	text := genText()
+
+	for b.Loop() {
+		text.Split("\n").Collect()
+	}
+}
+
+func BenchmarkSplitStd(b *testing.B) {
+	text := genText().Std()
+
+	for b.Loop() {
+		strings.Split(text, "\n")
+	}
+}
+
+func BenchmarkFields(b *testing.B) {
+	text := genText()
+
+	for b.Loop() {
+		text.Fields().Collect()
+	}
+}
+
+func BenchmarkFieldsStd(b *testing.B) {
+	text := genText().Std()
+
+	for b.Loop() {
+		strings.Fields(text)
+	}
+}
+
+func TestStringClone(t *testing.T) {
+	original := String("hello world")
+	cloned := original.Clone()
+
+	if cloned != original {
+		t.Errorf("Clone() should return identical string, got %s, expected %s", cloned, original)
+	}
+
+	// Check that it's actually a separate copy (not just reference)
+	if &original == &cloned {
+		t.Errorf("Clone() should create a new string instance")
+	}
+}
+
+func TestStringBytesUnsafe(t *testing.T) {
+	s := String("hello world")
+	bs := s.BytesUnsafe()
+	expected := Bytes("hello world")
+
+	if string(bs) != string(expected) {
+		t.Errorf("BytesUnsafe() failed. Expected: %s, Got: %s", expected, bs)
+	}
+}
+
+func TestStringPrint(t *testing.T) {
+	s := String("test print")
+	result := s.Print()
+	if result != s {
+		t.Errorf("Print() should return original string unchanged")
+	}
+}
+
+func TestStringPrintln(t *testing.T) {
+	s := String("test println")
+	result := s.Println()
+	if result != s {
+		t.Errorf("Println() should return original string unchanged")
 	}
 }

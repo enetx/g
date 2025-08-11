@@ -442,3 +442,36 @@ func TestFloatTransform(t *testing.T) {
 		t.Errorf("Transform with addition failed: expected %f, got %f", expectedWithAddition, resultWithAddition)
 	}
 }
+
+func TestNewFloat(t *testing.T) {
+	f := NewFloat(3.14)
+	expected := Float(3.14)
+	if f != expected {
+		t.Errorf("NewFloat(3.14) should return Float(3.14), got %f", f)
+	}
+}
+
+func TestFloatDiv(t *testing.T) {
+	f := Float(10.0)
+	result := f.Div(2.0)
+	expected := Float(5.0)
+	if result != expected {
+		t.Errorf("Div(2.0) should return 5.0, got %f", result)
+	}
+}
+
+func TestFloatPrint(t *testing.T) {
+	f := Float(3.14)
+	result := f.Print()
+	if result != f {
+		t.Errorf("Print() should return original float unchanged")
+	}
+}
+
+func TestFloatPrintln(t *testing.T) {
+	f := Float(3.14)
+	result := f.Println()
+	if result != f {
+		t.Errorf("Println() should return original float unchanged")
+	}
+}
