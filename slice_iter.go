@@ -305,6 +305,76 @@ func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
 	return result.Iter()
 }
 
+// GroupBy groups consecutive elements of the sequence based on a custom equality function.
+//
+// The provided function `fn` takes two consecutive elements `a` and `b` and returns `true`
+// if they belong to the same group, or `false` if a new group should start.
+// The function returns a `SeqSlices[V]`, where each `[]V` represents a group of consecutive
+// elements that satisfy the provided equality condition.
+//
+// Notes:
+//   - Each group is returned as a copy of the elements, since `SeqSlice` does not guarantee
+//     that elements share the same backing array.
+//
+// Parameters:
+//   - fn (func(a, b V) bool): Function that determines whether two consecutive elements belong to the same group.
+//
+// Returns:
+//   - SeqSlices[V]: An iterator yielding slices, each containing one group.
+//
+// Example usage:
+//
+//	slice := g.SliceOf(1, 1, 2, 3, 2, 3, 4)
+//	groups := slice.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+//	// Output: [Slice[1, 1, 2, 3] Slice[2, 3, 4]]
+//
+// The resulting iterator will yield groups of consecutive elements according to the provided function.
+func (seq SeqSlice[V]) GroupBy(fn func(a, b V) bool) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		first := true
+		var prev V
+		buf := make([]V, 0)
+
+		flush := func() bool {
+			if len(buf) == 0 {
+				return true
+			}
+
+			chunk := make([]V, len(buf))
+			copy(chunk, buf)
+			buf = buf[:0]
+
+			return yield(chunk)
+		}
+
+		seq(func(v V) bool {
+			if first {
+				first = false
+				prev = v
+				buf = append(buf, v)
+
+				return true
+			}
+
+			if fn(prev, v) {
+				buf = append(buf, v)
+			} else {
+				if !flush() {
+					return false
+				}
+
+				buf = append(buf, v)
+			}
+
+			prev = v
+
+			return true
+		})
+
+		_ = flush()
+	}
+}
+
 // Combinations generates all combinations of length 'n' from the sequence.
 func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
 	return func(yield func([]V) bool) {

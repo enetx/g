@@ -11,6 +11,112 @@ import (
 	"github.com/enetx/g/f"
 )
 
+// helper: compare groups with expected [][]int
+func assertGroupsInt(t *testing.T, got []Slice[int], want [][]int) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("groups length mismatch: got %d, want %d\n got=%v\nwant=%v", len(got), len(want), got, want)
+	}
+	for i := range want {
+		if !reflect.DeepEqual([]int(got[i]), want[i]) {
+			t.Fatalf("group %d mismatch: got %v, want %v", i, []int(got[i]), want[i])
+		}
+	}
+}
+
+func TestSliceIterGroupBy_EqualRuns(t *testing.T) {
+	in := SliceOf(1, 1, 1, 3, 3, 2, 2, 2)
+	got := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+
+	want := [][]int{
+		{1, 1, 1},
+		{3, 3},
+		{2, 2, 2},
+	}
+	assertGroupsInt(t, got, want)
+}
+
+func TestSliceIterGroupBy_LessEqRuns(t *testing.T) {
+	in := SliceOf(1, 1, 2, 3, 2, 3, 2, 3, 4)
+	got := in.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+
+	want := [][]int{
+		{1, 1, 2, 3},
+		{2, 3},
+		{2, 3, 4},
+	}
+	assertGroupsInt(t, got, want)
+}
+
+func TestSliceIterGroupBy_Empty(t *testing.T) {
+	in := Slice[int]{}
+	got := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+	if len(got) != 0 {
+		t.Fatalf("expected 0 groups, got %d: %v", len(got), got)
+	}
+}
+
+func TestSliceIterGroupBy_AlwaysTrue(t *testing.T) {
+	in := SliceOf(7, 8, 9)
+	got := in.Iter().GroupBy(func(a, b int) bool { return true }).Collect()
+	want := [][]int{{7, 8, 9}}
+	assertGroupsInt(t, got, want)
+}
+
+func TestSliceIterGroupBy_AlwaysFalse(t *testing.T) {
+	in := SliceOf(7, 8, 9)
+	got := in.Iter().GroupBy(func(a, b int) bool { return false }).Collect()
+	want := [][]int{{7}, {8}, {9}}
+	assertGroupsInt(t, got, want)
+}
+
+func TestSliceIterGroupBy_GroupsAreCopies(t *testing.T) {
+	in := SliceOf(1, 1, 2, 2)
+	orig := append([]int(nil), []int(in)...)
+
+	groups := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+	if len(groups) != 2 {
+		t.Fatalf("expected 2 groups, got %d: %v", len(groups), groups)
+	}
+
+	// mutate first group
+	g := groups[0]
+	g[0] = 99
+
+	// source must be intact
+	if !reflect.DeepEqual([]int(in), orig) {
+		t.Fatalf("source mutated through group: src=%v, want=%v", []int(in), orig)
+	}
+
+	// and groups must not share backing with each other
+	before := append([]int(nil), []int(groups[1])...)
+	groups[0][0] = 100
+	if !reflect.DeepEqual([]int(groups[1]), before) {
+		t.Fatalf("groups share backing array unexpectedly: g1=%v, g2(before)=%v g2(after)=%v",
+			[]int(groups[0]), before, []int(groups[1]))
+	}
+}
+
+func TestSliceIterGroupBy_Strings(t *testing.T) {
+	in := SliceOf("a", "a", "b", "bb", "bb", "a")
+	got := in.Iter().GroupBy(func(a, b string) bool { return len(a) == len(b) }).Collect()
+
+	want := [][]string{
+		{"a", "a", "b"},
+		{"bb", "bb"},
+		{"a"},
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("groups length mismatch: got %d, want %d\n got=%v\nwant=%v", len(got), len(want), got, want)
+	}
+	for i := range want {
+		if !reflect.DeepEqual([]string(got[i]), want[i]) {
+			t.Fatalf("group %d mismatch: got %v, want %v", i, []string(got[i]), want[i])
+		}
+	}
+}
+
 func TestSliceIntoIter(t *testing.T) {
 	s := SliceOf(1, 2, 3, 4, 5)
 
