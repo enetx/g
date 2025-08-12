@@ -1165,3 +1165,40 @@ func BenchmarkMoGet(b *testing.B) {
 		_ = mo.Get("9999")
 	}
 }
+
+func TestMapOrdPrint(t *testing.T) {
+	m := NewMapOrd[string, int]()
+	m.Set("a", 1)
+	m.Set("b", 2)
+
+	// Just test that Print() doesn't panic and returns the map
+	result := m.Print()
+	if !result.Eq(m) {
+		t.Errorf("Print() should return the same map")
+	}
+}
+
+func TestMapOrdPrintln(t *testing.T) {
+	m := NewMapOrd[string, int]()
+	m.Set("x", 10)
+	m.Set("y", 20)
+
+	// Just test that Println() doesn't panic and returns the map
+	result := m.Println()
+	if !result.Eq(m) {
+		t.Errorf("Println() should return the same map")
+	}
+}
+
+func TestMapOrdAsAny(t *testing.T) {
+	m := NewMapOrd[string, int]()
+	m.Set("test", 42)
+
+	// Test AsAny() conversion - just verify it doesn't panic and returns something
+	anyMap := m.AsAny()
+
+	// Should return a MapOrd[any, any] type, just verify it's not nil and has expected length
+	if anyMap.Len() != m.Len() {
+		t.Errorf("AsAny() should preserve length: expected %d, got %d", m.Len(), anyMap.Len())
+	}
+}

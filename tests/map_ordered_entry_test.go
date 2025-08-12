@@ -77,3 +77,25 @@ func TestMapOrdEntrySetAndDelete(t *testing.T) {
 		t.Error("expected a to be deleted, but Get returned Some")
 	}
 }
+
+func TestMapOrdEntryGet(t *testing.T) {
+	mo := NewMapOrd[string, int]()
+
+	// Test Get on vacant entry
+	entry := mo.Entry("vacant")
+	value := entry.Get()
+	if value.IsSome() {
+		t.Errorf("expected Get on vacant entry to return None, got %v", value)
+	}
+
+	// Test Get on occupied entry
+	mo.Set("occupied", 42)
+	entryOccupied := mo.Entry("occupied")
+	valueOccupied := entryOccupied.Get()
+	if valueOccupied.IsNone() {
+		t.Errorf("expected Get on occupied entry to return Some, got None")
+	}
+	if valueOccupied.Unwrap() != 42 {
+		t.Errorf("expected Get to return 42, got %d", valueOccupied.Unwrap())
+	}
+}

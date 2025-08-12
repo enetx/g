@@ -135,3 +135,32 @@ func TestMap_Iter_EmptyMap(t *testing.T) {
 		t.Error("Empty map should have no values")
 	}
 }
+
+func TestMap_Iter_Pull(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Set("a", 1)
+	m.Set("b", 2)
+	m.Set("c", 3)
+
+	iter := m.Iter()
+	next, stop := iter.Pull()
+	defer stop()
+
+	count := 0
+	for {
+		key, value, ok := next()
+		if !ok {
+			break
+		}
+		count++
+
+		// Verify the key and value are valid
+		if len(key) == 0 || value <= 0 {
+			t.Errorf("Invalid key-value pair: %s -> %d", key, value)
+		}
+	}
+
+	if count != 3 {
+		t.Errorf("Expected to pull 3 pairs, got %d", count)
+	}
+}

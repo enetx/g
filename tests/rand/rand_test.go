@@ -37,7 +37,7 @@ func TestN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Test multiple times to ensure randomness works correctly
-			for i := 0; i < 100; i++ {
+			for range 100 {
 				got := rand.N(tt.max)
 				if !tt.want(got) {
 					t.Errorf("N(%v) = %v, validation failed", tt.max, got)
@@ -54,7 +54,7 @@ func TestN_Distribution(t *testing.T) {
 	results := make(map[int]bool)
 
 	// Generate 1000 random numbers
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		result := rand.N(max)
 		results[result] = true
 
@@ -112,7 +112,7 @@ func TestN_WithDifferentTypes(t *testing.T) {
 func TestN_EdgeCases(t *testing.T) {
 	t.Run("max = 1", func(t *testing.T) {
 		// Should always return 0
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			result := rand.N(1)
 			if result != 0 {
 				t.Errorf("N(1) = %v, expected 0", result)

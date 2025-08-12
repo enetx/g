@@ -143,7 +143,7 @@ func TestMatch(t *testing.T) {
 }
 
 func TestContains(t *testing.T) {
-	containsFunc := f.Contains[string]("test")
+	containsFunc := f.Contains("test")
 
 	tests := []struct {
 		name  string

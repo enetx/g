@@ -168,3 +168,39 @@ func TestMapOrdered_Iter_Chain(t *testing.T) {
 		}
 	}
 }
+
+func TestMapOrdered_Iter_Pull(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Set("first", 1)
+	m.Set("second", 2)
+	m.Set("third", 3)
+
+	iter := m.Iter()
+	next, stop := iter.Pull()
+	defer stop()
+
+	count := 0
+	expectedKeys := []string{"first", "second", "third"}
+	expectedValues := []int{1, 2, 3}
+
+	for {
+		key, value, ok := next()
+		if !ok {
+			break
+		}
+
+		// Check order is preserved
+		if count < len(expectedKeys) && key != expectedKeys[count] {
+			t.Errorf("Expected key %s at position %d, got %s", expectedKeys[count], count, key)
+		}
+		if count < len(expectedValues) && value != expectedValues[count] {
+			t.Errorf("Expected value %d at position %d, got %d", expectedValues[count], count, value)
+		}
+
+		count++
+	}
+
+	if count != 3 {
+		t.Errorf("Expected to pull 3 pairs, got %d", count)
+	}
+}

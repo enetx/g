@@ -751,6 +751,23 @@ func createTempFile(t *testing.T) string {
 	return tempFile.Name()
 }
 
+// createTempFileWithContent creates a temporary file with specific content for testing and returns its path.
+func createTempFileWithContent(t *testing.T, content string) string {
+	tempFile, err := os.CreateTemp("", "testfile*.txt")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %s", err)
+	}
+
+	_, err = tempFile.WriteString(content)
+	if err != nil {
+		t.Fatalf("Failed to write content to temporary file: %s", err)
+	}
+
+	defer tempFile.Close()
+
+	return tempFile.Name()
+}
+
 func TestFile_LinesRaw(t *testing.T) {
 	// Create a temporary file with multiple lines
 	tempFilePath := createTempFile(t)
@@ -847,5 +864,88 @@ func TestFile_Println(t *testing.T) {
 	result := file.Println()
 	if result != file {
 		t.Errorf("Println() should return original file unchanged")
+	}
+}
+
+func TestFile_Lines_EmptyFile(t *testing.T) {
+	// Test Lines with empty file
+	tempFile := createTempFileWithContent(t, "")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	linesResult := file.Lines().Collect()
+
+	if linesResult.IsErr() {
+		t.Errorf("Lines should succeed, got error: %v", linesResult.Err())
+		return
+	}
+
+	lines := linesResult.Ok()
+	if lines.Len() != 0 {
+		t.Errorf("Empty file should have 0 lines, got %d", lines.Len())
+	}
+}
+
+func TestFile_Lines_SingleLine(t *testing.T) {
+	// Test Lines with single line without newline
+	tempFile := createTempFileWithContent(t, "single line")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	linesResult := file.Lines().Collect()
+
+	if linesResult.IsErr() {
+		t.Errorf("Lines should succeed, got error: %v", linesResult.Err())
+		return
+	}
+
+	lines := linesResult.Ok()
+	if lines.Len() != 1 {
+		t.Errorf("Single line file should have 1 line, got %d", lines.Len())
+	}
+	if lines.Get(0).Some() != "single line" {
+		t.Errorf("Expected 'single line', got '%s'", lines.Get(0).Some())
+	}
+}
+
+func TestFile_Chunks_SmallFile(t *testing.T) {
+	// Test Chunks with file smaller than chunk size
+	tempFile := createTempFileWithContent(t, "small")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	chunks := file.Chunks(10).Collect().Unwrap() // chunk size larger than file
+
+	if chunks.Len() != 1 {
+		t.Errorf("Small file should produce 1 chunk, got %d", chunks.Len())
+	}
+	if chunks.Get(0).Some() != "small" {
+		t.Errorf("Expected 'small', got '%s'", chunks.Get(0).Some())
+	}
+}
+
+func TestFile_Append_NewContent(t *testing.T) {
+	// Test Append with additional content
+	tempFile := createTempFileWithContent(t, "initial content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	appendContent := String("appended content")
+	result := file.Append(appendContent)
+	defer file.Close()
+
+	if result.IsErr() {
+		t.Errorf("Append should succeed, got error: %v", result.Err())
+	}
+
+	// Verify content was appended
+	content, err := os.ReadFile(tempFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	expected := "initial contentappended content"
+	if string(content) != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, string(content))
 	}
 }

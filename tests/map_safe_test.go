@@ -266,3 +266,81 @@ func TestMapSafe(t *testing.T) {
 		}
 	})
 }
+
+func TestMapSafePrint(t *testing.T) {
+	m := NewMapSafe[string, int]()
+	m.Set("a", 1)
+	m.Set("b", 2)
+
+	// Just test that Print() doesn't panic and returns the map
+	result := m.Print()
+	if !result.Eq(m) {
+		t.Errorf("Print() should return the same map")
+	}
+}
+
+func TestMapSafePrintln(t *testing.T) {
+	m := NewMapSafe[string, int]()
+	m.Set("x", 10)
+	m.Set("y", 20)
+
+	// Just test that Println() doesn't panic and returns the map
+	result := m.Println()
+	if !result.Eq(m) {
+		t.Errorf("Println() should return the same map")
+	}
+}
+
+func TestMapSafeNe(t *testing.T) {
+	m1 := NewMapSafe[string, int]()
+	m1.Set("a", 1)
+	m1.Set("b", 2)
+
+	m2 := NewMapSafe[string, int]()
+	m2.Set("a", 1)
+	m2.Set("b", 3) // Different value
+
+	// Test Ne (not equal)
+	if !m1.Ne(m2) {
+		t.Errorf("m1 should not be equal to m2")
+	}
+
+	m3 := NewMapSafe[string, int]()
+	m3.Set("a", 1)
+	m3.Set("b", 2) // Same as m1
+
+	if m1.Ne(m3) {
+		t.Errorf("m1 should be equal to m3")
+	}
+}
+
+func TestMapSafeNotEmpty(t *testing.T) {
+	// Test non-empty map
+	m := NewMapSafe[string, int]()
+	m.Set("test", 42)
+
+	if !m.NotEmpty() {
+		t.Errorf("NotEmpty() should return true for non-empty map")
+	}
+
+	// Test empty map
+	emptyMap := NewMapSafe[string, int]()
+	if emptyMap.NotEmpty() {
+		t.Errorf("NotEmpty() should return false for empty map")
+	}
+}
+
+func TestMapSafeEmpty(t *testing.T) {
+	// Test empty map
+	m := NewMapSafe[string, int]()
+
+	if !m.Empty() {
+		t.Errorf("Empty() should return true for empty map")
+	}
+
+	// Test non-empty map
+	m.Set("test", 42)
+	if m.Empty() {
+		t.Errorf("Empty() should return false for non-empty map")
+	}
+}

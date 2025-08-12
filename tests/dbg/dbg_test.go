@@ -117,3 +117,52 @@ func TestDbgWithComplexType(t *testing.T) {
 
 	dbg.Dbg(testStruct)
 }
+
+func TestDbgWithSlice(t *testing.T) {
+	// Test with slice to hit more branches
+	testSlice := []int{1, 2, 3, 4, 5}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Dbg with slice should not panic: %v", r)
+		}
+	}()
+
+	dbg.Dbg(testSlice)
+}
+
+func TestDbgWithMap(t *testing.T) {
+	// Test with map
+	testMap := map[string]int{"a": 1, "b": 2}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Dbg with map should not panic: %v", r)
+		}
+	}()
+
+	dbg.Dbg(testMap)
+}
+
+func TestDbgMultipleValues(t *testing.T) {
+	// Test multiple calls to ensure different code paths are hit
+	values := []any{
+		"string value",
+		123,
+		3.14,
+		true,
+		[]byte("bytes"),
+		struct{ X int }{42},
+	}
+
+	for _, val := range values {
+		func(v any) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Dbg with value %v should not panic: %v", v, r)
+				}
+			}()
+			dbg.Dbg(v)
+		}(val)
+	}
+}

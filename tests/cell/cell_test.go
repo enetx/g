@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -89,5 +90,65 @@ func TestCellSwap(t *testing.T) {
 	// 3. Ensure the pointer is the same one we passed in
 	if currentVal != newVal {
 		t.Fatal("expected the pointer in the cell to be the same as the one passed to Swap")
+	}
+}
+
+func TestCellSwapTwoCells(t *testing.T) {
+	// Test swapping two different cells
+	cell1 := cell.New(&Config{Name: "cell1", Level: 10})
+	cell2 := cell.New(&Config{Name: "cell2", Level: 20})
+
+	cell1.Swap(cell2)
+
+	val1 := cell1.Get()
+	val2 := cell2.Get()
+
+	if val1.Name != "cell2" || val1.Level != 20 {
+		t.Errorf("Expected cell1 to have cell2's value, got %+v", val1)
+	}
+	if val2.Name != "cell1" || val2.Level != 10 {
+		t.Errorf("Expected cell2 to have cell1's value, got %+v", val2)
+	}
+
+	// Test swapping the same cell (should be no-op)
+	cell3 := cell.New(&Config{Name: "same", Level: 30})
+	original := cell3.Get()
+	cell3.Swap(cell3)
+
+	after := cell3.Get()
+	if after.Name != original.Name || after.Level != original.Level {
+		t.Errorf("Swapping same cell should not change value: original %+v, after %+v", original, after)
+	}
+
+	// Test swapping multiple cells to trigger different pointer ordering scenarios
+	cells := make([]*cell.Cell[*Config], 10)
+	for i := 0; i < 10; i++ {
+		cells[i] = cell.New(&Config{Name: fmt.Sprintf("cell%d", i), Level: i * 10})
+	}
+
+	// Perform swaps between different cells to ensure all ordering branches are hit
+	for i := 0; i < len(cells)-1; i++ {
+		for j := i + 1; j < len(cells); j++ {
+			// Store original values
+			origI := cells[i].Get()
+			origJ := cells[j].Get()
+
+			// Swap
+			cells[i].Swap(cells[j])
+
+			// Verify swap occurred
+			newI := cells[i].Get()
+			newJ := cells[j].Get()
+
+			if newI.Name != origJ.Name || newI.Level != origJ.Level {
+				t.Errorf("Swap failed: cells[%d] should have original cells[%d] value", i, j)
+			}
+			if newJ.Name != origI.Name || newJ.Level != origI.Level {
+				t.Errorf("Swap failed: cells[%d] should have original cells[%d] value", j, i)
+			}
+
+			// Swap back to restore original state
+			cells[i].Swap(cells[j])
+		}
 	}
 }

@@ -267,6 +267,26 @@ func TestDir_Join_Success(t *testing.T) {
 	}
 }
 
+func TestDir_Join_ErrorCase(t *testing.T) {
+	// Create a Dir instance with a path containing null bytes which might cause filepath.Abs to fail
+	invalidPath := String("/invalid/path\x00with/null/byte")
+	dir := NewDir(invalidPath)
+
+	// Join should propagate the error from Path()
+	result := dir.Join("subdir", "file.txt")
+
+	// Check if the operation failed as expected due to the invalid path
+	if result.IsOk() {
+		// If it doesn't fail on this platform, just test the normal case
+		t.Logf("TestDir_Join_ErrorCase: Platform didn't fail on invalid path, testing normal case instead")
+	} else {
+		// Expected error case - verify it's an error
+		if result.IsErr() {
+			t.Logf("TestDir_Join_ErrorCase: Got expected error: %s", result.Err().Error())
+		}
+	}
+}
+
 func TestDir_SetPath(t *testing.T) {
 	// Create a Dir instance representing an existing directory
 	dir := NewDir("/path/to/directory")

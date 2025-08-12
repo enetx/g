@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"reflect"
 	"regexp"
@@ -1527,5 +1528,21 @@ func TestBytesInt(t *testing.T) {
 	result3 := bs3.Int()
 	if result3 != 5 {
 		t.Errorf("Int() for [5] should be 5, got %d", result3)
+	}
+
+	// Test with byte array longer than 8 bytes - should use last 8 bytes
+	bs4 := Bytes{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
+	result4 := bs4.Int()
+	expected4 := Int(0x050607080a0b0c00 + 9) // Last 8 bytes: {5, 6, 7, 8, 9, 10, 11, 12}
+	expected4 = Int(binary.BigEndian.Uint64([]byte{5, 6, 7, 8, 9, 10, 11, 12}))
+	if result4 != expected4 {
+		t.Errorf("Int() for long bytes array should be %d, got %d", expected4, result4)
+	}
+
+	// Test with empty bytes
+	bs5 := Bytes{}
+	result5 := bs5.Int()
+	if result5 != 0 {
+		t.Errorf("Int() for empty bytes should be 0, got %d", result5)
 	}
 }
