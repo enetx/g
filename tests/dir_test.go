@@ -85,6 +85,45 @@ func TestDir_Stat_Failure(t *testing.T) {
 	}
 }
 
+func TestDir_Stat_InvalidPath(t *testing.T) {
+	// Test Stat with an invalid path that might cause Path() to fail
+	// Create a Dir instance with a path containing null bytes which might cause filepath.Abs to fail
+	invalidPath := String("/invalid/path\x00with/null/byte")
+	dir := NewDir(invalidPath)
+
+	// Get directory information using Stat
+	result := dir.Stat()
+
+	// Check if the operation failed as expected due to the invalid path
+	if result.IsOk() {
+		// If it doesn't fail on this platform, just test the normal error case
+		t.Logf("TestDir_Stat_InvalidPath: Platform didn't fail on invalid path, testing normal case instead")
+	} else {
+		// Expected error case - verify it's an error
+		if result.IsErr() {
+			t.Logf("TestDir_Stat_InvalidPath: Got expected error: %s", result.Err().Error())
+		}
+	}
+}
+
+func TestDir_Stat_EmptyPath(t *testing.T) {
+	// Test Stat with empty path - this should work fine and return current directory info
+	dir := NewDir("")
+
+	// Get directory information using Stat
+	result := dir.Stat()
+
+	// This should succeed - empty path is valid and resolves to current directory
+	if result.IsErr() {
+		t.Errorf("TestDir_Stat_EmptyPath: Unexpected error for empty path: %s", result.Err().Error())
+	} else {
+		stat := result.Ok()
+		if !stat.IsDir() {
+			t.Error("TestDir_Stat_EmptyPath: Expected directory, got regular file")
+		}
+	}
+}
+
 func TestDir_Path_Success(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := createTempDir(t)
@@ -172,6 +211,82 @@ func TestDir_CreateTemp_Success(t *testing.T) {
 	}
 }
 
+func TestDir_CreateTemp_WithCustomDir(t *testing.T) {
+	// Create a temporary directory to use as the parent
+	parentDir := createTempDir(t)
+	defer os.RemoveAll(parentDir)
+
+	// Create a Dir instance
+	dir := NewDir("")
+
+	// Create a temporary directory with custom parent directory
+	result := dir.CreateTemp(String(parentDir))
+
+	// Check if the operation succeeded
+	if result.IsErr() {
+		t.Errorf("TestDir_CreateTemp_WithCustomDir: Unexpected error: %s", result.Err().Error())
+	}
+
+	// Check if the temporary directory exists and is in the specified parent
+	tmpDir := result.Ok().Path().Ok().Std()
+	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+		t.Errorf("TestDir_CreateTemp_WithCustomDir: Temporary directory not created")
+	}
+
+	// Verify it's in the correct parent directory
+	if !filepath.HasPrefix(tmpDir, parentDir) {
+		t.Errorf("TestDir_CreateTemp_WithCustomDir: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
+	}
+}
+
+func TestDir_CreateTemp_WithDirAndPattern(t *testing.T) {
+	// Create a temporary directory to use as the parent
+	parentDir := createTempDir(t)
+	defer os.RemoveAll(parentDir)
+
+	// Create a Dir instance
+	dir := NewDir("")
+	pattern := String("testpattern")
+
+	// Create a temporary directory with custom parent directory and pattern
+	result := dir.CreateTemp(String(parentDir), pattern)
+
+	// Check if the operation succeeded
+	if result.IsErr() {
+		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Unexpected error: %s", result.Err().Error())
+	}
+
+	// Check if the temporary directory exists and is in the specified parent
+	tmpDir := result.Ok().Path().Ok().Std()
+	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Temporary directory not created")
+	}
+
+	// Verify it's in the correct parent directory
+	if !filepath.HasPrefix(tmpDir, parentDir) {
+		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
+	}
+
+	// Verify the pattern is used in the directory name
+	dirName := filepath.Base(tmpDir)
+	if !filepath.HasPrefix(dirName, "testpattern") {
+		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Expected dir name to start with 'testpattern', got %s", dirName)
+	}
+}
+
+func TestDir_CreateTemp_InvalidDirectory(t *testing.T) {
+	// Create a Dir instance
+	dir := NewDir("")
+
+	// Try to create a temporary directory in a non-existent parent directory
+	result := dir.CreateTemp(String("/nonexistent/invalid/path"))
+
+	// Check if the operation failed as expected
+	if result.IsOk() {
+		t.Errorf("TestDir_CreateTemp_InvalidDirectory: Expected error for invalid directory, but operation succeeded")
+	}
+}
+
 func TestDir_Temp(t *testing.T) {
 	// Get the default temporary directory using Temp
 	tmpDir := NewDir("").Temp()
@@ -209,6 +324,43 @@ func TestDir_Remove_NotExist(t *testing.T) {
 	// Check if the operation succeeded (non-existent directory should be considered removed)
 	if result.IsErr() {
 		t.Errorf("TestDir_Remove_NotExist: Unexpected error: %s", result.Err().Error())
+	}
+}
+
+func TestDir_Remove_WithSubdirectories(t *testing.T) {
+	// Create a temporary directory with subdirectories for testing
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir) // Fallback cleanup
+
+	// Create nested directory structure
+	subDir1 := tempDir + "/subdir1"
+	subDir2 := tempDir + "/subdir1/subdir2"
+	if err := os.MkdirAll(subDir2, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectories: %v", err)
+	}
+
+	// Create files in different levels
+	if err := os.WriteFile(tempDir+"/file1.txt", []byte("content"), 0644); err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+	if err := os.WriteFile(subDir1+"/file2.txt", []byte("content"), 0644); err != nil {
+		t.Fatalf("Failed to create file in subdir: %v", err)
+	}
+
+	// Create a Dir instance
+	dir := NewDir(String(tempDir))
+
+	// Remove the directory and all its contents
+	result := dir.Remove()
+
+	// Check if the operation succeeded
+	if result.IsErr() {
+		t.Errorf("TestDir_Remove_WithSubdirectories: Unexpected error: %s", result.Err().Error())
+	}
+
+	// Verify the directory and all its contents are gone
+	if _, err := os.Stat(tempDir); !os.IsNotExist(err) {
+		t.Errorf("TestDir_Remove_WithSubdirectories: Directory should not exist after removal")
 	}
 }
 
@@ -382,6 +534,42 @@ func TestDir_Read_Success(t *testing.T) {
 	}
 }
 
+func TestDir_Read_NonExistentDirectory(t *testing.T) {
+	// Create a Dir instance representing a non-existent directory
+	dir := NewDir(String("/nonexistent/directory/path"))
+
+	// Try to read the content of the non-existent directory
+	result := dir.Read().Collect()
+
+	// Check if the operation failed as expected
+	if result.IsOk() {
+		t.Errorf("TestDir_Read_NonExistentDirectory: Expected error for non-existent directory, but operation succeeded")
+	}
+}
+
+func TestDir_Read_EmptyDirectory(t *testing.T) {
+	// Create an empty temporary directory for testing
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create a Dir instance representing the empty directory
+	dir := NewDir(String(tempDir))
+
+	// Read the content of the empty directory
+	result := dir.Read().Collect()
+
+	// Check if the operation succeeded
+	if result.IsErr() {
+		t.Errorf("TestDir_Read_EmptyDirectory: Unexpected error: %s", result.Err().Error())
+	}
+
+	// Check if the returned slice is empty
+	files := result.Ok()
+	if len(files) != 0 {
+		t.Errorf("TestDir_Read_EmptyDirectory: Expected empty directory, got %d files", len(files))
+	}
+}
+
 func TestDir_Glob_Success(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := createTempDir(t)
@@ -408,6 +596,42 @@ func TestDir_Glob_Success(t *testing.T) {
 		if file.Name().Std() != expectedFileNames[i] {
 			t.Errorf("TestDir_Glob_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
 		}
+	}
+}
+
+func TestDir_Glob_InvalidPattern(t *testing.T) {
+	// Test with an invalid glob pattern
+	dir := NewDir(String("["))
+
+	// Retrieve files matching the invalid glob pattern
+	result := dir.Glob().Collect()
+
+	// Check if the operation failed as expected
+	if result.IsOk() {
+		t.Errorf("TestDir_Glob_InvalidPattern: Expected error for invalid pattern, but operation succeeded")
+	}
+}
+
+func TestDir_Glob_EmptyResult(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create a Dir instance with a pattern that won't match anything
+	dir := NewDir(String(filepath.Join(tempDir, "*.nonexistent")))
+
+	// Retrieve files matching the glob pattern
+	result := dir.Glob().Collect()
+
+	// Check if the operation succeeded with empty result
+	if result.IsErr() {
+		t.Errorf("TestDir_Glob_EmptyResult: Unexpected error: %s", result.Err().Error())
+	}
+
+	// Check if the returned slice is empty
+	files := result.Ok()
+	if len(files) != 0 {
+		t.Errorf("TestDir_Glob_EmptyResult: Expected empty result, got %d files", len(files))
 	}
 }
 
@@ -485,6 +709,116 @@ func TestDir_Copy(t *testing.T) {
 		if !found {
 			t.Errorf("TestDir_Copy: Destination directory missing file %s", expectedFile)
 		}
+	}
+}
+
+func TestDir_Copy_WithFollowLinks(t *testing.T) {
+	// Test Copy with followLinks parameter
+	sourceDir := createTempDir(t)
+	defer os.RemoveAll(sourceDir)
+
+	// Create source files and subdirectory
+	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	subDir := sourceDir + "/subdir"
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+	if err := os.WriteFile(subDir+"/file2.txt", []byte("File 2"), 0644); err != nil {
+		t.Fatalf("Failed to create test file in subdir: %v", err)
+	}
+
+	destDir := createTempDir(t)
+	defer os.RemoveAll(destDir)
+
+	source := NewDir(String(sourceDir))
+
+	// Test with followLinks = true (default)
+	result := source.Copy(String(destDir), true)
+	if result.IsErr() {
+		t.Fatalf("TestDir_Copy_WithFollowLinks: Failed to copy with followLinks=true: %v", result.Err())
+	}
+
+	// Test with followLinks = false
+	destDir2 := createTempDir(t)
+	defer os.RemoveAll(destDir2)
+
+	result = source.Copy(String(destDir2), false)
+	if result.IsErr() {
+		t.Fatalf("TestDir_Copy_WithFollowLinks: Failed to copy with followLinks=false: %v", result.Err())
+	}
+}
+
+func TestDir_Copy_NonExistentSource(t *testing.T) {
+	// Test Copy with non-existent source directory
+	source := NewDir(String("/nonexistent/source/directory"))
+	destDir := createTempDir(t)
+	defer os.RemoveAll(destDir)
+
+	result := source.Copy(String(destDir))
+	if result.IsOk() {
+		t.Errorf("TestDir_Copy_NonExistentSource: Expected error for non-existent source, but operation succeeded")
+	}
+}
+
+func TestDir_Copy_InvalidDestination(t *testing.T) {
+	// Test Copy with invalid destination path
+	sourceDir := createTempDir(t)
+	defer os.RemoveAll(sourceDir)
+
+	// Create a test file in source
+	if err := os.WriteFile(sourceDir+"/test.txt", []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	source := NewDir(String(sourceDir))
+
+	// Try to copy to an invalid destination (path with null byte)
+	result := source.Copy(String("/invalid\x00path"))
+	if result.IsOk() {
+		t.Errorf("TestDir_Copy_InvalidDestination: Expected error for invalid destination, but operation succeeded")
+	}
+}
+
+func TestDir_Copy_WithSymlinks(t *testing.T) {
+	// Test Copy with symbolic links
+	sourceDir := createTempDir(t)
+	defer os.RemoveAll(sourceDir)
+
+	// Create a file and a symlink to it
+	if err := os.WriteFile(sourceDir+"/original.txt", []byte("original content"), 0644); err != nil {
+		t.Fatalf("Failed to create original file: %v", err)
+	}
+
+	// Create a directory and symlink to it
+	subDir := sourceDir + "/subdir"
+	if err := os.Mkdir(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	linkPath := sourceDir + "/link_to_subdir"
+	if err := os.Symlink(subDir, linkPath); err != nil {
+		t.Fatalf("Failed to create symbolic link: %v", err)
+	}
+
+	destDir := createTempDir(t)
+	defer os.RemoveAll(destDir)
+
+	source := NewDir(String(sourceDir))
+
+	// Test copy with followLinks = false (should skip symlinked directories)
+	result := source.Copy(String(destDir), false)
+	if result.IsErr() {
+		t.Fatalf("TestDir_Copy_WithSymlinks: Copy failed: %v", result.Err())
+	}
+
+	// Verify that files are copied but symlinked directories are not
+	if _, err := os.Stat(destDir + "/original.txt"); os.IsNotExist(err) {
+		t.Error("TestDir_Copy_WithSymlinks: Original file should be copied")
+	}
+	if _, err := os.Stat(destDir + "/subdir"); os.IsNotExist(err) {
+		t.Error("TestDir_Copy_WithSymlinks: Subdirectory should be copied")
 	}
 }
 

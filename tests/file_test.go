@@ -492,6 +492,250 @@ func TestFile_OpenFile_Truncate(t *testing.T) {
 	}
 }
 
+func TestFile_OpenFile_NonExistentFile(t *testing.T) {
+	// Test OpenFile with a non-existent file (should error)
+	file := NewFile(String("/nonexistent/file/path.txt"))
+
+	result := file.OpenFile(os.O_RDONLY, 0644)
+	if result.IsOk() {
+		t.Errorf("TestFile_OpenFile_NonExistentFile: Expected error for non-existent file, but operation succeeded")
+	}
+}
+
+func TestFile_OpenFile_NoGuard(t *testing.T) {
+	// Test OpenFile without Guard (should work without locking)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	defer file.Close()
+
+	// Open without calling Guard() - no file locking
+	result := file.OpenFile(os.O_RDONLY, 0644)
+	if result.IsErr() {
+		t.Errorf("TestFile_OpenFile_NoGuard: Expected success without guard, got error: %v", result.Err())
+	}
+}
+
+func TestFile_OpenFile_ReadWriteMode(t *testing.T) {
+	// Test OpenFile with O_RDWR flag
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	file.Guard()
+	defer file.Close()
+
+	result := file.OpenFile(os.O_RDWR, 0644)
+	if result.IsErr() {
+		t.Errorf("TestFile_OpenFile_ReadWriteMode: Expected success with O_RDWR, got error: %v", result.Err())
+	}
+}
+
+func TestFile_OpenFile_CreateFlag(t *testing.T) {
+	// Test OpenFile with O_CREATE flag for new file
+	tempFile := createTempFile(t)
+	os.Remove(tempFile) // Remove it first so we can test creation
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	file.Guard()
+	defer file.Close()
+
+	result := file.OpenFile(os.O_WRONLY|os.O_CREATE, 0644)
+	if result.IsErr() {
+		t.Errorf("TestFile_OpenFile_CreateFlag: Expected success with O_CREATE, got error: %v", result.Err())
+	}
+
+	// Verify the file was created
+	if _, err := os.Stat(tempFile); os.IsNotExist(err) {
+		t.Error("TestFile_OpenFile_CreateFlag: File should have been created")
+	}
+}
+
+func TestFile_OpenFile_TruncateNoGuard(t *testing.T) {
+	// Test OpenFile with truncate flag but no guard
+	tempFile := createTempFileWithContent(t, "initial content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	defer file.Close()
+
+	// Test truncate without guard
+	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0644)
+	if result.IsErr() {
+		t.Errorf("TestFile_OpenFile_TruncateNoGuard: Expected success, got error: %v", result.Err())
+	}
+
+	// Verify the file was truncated
+	fileStat, err := os.Stat(tempFile)
+	if err != nil {
+		t.Errorf("TestFile_OpenFile_TruncateNoGuard: Failed to stat file: %v", err)
+	} else if fileStat.Size() != 0 {
+		t.Error("TestFile_OpenFile_TruncateNoGuard: File should be truncated")
+	}
+}
+
+func TestFile_Name_ClosedFile(t *testing.T) {
+	// Test Name() on a file that hasn't been opened (f.file == nil)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	// Get name without opening the file
+	name := file.Name()
+	expectedName := filepath.Base(tempFile)
+
+	if name.Std() != expectedName {
+		t.Errorf("TestFile_Name_ClosedFile: Expected name '%s', got '%s'", expectedName, name.Std())
+	}
+}
+
+func TestFile_Name_OpenedFile(t *testing.T) {
+	// Test Name() on an opened file (f.file != nil)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	defer file.Close()
+
+	// Open the file first
+	result := file.Open()
+	if result.IsErr() {
+		t.Fatalf("Failed to open file: %v", result.Err())
+	}
+
+	// Get name after opening the file
+	name := file.Name()
+	expectedName := filepath.Base(tempFile)
+
+	if name.Std() != expectedName {
+		t.Errorf("TestFile_Name_OpenedFile: Expected name '%s', got '%s'", expectedName, name.Std())
+	}
+}
+
+func TestFile_Name_WithPath(t *testing.T) {
+	// Test Name() with a complex file path
+	complexPath := "/path/to/directory/filename.txt"
+	file := NewFile(String(complexPath))
+
+	name := file.Name()
+	expectedName := "filename.txt"
+
+	if name.Std() != expectedName {
+		t.Errorf("TestFile_Name_WithPath: Expected name '%s', got '%s'", expectedName, name.Std())
+	}
+}
+
+func TestFile_Remove_Success(t *testing.T) {
+	// Test successful file removal
+	tempFile := createTempFileWithContent(t, "test content")
+	// Don't defer removal since we're testing Remove()
+
+	file := NewFile(String(tempFile))
+
+	// Remove the file
+	result := file.Remove()
+	if result.IsErr() {
+		t.Errorf("TestFile_Remove_Success: Expected success, got error: %v", result.Err())
+	}
+
+	// Verify the file no longer exists
+	if _, err := os.Stat(tempFile); !os.IsNotExist(err) {
+		t.Error("TestFile_Remove_Success: File should not exist after removal")
+	}
+}
+
+func TestFile_Remove_NonExistentFile(t *testing.T) {
+	// Test removal of a non-existent file (should error)
+	file := NewFile(String("/nonexistent/file/path.txt"))
+
+	result := file.Remove()
+	if result.IsOk() {
+		t.Error("TestFile_Remove_NonExistentFile: Expected error for non-existent file, but operation succeeded")
+	}
+}
+
+func TestFile_Remove_Directory(t *testing.T) {
+	// Test removal of a directory (should error since os.Remove doesn't remove non-empty dirs)
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir) // Fallback cleanup
+
+	// Create a file inside the directory
+	if err := os.WriteFile(tempDir+"/test.txt", []byte("content"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	file := NewFile(String(tempDir))
+
+	result := file.Remove()
+	if result.IsOk() {
+		t.Error("TestFile_Remove_Directory: Expected error when trying to remove non-empty directory, but operation succeeded")
+	}
+}
+
+func TestFile_Stat_ClosedFile(t *testing.T) {
+	// Test Stat() on a file that hasn't been opened (f.file == nil)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	// Get stat without opening the file
+	result := file.Stat()
+	if result.IsErr() {
+		t.Errorf("TestFile_Stat_ClosedFile: Expected success, got error: %v", result.Err())
+	}
+
+	stat := result.Ok()
+	if stat.IsDir() {
+		t.Error("TestFile_Stat_ClosedFile: Expected regular file, got directory")
+	}
+	if stat.Size() != int64(len("test content")) {
+		t.Errorf("TestFile_Stat_ClosedFile: Expected size %d, got %d", len("test content"), stat.Size())
+	}
+}
+
+func TestFile_Stat_OpenedFile(t *testing.T) {
+	// Test Stat() on an opened file (f.file != nil)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	defer file.Close()
+
+	// Open the file first
+	openResult := file.Open()
+	if openResult.IsErr() {
+		t.Fatalf("Failed to open file: %v", openResult.Err())
+	}
+
+	// Get stat after opening the file
+	result := file.Stat()
+	if result.IsErr() {
+		t.Errorf("TestFile_Stat_OpenedFile: Expected success, got error: %v", result.Err())
+	}
+
+	stat := result.Ok()
+	if stat.IsDir() {
+		t.Error("TestFile_Stat_OpenedFile: Expected regular file, got directory")
+	}
+	if stat.Size() != int64(len("test content")) {
+		t.Errorf("TestFile_Stat_OpenedFile: Expected size %d, got %d", len("test content"), stat.Size())
+	}
+}
+
+func TestFile_Stat_NonExistentFile(t *testing.T) {
+	// Test Stat() on a non-existent file (should error)
+	file := NewFile(String("/nonexistent/file/path.txt"))
+
+	result := file.Stat()
+	if result.IsOk() {
+		t.Error("TestFile_Stat_NonExistentFile: Expected error for non-existent file, but operation succeeded")
+	}
+}
+
 func TestFile_Chmod(t *testing.T) {
 	// Create a temporary file for testing
 	tempFile := createTempFile(t)
@@ -921,6 +1165,69 @@ func TestFile_Chunks_SmallFile(t *testing.T) {
 	}
 	if chunks.Get(0).Some() != "small" {
 		t.Errorf("Expected 'small', got '%s'", chunks.Get(0).Some())
+	}
+}
+
+func TestFile_Chunks_InvalidSize(t *testing.T) {
+	// Test Chunks with invalid chunk size (0 and negative)
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	// Test with chunk size 0
+	result := file.Chunks(0).Collect()
+	if result.IsOk() {
+		t.Errorf("TestFile_Chunks_InvalidSize: Expected error for chunk size 0, but operation succeeded")
+	}
+	if result.IsErr() && result.Err().Error() != "chunk size must be > 0" {
+		t.Errorf("TestFile_Chunks_InvalidSize: Expected specific error message, got: %s", result.Err().Error())
+	}
+
+	// Test with negative chunk size
+	result = file.Chunks(-5).Collect()
+	if result.IsOk() {
+		t.Errorf("TestFile_Chunks_InvalidSize: Expected error for negative chunk size, but operation succeeded")
+	}
+}
+
+func TestFile_Chunks_NonExistentFile(t *testing.T) {
+	// Test Chunks with a non-existent file (should error during Open)
+	file := NewFile(String("/nonexistent/file/path.txt"))
+
+	result := file.Chunks(5).Collect()
+	if result.IsOk() {
+		t.Errorf("TestFile_Chunks_NonExistentFile: Expected error for non-existent file, but operation succeeded")
+	}
+}
+
+func TestFile_Chunks_EarlyExit(t *testing.T) {
+	// Test Chunks with early exit (iterator stops after first chunk)
+	tempFile := createTempFileWithContent(t, "abcdefghijklmnopqrstuvwxyz")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	var processedChunks []String
+	count := 0
+
+	// Process only the first chunk, then stop
+	file.Chunks(5).Range(func(result Result[String]) bool {
+		if result.IsErr() {
+			t.Errorf("TestFile_Chunks_EarlyExit: Unexpected error: %s", result.Err().Error())
+			return false
+		}
+		processedChunks = append(processedChunks, result.Ok())
+		count++
+		// Stop after first chunk
+		return count < 1
+	})
+
+	if len(processedChunks) != 1 {
+		t.Errorf("TestFile_Chunks_EarlyExit: Expected 1 chunk processed, got %d", len(processedChunks))
+	}
+	if len(processedChunks) > 0 && processedChunks[0] != "abcde" {
+		t.Errorf("TestFile_Chunks_EarlyExit: Expected first chunk 'abcde', got '%s'", processedChunks[0])
 	}
 }
 

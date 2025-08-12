@@ -174,3 +174,35 @@ func TestSet_Iter_Chain(t *testing.T) {
 		}
 	}
 }
+
+func TestSet_Iter_Pull(t *testing.T) {
+	set := g.NewSet[string]()
+	set.Insert("a")
+	set.Insert("b")
+	set.Insert("c")
+
+	iter := set.Iter()
+	next, stop := iter.Pull()
+	defer stop()
+
+	count := 0
+	seen := make(map[string]bool)
+
+	for {
+		value, ok := next()
+		if !ok {
+			break
+		}
+		count++
+		seen[value] = true
+	}
+
+	if count != 3 {
+		t.Errorf("Expected to pull 3 values, got %d", count)
+	}
+
+	// Verify all original values were seen
+	if !seen["a"] || !seen["b"] || !seen["c"] {
+		t.Errorf("Not all set values were pulled: %v", seen)
+	}
+}

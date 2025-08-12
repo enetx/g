@@ -131,6 +131,51 @@ func TestTakeSkipParallel(t *testing.T) {
 	}
 }
 
+// TestExcludeForEachParallel tests Exclude and ForEach with parallelism.
+func TestExcludeForEachParallel(t *testing.T) {
+	m := NewMap[int, int]()
+	m.Set(1, 1)
+	m.Set(2, 2)
+	m.Set(3, 3)
+	m.Set(4, 4)
+
+	workers := Int(2)
+
+	// Test Exclude function
+	cc := &concurrentCounter{sleep: 10 * time.Millisecond}
+	excluded := m.Iter().Parallel(workers).
+		Inspect(cc.FnPair).
+		Exclude(func(_, v int) bool { return v%2 == 0 }). // Exclude even values
+		Collect()
+
+	// Should only contain odd values
+	assertMapContains(t, excluded, map[int]int{1: 1, 3: 3})
+	if excluded.Len() != 2 {
+		t.Errorf("Exclude: expected 2 elements, got %d", excluded.Len())
+	}
+
+	if cc.Max() < 2 {
+		t.Errorf("expected parallel Exclude, got max %d", cc.Max())
+	}
+
+	// Test ForEach function
+	cc2 := &concurrentCounter{sleep: 10 * time.Millisecond}
+	visitedCount := int64(0)
+	m.Iter().Parallel(workers).
+		Inspect(cc2.FnPair).
+		ForEach(func(k, v int) {
+			atomic.AddInt64(&visitedCount, 1)
+		})
+
+	if visitedCount != 4 {
+		t.Errorf("ForEach: expected to visit 4 elements, got %d", visitedCount)
+	}
+
+	if cc2.Max() < 2 {
+		t.Errorf("expected parallel ForEach, got max %d", cc2.Max())
+	}
+}
+
 // TestChainAllAnyFindParallel tests Chain, All, Any, Find with parallelism.
 func TestChainAllAnyFindParallel(t *testing.T) {
 	m1 := NewMap[int, int]()

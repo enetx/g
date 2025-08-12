@@ -140,27 +140,30 @@ func TestResult(t *testing.T) {
 	}
 }
 
-// func TestResultUnwrap(t *testing.T) {
-// 	// Test 1: Unwrapping Result with a value
-// 	result1 := Ok[int](42)
-// 	value1 := result1.Unwrap()
+func TestResultUnwrap(t *testing.T) {
+	// Test 1: Unwrapping Result with a value
+	result1 := Ok[int](42)
+	value1 := result1.Unwrap()
 
-// 	expectedValue1 := 42
-// 	if value1 != expectedValue1 {
-// 		t.Errorf("Test 1: Expected %d, got %d", expectedValue1, value1)
-// 	}
+	expectedValue1 := 42
+	if value1 != expectedValue1 {
+		t.Errorf("Test 1: Expected %d, got %d", expectedValue1, value1)
+	}
 
-// 	// Test 2: Unwrapping Result with an error, should panic
-// 	err2 := errors.New("some error")
-// 	result2 := Err[int](err2)
-// 	defer func() {
-// 		if r := recover(); r == nil {
-// 			t.Errorf("Test 2: The code did not panic")
-// 		}
-// 	}()
+	// Test 2: Unwrapping Result with an error, should panic
+	err2 := errors.New("some error")
+	result2 := Err[int](err2)
 
-// 	result2.Unwrap()
-// }
+	// Test the panic case
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("Test 2: The code did not panic")
+			}
+		}()
+		result2.Unwrap()
+	}()
+}
 
 func TestResultUnwrapOr(t *testing.T) {
 	// Test 1: Unwrapping Result with a value

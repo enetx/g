@@ -803,3 +803,92 @@ func TestEprintln(t *testing.T) {
 	// Test that Eprintln doesn't crash - we can't easily capture stderr in unit tests
 	Eprintln("test eprintln")
 }
+
+func TestSprintfMapOrdAccess(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		args     []any
+		expected string
+	}{
+		{
+			name:     "MapOrd Any String Key Access",
+			template: "Value: {1.stringkey}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set("stringkey", "stringvalue")
+				return []any{m}
+			}(),
+			expected: "Value: stringvalue",
+		},
+		{
+			name:     "MapOrd Any String Type Key Access",
+			template: "Value: {1.stringkey}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set(String("stringkey"), "stringvalue")
+				return []any{m}
+			}(),
+			expected: "Value: stringvalue",
+		},
+		{
+			name:     "MapOrd Any Int Key Access",
+			template: "Value: {1.42}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set(42, "intvalue")
+				return []any{m}
+			}(),
+			expected: "Value: intvalue",
+		},
+		{
+			name:     "MapOrd Any Int Type Key Access",
+			template: "Value: {1.42}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set(Int(42), "intvalue")
+				return []any{m}
+			}(),
+			expected: "Value: intvalue",
+		},
+		{
+			name:     "MapOrd Any Float Key Access",
+			template: "Value: {1.3}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set(3.0, "floatvalue")
+				return []any{m}
+			}(),
+			expected: "Value: floatvalue",
+		},
+		{
+			name:     "MapOrd Any Float Type Key Access",
+			template: "Value: {1.3}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set(Float(3.0), "floatvalue")
+				return []any{m}
+			}(),
+			expected: "Value: floatvalue",
+		},
+		{
+			name:     "MapOrd Any Missing Key (returns whole map)",
+			template: "Value: {1.missing}",
+			args: func() []any {
+				m := NewMapOrd[any, any]()
+				m.Set("existing", "value")
+				return []any{m}
+			}(),
+			expected: "Value: MapOrd{existing:value}",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Format(tt.template, tt.args...)
+			if result != String(tt.expected) {
+				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
+			}
+		})
+	}
+}
