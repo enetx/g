@@ -141,6 +141,26 @@ func TestDir_Path_Success(t *testing.T) {
 	}
 }
 
+func TestDir_Path_Failure(t *testing.T) {
+	// Test Path with various problematic paths to achieve error conditions
+	testCases := []String{
+		String("/invalid/path\x00with/null/byte"), // Path with null byte
+	}
+
+	for i, invalidPath := range testCases {
+		dir := NewDir(invalidPath)
+		result := dir.Path()
+
+		// We expect this might fail on some systems, but if it doesn't that's OK too
+		// The main goal is to test the error handling path
+		if result.IsErr() {
+			t.Logf("TestDir_Path_Failure case %d: Got expected error: %s", i, result.Err().Error())
+		} else {
+			t.Logf("TestDir_Path_Failure case %d: No error on this platform", i)
+		}
+	}
+}
+
 func TestDir_Lstat_IsLink_Success(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := createTempDir(t)

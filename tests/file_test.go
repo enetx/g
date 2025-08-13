@@ -1256,3 +1256,74 @@ func TestFile_Append_NewContent(t *testing.T) {
 		t.Errorf("Expected '%s', got '%s'", expected, string(content))
 	}
 }
+
+func TestFile_OpenFile_TruncateErrorHandling(t *testing.T) {
+	// Test OpenFile truncate behavior
+	tempFile := createTempFileWithContent(t, "test content")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	file.Guard()
+	defer file.Close()
+
+	// Test truncate behavior with O_TRUNC flag
+	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0644)
+	if result.IsErr() {
+		t.Errorf("Expected success with O_TRUNC, got: %v", result.Err())
+	}
+}
+
+func TestFile_OpenFile_ExclusiveFlag(t *testing.T) {
+	// Test O_EXCL with O_CREATE
+	tempDir := t.TempDir()
+
+	newFile := filepath.Join(tempDir, "exclusive_test.txt")
+	file := NewFile(String(newFile))
+	defer file.Close()
+
+	// Create file with O_CREATE|O_EXCL
+	result := file.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if result.IsErr() {
+		t.Errorf("Expected success creating file with O_CREATE|O_EXCL, got: %v", result.Err())
+	}
+
+	file2 := NewFile(String(newFile))
+	defer file2.Close()
+
+	// Try to create again with O_EXCL - should fail
+	result2 := file2.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	if result2.IsOk() {
+		t.Error("Expected error when creating existing file with O_EXCL")
+	}
+}
+
+func TestFile_OpenFile_AppendFlag(t *testing.T) {
+	// Test O_APPEND flag
+	tempFile := createTempFileWithContent(t, "initial")
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	file.Guard()
+	defer file.Close()
+
+	result := file.OpenFile(os.O_WRONLY|os.O_APPEND, 0644)
+	if result.IsErr() {
+		t.Errorf("Expected success with O_APPEND, got: %v", result.Err())
+	}
+}
+
+func TestFile_OpenFile_DefaultMode(t *testing.T) {
+	// Test with default flag (neither WRONLY nor RDWR, should use read lock)
+	tempFile := createTempFile(t)
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+	file.Guard()
+	defer file.Close()
+
+	// Test with 0 flag (default readonly)
+	result := file.OpenFile(0, 0644)
+	if result.IsErr() {
+		t.Errorf("Expected success with default flag, got: %v", result.Err())
+	}
+}

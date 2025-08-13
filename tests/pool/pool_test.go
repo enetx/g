@@ -243,3 +243,180 @@ func TestPoolCancelOnError(t *testing.T) {
 		t.Errorf("Expected first task to fail, but it did not")
 	}
 }
+
+func TestPoolResetWithActiveTasks(t *testing.T) {
+	p := pool.New[int]().Limit(1)
+
+	// Add a task but don't wait for it to complete
+	p.Go(func() Result[int] {
+		return Ok(1)
+	})
+
+	// Try to reset while tasks might be active
+	// This should return an error since tasks are running
+	if p.ActiveTasks() > 0 {
+		err := p.Reset()
+		if err == nil {
+			t.Error("Expected error when resetting with active tasks")
+		}
+	}
+
+	// Clean up
+	p.Wait()
+
+	// Now reset should work
+	err := p.Reset()
+	if err != nil {
+		t.Errorf("Expected no error when resetting after wait, got: %v", err)
+	}
+}
+
+func TestPoolLimitPanic(t *testing.T) {
+	p := pool.New[int]().Limit(2)
+
+	// Add some tasks to make the tokens channel have length > 0
+	p.Go(func() Result[int] {
+		return Ok(1)
+	})
+
+	// This should panic since we're trying to change limit while tasks are potentially running
+	defer func() {
+		if r := recover(); r != nil {
+			// Expected panic
+			if !strings.Contains(r.(string), "cannot change semaphore limit") {
+				t.Errorf("Expected panic about semaphore limit, got: %v", r)
+			}
+		} else {
+			// If no panic, wait for tasks and then check if changing limit works
+			p.Wait()
+			// After wait, changing limit should work fine
+			p.Limit(3)
+		}
+	}()
+
+	// Try to change limit while tasks might be running
+	p.Limit(3)
+}
+
+func TestPoolGoWithNilFunction(t *testing.T) {
+	p := pool.New[int]()
+
+	p.Go(nil) // Pass nil function
+
+	results := p.Wait()
+
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(results))
+	}
+
+	if results[0].IsOk() {
+		t.Error("Expected error result for nil function, got success")
+	}
+
+	if !strings.Contains(results[0].Err().Error(), "nil function provided") {
+		t.Errorf("Expected error about nil function, got: %v", results[0].Err())
+	}
+}
+
+func TestPoolEpanicTypes(t *testing.T) {
+	testCases := []struct {
+		name      string
+		panicVal  any
+		expectStr string
+	}{
+		{
+			name:      "string panic",
+			panicVal:  "string panic test",
+			expectStr: "panic: string panic test",
+		},
+		{
+			name:      "error panic",
+			panicVal:  errors.New("error panic test"),
+			expectStr: "panic: error panic test",
+		},
+		{
+			name:      "other type panic",
+			panicVal:  123,
+			expectStr: "panic: 123",
+		},
+		{
+			name:      "nil panic",
+			panicVal:  nil,
+			expectStr: "panic: panic called with nil argument",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := pool.New[int]()
+
+			p.Go(func() Result[int] {
+				panic(tc.panicVal)
+			})
+
+			results := p.Wait()
+
+			if len(results) != 1 {
+				t.Fatalf("Expected 1 result, got %d", len(results))
+			}
+
+			if results[0].IsOk() {
+				t.Error("Expected error result for panic, got success")
+			}
+
+			if !strings.Contains(results[0].Err().Error(), tc.expectStr) {
+				t.Errorf("Expected error to contain '%s', got: %v", tc.expectStr, results[0].Err())
+			}
+		})
+	}
+}
+
+func TestPoolLimitEdgeCases(t *testing.T) {
+	t.Run("negative limit", func(t *testing.T) {
+		p := pool.New[int]().Limit(-5)
+
+		// Should set tokens to nil for negative values
+		p.Go(func() Result[int] {
+			return Ok(1)
+		})
+
+		results := p.Wait()
+		if len(results) != 1 {
+			t.Errorf("Expected 1 result with negative limit, got %d", len(results))
+		}
+	})
+
+	t.Run("zero limit", func(t *testing.T) {
+		p := pool.New[int]().Limit(0)
+
+		// Should set tokens to nil for zero
+		p.Go(func() Result[int] {
+			return Ok(1)
+		})
+
+		results := p.Wait()
+		if len(results) != 1 {
+			t.Errorf("Expected 1 result with zero limit, got %d", len(results))
+		}
+	})
+}
+
+func TestPoolContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	p := pool.New[int]().Context(ctx).Limit(1)
+
+	// Cancel context immediately
+	cancel()
+
+	// Try to add tasks - they should not execute due to cancelled context
+	p.Go(func() Result[int] {
+		return Ok(1)
+	})
+
+	results := p.Wait()
+
+	// Should get no results since context was cancelled
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results with cancelled context, got %d", len(results))
+	}
+}

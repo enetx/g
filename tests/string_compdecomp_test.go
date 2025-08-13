@@ -95,3 +95,122 @@ func BenchmarkZlib(b *testing.B) {
 		alice.Compress().Zlib()
 	}
 }
+
+func TestZstdDecompressionError(t *testing.T) {
+	// Test Zstd decompression with invalid data
+	invalidData := String("invalid zstd data")
+	result := invalidData.Decompress().Zstd()
+
+	if result.IsOk() {
+		t.Error("Zstd decompression of invalid data should fail")
+	}
+}
+
+func TestBrotliDecompressionError(t *testing.T) {
+	// Test Brotli decompression with invalid data
+	invalidData := String("invalid brotli data")
+	result := invalidData.Decompress().Brotli()
+
+	if result.IsOk() {
+		t.Error("Brotli decompression of invalid data should fail")
+	}
+}
+
+func TestZlibDecompressionError(t *testing.T) {
+	// Test Zlib decompression with invalid data
+	invalidData := String("invalid zlib data")
+	result := invalidData.Decompress().Zlib()
+
+	if result.IsOk() {
+		t.Error("Zlib decompression of invalid data should fail")
+	}
+}
+
+func TestGzipDecompressionError(t *testing.T) {
+	// Test Gzip decompression with invalid data
+	invalidData := String("invalid gzip data")
+	result := invalidData.Decompress().Gzip()
+
+	if result.IsOk() {
+		t.Error("Gzip decompression of invalid data should fail")
+	}
+}
+
+func TestFlateCompressionDecompression(t *testing.T) {
+	// Test Flate compression with larger data to hit more code paths
+	inputData := String("hello world, this is a longer string for testing flate compression and decompression")
+
+	// Test compression
+	compressed := inputData.Compress().Flate()
+
+	// Test decompression
+	decompressed := compressed.Decompress().Flate()
+	if decompressed.IsErr() {
+		t.Fatalf("Flate decompression failed: %v", decompressed.Err())
+	}
+
+	if decompressed.Ok().Ne(inputData) {
+		t.Errorf("Flate round trip failed. Expected: %s, Got: %s", inputData, decompressed.Ok())
+	}
+}
+
+func TestFlateDecompressionError(t *testing.T) {
+	// Test Flate decompression with invalid data
+	invalidData := String("invalid flate data")
+	result := invalidData.Decompress().Flate()
+
+	if result.IsOk() {
+		t.Error("Flate decompression of invalid data should fail")
+	}
+}
+
+func TestEmptyStringCompression(t *testing.T) {
+	// Test compression of empty string
+	emptyStr := String("")
+
+	// Test all compression methods with empty string
+	zstdCompressed := emptyStr.Compress().Zstd()
+	brotliCompressed := emptyStr.Compress().Brotli()
+	zlibCompressed := emptyStr.Compress().Zlib()
+	gzipCompressed := emptyStr.Compress().Gzip()
+	flateCompressed := emptyStr.Compress().Flate()
+
+	// Test that empty strings can be compressed and decompressed properly
+	// Some compression algorithms may produce empty compressed data for empty input
+
+	// Test decompression of empty compressed data
+	zstdDecompressed := zstdCompressed.Decompress().Zstd()
+	if zstdDecompressed.IsErr() {
+		t.Errorf("Zstd decompression of empty string failed: %v", zstdDecompressed.Err())
+	} else if zstdDecompressed.Ok().Ne(emptyStr) {
+		t.Errorf("Zstd round trip failed for empty string")
+	}
+
+	brotliDecompressed := brotliCompressed.Decompress().Brotli()
+	if brotliDecompressed.IsErr() {
+		t.Errorf("Brotli decompression of empty string failed: %v", brotliDecompressed.Err())
+	} else if brotliDecompressed.Ok().Ne(emptyStr) {
+		t.Errorf("Brotli round trip failed for empty string")
+	}
+
+	zlibDecompressed := zlibCompressed.Decompress().Zlib()
+	if zlibDecompressed.IsErr() {
+		t.Errorf("Zlib decompression of empty string failed: %v", zlibDecompressed.Err())
+	} else if zlibDecompressed.Ok().Ne(emptyStr) {
+		t.Errorf("Zlib round trip failed for empty string")
+	}
+
+	gzipDecompressed := gzipCompressed.Decompress().Gzip()
+	if gzipDecompressed.IsErr() {
+		t.Errorf("Gzip decompression of empty string failed: %v", gzipDecompressed.Err())
+	} else if gzipDecompressed.Ok().Ne(emptyStr) {
+		t.Errorf("Gzip round trip failed for empty string")
+	}
+
+	flateDecompressed := flateCompressed.Decompress().Flate()
+	if flateDecompressed.IsErr() {
+		t.Errorf("Flate decompression of empty string failed: %v", flateDecompressed.Err())
+	} else if flateDecompressed.Ok().Ne(emptyStr) {
+		t.Errorf("Flate round trip failed for empty string")
+	}
+}
