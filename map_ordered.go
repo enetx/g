@@ -50,8 +50,11 @@ func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V
 //	Println("{1.a} -> {1.b}", mo.AsAny())
 //	// Output: "a -> 1"
 func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
-	anymo := make([]Pair[any, any], mo.Len())
+	if mo.Empty() {
+		return NewMapOrd[any, any]()
+	}
 
+	anymo := make(MapOrd[any, any], len(mo))
 	for i, v := range mo {
 		anymo[i] = Pair[any, any]{v.Key, v.Value}
 	}
@@ -214,16 +217,32 @@ func (mo MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
 
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
-	result := NewMapOrd[K, V](mo.Len())
-	mo.Iter().ForEach(func(k K, v V) { result.Set(k, v) })
+	if mo.Empty() {
+		return NewMapOrd[K, V]()
+	}
+
+	result := make(MapOrd[K, V], len(mo))
+	copy(result, mo)
 
 	return result
 }
 
 // Copy copies key-value pairs from the source ordered Map to the current ordered Map.
-func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) { src.Iter().ForEach(func(k K, v V) { mo.Set(k, v) }) }
+func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) {
+	if src.Empty() {
+		return
+	}
 
-// ToMap converts the ordered Map to a standard Map.
+	for _, srcPair := range src {
+		if i := mo.index(srcPair.Key); i != -1 {
+			(*mo)[i].Value = srcPair.Value
+		} else {
+			*mo = append(*mo, srcPair)
+		}
+	}
+}
+
+// // ToMap converts the ordered Map to a standard Map.
 // func (mo MapOrd[K, V]) ToMap() Map[K, V] {
 // 	m := NewMap[K, V](len(mo))
 // 	mo.Iter().ForEach(func(k K, v V) { m.Set(k, v) })
@@ -272,8 +291,14 @@ func (mo MapOrd[K, V]) Shuffle() {
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
 func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
-	result := NewMapOrd[V, K](mo.Len())
-	mo.Iter().ForEach(func(k K, v V) { result.Set(v, k) })
+	if mo.Empty() {
+		return NewMapOrd[V, K]()
+	}
+
+	result := make(MapOrd[V, K], 0, len(mo))
+	for _, pair := range mo {
+		result = append(result, Pair[V, K]{pair.Value, pair.Key})
+	}
 
 	return result
 }
@@ -300,18 +325,67 @@ func (mo MapOrd[K, V]) index(key K) int {
 }
 
 // Keys returns an Slice containing all the keys in the ordered Map.
-func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
+func (mo MapOrd[K, V]) Keys() Slice[K] {
+	if mo.Empty() {
+		return NewSlice[K]()
+	}
+
+	keys := make(Slice[K], len(mo))
+	for i, pair := range mo {
+		keys[i] = pair.Key
+	}
+
+	return keys
+}
 
 // Values returns an Slice containing all the values in the ordered Map.
-func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
+func (mo MapOrd[K, V]) Values() Slice[V] {
+	if mo.Empty() {
+		return NewSlice[V]()
+	}
+
+	values := make(Slice[V], len(mo))
+	for i, pair := range mo {
+		values[i] = pair.Value
+	}
+
+	return values
+}
 
 // Delete removes the specified keys from the ordered Map.
 func (mo *MapOrd[K, V]) Delete(keys ...K) {
-	for _, key := range keys {
-		if i := mo.index(key); i != -1 {
-			*mo = slices.Delete(*mo, i, i+1)
+	if len(keys) == 0 || mo.Empty() {
+		return
+	}
+
+	writePos := 0
+	for readPos := 0; readPos < len(*mo); readPos++ {
+		shouldDelete := false
+
+		for _, delKey := range keys {
+			var zero K
+			if f.IsComparable(zero) {
+				if f.Eq[any]((*mo)[readPos].Key)(delKey) {
+					shouldDelete = true
+					break
+				}
+			} else {
+				if f.Eqd((*mo)[readPos].Key)(delKey) {
+					shouldDelete = true
+					break
+				}
+			}
+		}
+
+		if !shouldDelete {
+			if writePos != readPos {
+				(*mo)[writePos] = (*mo)[readPos]
+			}
+			writePos++
 		}
 	}
+
+	*mo = (*mo)[:writePos]
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
@@ -354,7 +428,7 @@ func (mo MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() { mo.Delete(mo.Keys()...) }
+func (mo *MapOrd[K, V]) Clear() { *mo = (*mo)[:0] }
 
 // Contains checks if the ordered Map contains the specified key.
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) >= 0 }

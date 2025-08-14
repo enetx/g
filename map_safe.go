@@ -41,28 +41,49 @@ func (ms *MapSafe[K, V]) Entry(key K) MapSafeEntry[K, V] {
 //	})
 //	m.Len() // Output: 0
 func (ms *MapSafe[K, V]) IntoIter() SeqMap[K, V] {
-	var keys []K
-	ms.data.Range(func(key, _ any) bool {
-		keys = append(keys, key.(K))
+	var pairs []Pair[K, V]
+
+	ms.data.Range(func(key, value any) bool {
+		k := key.(K)
+		v := *(value.(*V))
+		pairs = append(pairs, Pair[K, V]{k, v})
 		return true
 	})
 
+	ms.Clear()
+
 	return func(yield func(K, V) bool) {
-		for _, k := range keys {
-			if val := ms.Entry(k).Delete(); val.isSome {
-				if !yield(k, val.v) {
-					return
-				}
+		for _, pair := range pairs {
+			if !yield(pair.Key, pair.Value) {
+				return
 			}
 		}
 	}
 }
 
 // Keys returns a slice of the MapSafe's keys.
-func (ms *MapSafe[K, V]) Keys() Slice[K] { return ms.Iter().Keys().Collect() }
+func (ms *MapSafe[K, V]) Keys() Slice[K] {
+	var keys Slice[K]
+
+	ms.data.Range(func(key, _ any) bool {
+		keys = append(keys, key.(K))
+		return true
+	})
+
+	return keys
+}
 
 // Values returns a slice of the MapSafe's values.
-func (ms *MapSafe[K, V]) Values() Slice[V] { return ms.Iter().Values().Collect() }
+func (ms *MapSafe[K, V]) Values() Slice[V] {
+	var values Slice[V]
+
+	ms.data.Range(func(_, value any) bool {
+		values = append(values, *(value.(*V)))
+		return true
+	})
+
+	return values
+}
 
 // Invert inverts keys and values. The new map will also follow the pointer-storage rule.
 func (ms *MapSafe[K, V]) Invert() *MapSafe[any, K] {
@@ -189,7 +210,16 @@ func (ms *MapSafe[K, V]) NotEmpty() bool { return !ms.Empty() }
 func (ms *MapSafe[K, V]) Clear() { ms.data.Clear() }
 
 // Empty checks if the MapSafe is empty.
-func (ms *MapSafe[K, V]) Empty() bool { return ms.Len() == 0 }
+func (ms *MapSafe[K, V]) Empty() bool {
+	empty := true
+
+	ms.data.Range(func(_, _ any) bool {
+		empty = false
+		return false
+	})
+
+	return empty
+}
 
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {

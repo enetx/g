@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/enetx/g/cmp"
@@ -149,7 +150,18 @@ func (sl Slice[T]) IterReverse() SeqSlice[T] { return revSeqSlice(sl) }
 //
 // Note: AsAny is useful when you want to work with a slice of a specific type as a slice of 'any'.
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
-func (sl Slice[T]) AsAny() Slice[any] { return TransformSlice(sl, func(t T) any { return any(t) }) }
+func (sl Slice[T]) AsAny() Slice[any] {
+	if sl.Empty() {
+		return NewSlice[any]()
+	}
+
+	result := make(Slice[any], len(sl))
+	for i, v := range sl {
+		result[i] = any(v)
+	}
+
+	return result
+}
 
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same
@@ -171,8 +183,19 @@ func (sl Slice[T]) AsAny() Slice[any] { return TransformSlice(sl, func(t T) any 
 //
 // The modified slice will now contain: 5, 5, 5.
 func (sl Slice[T]) Fill(val T) {
-	for i := range sl {
-		sl[i] = val
+	if len(sl) == 0 {
+		return
+	}
+
+	if len(sl) > 32 {
+		sl[0] = val
+		for i := 1; i < len(sl); i <<= 1 {
+			copy(sl[i:], sl[:i])
+		}
+	} else {
+		for i := range sl {
+			sl[i] = val
+		}
 	}
 }
 
@@ -212,14 +235,22 @@ func (sl Slice[T]) IndexBy(fn func(t T) bool) Int { return Int(slices.IndexFunc(
 //
 // The resulting sample will contain 3 unique elements randomly selected from the original slice.
 func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
-	if sequence.Gte(sl.Len()) {
-		return sl
+	if sequence >= sl.Len() {
+		return sl.Clone()
 	}
 
-	clone := sl.Clone()
-	clone.Shuffle()
+	result := make(Slice[T], 0, sequence)
+	used := make(map[Int]bool, sequence)
 
-	return clone[0:sequence]
+	for result.Len() < sequence {
+		idx := rand.N(sl.Len())
+		if !used[idx] {
+			used[idx] = true
+			result = append(result, sl[idx])
+		}
+	}
+
+	return result
 }
 
 // RandomRange returns a new slice containing a random sample of elements from a subrange of the original slice.
@@ -293,7 +324,6 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 	if ii.IsErr() {
 		panic(ii.err)
 	}
-
 	if jj.IsErr() {
 		panic(jj.err)
 	}
@@ -305,25 +335,46 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 		return
 	}
 
+	oldLen := sl.Len()
+	removedCount := j - i
+	addedCount := Int(len(values))
+	newLen := oldLen - removedCount + addedCount
+
 	if i == j {
-		if len(values) > 0 {
-			*sl = append((*sl)[:i], append(values, (*sl)[i:]...)...)
+		if addedCount == 0 {
+			return
 		}
 
+		if newLen > sl.Cap() {
+			newSlice := make(Slice[T], newLen)
+			copy(newSlice[:i], (*sl)[:i])
+			copy(newSlice[i:i+addedCount], values)
+			copy(newSlice[i+addedCount:], (*sl)[i:])
+			*sl = newSlice
+		} else {
+			*sl = (*sl)[:newLen]
+			copy((*sl)[i+addedCount:], (*sl)[i:oldLen])
+			copy((*sl)[i:], values)
+		}
 		return
 	}
 
-	diff := Int(len(values)) - (j - i)
+	if newLen > sl.Cap() {
+		newSlice := make(Slice[T], newLen)
+		copy(newSlice[:i], (*sl)[:i])
+		copy(newSlice[i:i+addedCount], values)
+		copy(newSlice[i+addedCount:], (*sl)[j:])
+		*sl = newSlice
+	} else {
+		if newLen != oldLen {
+			*sl = (*sl)[:newLen]
+		}
 
-	if diff > 0 {
-		*sl = append(*sl, NewSlice[T](diff)...)
-	}
+		if addedCount != removedCount {
+			copy((*sl)[i+addedCount:], (*sl)[j:oldLen])
+		}
 
-	copy((*sl)[i+Int(len(values)):], (*sl)[j:])
-	copy((*sl)[i:], values)
-
-	if diff < 0 {
-		*sl = (*sl)[:(*sl).Len()+diff]
+		copy((*sl)[i:], values)
 	}
 }
 
@@ -395,10 +446,57 @@ func (sl Slice[T]) SortBy(fn func(a, b T) cmp.Ordering) {
 
 // ToStringSlice converts the Slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
-	result := make([]string, 0, len(sl))
+	if len(sl) == 0 {
+		return nil
+	}
 
-	for _, v := range sl {
-		result = append(result, fmt.Sprint(v))
+	result := make([]string, len(sl))
+
+	for i, v := range sl {
+		switch val := any(v).(type) {
+		case String:
+			result[i] = val.Std()
+		case Int:
+			result[i] = strconv.FormatInt(int64(val), 10)
+		case Float:
+			result[i] = strconv.FormatFloat(float64(val), 'g', -1, 64)
+		case Bytes:
+			result[i] = string(val)
+		case string:
+			result[i] = val
+		case int:
+			result[i] = strconv.Itoa(val)
+		case int8:
+			result[i] = strconv.FormatInt(int64(val), 10)
+		case int16:
+			result[i] = strconv.FormatInt(int64(val), 10)
+		case int32:
+			result[i] = strconv.FormatInt(int64(val), 10)
+		case int64:
+			result[i] = strconv.FormatInt(val, 10)
+		case uint:
+			result[i] = strconv.FormatUint(uint64(val), 10)
+		case uint8:
+			result[i] = strconv.FormatUint(uint64(val), 10)
+		case uint16:
+			result[i] = strconv.FormatUint(uint64(val), 10)
+		case uint32:
+			result[i] = strconv.FormatUint(uint64(val), 10)
+		case uint64:
+			result[i] = strconv.FormatUint(val, 10)
+		case float32:
+			result[i] = strconv.FormatFloat(float64(val), 'g', -1, 32)
+		case float64:
+			result[i] = strconv.FormatFloat(val, 'g', -1, 64)
+		case bool:
+			result[i] = strconv.FormatBool(val)
+		default:
+			if stringer, ok := any(v).(fmt.Stringer); ok {
+				result[i] = stringer.String()
+			} else {
+				result[i] = fmt.Sprint(v)
+			}
+		}
 	}
 
 	return result
@@ -406,6 +504,10 @@ func (sl Slice[T]) ToStringSlice() []string {
 
 // Join joins the elements in the slice into a single String, separated by the provided separator (if any).
 func (sl Slice[T]) Join(sep ...T) String {
+	if sl.Empty() {
+		return ""
+	}
+
 	if s, ok := any(sl).(Slice[Bytes]); ok {
 		var separator Bytes
 		if len(sep) != 0 {
@@ -413,6 +515,24 @@ func (sl Slice[T]) Join(sep ...T) String {
 		}
 
 		return String(bytes.Join(TransformSlice(s, func(b Bytes) []byte { return b }), separator))
+	}
+
+	if s, ok := any(sl).(Slice[String]); ok {
+		var separator string
+		if len(sep) != 0 {
+			if sepStr, ok := any(sep[0]).(String); ok {
+				separator = sepStr.Std()
+			} else {
+				separator = fmt.Sprint(sep[0])
+			}
+		}
+
+		strs := make([]string, len(s))
+		for i, str := range s {
+			strs[i] = str.Std()
+		}
+
+		return String(strings.Join(strs, separator))
 	}
 
 	var separator string
@@ -471,9 +591,26 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 
 	start, end = ii.v, jj.v
 
+	if _step == 1 {
+		if start >= end {
+			return NewSlice[T]()
+		}
+
+		return slices.Clone(sl[start:end])
+	}
+
 	if (start >= end && _step > 0) || (start <= end && _step < 0) || _step == 0 {
 		return NewSlice[T]()
 	}
+
+	var resultSize Int
+	if _step > 0 {
+		resultSize = (end - start + _step - 1) / _step
+	} else {
+		resultSize = (start - end + (-_step) - 1) / (-_step)
+	}
+
+	slice := make(Slice[T], 0, resultSize)
 
 	var loopCondition func(Int) bool
 	if _step > 0 {
@@ -481,8 +618,6 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	} else {
 		loopCondition = func(i Int) bool { return i > end }
 	}
-
-	var slice Slice[T]
 
 	for i := start; loopCondition(i); i += _step {
 		slice = append(slice, sl[i])
@@ -517,7 +652,13 @@ func (sl Slice[T]) Random() T {
 }
 
 // Clone returns a copy of the slice.
-func (sl Slice[T]) Clone() Slice[T] { return slices.Clone(sl) }
+func (sl Slice[T]) Clone() Slice[T] {
+	if sl.Empty() {
+		return NewSlice[T]()
+	}
+
+	return slices.Clone(sl)
+}
 
 // LastIndex returns the last index of the slice.
 func (sl Slice[T]) LastIndex() Int {
@@ -698,7 +839,7 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 // ContainsAll checks if the Slice contains all elements from another Slice.
 func (sl Slice[T]) ContainsAll(values ...T) bool {
 	if sl.Empty() || len(values) == 0 {
-		return false
+		return len(values) == 0
 	}
 
 	for _, v := range values {

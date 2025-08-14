@@ -19,14 +19,23 @@ func NewSet[T comparable](size ...Int) Set[T] {
 //
 // A new Set containing the results of applying the function to each element of the input Set.
 func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
-	return transformSet(s.Iter(), fn).Collect()
+	if len(s) == 0 {
+		return NewSet[U]()
+	}
+
+	result := make(Set[U], len(s))
+	for v := range s {
+		result[fn(v)] = struct{}{}
+	}
+
+	return result
 }
 
 // SetOf creates a new generic set containing the provided elements.
 func SetOf[T comparable](values ...T) Set[T] {
-	set := NewSet[T](Int(len(values)))
+	set := make(Set[T], len(values))
 	for _, v := range values {
-		set.Insert(v)
+		set[v] = struct{}{}
 	}
 
 	return set
@@ -104,9 +113,21 @@ func (s Set[T]) Contains(v T) bool {
 
 // ContainsAny checks if the Set contains any element from another Set.
 func (s Set[T]) ContainsAny(other Set[T]) bool {
-	for v := range other {
-		if s.Contains(v) {
-			return true
+	if s.Empty() || other.Empty() {
+		return false
+	}
+
+	if len(s) <= len(other) {
+		for v := range s {
+			if other.Contains(v) {
+				return true
+			}
+		}
+	} else {
+		for v := range other {
+			if s.Contains(v) {
+				return true
+			}
 		}
 	}
 
@@ -129,12 +150,29 @@ func (s Set[T]) ContainsAll(other Set[T]) bool {
 }
 
 // Clone creates a new Set that is a copy of the original Set.
-func (s Set[T]) Clone() Set[T] { return s.Iter().Collect() }
+func (s Set[T]) Clone() Set[T] {
+	if s.Empty() {
+		return NewSet[T]()
+	}
+
+	clone := make(Set[T], len(s))
+	for k := range s {
+		clone[k] = struct{}{}
+	}
+
+	return clone
+}
 
 // ToSlice returns a new Slice with the same elements as the Set[T].
 func (s Set[T]) ToSlice() Slice[T] {
-	sl := NewSlice[T](0, s.Len())
-	s.Iter().ForEach(func(v T) { sl = append(sl, v) })
+	if s.Empty() {
+		return NewSlice[T]()
+	}
+
+	sl := make(Slice[T], 0, len(s))
+	for v := range s {
+		sl = append(sl, v)
+	}
 
 	return sl
 }
@@ -289,7 +327,11 @@ func (s Set[T]) Eq(other Set[T]) bool {
 func (s Set[T]) Ne(other Set[T]) bool { return !s.Eq(other) }
 
 // Clear removes all values from the Set.
-func (s Set[T]) Clear() { s.Remove(s.ToSlice()...) }
+func (s Set[T]) Clear() {
+	for k := range s {
+		delete(s, k)
+	}
+}
 
 // Empty checks if the Set is empty.
 func (s Set[T]) Empty() bool { return len(s) == 0 }

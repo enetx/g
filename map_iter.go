@@ -124,7 +124,7 @@ func (seq SeqMap[K, V]) Collect() Map[K, V] {
 	collection := NewMap[K, V]()
 
 	seq(func(k K, v V) bool {
-		collection.Set(k, v)
+		collection[k] = v
 		return true
 	})
 
@@ -163,9 +163,7 @@ func (seq SeqMap[K, V]) Collect() Map[K, V] {
 // Output: Map{2:2, 4:4} // The output order may vary as Map is not ordered.
 //
 // The resulting iterator will contain elements for which the function returns true.
-func (seq SeqMap[K, V]) Filter(fn func(K, V) bool) SeqMap[K, V] { return filterMap(seq, fn) }
-
-func filterMap[K comparable, V any](seq SeqMap[K, V], fn func(K, V) bool) SeqMap[K, V] {
+func (seq SeqMap[K, V]) Filter(fn func(K, V) bool) SeqMap[K, V] {
 	return func(yield func(K, V) bool) {
 		seq(func(k K, v V) bool {
 			if fn(k, v) {
@@ -211,7 +209,14 @@ func filterMap[K comparable, V any](seq SeqMap[K, V], fn func(K, V) bool) SeqMap
 //
 // The resulting iterator will exclude elements for which the function returns true.
 func (seq SeqMap[K, V]) Exclude(fn func(K, V) bool) SeqMap[K, V] {
-	return filterMap(seq, func(k K, v V) bool { return !fn(k, v) })
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if !fn(k, v) {
+				return yield(k, v)
+			}
+			return true
+		})
+	}
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.

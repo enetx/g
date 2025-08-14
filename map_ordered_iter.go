@@ -243,10 +243,10 @@ func (seq SeqMapOrd[K, V]) Count() Int {
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
 func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
-	collection := NewMapOrd[K, V]()
+	var collection MapOrd[K, V]
 
 	seq(func(k K, v V) bool {
-		collection.Set(k, v)
+		collection = append(collection, Pair[K, V]{k, v})
 		return true
 	})
 
@@ -330,7 +330,14 @@ func (seq SeqMapOrd[K, V]) Skip(n uint) SeqMapOrd[K, V] {
 //
 // The resulting iterator will exclude elements based on the provided condition.
 func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] {
-	return filterMapOrd(seq, func(k K, v V) bool { return !fn(k, v) })
+	return func(yield func(K, V) bool) {
+		seq(func(k K, v V) bool {
+			if !fn(k, v) {
+				return yield(k, v)
+			}
+			return true
+		})
+	}
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -367,9 +374,7 @@ func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] {
 // Output: MapOrd{2:2, 4:4}
 //
 // The resulting iterator will include elements based on the provided condition.
-func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] { return filterMapOrd(seq, fn) }
-
-func filterMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(K, V) bool) SeqMapOrd[K, V] {
+func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] {
 	return func(yield func(K, V) bool) {
 		seq(func(k K, v V) bool {
 			if fn(k, v) {
@@ -481,13 +486,9 @@ func (seq SeqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
 //
 // The resulting iterator will contain transformed key-value pairs.
 func (seq SeqMapOrd[K, V]) Map(transform func(K, V) (K, V)) SeqMapOrd[K, V] {
-	return mapiMapOrd(seq, transform)
-}
-
-func mapiMapOrd[K, V any](seq SeqMapOrd[K, V], fn func(K, V) (K, V)) SeqMapOrd[K, V] {
 	return func(yield func(K, V) bool) {
 		seq(func(k K, v V) bool {
-			return yield(fn(k, v))
+			return yield(transform(k, v))
 		})
 	}
 }

@@ -762,7 +762,7 @@ func TestSliceContainsAll(t *testing.T) {
 		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3}, true},
 		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 6}, false},
 		{Slice[int]{}, Slice[int]{1, 2, 3, 4, 5}, false},
-		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{}, false},
+		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{}, true},
 		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1, 2, 3, 4, 5}, true},
 		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{6}, false},
 		{Slice[int]{1, 2, 3, 4, 5}, Slice[int]{1}, true},

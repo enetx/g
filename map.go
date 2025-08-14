@@ -80,19 +80,45 @@ func (m *Map[K, V]) IntoIter() SeqMap[K, V] {
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
 // types are guaranteed to be comparable.
 func (m Map[K, V]) Invert() Map[any, K] {
-	result := NewMap[any, K](m.Len())
+	if m.Empty() {
+		return NewMap[any, K]()
+	}
+
+	result := make(Map[any, K], len(m))
 	for k, v := range m {
-		result.Set(v, k)
+		result[v] = k
 	}
 
 	return result
 }
 
 // Keys returns a slice of the Map's keys.
-func (m Map[K, V]) Keys() Slice[K] { return m.Iter().Keys().Collect() }
+func (m Map[K, V]) Keys() Slice[K] {
+	if m.Empty() {
+		return NewSlice[K]()
+	}
+
+	keys := make(Slice[K], 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	return keys
+}
 
 // Values returns a slice of the Map's values.
-func (m Map[K, V]) Values() Slice[V] { return m.Iter().Values().Collect() }
+func (m Map[K, V]) Values() Slice[V] {
+	if m.Empty() {
+		return NewSlice[V]()
+	}
+
+	values := make(Slice[V], 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+
+	return values
+}
 
 // Contains checks if the Map contains the specified key.
 func (m Map[K, V]) Contains(key K) bool {

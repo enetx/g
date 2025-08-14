@@ -1,6 +1,9 @@
 package main
 
-import . "github.com/enetx/g"
+import (
+	. "github.com/enetx/g"
+	"github.com/enetx/g/f"
+)
 
 func main() {
 	// Create two slices of strings, p1 and p2
@@ -11,7 +14,7 @@ func main() {
 	pp := p1.
 		Iter().
 		Parallel(10).
-		Chain(p2.Iter().Parallel()).
+		Chain(p2.Iter().Parallel().Map(String.Upper).Filter(f.Eq(String("AAA")))).
 		Collect()
 
 	// Iterate over the resulting slice pp and print each element
