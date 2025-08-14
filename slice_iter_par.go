@@ -39,19 +39,62 @@ func (p SeqSlicePar[V]) Any(fn func(V) bool) bool {
 	return ok.Load()
 }
 
-// Chain concatenates this SeqSlicePar with others, preserving process and worker count.
+// Chain concatenates this SeqSlicePar with others, preserving full parallelism.
+// Each sequence runs with its own worker pool in parallel.
 func (p SeqSlicePar[V]) Chain(others ...SeqSlicePar[V]) SeqSlicePar[V] {
-	seq := func(yield func(V) bool) {
-		p.seq(yield)
-		for _, o := range others {
-			o.seq(yield)
-		}
-	}
-
 	return SeqSlicePar[V]{
-		seq:     seq,
+		seq: func(yield func(V) bool) {
+			done := make(chan struct{})
+			result := make(chan V, 100)
+
+			var (
+				wg   sync.WaitGroup
+				once sync.Once
+			)
+
+			runSequence := func(seq SeqSlicePar[V]) {
+				defer wg.Done()
+				seq.Range(func(v V) bool {
+					select {
+					case <-done:
+						return false
+					case result <- v:
+						return true
+					}
+				})
+			}
+
+			go func() {
+				defer close(result)
+
+				wg.Add(1)
+				go runSequence(p)
+
+				for _, o := range others {
+					wg.Add(1)
+					go runSequence(o)
+				}
+
+				wg.Wait()
+			}()
+
+			for {
+				select {
+				case <-done:
+					return
+				case v, ok := <-result:
+					if !ok {
+						return
+					}
+					if !yield(v) {
+						once.Do(func() { close(done) })
+						return
+					}
+				}
+			}
+		},
 		workers: p.workers,
-		process: p.process,
+		process: func(v V) (V, bool) { return v, true },
 	}
 }
 
@@ -138,11 +181,30 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 		var recurse func(any) bool
 
 		recurse = func(item any) bool {
+			if item == nil {
+				return true
+			}
+
 			rv := reflect.ValueOf(item)
+
+			if !rv.IsValid() {
+				return true
+			}
+
 			switch rv.Kind() {
 			case reflect.Slice, reflect.Array:
+				if rv.IsNil() {
+					return true
+				}
+
 				for i := range rv.Len() {
-					if !recurse(rv.Index(i).Interface()) {
+					elem := rv.Index(i)
+
+					if !elem.CanInterface() {
+						continue
+					}
+
+					if !recurse(elem.Interface()) {
 						return false
 					}
 				}
@@ -191,6 +253,42 @@ func (p SeqSlicePar[V]) Fold(init V, fn func(acc, v V) V) V {
 	return acc
 }
 
+// Reduce aggregates elements of the parallel sequence using the provided function.
+// The first received element is used as the initial accumulator.
+// If the sequence is empty, returns None[V].
+func (p SeqSlicePar[V]) Reduce(fn func(a, b V) V) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var (
+		acc   V
+		first = true
+	)
+
+	for v := range ch {
+		if first {
+			acc = v
+			first = false
+			continue
+		}
+
+		acc = fn(acc, v)
+	}
+
+	if first {
+		return None[V]()
+	}
+
+	return Some(acc)
+}
+
 // ForEach applies fn to each element without early exit.
 func (p SeqSlicePar[V]) ForEach(fn func(V)) {
 	p.Range(func(v V) bool {
@@ -234,39 +332,31 @@ func (p SeqSlicePar[V]) Map(fn func(V) V) SeqSlicePar[V] {
 	}
 }
 
-// Partition splits elements into two slices: those satisfying fn, and the rest.
 func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
-	leftCh := make(chan V)
-	rightCh := make(chan V)
+	type item struct {
+		value  V
+		isLeft bool
+	}
+
+	ch := make(chan item)
 
 	go func() {
-		defer close(leftCh)
-		defer close(rightCh)
+		defer close(ch)
 		p.Range(func(v V) bool {
-			if fn(v) {
-				leftCh <- v
-			} else {
-				rightCh <- v
+			ch <- item{
+				value:  v,
+				isLeft: fn(v),
 			}
 			return true
 		})
 	}()
 
-	var left, right []V
-	for leftCh != nil || rightCh != nil {
-		select {
-		case v, ok := <-leftCh:
-			if !ok {
-				leftCh = nil
-				continue
-			}
-			left = append(left, v)
-		case v, ok := <-rightCh:
-			if !ok {
-				rightCh = nil
-				continue
-			}
-			right = append(right, v)
+	var left, right Slice[V]
+	for it := range ch {
+		if it.isLeft {
+			left.Push(it.value)
+		} else {
+			right.Push(it.value)
 		}
 	}
 
@@ -275,18 +365,23 @@ func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
 
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqSlicePar[V]) Range(fn func(V) bool) {
-	in := make(chan V, p.workers)
-	var wg sync.WaitGroup
-	var stop atomic.Bool
+	in := make(chan V)
+	done := make(chan struct{})
+
+	var (
+		wg   sync.WaitGroup
+		once sync.Once
+	)
 
 	go func() {
 		defer close(in)
 		p.seq(func(v V) bool {
-			if stop.Load() {
+			select {
+			case <-done:
 				return false
+			case in <- v:
+				return true
 			}
-			in <- v
-			return true
 		})
 	}()
 
@@ -297,7 +392,7 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 			for v := range in {
 				if mid, ok := p.process(v); ok {
 					if !fn(mid) {
-						stop.Store(true)
+						once.Do(func() { close(done) })
 						return
 					}
 				}
@@ -308,38 +403,39 @@ func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 	wg.Wait()
 }
 
-// Skip skips the first n elements.
 func (p SeqSlicePar[V]) Skip(n Int) SeqSlicePar[V] {
 	prev := p.process
-	var cnt int64
 
 	return SeqSlicePar[V]{
-		seq:     p.seq,
-		workers: p.workers,
-		process: func(v V) (V, bool) {
-			if mid, ok := prev(v); ok && atomic.AddInt64(&cnt, 1) > int64(n) {
-				return mid, true
-			}
-			var zero V
-			return zero, false
+		seq: func(yield func(V) bool) {
+			var cnt int64
+			p.seq(func(v V) bool {
+				if atomic.AddInt64(&cnt, 1) > int64(n) {
+					return yield(v)
+				}
+				return true
+			})
 		},
+		workers: p.workers,
+		process: prev,
 	}
 }
 
 func (p SeqSlicePar[V]) Take(n Int) SeqSlicePar[V] {
 	prev := p.process
-	var cnt int64
 
 	return SeqSlicePar[V]{
-		seq:     p.seq,
-		workers: p.workers,
-		process: func(v V) (V, bool) {
-			if mid, ok := prev(v); ok && atomic.AddInt64(&cnt, 1) <= int64(n) {
-				return mid, true
-			}
-			var zero V
-			return zero, false
+		seq: func(yield func(V) bool) {
+			var cnt int64
+			p.seq(func(v V) bool {
+				if atomic.AddInt64(&cnt, 1) <= int64(n) {
+					return yield(v)
+				}
+				return false
+			})
 		},
+		workers: p.workers,
+		process: prev,
 	}
 }
 

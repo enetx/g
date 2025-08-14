@@ -11,7 +11,7 @@ func main() {
 	pp := p1.
 		Iter().
 		Parallel(10).
-		Chain(p2.Iter().Parallel(10)).
+		Chain(p2.Iter().Parallel()).
 		Collect()
 
 	// Iterate over the resulting slice pp and print each element

@@ -36,19 +36,62 @@ func (p SeqMapPar[K, V]) Any(fn func(K, V) bool) bool {
 	return ok.Load()
 }
 
-// Chain concatenates this SeqMapPar with others, preserving process and workers.
+// Chain concatenates this SeqMapPar with others, preserving full parallelism.
+// Each sequence runs with its own worker pool in parallel..
 func (p SeqMapPar[K, V]) Chain(others ...SeqMapPar[K, V]) SeqMapPar[K, V] {
-	seq := func(yield func(K, V) bool) {
-		p.seq(yield)
-		for _, o := range others {
-			o.seq(yield)
-		}
-	}
-
 	return SeqMapPar[K, V]{
-		seq:     seq,
+		seq: func(yield func(K, V) bool) {
+			done := make(chan struct{})
+			result := make(chan Pair[K, V], 100)
+
+			var (
+				wg   sync.WaitGroup
+				once sync.Once
+			)
+
+			runSequence := func(seq SeqMapPar[K, V]) {
+				defer wg.Done()
+				seq.Range(func(k K, v V) bool {
+					select {
+					case <-done:
+						return false
+					case result <- Pair[K, V]{k, v}:
+						return true
+					}
+				})
+			}
+
+			go func() {
+				defer close(result)
+
+				wg.Add(1)
+				go runSequence(p)
+
+				for _, o := range others {
+					wg.Add(1)
+					go runSequence(o)
+				}
+
+				wg.Wait()
+			}()
+
+			for {
+				select {
+				case <-done:
+					return
+				case pair, ok := <-result:
+					if !ok {
+						return
+					}
+					if !yield(pair.Key, pair.Value) {
+						once.Do(func() { close(done) })
+						return
+					}
+				}
+			}
+		},
 		workers: p.workers,
-		process: p.process,
+		process: func(pair Pair[K, V]) (Pair[K, V], bool) { return pair, true },
 	}
 }
 
@@ -173,18 +216,23 @@ func (p SeqMapPar[K, V]) Map(transform func(K, V) (K, V)) SeqMapPar[K, V] {
 
 // Range applies fn to each processed pair in parallel, stopping early if fn returns false.
 func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
-	in := make(chan Pair[K, V], p.workers)
-	var wg sync.WaitGroup
-	var stop atomic.Bool
+	in := make(chan Pair[K, V])
+	done := make(chan struct{})
+
+	var (
+		wg   sync.WaitGroup
+		once sync.Once
+	)
 
 	go func() {
 		defer close(in)
 		p.seq(func(k K, v V) bool {
-			if stop.Load() {
+			select {
+			case <-done:
 				return false
+			case in <- Pair[K, V]{k, v}:
+				return true
 			}
-			in <- Pair[K, V]{k, v}
-			return true
 		})
 	}()
 
@@ -195,7 +243,7 @@ func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
 			for pair := range in {
 				if mid, ok := p.process(pair); ok {
 					if !fn(mid.Key, mid.Value) {
-						stop.Store(true)
+						once.Do(func() { close(done) })
 						return
 					}
 				}
@@ -209,37 +257,37 @@ func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
 // Skip drops the first n pairs.
 func (p SeqMapPar[K, V]) Skip(n Int) SeqMapPar[K, V] {
 	prev := p.process
-	var cnt int64
 
 	return SeqMapPar[K, V]{
-		seq:     p.seq,
-		workers: p.workers,
-		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
-			if mid, ok := prev(pair); ok {
+		seq: func(yield func(K, V) bool) {
+			var cnt int64
+			p.seq(func(k K, v V) bool {
 				if atomic.AddInt64(&cnt, 1) > int64(n) {
-					return mid, true
+					return yield(k, v)
 				}
-			}
-			return Pair[K, V]{}, false
+				return true
+			})
 		},
+		workers: p.workers,
+		process: prev,
 	}
 }
 
 // Take yields at most n pairs.
 func (p SeqMapPar[K, V]) Take(n Int) SeqMapPar[K, V] {
 	prev := p.process
-	var cnt int64
 
 	return SeqMapPar[K, V]{
-		seq:     p.seq,
-		workers: p.workers,
-		process: func(pair Pair[K, V]) (Pair[K, V], bool) {
-			if mid, ok := prev(pair); ok {
+		seq: func(yield func(K, V) bool) {
+			var cnt int64
+			p.seq(func(k K, v V) bool {
 				if atomic.AddInt64(&cnt, 1) <= int64(n) {
-					return mid, true
+					return yield(k, v)
 				}
-			}
-			return Pair[K, V]{}, false
+				return false
+			})
 		},
+		workers: p.workers,
+		process: prev,
 	}
 }

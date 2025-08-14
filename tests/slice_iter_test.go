@@ -670,6 +670,45 @@ func TestSliceIterFold(t *testing.T) {
 	}
 }
 
+func TestSeqSliceReduce_Sum(t *testing.T) {
+	sl := Slice[int]{1, 2, 3, 4, 5}
+
+	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
+	if got.IsNone() {
+		t.Fatalf("Reduce should return Some for non-empty sequence")
+	}
+
+	if v := got.Some(); v != 15 {
+		t.Errorf("expected 15, got %d", v)
+	}
+}
+
+func TestSeqSliceReduce_Empty(t *testing.T) {
+	var sl Slice[int]
+
+	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
+	if got.IsSome() {
+		t.Fatalf("Reduce should return None for empty sequence")
+	}
+
+	if v := got.UnwrapOr(-1); v != -1 {
+		t.Errorf("expected UnwrapOr(-1) == -1, got %d", v)
+	}
+}
+
+func TestSeqSliceReduce_Single(t *testing.T) {
+	sl := Slice[int]{42}
+
+	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
+	if got.IsNone() {
+		t.Fatalf("Reduce should return Some for single-element sequence")
+	}
+
+	if v := got.Unwrap(); v != 42 {
+		t.Errorf("expected 42, got %d", v)
+	}
+}
+
 func TestSliceIterFilter(t *testing.T) {
 	var sl Slice[int]
 

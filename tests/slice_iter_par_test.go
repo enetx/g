@@ -424,3 +424,276 @@ func TestTakeSkipExcludeInspectParallel(t *testing.T) {
 		t.Errorf("expected parallel Inspect, got max %d", ccIns.Max())
 	}
 }
+
+// Enhanced concurrent counter with more detailed tracking
+type enhancedCounter struct {
+	current       int64
+	max           int64
+	total         int64
+	sleepDuration time.Duration
+	sequenceID    string
+}
+
+func (cc *enhancedCounter) Fn(v int) {
+	current := atomic.AddInt64(&cc.current, 1)
+	atomic.AddInt64(&cc.total, 1)
+
+	// Update max concurrency
+	for {
+		currentMax := atomic.LoadInt64(&cc.max)
+		if current <= currentMax || atomic.CompareAndSwapInt64(&cc.max, currentMax, current) {
+			break
+		}
+	}
+
+	// Simulate work
+	time.Sleep(cc.sleepDuration)
+	atomic.AddInt64(&cc.current, -1)
+}
+
+func (cc *enhancedCounter) Max() int64 {
+	return atomic.LoadInt64(&cc.max)
+}
+
+func (cc *enhancedCounter) Total() int64 {
+	return atomic.LoadInt64(&cc.total)
+}
+
+// TestChainComprehensive tests Chain with multiple aspects
+func TestChainComprehensive(t *testing.T) {
+	t.Run("BasicParallelism", func(t *testing.T) {
+		// Test basic parallel execution
+		seq1 := []int{1, 2, 3, 4, 5}
+		seq2 := []int{10, 20, 30, 40, 50}
+		workers := Int(3)
+
+		cc := &enhancedCounter{sleepDuration: 50 * time.Millisecond}
+
+		start := time.Now()
+		res := SliceOf(seq1...).
+			Iter().
+			Parallel(workers).
+			Inspect(cc.Fn).
+			Chain(
+				SliceOf(seq2...).Iter().Parallel(workers).Inspect(cc.Fn),
+			).
+			Collect()
+		duration := time.Since(start)
+
+		// Verify results
+		expected := append(seq1, seq2...)
+		res.SortBy(cmp.Cmp)
+		expectedSlice := SliceOf(expected...)
+		expectedSlice.SortBy(cmp.Cmp)
+
+		if res.Ne(expectedSlice) {
+			t.Errorf("Chain got %v, want %v", res, expectedSlice)
+		}
+
+		// Verify parallelism (should be at least 2, ideally close to 6)
+		if cc.Max() < 2 {
+			t.Errorf("expected parallel execution, got max concurrency %d", cc.Max())
+		}
+
+		// Verify timing - with parallelism should be much faster than sequential
+		expectedSequentialTime := time.Duration(len(seq1)+len(seq2)) * 50 * time.Millisecond
+		if duration > expectedSequentialTime/2 {
+			t.Errorf("execution too slow, might not be parallel: %v", duration)
+		}
+
+		t.Logf("Max concurrency: %d, Total processed: %d, Duration: %v",
+			cc.Max(), cc.Total(), duration)
+	})
+
+	t.Run("MultipleSequencesChain", func(t *testing.T) {
+		// Test chaining multiple sequences
+		seq1 := []int{1, 2}
+		seq2 := []int{10, 20}
+		seq3 := []int{100, 200}
+		seq4 := []int{1000, 2000}
+
+		workers := Int(4)
+		cc := &enhancedCounter{sleepDuration: 30 * time.Millisecond}
+
+		res := SliceOf(seq1...).
+			Iter().
+			Parallel(workers).
+			Inspect(cc.Fn).
+			Chain(
+				SliceOf(seq2...).Iter().Parallel(workers).Inspect(cc.Fn),
+				SliceOf(seq3...).Iter().Parallel(workers).Inspect(cc.Fn),
+				SliceOf(seq4...).Iter().Parallel(workers).Inspect(cc.Fn),
+			).
+			Collect()
+
+		// All elements should be present
+		if res.Len() != 8 {
+			t.Errorf("expected 8 elements, got %d", res.Len())
+		}
+
+		// Should achieve high concurrency with 4 sequences
+		if cc.Max() < 4 {
+			t.Errorf("expected high concurrency with 4 sequences, got %d", cc.Max())
+		}
+
+		t.Logf("Multiple sequences - Max concurrency: %d", cc.Max())
+	})
+
+	t.Run("HeavyTransformationsParallel", func(t *testing.T) {
+		// Test that heavy transformations in each sequence run in parallel
+		seq1 := []int{1, 2, 3, 4, 5, 6, 7, 8}
+		seq2 := []int{10, 20, 30, 40, 50, 60, 70, 80}
+
+		workers1 := Int(3)
+		workers2 := Int(5)
+
+		cc1 := &enhancedCounter{sleepDuration: 40 * time.Millisecond, sequenceID: "seq1"}
+		cc2 := &enhancedCounter{sleepDuration: 40 * time.Millisecond, sequenceID: "seq2"}
+
+		heavyTransform := func(x int) int {
+			time.Sleep(20 * time.Millisecond) // Additional heavy work
+			return x * 2
+		}
+
+		start := time.Now()
+		res := SliceOf(seq1...).
+			Iter().
+			Parallel(workers1).
+			Map(heavyTransform).
+			Inspect(cc1.Fn).
+			Chain(
+				SliceOf(seq2...).
+					Iter().
+					Parallel(workers2).
+					Map(heavyTransform).
+					Inspect(cc2.Fn),
+			).
+			Collect()
+		duration := time.Since(start)
+
+		// Verify both sequences achieved parallelism
+		if cc1.Max() < 2 {
+			t.Errorf("seq1 not parallel enough, max concurrency: %d", cc1.Max())
+		}
+		if cc2.Max() < 2 {
+			t.Errorf("seq2 not parallel enough, max concurrency: %d", cc2.Max())
+		}
+
+		// Total concurrency should be sum of both sequences
+		totalExpectedConcurrency := cc1.Max() + cc2.Max()
+		if totalExpectedConcurrency < 4 {
+			t.Errorf("total parallelism too low: seq1=%d, seq2=%d", cc1.Max(), cc2.Max())
+		}
+
+		// Verify results are transformed correctly
+		expectedLen := len(seq1) + len(seq2)
+		if len(res) != expectedLen {
+			t.Errorf("expected %d elements, got %d", expectedLen, res.Len())
+		}
+
+		t.Logf("Heavy transforms - Seq1 concurrency: %d, Seq2 concurrency: %d, Duration: %v",
+			cc1.Max(), cc2.Max(), duration)
+	})
+
+	t.Run("EarlyTermination", func(t *testing.T) {
+		// Test early termination works correctly
+		largeSeq1 := make([]int, 1000)
+		largeSeq2 := make([]int, 1000)
+		for i := range largeSeq1 {
+			largeSeq1[i] = i
+			largeSeq2[i] = i + 1000
+		}
+
+		workers := Int(4)
+		var processedCount atomic.Int64
+
+		start := time.Now()
+		res := SliceOf(largeSeq1...).
+			Iter().
+			Parallel(workers).
+			Inspect(func(v int) {
+				processedCount.Add(1)
+				time.Sleep(1 * time.Millisecond)
+			}).
+			Chain(
+				SliceOf(largeSeq2...).
+					Iter().
+					Parallel(workers).
+					Inspect(func(v int) {
+						processedCount.Add(1)
+						time.Sleep(1 * time.Millisecond)
+					}),
+			).
+			Take(10). // Should stop early
+			Collect()
+		duration := time.Since(start)
+
+		// Should only get 10 elements
+		if res.Len() != 10 {
+			t.Errorf("expected 10 elements with Take(10), got %d", res.Len())
+		}
+
+		// Should process significantly fewer than 2000 elements
+		processed := processedCount.Load()
+		if processed > 100 {
+			t.Logf("Warning: processed %d elements, early termination might not be working optimally", processed)
+		}
+
+		// Should complete much faster than processing all elements
+		maxExpectedDuration := 200 * time.Millisecond
+		if duration > maxExpectedDuration {
+			t.Errorf("early termination too slow: %v", duration)
+		}
+
+		t.Logf("Early termination - Processed: %d elements, Duration: %v", processed, duration)
+	})
+
+	t.Run("DifferentWorkerCounts", func(t *testing.T) {
+		// Test sequences with different worker counts
+		seq1 := make([]int, 20)
+		seq2 := make([]int, 20)
+		for i := range seq1 {
+			seq1[i] = i
+			seq2[i] = i + 100
+		}
+
+		workers1 := Int(2)
+		workers2 := Int(8)
+
+		cc1 := &enhancedCounter{sleepDuration: 25 * time.Millisecond}
+		cc2 := &enhancedCounter{sleepDuration: 25 * time.Millisecond}
+
+		res := SliceOf(seq1...).
+			Iter().
+			Parallel(workers1).
+			Inspect(cc1.Fn).
+			Chain(
+				SliceOf(seq2...).
+					Iter().
+					Parallel(workers2).
+					Inspect(cc2.Fn),
+			).
+			Collect()
+
+		// Verify different concurrency levels
+		if cc1.Max() > int64(workers1)+1 { // +1 for some tolerance
+			t.Errorf("seq1 exceeded expected concurrency: got %d, expected ~%d", cc1.Max(), workers1)
+		}
+		if cc2.Max() > int64(workers2)+1 {
+			t.Errorf("seq2 exceeded expected concurrency: got %d, expected ~%d", cc2.Max(), workers2)
+		}
+
+		// Both should achieve some level of parallelism
+		if cc1.Max() < 1 || cc2.Max() < 2 {
+			t.Errorf("sequences didn't achieve expected parallelism: seq1=%d, seq2=%d", cc1.Max(), cc2.Max())
+		}
+
+		// All elements should be present
+		if res.Len() != 40 {
+			t.Errorf("expected 40 elements, got %d", res.Len())
+		}
+
+		t.Logf("Different workers - Seq1 (%d workers): %d concurrency, Seq2 (%d workers): %d concurrency",
+			workers1, cc1.Max(), workers2, cc2.Max())
+	})
+}

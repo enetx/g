@@ -58,7 +58,8 @@ func main() {
 
 	results := TransformSlice(p.Wait(), Result[time.Duration].Ok)
 
-	taskSum := results.Iter().Fold(0, func(acc, val time.Duration) time.Duration { return acc + val })
+	taskSum := results.Iter().Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
+
 	taskMin := results.MinBy(cmp.Cmp)
 	taskMax := results.MaxBy(cmp.Cmp)
 	taskAvg := taskSum / TASKS_NUM

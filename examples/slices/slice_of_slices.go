@@ -54,7 +54,7 @@ func main() {
 
 	nested := Slice[any]{1, 2, Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
 	flattened := nested.Iter().Parallel(10).Flatten().Collect()
-	fmt.Println(flattened)
+	flattened.Println()
 
 	nestedSlice := Slice[any]{
 		1,

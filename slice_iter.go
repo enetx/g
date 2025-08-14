@@ -614,6 +614,46 @@ func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V {
 	return init
 }
 
+// Reduce aggregates elements of the sequence using the provided function.
+// The first element of the sequence is used as the initial accumulator value.
+// If the sequence is empty, it returns None[V].
+//
+// Params:
+//   - fn (func(V, V) V): Function that combines two values into one.
+//
+// Returns:
+//   - Option[V]: The accumulated value wrapped in Some, or None if the sequence is empty.
+//
+// Example:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5}
+//	product := slice.Iter().Reduce(func(a, b int) int { return a * b })
+//	if product.IsSome() {
+//	    fmt.Println(product.Some()) // 120
+//	} else {
+//	    fmt.Println("empty")
+//	}
+func (seq SeqSlice[V]) Reduce(fn func(a, b V) V) Option[V] {
+	first := true
+	var acc V
+
+	seq(func(v V) bool {
+		if first {
+			acc = v
+			first = false
+			return true
+		}
+		acc = fn(acc, v)
+		return true
+	})
+
+	if first {
+		return None[V]()
+	}
+
+	return Some(acc)
+}
+
 // ForEach iterates through all elements and applies the given function to each.
 //
 // The function applies the provided function to each element of the iterator.
