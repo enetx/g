@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"math"
 	"math/big"
 	"testing"
 
@@ -371,37 +372,6 @@ func TestIntUInt8(t *testing.T) {
 	}
 }
 
-func TestIntHashingFunctions(t *testing.T) {
-	// Test case for SHA1 hashing
-	input := Int(42)
-	expectedSHA1 := "df58248c414f342c81e056b40bee12d17a08bf61"
-	sha1Hash := input.Hash().SHA1().Std()
-	if sha1Hash != expectedSHA1 {
-		t.Errorf("SHA1 hashing failed. Expected: %s, Got: %s", expectedSHA1, sha1Hash)
-	}
-
-	// Test case for SHA256 hashing
-	expectedSHA256 := "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
-	sha256Hash := input.Hash().SHA256().Std()
-	if sha256Hash != expectedSHA256 {
-		t.Errorf("SHA256 hashing failed. Expected: %s, Got: %s", expectedSHA256, sha256Hash)
-	}
-
-	// Test case for SHA512 hashing
-	expectedSHA512 := "7846cdd4c2b9052768b8901640122e5282e0b833a6a58312a7763472d448ee23781c7f08d90793fdfe71ffe74238cf6e4aa778cc9bb8cec03ea7268d4893a502"
-	sha512Hash := input.Hash().SHA512().Std()
-	if sha512Hash != expectedSHA512 {
-		t.Errorf("SHA512 hashing failed. Expected: %s, Got: %s", expectedSHA512, sha512Hash)
-	}
-
-	// Test case for MD5 hashing
-	expectedMD5 := "3389dae361af79b04c9c8e7057f60cc6"
-	md5Hash := input.Hash().MD5().Std()
-	if md5Hash != expectedMD5 {
-		t.Errorf("MD5 hashing failed. Expected: %s, Got: %s", expectedMD5, md5Hash)
-	}
-}
-
 func TestIntRem(t *testing.T) {
 	// Test cases
 	testCases := []struct {
@@ -534,5 +504,38 @@ func TestIntPrintln(t *testing.T) {
 	result := i.Println()
 	if result != i {
 		t.Errorf("Println() should return original int unchanged")
+	}
+}
+
+func TestRandomRange_Distribution_Sanity(t *testing.T) {
+	const (
+		lo    = Int(-3)
+		hi    = Int(3)
+		iters = 1_000_00 // 100k
+	)
+	counts := make(map[Int]int)
+
+	for range iters {
+		x := lo.RandomRange(hi)
+		counts[x]++
+	}
+
+	want := float64(iters) / float64(hi-lo+1)
+	tol := want * 0.05
+	for v := lo; v <= hi; v++ {
+		got := float64(counts[v])
+		if diff := got - want; diff < -tol || diff > tol {
+			t.Fatalf("value %d: got %d, want ~%.0f (+/-%0.f)", v, counts[v], want, tol)
+		}
+	}
+}
+
+func TestRandomRange_FullRange_Moves(t *testing.T) {
+	lo := Int(math.MinInt64)
+	hi := Int(math.MaxInt64)
+	a := lo.RandomRange(hi)
+	b := lo.RandomRange(hi)
+	if a == b {
+		t.Logf("two draws equal (ok but unlikely); a=%d b=%d", a, b)
 	}
 }

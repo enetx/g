@@ -119,13 +119,13 @@ func (s Set[T]) ContainsAny(other Set[T]) bool {
 
 	if len(s) <= len(other) {
 		for v := range s {
-			if other.Contains(v) {
+			if _, ok := other[v]; ok {
 				return true
 			}
 		}
 	} else {
 		for v := range other {
-			if s.Contains(v) {
+			if _, ok := s[v]; ok {
 				return true
 			}
 		}
@@ -141,7 +141,7 @@ func (s Set[T]) ContainsAll(other Set[T]) bool {
 	}
 
 	for v := range other {
-		if !s.Contains(v) {
+		if _, ok := s[v]; !ok {
 			return false
 		}
 	}
@@ -315,7 +315,7 @@ func (s Set[T]) Eq(other Set[T]) bool {
 	}
 
 	for v := range other {
-		if !s.Contains(v) {
+		if _, ok := s[v]; !ok {
 			return false
 		}
 	}
@@ -341,11 +341,26 @@ func (s Set[T]) NotEmpty() bool { return !s.Empty() }
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
+	if s.Empty() {
+		return "Set{}"
+	}
+
 	var b Builder
+	b.WriteString("Set{")
 
-	s.Iter().ForEach(func(v T) { b.WriteString(Format("{}, ", v)) })
+	first := true
+	for v := range s {
+		if !first {
+			b.WriteString(", ")
+		}
 
-	return b.String().StripSuffix(", ").Format("Set\\{{}\\}").Std()
+		first = false
+		b.WriteString(Format("{}", v))
+	}
+
+	b.WriteString("}")
+
+	return b.String().Std()
 }
 
 // Print writes the elements of the Set to the standard output (console)

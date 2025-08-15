@@ -3,6 +3,7 @@ package g
 import (
 	"fmt"
 	"math/big"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -63,6 +64,7 @@ func (String) Random(length Int, letters ...String) String {
 	}
 
 	var b Builder
+	b.Grow(length)
 
 	for range length {
 		b.WriteRune(chars.Random())
@@ -211,7 +213,11 @@ func (s String) ReplaceAll(oldS, newS String) String {
 //	)
 //	// replaced contains "Greetings, universe! This is an example."
 func (s String) ReplaceMulti(oldnew ...String) String {
-	pairs := TransformSlice(Slice[String](oldnew), String.Std)
+	pairs := make([]string, len(oldnew))
+	for i, str := range oldnew {
+		pairs[i] = str.Std()
+	}
+
 	return String(strings.NewReplacer(pairs...).Replace(s.Std()))
 }
 
@@ -234,7 +240,16 @@ func (s String) ReplaceMulti(oldnew ...String) String {
 //	)
 //	// modified contains ", world! This is a ."
 func (s String) Remove(matches ...String) String {
-	pairs := TransformSlice(Slice[String](matches).Iter().Intersperse("").Collect().Append(""), String.Std)
+	if len(matches) == 0 {
+		return s
+	}
+
+	pairs := make([]string, len(matches)*2)
+	for i, match := range matches {
+		pairs[i*2] = match.Std()
+		pairs[i*2+1] = ""
+	}
+
 	return String(strings.NewReplacer(pairs...).Replace(s.Std()))
 }
 
@@ -285,16 +300,18 @@ func (s String) Contains(substr String) bool { return f.Contains(substr)(s) }
 
 // ContainsAny checks if the String contains any of the specified substrings.
 func (s String) ContainsAny(substrs ...String) bool {
-	return Slice[String](substrs).
-		Iter().
-		Any(func(substr String) bool { return s.Contains(substr) })
+	return slices.ContainsFunc(substrs, s.Contains)
 }
 
 // ContainsAll checks if the given String contains all the specified substrings.
 func (s String) ContainsAll(substrs ...String) bool {
-	return Slice[String](substrs).
-		Iter().
-		All(func(substr String) bool { return s.Contains(substr) })
+	for _, substr := range substrs {
+		if !s.Contains(substr) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // ContainsAnyChars checks if the String contains any characters from the specified String.
@@ -317,9 +334,7 @@ func (s String) StartsWith(prefix String) bool { return f.StartsWith(prefix)(s) 
 //	   // do something
 //	}
 func (s String) StartsWithAny(prefixes ...String) bool {
-	return Slice[String](prefixes).
-		Iter().
-		Any(func(prefix String) bool { return s.StartsWith(prefix) })
+	return slices.ContainsFunc(prefixes, s.StartsWith)
 }
 
 // EndsWith checks if the String ends with the specified suffix.
@@ -339,9 +354,7 @@ func (s String) EndsWith(suffix String) bool { return f.EndsWith(suffix)(s) }
 //	   // do something
 //	}
 func (s String) EndsWithAny(suffixes ...String) bool {
-	return Slice[String](suffixes).
-		Iter().
-		Any(func(suffix String) bool { return s.EndsWith(suffix) })
+	return slices.ContainsFunc(suffixes, s.EndsWith)
 }
 
 // Lines splits the String by lines and returns the iterator.
@@ -411,7 +424,7 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 		return func(func(String) bool) {}
 	}
 
-	runes := []rune(s)
+	runes := s.Runes()
 	if size.Gte(Int(len(runes))) {
 		return func(yield func(String) bool) { yield(s) }
 	}

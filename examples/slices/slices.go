@@ -129,7 +129,7 @@ func main() {
 
 	fmt.Println(sll.Cap())
 
-	TransformSlice([]string{"AAA", "BBB"}, NewString).Iter().Map(String.Lower).Collect().Println()
+	TransformSlice([]string{"AAA", "BBB", "CCC"}, NewString).Iter().Map(String.Lower).Collect().Println()
 	SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Println()
 
 	Range(0, 11).

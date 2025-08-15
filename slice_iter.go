@@ -484,11 +484,18 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
-	var current V
-	comparable := f.IsComparable(current)
-
 	return func(yield func(V) bool) {
+		var current V
+		hasFirst := false
+		comparable := f.IsComparable(current)
+
 		seq(func(v V) bool {
+			if !hasFirst {
+				hasFirst = true
+				current = v
+				return yield(v)
+			}
+
 			if comparable {
 				if f.Eq[any](current)(v) {
 					return true
@@ -533,9 +540,7 @@ func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
 // Output: [2 4].
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] { return filterSlice(seq, fn) }
-
-func filterSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
+func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if fn(v) {
@@ -575,7 +580,14 @@ func filterSlice[V any](seq SeqSlice[V], fn func(V) bool) SeqSlice[V] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] {
-	return filterSlice(seq, func(v V) bool { return !fn(v) })
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if !fn(v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
 }
 
 // Fold accumulates values in the iterator using a function.

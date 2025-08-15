@@ -224,13 +224,29 @@ func (ms *MapSafe[K, V]) Empty() bool {
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {
 	var b Builder
+	b.WriteString("MapSafe{")
+
+	first := true
 
 	ms.data.Range(func(key, value any) bool {
-		b.WriteString(Format("{}:{}, ", key, *(value.(*V))))
+		if !first {
+			b.WriteString(", ")
+		}
+
+		first = false
+
+		if vptr, ok := value.(*V); ok && vptr != nil {
+			b.WriteString(Format("{}:{}", key, *vptr))
+		} else {
+			b.WriteString(Format("{}:<invalid>", key))
+		}
+
 		return true
 	})
 
-	return b.String().StripSuffix(", ").Format("MapSafe\\{{}\\}").Std()
+	b.WriteString("}")
+
+	return b.String().Std()
 }
 
 // Print writes the MapSafe to standard output.

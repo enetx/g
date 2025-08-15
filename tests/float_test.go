@@ -1,46 +1,11 @@
 package g_test
 
 import (
-	"math"
 	"math/big"
 	"testing"
 
 	. "github.com/enetx/g"
 )
-
-func TestFloatBytes(t *testing.T) {
-	// Test case for positive float
-	f := Float(3.14)
-	expected := []byte{64, 9, 30, 184, 81, 235, 133, 31} // Bytes representation of 3.14 in big-endian
-	actual := f.Bytes()
-	if actual.Ne(expected) {
-		t.Errorf("Bytes representation of positive float incorrect. Expected: %v, Got: %v", expected, actual)
-	}
-
-	// Test case for negative float
-	f = Float(-3.14)
-	expected = []byte{192, 9, 30, 184, 81, 235, 133, 31} // Bytes representation of -3.14 in big-endian
-	actual = f.Bytes()
-	if actual.Ne(expected) {
-		t.Errorf("Bytes representation of negative float incorrect. Expected: %v, Got: %v", expected, actual)
-	}
-
-	// Test case for infinity
-	f = Float(math.Inf(1))
-	expected = []byte{127, 240, 0, 0, 0, 0, 0, 0} // Bytes representation of positive infinity in big-endian
-	actual = f.Bytes()
-	if actual.Ne(expected) {
-		t.Errorf("Bytes representation of positive infinity incorrect. Expected: %v, Got: %v", expected, actual)
-	}
-
-	// Test case for negative infinity
-	f = Float(math.Inf(-1))
-	expected = []byte{255, 240, 0, 0, 0, 0, 0, 0} // Bytes representation of negative infinity in big-endian
-	actual = f.Bytes()
-	if actual.Ne(expected) {
-		t.Errorf("Bytes representation of negative infinity incorrect. Expected: %v, Got: %v", expected, actual)
-	}
-}
 
 func TestFloatCompare(t *testing.T) {
 	testCases := []struct {
@@ -384,42 +349,6 @@ func TestFloatFloat32(t *testing.T) {
 	actual = f.Float32()
 	if actual != expected {
 		t.Errorf("AsFloat32 method failed to convert zero float. Expected: %f, Got: %f", expected, actual)
-	}
-}
-
-func TestFloatHashing(t *testing.T) {
-	// Test case for a positive float
-	f := Float(3.14)
-	fh := f.Hash()
-
-	// Test MD5
-	expectedMD5 := String("32200b8781d6e8f31543da4cf19ff307")
-	actualMD5 := fh.MD5()
-	if actualMD5 != expectedMD5 {
-		t.Errorf("MD5 hash mismatch for positive float. Expected: %s, Got: %s", expectedMD5, actualMD5)
-	}
-
-	// Test SHA1
-	expectedSHA1 := String("8d3ad0b5fdf81c2de3656ebe8d8b0f14e1431438")
-	actualSHA1 := fh.SHA1()
-	if actualSHA1 != expectedSHA1 {
-		t.Errorf("SHA1 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA1, actualSHA1)
-	}
-
-	// Test SHA256
-	expectedSHA256 := String("a7c511f4744a60f88b6a88fbbb1ed7c79820e028f841c50843963bbb1dcdd9f6")
-	actualSHA256 := fh.SHA256()
-	if actualSHA256 != expectedSHA256 {
-		t.Errorf("SHA256 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA256, actualSHA256)
-	}
-
-	// Test SHA512
-	expectedSHA512 := String(
-		"a86ec42eec985ea198240622e13ddfdbd25bee28007d4ee7b17058292dc46ef51e5b107ab44d70ae14300d88bf71a4cda93851ab920f5eeef8bc1531cd451063",
-	)
-	actualSHA512 := fh.SHA512()
-	if actualSHA512 != expectedSHA512 {
-		t.Errorf("SHA512 hash mismatch for positive float. Expected: %s, Got: %s", expectedSHA512, actualSHA512)
 	}
 }
 

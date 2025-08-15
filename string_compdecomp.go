@@ -31,11 +31,11 @@ func (c compress) Zstd() String {
 	buffer := new(bytes.Buffer)
 	writer, _ := zstd.NewWriter(buffer)
 
-	_, _ = writer.Write(c.str.Bytes())
+	_, _ = io.WriteString(writer, c.str.Std())
 	_ = writer.Flush()
 	_ = writer.Close()
 
-	return String(buffer.String())
+	return String(buffer.Bytes())
 }
 
 // Zstd decompresses the wrapped String using the zstd compression algorithm and
@@ -54,7 +54,7 @@ func (d decompress) Zstd() Result[String] {
 		return Err[String](err)
 	}
 
-	return Ok(String(buffer.String()))
+	return Ok(String(buffer.Bytes()))
 }
 
 // Brotli compresses the wrapped String using the Brotli compression algorithm and
@@ -63,11 +63,11 @@ func (c compress) Brotli() String {
 	buffer := new(bytes.Buffer)
 	writer := brotli.NewWriter(buffer)
 
-	_, _ = writer.Write(c.str.Bytes())
+	_, _ = io.WriteString(writer, c.str.Std())
 	_ = writer.Flush()
 	_ = writer.Close()
 
-	return String(buffer.String())
+	return String(buffer.Bytes())
 }
 
 // Brotli decompresses the wrapped String using the Brotli compression algorithm and
@@ -80,7 +80,7 @@ func (d decompress) Brotli() Result[String] {
 		return Err[String](err)
 	}
 
-	return Ok(String(buffer.String()))
+	return Ok(String(buffer.Bytes()))
 }
 
 // Zlib compresses the wrapped String using the zlib compression algorithm and
@@ -90,11 +90,11 @@ func (c compress) Zlib() String {
 	buffer := new(bytes.Buffer)
 	writer := zlib.NewWriter(buffer)
 
-	_, _ = writer.Write(c.str.Bytes())
+	_, _ = io.WriteString(writer, c.str.Std())
 	_ = writer.Flush()
 	_ = writer.Close()
 
-	return String(buffer.String())
+	return String(buffer.Bytes())
 }
 
 // Zlib decompresses the wrapped String using the zlib compression algorithm and
@@ -113,7 +113,7 @@ func (d decompress) Zlib() Result[String] {
 		return Err[String](err)
 	}
 
-	return Ok(String(buffer.String()))
+	return Ok(String(buffer.Bytes()))
 }
 
 // Gzip compresses the wrapped String using the gzip compression format and
@@ -123,11 +123,11 @@ func (c compress) Gzip() String {
 	buffer := new(bytes.Buffer)
 	writer := gzip.NewWriter(buffer)
 
-	_, _ = writer.Write(c.str.Bytes())
+	_, _ = io.WriteString(writer, c.str.Std())
 	_ = writer.Flush()
 	_ = writer.Close()
 
-	return String(buffer.String())
+	return String(buffer.Bytes())
 }
 
 // Gzip decompresses the wrapped String using the gzip compression format and
@@ -146,7 +146,7 @@ func (d decompress) Gzip() Result[String] {
 		return Err[String](err)
 	}
 
-	return Ok(String(buffer.String()))
+	return Ok(String(buffer.Bytes()))
 }
 
 // Flate compresses the wrapped String using the flate (zlib) compression algorithm
@@ -163,11 +163,11 @@ func (c compress) Flate(level ...int) String {
 
 	writer, _ := flate.NewWriter(buffer, l)
 
-	_, _ = writer.Write(c.str.Bytes())
+	_, _ = io.WriteString(writer, c.str.Std())
 	_ = writer.Flush()
 	_ = writer.Close()
 
-	return String(buffer.String())
+	return String(buffer.Bytes())
 }
 
 // Flate decompresses the wrapped String using the flate (zlib) compression algorithm
@@ -182,5 +182,5 @@ func (d decompress) Flate() Result[String] {
 		return Err[String](err)
 	}
 
-	return Ok(String(buffer.String()))
+	return Ok(String(buffer.Bytes()))
 }

@@ -1,10 +1,8 @@
 package g
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math/big"
-	"math/bits"
 	"strconv"
 
 	"github.com/enetx/g/cmp"
@@ -24,19 +22,45 @@ func (i Int) Min(b ...Int) Int { return cmp.Min(append(b, i)...) }
 // Max returns the maximum of Ints.
 func (i Int) Max(b ...Int) Int { return cmp.Max(append(b, i)...) }
 
-// RandomRange returns a random Int in the range [from, to].
-func (i Int) RandomRange(to Int) Int { return rand.N(to-i+1) + i }
+// RandomRange returns a random Int in the inclusive range [i, to].
+// The order of bounds does not matter (it normalizes to [min, max]).
+// Works for negative bounds and the full int64 range without overflow or bias.
+func (i Int) RandomRange(to Int) Int {
+	lo, hi := i, to
 
-// Bytes returns the Int as a byte slice.
-func (i Int) Bytes() Bytes {
-	buffer := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffer, i.UInt64())
+	if lo > hi {
+		lo, hi = hi, lo
+	}
 
-	return buffer[bits.LeadingZeros64(i.UInt64())>>3:]
+	if lo == hi {
+		return lo
+	}
+
+	const bias = uint64(1) << 63 // 2^63 = 9223372036854775808
+
+	ulo := uint64(lo) + bias
+	uhi := uint64(hi) + bias
+
+	w := uhi - ulo + 1
+
+	if w == 0 {
+		return Int(int64(rand.U64()))
+	}
+
+	randv := rand.N(w)
+	result := int64((ulo + randv) - bias)
+
+	return Int(result)
 }
 
 // Abs returns the absolute value of the Int.
-func (i Int) Abs() Int { return i.Float().Abs().Int() }
+func (i Int) Abs() Int {
+	if i < 0 {
+		return -i
+	}
+
+	return i
+}
 
 // Add adds two Ints and returns the result.
 func (i Int) Add(b Int) Int { return i + b }
@@ -60,7 +84,7 @@ func (i Int) Gte(b Int) bool { return i >= b }
 func (i Int) Float() Float { return Float(i) }
 
 // String returns the Int as an String.
-func (i Int) String() String { return String(strconv.Itoa(int(i))) }
+func (i Int) String() String { return String(strconv.FormatInt(int64(i), 10)) }
 
 // Std returns the Int as an int.
 func (i Int) Std() int { return int(i) }
@@ -81,13 +105,13 @@ func (i Int) Int64() int64 { return int64(i) }
 func (i Int) Int8() int8 { return int8(i) }
 
 // IsZero checks if the Int is 0.
-func (i Int) IsZero() bool { return i.Eq(0) }
+func (i Int) IsZero() bool { return i == 0 }
 
 // IsNegative checks if the Int is negative.
-func (i Int) IsNegative() bool { return i.Lt(0) }
+func (i Int) IsNegative() bool { return i < 0 }
 
 // IsPositive checks if the Int is positive.
-func (i Int) IsPositive() bool { return i.Gte(0) }
+func (i Int) IsPositive() bool { return i >= 0 }
 
 // Lt checks if the Int is less than the specified Int.
 func (i Int) Lt(b Int) bool { return i < b }
@@ -102,7 +126,13 @@ func (i Int) Mul(b Int) Int { return i * b }
 func (i Int) Ne(b Int) bool { return i != b }
 
 // Random returns a random Int in the range [0, hi].
-func (i Int) Random() Int { return Int(0).RandomRange(i) }
+func (i Int) Random() Int {
+	if i <= 0 {
+		return 0
+	}
+
+	return Int(rand.N(uint64(i)))
+}
 
 // Rem returns the remainder of the division between the receiver and the input value.
 func (i Int) Rem(b Int) Int { return i % b }

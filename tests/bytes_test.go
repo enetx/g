@@ -1508,41 +1508,72 @@ func TestBytesPrintln(t *testing.T) {
 	}
 }
 
-func TestBytesInt(t *testing.T) {
-	// Test with byte values - Int() converts bytes to big endian integer
-	bs1 := Bytes{0, 0, 0, 0, 0, 0, 0, 42}
-	result1 := bs1.Int()
-	if result1 != 42 {
-		t.Errorf("Int() for bytes should be 42, got %d", result1)
+func wantInt64BE(b Bytes) int64 {
+	var buf [8]byte
+	if len(b) > 8 {
+		b = b[len(b)-8:]
 	}
 
-	// Test with smaller byte array
-	bs2 := Bytes{1, 0}
-	result2 := bs2.Int()
-	if result2 != 256 {
-		t.Errorf("Int() for [1, 0] should be 256, got %d", result2)
+	copy(buf[8-len(b):], b)
+
+	if len(b) > 0 && b[0]&0x80 != 0 && len(b) < 8 {
+		for i := 0; i < 8-len(b); i++ {
+			buf[i] = 0xFF
+		}
 	}
 
-	// Test with single byte
-	bs3 := Bytes{5}
-	result3 := bs3.Int()
-	if result3 != 5 {
-		t.Errorf("Int() for [5] should be 5, got %d", result3)
+	return int64(binary.BigEndian.Uint64(buf[:]))
+}
+
+func wantInt64LE(b Bytes) int64 {
+	var buf [8]byte
+	if len(b) > 8 {
+		b = b[:8]
+	}
+	copy(buf[:len(b)], b)
+
+	if len(b) > 0 && b[len(b)-1]&0x80 != 0 && len(b) < 8 {
+		for i := len(b); i < 8; i++ {
+			buf[i] = 0xFF
+		}
 	}
 
-	// Test with byte array longer than 8 bytes - should use last 8 bytes
-	bs4 := Bytes{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
-	result4 := bs4.Int()
-	expected4 := Int(0x050607080a0b0c00 + 9) // Last 8 bytes: {5, 6, 7, 8, 9, 10, 11, 12}
-	expected4 = Int(binary.BigEndian.Uint64([]byte{5, 6, 7, 8, 9, 10, 11, 12}))
-	if result4 != expected4 {
-		t.Errorf("Int() for long bytes array should be %d, got %d", expected4, result4)
+	return int64(binary.LittleEndian.Uint64(buf[:]))
+}
+
+func TestBytesIntSigned_Orders(t *testing.T) {
+	type tc struct {
+		name string
+		in   Bytes
 	}
 
-	// Test with empty bytes
-	bs5 := Bytes{}
-	result5 := bs5.Int()
-	if result5 != 0 {
-		t.Errorf("Int() for empty bytes should be 0, got %d", result5)
+	cases := []tc{
+		{name: "empty", in: Bytes{}},
+		{name: "single positive", in: Bytes{5}},
+		{name: "single -1 (0xFF)", in: Bytes{0xFF}},
+		{name: "single -128 (0x80)", in: Bytes{0x80}},
+		{name: "two bytes BE negative 0xFFFE (-2)", in: Bytes{0xFF, 0xFE}},
+		{name: "two bytes LE negative 0xFFFE (-2)", in: Bytes{0xFE, 0xFF}},
+		{name: "short positive 3 bytes", in: Bytes{1, 2, 3}},
+		{name: "long -> truncate (mixed)", in: Bytes{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
+		{name: "long negative BE after trunc", in: Bytes{0x00, 0xFF, 0xFE, 0xFD, 0xFC, 0xFB, 0xFA, 0xF9, 0xF8}},
+		{name: "long negative LE first8", in: Bytes{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x80, 0x99}},
+	}
+
+	for _, c := range cases {
+		t.Run("BE/"+c.name, func(t *testing.T) {
+			want := wantInt64BE(c.in)
+			got := int64(c.in.IntBE())
+			if got != want {
+				t.Fatalf("IntBE(%v): want %d, got %d", c.in, want, got)
+			}
+		})
+		t.Run("LE/"+c.name, func(t *testing.T) {
+			want := wantInt64LE(c.in)
+			got := int64(c.in.IntLE())
+			if got != want {
+				t.Fatalf("IntLE(%v): want %d, got %d", c.in, want, got)
+			}
+		})
 	}
 }

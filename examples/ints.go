@@ -1,9 +1,16 @@
 package main
 
-import . "github.com/enetx/g"
+import (
+	"math"
+
+	. "github.com/enetx/g"
+)
 
 func main() {
+	NewInt(math.MinInt64).RandomRange(math.MaxInt64).Println()
+
 	NewInt(100).Random().Println()
+	NewInt(5).RandomRange(-10).Println()
 
 	NewInt(-10).RandomRange(-5).Println()
 	NewInt(-10).RandomRange(5).Println()
@@ -14,12 +21,4 @@ func main() {
 	NewInt(97).Binary().Println()
 	NewInt('a').Binary().Println()
 	NewInt(byte('a')).Binary().Println()
-
-	i := Int(6382179)
-	bs := i.Bytes()
-
-	Println("Int: {}", i)
-	Println("Bytes: {}", bs)              // [97 98 99]
-	Println("As string: {}", bs.String()) // "abc"
-	Println("Back to Int: {}", bs.Int())  // 6382179
 }

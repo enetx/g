@@ -64,7 +64,16 @@ func NewSlice[T any](size ...Int) Slice[T] {
 //
 // A new Slice containing the results of applying the function to each element of the input Slice.
 func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
-	return transformSeqSlice(sl.Iter(), fn).Collect()
+	if len(sl) == 0 {
+		return NewSlice[U]()
+	}
+
+	result := make(Slice[U], len(sl))
+	for i, v := range sl {
+		result[i] = fn(v)
+	}
+
+	return result
 }
 
 // SliceOf creates a new generic slice containing the provided elements.
@@ -690,13 +699,24 @@ func (sl Slice[T]) EqBy(other Slice[T], fn func(x, y T) bool) bool {
 
 // String returns a string representation of the slice.
 func (sl Slice[T]) String() string {
-	var b Builder
-
-	for _, v := range sl {
-		b.WriteString(Format("{}, ", v))
+	if len(sl) == 0 {
+		return "Slice[]"
 	}
 
-	return b.String().StripSuffix(", ").Format("Slice[{}]").Std()
+	var b Builder
+	b.WriteString("Slice[")
+
+	for i, v := range sl {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+
+		b.WriteString(Format("{}", v))
+	}
+
+	b.WriteString("]")
+
+	return b.String().Std()
 }
 
 // Append appends the provided elements to the slice and returns the modified slice.

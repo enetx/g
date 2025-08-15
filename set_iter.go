@@ -36,10 +36,10 @@ func (seq SeqSet[V]) Inspect(fn func(v V)) SeqSet[V] {
 
 // Collect gathers all elements from the iterator into a Set.
 func (seq SeqSet[V]) Collect() Set[V] {
-	collection := NewSet[V]()
+	collection := make(Set[V])
 
 	seq(func(v V) bool {
-		collection.Insert(v)
+		collection[v] = struct{}{}
 		return true
 	})
 
@@ -165,9 +165,7 @@ func (seq SeqSet[V]) Range(fn func(v V) bool) {
 // Output: Set{2, 4} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] { return filterSet(seq, fn) }
-
-func filterSet[V comparable](seq SeqSet[V], fn func(V) bool) SeqSet[V] {
+func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
 			if fn(v) {
@@ -207,7 +205,14 @@ func filterSet[V comparable](seq SeqSet[V], fn func(V) bool) SeqSet[V] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
-	return filterSet(seq, func(v V) bool { return !fn(v) })
+	return func(yield func(V) bool) {
+		seq(func(v V) bool {
+			if !fn(v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
 }
 
 // Map transforms each element in the iterator using the given function.
@@ -237,14 +242,10 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] { return transformSet(seq, transform) }
-
-// transformSet applies a transformation function to each element of a SeqSet[V],
-// producing a new SeqSet[U]. The result elements must be comparable, as required by sets.
-func transformSet[V, U comparable](seq SeqSet[V], fn func(V) U) SeqSet[U] {
-	return func(yield func(U) bool) {
+func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
+	return func(yield func(V) bool) {
 		seq(func(v V) bool {
-			return yield(fn(v))
+			return yield(transform(v))
 		})
 	}
 }
@@ -303,10 +304,10 @@ func seqSet[V comparable](slice Set[V]) SeqSet[V] {
 func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
-			if other.Contains(v) {
-				return true
+			if !other.Contains(v) {
+				return yield(v)
 			}
-			return yield(v)
+			return true
 		})
 	}
 }

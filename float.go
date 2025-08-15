@@ -1,11 +1,9 @@
 package g
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
-	"math/bits"
 	"strconv"
 
 	"github.com/enetx/g/cmp"
@@ -17,14 +15,6 @@ func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return
 
 // Transform applies a transformation function to the Float and returns the result.
 func (f Float) Transform(fn func(Float) Float) Float { return fn(f) }
-
-// Bytes returns the Float as a byte slice.
-func (f Float) Bytes() Bytes {
-	buffer := make([]byte, 8)
-	binary.BigEndian.PutUint64(buffer, f.UInt64())
-
-	return buffer[bits.LeadingZeros64(f.UInt64())>>3:]
-}
 
 // Min returns the minimum of two Floats.
 func (f Float) Min(b ...Float) Float { return cmp.Min(append(b, f)...) }
@@ -63,7 +53,7 @@ func (f Float) Gt(b Float) bool { return f.Cmp(b).IsGt() }
 func (f Float) Int() Int { return Int(f) }
 
 // String returns the Float as an String.
-func (f Float) String() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
+func (f Float) String() String { return String(strconv.FormatFloat(f.Std(), 'g', -1, 64)) }
 
 // Lt checks if the Float is less than the specified Float.
 func (f Float) Lt(b Float) bool { return f.Cmp(b).IsLt() }
@@ -76,11 +66,7 @@ func (f Float) Ne(b Float) bool { return !f.Eq(b) }
 
 // Round rounds the Float to the nearest integer and returns the result as an Int.
 func (f Float) Round() Int {
-	if f >= 0 {
-		return Int(f + 0.5)
-	}
-
-	return Int(f - 0.5)
+	return Int(math.Round(f.Std()))
 }
 
 // RoundDecimal rounds the Float value to the specified number of decimal places.
@@ -107,26 +93,16 @@ func (f Float) RoundDecimal(precision Int) Float {
 		return f
 	}
 
-	mult := 1
-	for range precision {
-		mult *= 10
-	}
+	pow := math.Pow10(precision.Std())
 
-	result := f * Float(mult)
-	if result >= 0 {
-		result += 0.5
-	} else {
-		result -= 0.5
-	}
-
-	return Float(int(result)) / Float(mult)
+	return Float(math.Round(f.Std()*pow) / pow)
 }
 
 // Sub subtracts two Floats and returns the result.
 func (f Float) Sub(b Float) Float { return f - b }
 
-// UInt64 returns the Float as a uint64.
-func (f Float) UInt64() uint64 { return math.Float64bits(f.Std()) }
+// Bits returns IEEE-754 representation of f.
+func (f Float) Bits() uint64 { return math.Float64bits(f.Std()) }
 
 // Float32 returns the Float as a float32.
 func (f Float) Float32() float32 { return float32(f) }

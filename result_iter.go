@@ -158,14 +158,21 @@ func (seq SeqResult[V]) Exclude(fn func(V) bool) SeqResult[V] {
 // If an Err is encountered, it is yielded immediately and iteration stops.
 // Consecutive Ok duplicates (based on equality) are filtered out so only the first occurrence is yielded.
 func (seq SeqResult[V]) Dedup() SeqResult[V] {
-	var current V
-	comparable := f.IsComparable(current)
-
 	return func(yield func(Result[V]) bool) {
+		var current V
+		hasFirst := false
+		comparable := f.IsComparable(current)
+
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				yield(v)
 				return false
+			}
+
+			if !hasFirst {
+				hasFirst = true
+				current = v.v
+				return yield(v)
 			}
 
 			if comparable {

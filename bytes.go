@@ -40,35 +40,36 @@ func NewBytes(size ...Int) Bytes {
 // Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
 
-// ReverseOptimized returns a new Bytes with the order of its runes reversed.
+// Reverse reverses bytes for ASCII or invalid UTF-8 for valid UTF-8 it reverses by runes.
 func (bs Bytes) Reverse() Bytes {
 	n := len(bs)
-	rev := make(Bytes, n)
-	isASCII := true
+	out := make(Bytes, n)
+	ascii := true
 
 	for _, b := range bs {
 		if b >= utf8.RuneSelf {
-			isASCII = false
+			ascii = false
 			break
 		}
 	}
 
-	if isASCII || !utf8.Valid(bs) {
+	if ascii || !utf8.Valid(bs) {
 		for i, b := range bs {
-			rev[n-1-i] = b
+			out[n-1-i] = b
 		}
 
-		return rev
+		return out
 	}
 
 	w := 0
+
 	for i := n; i > 0; {
 		r, size := utf8.DecodeLastRune(bs[:i])
-		w += utf8.EncodeRune(rev[w:], r)
+		w += utf8.EncodeRune(out[w:], r)
 		i -= size
 	}
 
-	return rev
+	return out
 }
 
 // Replace replaces the first 'n' occurrences of 'oldB' with 'newB' in the Bytes.
@@ -95,18 +96,51 @@ func (bs Bytes) TrimStartSet(cutset String) Bytes { return bytes.TrimLeft(bs, cu
 // TrimEndSet removes the specified set of characters from the end of the Bytes.
 func (bs Bytes) TrimEndSet(cutset String) Bytes { return bytes.TrimRight(bs, cutset.Std()) }
 
-// Int returns the byte slice as a Int.
-func (bs Bytes) Int() Int {
-	var buffer [8]byte
-	b := bs
+// intFromBytes parses up to 8 bytes into Int using the given byte order.
+// For BE: uses the last 8 bytes if longer; pads on the left if shorter.
+// For LE: uses the first 8 bytes if longer; pads on the right if shorter.
+func intFromBytes(bs Bytes, order binary.ByteOrder) Int {
+	var buf [8]byte
 
-	if len(b) > len(buffer) {
-		b = b[len(b)-len(buffer):]
+	switch order {
+	case binary.BigEndian:
+		if len(bs) > 8 {
+			bs = bs[len(bs)-8:]
+		}
+
+		copy(buf[8-len(bs):], bs)
+
+		if len(bs) > 0 && bs[0]&0x80 != 0 && len(bs) < 8 {
+			for i := 0; i < 8-len(bs); i++ {
+				buf[i] = 0xFF
+			}
+		}
+	case binary.LittleEndian:
+		if len(bs) > 8 {
+			bs = bs[:8]
+		}
+
+		copy(buf[:len(bs)], bs)
+
+		if len(bs) > 0 && bs[len(bs)-1]&0x80 != 0 && len(bs) < 8 {
+			for i := len(bs); i < 8; i++ {
+				buf[i] = 0xFF
+			}
+		}
 	}
 
-	copy(buffer[len(buffer)-len(b):], b)
-	return Int(binary.BigEndian.Uint64(buffer[:]))
+	return Int(int64(order.Uint64(buf[:])))
 }
+
+// IntBE interprets the Bytes as a signed 64-bit integer in BigEndian order.
+// If the Bytes length is less than 8, it is padded with leading zeros.
+// If the Bytes length is greater than 8, only the last 8 bytes are used.
+func (bs Bytes) IntBE() Int { return intFromBytes(bs, binary.BigEndian) }
+
+// IntLE interprets the Bytes as a signed 64-bit integer in LittleEndian order.
+// If the Bytes length is less than 8, it is padded with trailing zeros.
+// If the Bytes length is greater than 8, only the first 8 bytes are used.
+func (bs Bytes) IntLE() Int { return intFromBytes(bs, binary.LittleEndian) }
 
 // StripPrefix trims the specified Bytes prefix from the Bytes.
 func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }
@@ -142,7 +176,21 @@ func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
 func (bs Bytes) Append(obs Bytes) Bytes { return append(bs, obs...) }
 
 // Prepend prepends the given Bytes to the current Bytes.
-func (bs Bytes) Prepend(obs Bytes) Bytes { return obs.Append(bs) }
+func (bs Bytes) Prepend(obs Bytes) Bytes {
+	if len(obs) == 0 {
+		return bs
+	}
+
+	if len(bs) == 0 {
+		return obs
+	}
+
+	out := make(Bytes, len(obs)+len(bs))
+	copy(out, obs)
+	copy(out[len(obs):], bs)
+
+	return out
+}
 
 // Std returns the Bytes as a byte slice.
 func (bs Bytes) Std() []byte { return bs }
@@ -158,14 +206,24 @@ func (bs Bytes) Contains(obs Bytes) bool { return bytes.Contains(bs, obs) }
 
 // ContainsAny checks if the Bytes contains any of the specified Bytes.
 func (bs Bytes) ContainsAny(obss ...Bytes) bool {
-	return Slice[Bytes](obss).Iter().
-		Any(func(obs Bytes) bool { return bs.Contains(obs) })
+	for _, obs := range obss {
+		if bytes.Contains(bs, obs) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // ContainsAll checks if the Bytes contains all of the specified Bytes.
 func (bs Bytes) ContainsAll(obss ...Bytes) bool {
-	return Slice[Bytes](obss).Iter().
-		All(func(obs Bytes) bool { return bs.Contains(obs) })
+	for _, obs := range obss {
+		if !bytes.Contains(bs, obs) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // ContainsAnyChars checks if the given Bytes contains any characters from the input String.
@@ -259,6 +317,19 @@ func (bs Bytes) Lower() Bytes {
 		}
 	}
 
+	needs := false
+
+	for _, b := range bs {
+		if 'A' <= b && b <= 'Z' {
+			needs = true
+			break
+		}
+	}
+
+	if !needs {
+		return bs
+	}
+
 	out := make(Bytes, len(bs))
 
 	for i, b := range bs {
@@ -278,6 +349,19 @@ func (bs Bytes) Upper() Bytes {
 		if b >= utf8.RuneSelf {
 			return upper.Bytes(bs)
 		}
+	}
+
+	needs := false
+
+	for _, b := range bs {
+		if 'a' <= b && b <= 'z' {
+			needs = true
+			break
+		}
+	}
+
+	if !needs {
+		return bs
 	}
 
 	out := make(Bytes, len(bs))

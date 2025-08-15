@@ -29,7 +29,11 @@ func (bh bhash) SHA512() Bytes { return bytesHasher(sha512.New(), bh.bytes) }
 
 // bytesHasher a helper function that computes the hash of the given Bytes using the specified
 // hash.Hash algorithm and returns the hash as an Bytes.
-func bytesHasher(algorithm hash.Hash, bs Bytes) Bytes {
-	_, _ = algorithm.Write(bs)
-	return Bytes(hex.EncodeToString(algorithm.Sum(nil)))
+func bytesHasher(h hash.Hash, bs Bytes) Bytes {
+	_, _ = h.Write(bs)
+	sum := h.Sum(nil)
+	out := make(Bytes, hex.EncodedLen(len(sum)))
+	hex.Encode(out, sum)
+
+	return out
 }

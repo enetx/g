@@ -3,9 +3,23 @@ package rand
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"io"
 
 	"github.com/enetx/g/constraints"
 )
+
+// U64 returns a cryptographically secure random uint64 value.
+// It reads 8 random bytes from crypto/rand.Reader and interprets
+// them as a little-endian unsigned integer.
+// Panics if the system random number generator is unavailable.
+func U64() uint64 {
+	var b [8]byte
+	if _, err := io.ReadFull(rand.Reader, b[:]); err != nil {
+		panic(err)
+	}
+
+	return binary.LittleEndian.Uint64(b[:])
+}
 
 // N generates a random non-negative integer within the range [0, max).
 // The generated integer will be less than the provided maximum value.
@@ -23,20 +37,26 @@ import (
 // Returns:
 //   - int: A random non-negative integer within the specified range.
 func N[T constraints.Integer](n T) T {
-	// If the provided maximum value is less than or equal to 0,
-	// set it to 1 to ensure a valid range.
 	if n <= 0 {
-		n = 1
+		return 0
 	}
 
-	// Declare a uint64 variable to store the random value.
-	var randVal uint64
+	w := uint64(n)
+	if w == 1 {
+		return 0
+	}
 
-	// Read a random value from the rand.Reader (a cryptographically
-	// secure random number generator) into the randVal variable,
-	// using binary.LittleEndian for byte ordering.
-	_ = binary.Read(rand.Reader, binary.LittleEndian, &randVal)
+	if w&(w-1) == 0 {
+		return T(U64() & (w - 1))
+	}
 
-	// Return the generated random value modulo the maximum value as an integer.
-	return T(randVal % uint64(n))
+	const maxU64 = ^uint64(0)
+	limit := maxU64 - (maxU64 % w)
+
+	for {
+		randv := U64()
+		if randv < limit {
+			return T(randv % w)
+		}
+	}
 }

@@ -7,10 +7,6 @@ import (
 )
 
 func main() {
-	f := NewFloat(1.3339)
-
-	f.Hash().MD5().Println()
-
 	String("12.3348992").ToFloat().Unwrap().RoundDecimal(5).Println()
 
 	NewFloat(1.3339).Println()
