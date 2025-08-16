@@ -151,4 +151,30 @@ func TestCellSwapTwoCells(t *testing.T) {
 			cells[i].Swap(cells[j])
 		}
 	}
+
+	// Test swap with pointer ordering to cover unsafe.Pointer comparison branches
+	// Create cells where second has lower memory address than first
+	for k := 0; k < 100; k++ {
+		cell1 := cell.New(&Config{Name: "lower", Level: 10})
+		cell2 := cell.New(&Config{Name: "higher", Level: 20})
+
+		// Try swapping both ways to hit different pointer ordering scenarios
+		orig1 := cell1.Get()
+		orig2 := cell2.Get()
+
+		cell2.Swap(cell1) // second parameter has different address
+
+		new1 := cell1.Get()
+		new2 := cell2.Get()
+
+		if new1.Name != orig2.Name || new1.Level != orig2.Level {
+			t.Errorf("Pointer ordering swap failed: cell1 should have original cell2 value")
+		}
+		if new2.Name != orig1.Name || new2.Level != orig1.Level {
+			t.Errorf("Pointer ordering swap failed: cell2 should have original cell1 value")
+		}
+
+		// Swap back
+		cell1.Swap(cell2)
+	}
 }

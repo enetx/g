@@ -291,6 +291,33 @@ func TestSetContainsAny(t *testing.T) {
 	}
 }
 
+func TestSetContainsAny_EdgeCases(t *testing.T) {
+	// Test case 1: First set is larger (should use the else branch - iterate over smaller set)
+	largeSet := SetOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	smallSet := SetOf(5, 15)
+	if !largeSet.ContainsAny(smallSet) {
+		t.Errorf("Large set should contain element 5 from small set")
+	}
+
+	// Test case 2: First set is larger, no overlap
+	smallSetNoOverlap := SetOf(11, 12)
+	if largeSet.ContainsAny(smallSetNoOverlap) {
+		t.Errorf("Large set should not contain any elements from non-overlapping small set")
+	}
+
+	// Test case 3: Empty first set with non-empty second set
+	emptySet := NewSet[int]()
+	nonEmptySet := SetOf(1, 2, 3)
+	if emptySet.ContainsAny(nonEmptySet) {
+		t.Errorf("Empty set should not contain any elements")
+	}
+
+	// Test case 4: Non-empty first set with empty second set
+	if nonEmptySet.ContainsAny(emptySet) {
+		t.Errorf("Set should not contain any elements from empty set")
+	}
+}
+
 func TestSetContainsAll(t *testing.T) {
 	// Test case 1: Set contains all elements from another set
 	set1 := SetOf(1, 2, 3)
@@ -736,5 +763,50 @@ func TestSetPrintln(t *testing.T) {
 
 	if result.Len() != set.Len() {
 		t.Errorf("Println() should return original set unchanged")
+	}
+}
+
+func TestSetClone(t *testing.T) {
+	// Test empty set clone
+	emptySet := NewSet[int]()
+	emptyClone := emptySet.Clone()
+
+	if !emptyClone.Empty() {
+		t.Errorf("Cloned empty set should be empty")
+	}
+
+	if emptyClone.Len() != 0 {
+		t.Errorf("Cloned empty set should have length 0, got %d", emptyClone.Len())
+	}
+
+	// Test non-empty set clone
+	set := NewSet[int]()
+	set.Insert(1)
+	set.Insert(2)
+	set.Insert(3)
+
+	clone := set.Clone()
+
+	if clone.Len() != set.Len() {
+		t.Errorf("Clone should have same length as original: expected %d, got %d", set.Len(), clone.Len())
+	}
+
+	// Check that all elements are present
+	for elem := range set {
+		if !clone.Contains(elem) {
+			t.Errorf("Clone should contain element %v", elem)
+		}
+	}
+
+	// Check that modifying clone doesn't affect original
+	clone.Insert(4)
+	if set.Contains(4) {
+		t.Errorf("Modifying clone should not affect original set")
+	}
+
+	// Check that modifying original doesn't affect clone
+	set.Insert(5)
+	if clone.Contains(5) {
+		t.Errorf("Modifying original should not affect clone")
 	}
 }

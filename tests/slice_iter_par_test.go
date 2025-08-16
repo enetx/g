@@ -697,3 +697,103 @@ func TestChainComprehensive(t *testing.T) {
 			workers1, cc1.Max(), workers2, cc2.Max())
 	})
 }
+
+func TestMapWithFilteredInput(t *testing.T) {
+	// Test Map when previous process function returns ok=false
+	// This tests the "else" branch in Map function (lines 329-330)
+	nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	workers := Int(2)
+
+	// Filter out even numbers, then map the remaining odd numbers
+	result := SliceOf(nums...).
+		Iter().
+		Parallel(workers).
+		Filter(func(v int) bool { return v%2 == 1 }). // This creates a process that can return ok=false
+		Map(func(v int) int { return v * 10 }).       // This should handle the ok=false case
+		Collect()
+
+	// Should contain only odd numbers multiplied by 10
+	expected := Slice[int]{10, 30, 50, 70, 90}
+	result.SortBy(cmp.Cmp)
+
+	if result.Ne(expected) {
+		t.Errorf("Map with filtered input got %v, want %v", result, expected)
+	}
+}
+
+func TestAnyParallelEarlyExit(t *testing.T) {
+	// Test Any with early exit - should stop as soon as true is found
+	nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	workers := Int(3)
+	cc := &concurrentCounter{sleep: 20 * time.Millisecond}
+
+	// Look for number 3 - should exit early and not process all elements
+	found := SliceOf(nums...).
+		Iter().
+		Parallel(workers).
+		Inspect(cc.Fn).
+		Any(func(v int) bool { return v == 3 })
+
+	if !found {
+		t.Errorf("Any should have found element 3")
+	}
+
+	// Should achieve some parallelism but may not process all elements due to early exit
+	if cc.Max() < 1 {
+		t.Errorf("Expected some parallel processing, got max concurrency %d", cc.Max())
+	}
+
+	// Test case where nothing is found - should process all elements
+	cc2 := &concurrentCounter{sleep: 10 * time.Millisecond}
+	notFound := SliceOf(nums...).
+		Iter().
+		Parallel(workers).
+		Inspect(cc2.Fn).
+		Any(func(v int) bool { return v == 99 }) // Element that doesn't exist
+
+	if notFound {
+		t.Errorf("Any should not have found non-existent element 99")
+	}
+
+	if cc2.Max() < 2 {
+		t.Errorf("Expected parallel processing when scanning all elements, got max concurrency %d", cc2.Max())
+	}
+}
+
+func TestInspectWithFilteredInput(t *testing.T) {
+	// Test Inspect when previous process function returns ok=false
+	// This tests the "else" branch in Inspect function
+	nums := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	workers := Int(2)
+
+	var inspectedValues []int
+	var mu sync.Mutex
+
+	// Filter out even numbers, then inspect the remaining odd numbers
+	result := SliceOf(nums...).
+		Iter().
+		Parallel(workers).
+		Filter(func(v int) bool { return v%2 == 1 }). // This creates a process that can return ok=false
+		Inspect(func(v int) {                         // This should handle the ok=false case
+			mu.Lock()
+			inspectedValues = append(inspectedValues, v)
+			mu.Unlock()
+		}).
+		Collect()
+
+	// Should contain only odd numbers
+	expected := Slice[int]{1, 3, 5, 7, 9}
+	result.SortBy(cmp.Cmp)
+
+	if result.Ne(expected) {
+		t.Errorf("Inspect with filtered input got %v, want %v", result, expected)
+	}
+
+	// Check that inspected values match the collected values
+	inspectedSlice := SliceOf(inspectedValues...)
+	inspectedSlice.SortBy(cmp.Cmp)
+
+	if inspectedSlice.Ne(expected) {
+		t.Errorf("Inspected values got %v, want %v", inspectedSlice, expected)
+	}
+}

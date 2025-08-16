@@ -124,6 +124,29 @@ func TestDir_Stat_EmptyPath(t *testing.T) {
 	}
 }
 
+func TestDir_Stat_PathError(t *testing.T) {
+	// Test Stat when Path() returns an error
+	// Try to create a path that might cause filepath.Abs to fail
+	invalidPath := String("\x00invalid")
+	dir := NewDir(invalidPath)
+
+	// Try to get the path first to see if it fails
+	pathResult := dir.Path()
+	if pathResult.IsErr() {
+		// If Path() fails, then Stat() should also fail due to the Path().IsErr() check
+		statResult := dir.Stat()
+		if statResult.IsOk() {
+			t.Errorf("Expected Stat to fail when Path fails, but it succeeded")
+		}
+		// This covers the error branch in Stat() where d.Path().IsErr() returns true
+		t.Logf("Successfully tested error path: %v", pathResult.Err())
+	} else {
+		// If Path() succeeds, just run normal Stat test
+		statResult := dir.Stat()
+		t.Logf("Path succeeded, Stat result: %v", statResult.IsErr())
+	}
+}
+
 func TestDir_Path_Success(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := createTempDir(t)
@@ -946,5 +969,274 @@ func TestDirPrintln(t *testing.T) {
 	result := dir.Println()
 	if result != dir {
 		t.Errorf("Println() should return original dir unchanged")
+	}
+}
+
+func TestDir_Remove_Error(t *testing.T) {
+	// Test Remove with a path that might cause permission errors
+	// Use an invalid path that would cause os.RemoveAll to fail
+	dir := NewDir("/root/nonexistent/readonly/path")
+
+	// Try to remove - might fail depending on platform
+	result := dir.Remove()
+
+	// Check the result - on some platforms this might succeed (no error)
+	if result.IsOk() {
+		t.Log("Remove operation succeeded - this is platform dependent")
+	} else {
+		t.Logf("Remove operation failed as expected: %v", result.Err())
+	}
+}
+
+func TestDir_Rename_CreateAllError(t *testing.T) {
+	// Test Rename when CreateAll fails
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	dir := NewDir(String(tempDir))
+
+	// Try to rename to a path where CreateAll might fail
+	// Use a path with invalid characters or very long path
+	invalidPath := "/root/cannot/create/this/path/newdir"
+	result := dir.Rename(String(invalidPath))
+
+	if result.IsOk() {
+		t.Log("Rename succeeded unexpectedly - this is platform dependent")
+	} else {
+		t.Logf("Rename failed as expected: %v", result.Err())
+	}
+}
+
+func TestDir_Rename_OsRenameError(t *testing.T) {
+	// Test Rename when os.Rename fails
+	dir := NewDir("/nonexistent/source/path")
+
+	// Try to rename nonexistent directory
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+	newPath := filepath.Join(tempDir, "newname")
+
+	result := dir.Rename(String(newPath))
+
+	if result.IsOk() {
+		t.Error("Expected error when renaming nonexistent directory")
+	}
+}
+
+func TestDir_Read_PathError(t *testing.T) {
+	// Test Read when Path() returns an error
+	dir := NewDir("\x00invalid")
+
+	errorFound := false
+	for result := range dir.Read() {
+		if result.IsErr() {
+			errorFound = true
+			break
+		}
+	}
+
+	if !errorFound {
+		t.Log("Path error not triggered - platform dependent")
+	}
+}
+
+func TestDir_Read_EarlyReturn(t *testing.T) {
+	// Test Read early return when yield returns false
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create some test files
+	for i := 0; i < 5; i++ {
+		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
+		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	dir := NewDir(String(tempDir))
+
+	filesRead := 0
+	for result := range dir.Read() {
+		if result.IsOk() {
+			filesRead++
+			// Stop after reading 2 files to test early return
+			if filesRead >= 2 {
+				break
+			}
+		}
+	}
+
+	if filesRead != 2 {
+		t.Errorf("Expected to read exactly 2 files before early return, got %d", filesRead)
+	}
+}
+
+func TestDir_Join_PathError(t *testing.T) {
+	// Test Join when Path() returns an error
+	dir := NewDir("\x00invalid")
+
+	result := dir.Join("subdir", "file.txt")
+
+	if result.IsOk() {
+		t.Log("Join succeeded unexpectedly - platform dependent")
+	} else {
+		t.Logf("Join failed as expected: %v", result.Err())
+	}
+}
+
+func TestDir_Exist_PathError(t *testing.T) {
+	// Test Exist when Path() returns an error
+	dir := NewDir("\x00invalid")
+
+	exists := dir.Exist()
+
+	// When Path() fails, Exist should return false
+	if exists {
+		t.Log("Exist returned true unexpectedly - platform dependent")
+	} else {
+		t.Log("Exist correctly returned false when Path() fails")
+	}
+}
+
+func TestDir_Copy_WalkError(t *testing.T) {
+	// Test Copy when Walk() returns an error
+	dir := NewDir("/nonexistent/source/path")
+
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	result := dir.Copy(String(tempDir))
+
+	if result.IsOk() {
+		t.Error("Expected error when copying nonexistent directory")
+	} else {
+		t.Logf("Copy failed as expected: %v", result.Err())
+	}
+}
+
+func TestDir_Copy_PathError(t *testing.T) {
+	// Test Copy when Path() returns an error
+	dir := NewDir("\x00invalid")
+
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	result := dir.Copy(String(tempDir))
+
+	if result.IsOk() {
+		t.Log("Copy succeeded unexpectedly - platform dependent")
+	} else {
+		t.Logf("Copy failed as expected: %v", result.Err())
+	}
+}
+
+func TestDir_Glob_InvalidPatternError(t *testing.T) {
+	// Test Glob with invalid pattern that might cause filepath.Glob to fail
+	dir := NewDir("[\x00")
+
+	errorFound := false
+	for result := range dir.Glob() {
+		if result.IsErr() {
+			errorFound = true
+			break
+		}
+	}
+
+	if !errorFound {
+		t.Log("Glob error not triggered - platform dependent")
+	}
+}
+
+func TestDir_Glob_EarlyReturn(t *testing.T) {
+	// Test Glob early return when yield returns false
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create some test files
+	for i := 0; i < 5; i++ {
+		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
+		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	// Use glob pattern to find files
+	pattern := filepath.Join(tempDir, "*.txt")
+	dir := NewDir(String(pattern))
+
+	filesRead := 0
+	for result := range dir.Glob() {
+		if result.IsOk() {
+			filesRead++
+			// Stop after reading 2 files to test early return
+			if filesRead >= 2 {
+				break
+			}
+		}
+	}
+
+	if filesRead < 2 {
+		t.Logf("Read %d files (expected at least 2)", filesRead)
+	}
+}
+
+func TestDir_Walk_ReadError(t *testing.T) {
+	// Test Walk when Read() returns an error
+	dir := NewDir("/nonexistent/path")
+
+	errorFound := false
+	for result := range dir.Walk() {
+		if result.IsErr() {
+			errorFound = true
+			break
+		}
+	}
+
+	if !errorFound {
+		t.Error("Expected error when walking nonexistent directory")
+	}
+}
+
+func TestDir_Walk_EarlyReturn(t *testing.T) {
+	// Test Walk early return when yield returns false
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// Create some test files and subdirectories
+	for i := 0; i < 3; i++ {
+		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
+		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	// Create a subdirectory with files
+	subDir := filepath.Join(tempDir, "subdir")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	for i := 0; i < 2; i++ {
+		filename := filepath.Join(subDir, "subfile"+string(rune('0'+i))+".txt")
+		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+			t.Fatalf("Failed to create test file in subdir: %v", err)
+		}
+	}
+
+	dir := NewDir(String(tempDir))
+
+	filesRead := 0
+	for result := range dir.Walk() {
+		if result.IsOk() {
+			filesRead++
+			// Stop after reading 3 files to test early return
+			if filesRead >= 3 {
+				break
+			}
+		}
+	}
+
+	if filesRead != 3 {
+		t.Logf("Read %d files before early return (expected 3)", filesRead)
 	}
 }

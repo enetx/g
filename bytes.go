@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
@@ -141,6 +142,30 @@ func (bs Bytes) IntBE() Int { return intFromBytes(bs, binary.BigEndian) }
 // If the Bytes length is less than 8, it is padded with trailing zeros.
 // If the Bytes length is greater than 8, only the first 8 bytes are used.
 func (bs Bytes) IntLE() Int { return intFromBytes(bs, binary.LittleEndian) }
+
+// FloatBE interprets the Bytes as an IEEE-754 64-bit float in BigEndian order.
+// If the Bytes length is not exactly 8, returns 0.
+func (bs Bytes) FloatBE() Float {
+	if len(bs) != 8 {
+		return 0
+	}
+
+	bits := binary.BigEndian.Uint64(bs)
+
+	return Float(math.Float64frombits(bits))
+}
+
+// FloatLE interprets the Bytes as an IEEE-754 64-bit float in LittleEndian order.
+// If the Bytes length is not exactly 8, returns 0.
+func (bs Bytes) FloatLE() Float {
+	if len(bs) != 8 {
+		return 0
+	}
+
+	bits := binary.LittleEndian.Uint64(bs)
+
+	return Float(math.Float64frombits(bits))
+}
 
 // StripPrefix trims the specified Bytes prefix from the Bytes.
 func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cutset) }

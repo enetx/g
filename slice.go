@@ -771,11 +771,13 @@ func (sl Slice[T]) AppendUnique(elems ...T) Slice[T] {
 //	fmt.Println(slice) // [1 2 3 4 5]
 func (sl Slice[T]) PrependUnique(elems ...T) Slice[T] {
 	var unique []T
+
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
 			unique = append(unique, elem)
 		}
 	}
+
 	return append(unique, sl...)
 }
 

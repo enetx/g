@@ -1,6 +1,8 @@
 package g_test
 
 import (
+	"encoding/binary"
+	"fmt"
 	"math"
 	"math/big"
 	"testing"
@@ -537,5 +539,160 @@ func TestRandomRange_FullRange_Moves(t *testing.T) {
 	b := lo.RandomRange(hi)
 	if a == b {
 		t.Logf("two draws equal (ok but unlikely); a=%d b=%d", a, b)
+	}
+}
+
+func wantBytesBE(i int64) Bytes {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], uint64(i))
+
+	// Remove leading zeros but preserve sign bit
+	start := 0
+	for start < 7 && buf[start] == 0 {
+		start++
+	}
+	// For positive numbers, if MSB is set, need extra zero byte
+	if i >= 0 && buf[start]&0x80 != 0 {
+		start--
+	}
+	// For negative numbers, if we removed too many bytes and lost sign bit
+	if i < 0 && start > 0 && buf[start]&0x80 == 0 {
+		start--
+	}
+	return Bytes(buf[start:])
+}
+
+func wantBytesLE(i int64) Bytes {
+	var buf [8]byte
+	binary.LittleEndian.PutUint64(buf[:], uint64(i))
+
+	// Remove trailing zeros but preserve sign bit
+	end := 8
+	for end > 1 && buf[end-1] == 0 {
+		end--
+	}
+	// For positive numbers, if MSB is set, need extra zero byte
+	if i >= 0 && buf[end-1]&0x80 != 0 {
+		end++
+	}
+	// For negative numbers, if we removed too many bytes and lost sign bit
+	if i < 0 && end < 8 && buf[end-1]&0x80 == 0 {
+		end++
+	}
+	return Bytes(buf[:end])
+}
+
+func TestIntBytes_Orders(t *testing.T) {
+	type tc struct {
+		name string
+		in   int64
+	}
+	cases := []tc{
+		{name: "zero", in: 0},
+		{name: "single positive", in: 5},
+		{name: "single negative -1", in: -1},
+		{name: "single negative -128", in: -128},
+		{name: "positive needs sign bit 255", in: 255},
+		{name: "positive needs sign bit 32767", in: 32767},
+		{name: "negative -2", in: -2},
+		{name: "positive 3 bytes worth", in: 0x010203},
+		{name: "negative 3 bytes worth", in: -0x010203},
+		{name: "large positive", in: 0x123456789ABCDEF0},
+		{name: "large negative", in: -0x123456789ABCDEF0},
+		{name: "max int64", in: 9223372036854775807},        // 0x7FFFFFFFFFFFFFFF
+		{name: "min int64", in: -9223372036854775808},       // 0x8000000000000000
+		{name: "positive MSB set 32768", in: 32768},         // 0x8000
+		{name: "negative -32768", in: -32768},               // 0x8000 as negative
+		{name: "positive MSB set single byte 128", in: 128}, // 0x80
+	}
+
+	for _, c := range cases {
+		t.Run("BE/"+c.name, func(t *testing.T) {
+			want := wantBytesBE(c.in)
+			got := Int(c.in).BytesBE()
+			if len(got) != len(want) {
+				t.Fatalf("BytesBE(%d): length mismatch, want %v (len=%d), got %v (len=%d)",
+					c.in, want, len(want), got, len(got))
+			}
+			for i := range got {
+				if got[i] != want[i] {
+					t.Fatalf("BytesBE(%d): want %v, got %v", c.in, want, got)
+				}
+			}
+		})
+		t.Run("LE/"+c.name, func(t *testing.T) {
+			want := wantBytesLE(c.in)
+			got := Int(c.in).BytesLE()
+			if len(got) != len(want) {
+				t.Fatalf("BytesLE(%d): length mismatch, want %v (len=%d), got %v (len=%d)",
+					c.in, want, len(want), got, len(got))
+			}
+			for i := range got {
+				if got[i] != want[i] {
+					t.Fatalf("BytesLE(%d): want %v, got %v", c.in, want, got)
+				}
+			}
+		})
+	}
+}
+
+// Round-trip tests to ensure BytesBE/LE and IntBE/LE are inverses
+func TestIntBytes_RoundTrip(t *testing.T) {
+	testValues := []int64{
+		0, 1, -1, 127, 128, 255, 256, -128, -129, -255, -256,
+		32767, 32768, -32768, -32769,
+		0x7FFFFF, 0x800000, -0x800000, -0x800001,
+		0x7FFFFFFF, 0x80000000, -0x80000000, -0x80000001,
+		0x7FFFFFFFFFFF, 0x800000000000, -0x800000000000, -0x800000000001,
+		0x7FFFFFFFFFFFFFFF, -0x8000000000000000, // max/min int64
+		0x123456789ABCDEF0, -0x123456789ABCDEF0,
+	}
+
+	for _, val := range testValues {
+		t.Run(fmt.Sprintf("BE_%d", val), func(t *testing.T) {
+			bytes := Int(val).BytesBE()
+			back := bytes.IntBE()
+			if int64(back) != val {
+				t.Fatalf("Round-trip BE failed: %d -> %v -> %d", val, bytes, back)
+			}
+		})
+
+		t.Run(fmt.Sprintf("LE_%d", val), func(t *testing.T) {
+			bytes := Int(val).BytesLE()
+			back := bytes.IntLE()
+			if int64(back) != val {
+				t.Fatalf("Round-trip LE failed: %d -> %v -> %d", val, bytes, back)
+			}
+		})
+	}
+}
+
+func TestIntRandom_EdgeCase(t *testing.T) {
+	// Test edge case where i <= 0 should return 0
+	zero := Int(0)
+	result := zero.Random()
+	if result != 0 {
+		t.Errorf("Random(0) should return 0, got %d", result)
+	}
+
+	negative := Int(-5)
+	result = negative.Random()
+	if result != 0 {
+		t.Errorf("Random(-5) should return 0, got %d", result)
+	}
+}
+
+func TestIntRandom_NormalCase(t *testing.T) {
+	// Test normal case where i > 0 should return random number in range [0, i)
+	ten := Int(10)
+	result := ten.Random()
+	if result < 0 || result >= 10 {
+		t.Errorf("Random(10) should return value in [0, 10), got %d", result)
+	}
+
+	one := Int(1)
+	result = one.Random()
+	if result != 0 {
+		t.Errorf("Random(1) should return 0, got %d", result)
 	}
 }

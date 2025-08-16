@@ -1,6 +1,9 @@
 package g_test
 
 import (
+	"encoding/binary"
+	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -402,5 +405,201 @@ func TestFloatPrintln(t *testing.T) {
 	result := f.Println()
 	if result != f {
 		t.Errorf("Println() should return original float unchanged")
+	}
+}
+
+func wantFloatBytesBE(f float64) Bytes {
+	var buf [8]byte
+	bits := math.Float64bits(f)
+	binary.BigEndian.PutUint64(buf[:], bits)
+	return Bytes(buf[:])
+}
+
+func wantFloatBytesLE(f float64) Bytes {
+	var buf [8]byte
+	bits := math.Float64bits(f)
+	binary.LittleEndian.PutUint64(buf[:], bits)
+	return Bytes(buf[:])
+}
+
+func TestFloatBytes_Orders(t *testing.T) {
+	type tc struct {
+		name string
+		in   float64
+	}
+	cases := []tc{
+		{name: "zero", in: 0.0},
+		{name: "negative zero", in: math.Copysign(0, -1)},
+		{name: "positive small", in: 3.14159},
+		{name: "negative small", in: -3.14159},
+		{name: "positive integer", in: 42.0},
+		{name: "negative integer", in: -42.0},
+		{name: "very small positive", in: 1e-10},
+		{name: "very small negative", in: -1e-10},
+		{name: "very large positive", in: 1e10},
+		{name: "very large negative", in: -1e10},
+		{name: "max float64", in: math.MaxFloat64},
+		{name: "smallest positive float64", in: math.SmallestNonzeroFloat64},
+		{name: "positive infinity", in: math.Inf(1)},
+		{name: "negative infinity", in: math.Inf(-1)},
+		{name: "NaN", in: math.NaN()},
+		{name: "pi", in: math.Pi},
+		{name: "e", in: math.E},
+		{name: "fraction", in: 1.0 / 3.0},
+		{name: "large fraction", in: 123456789.987654321},
+		{name: "scientific notation", in: 1.23456789e-100},
+	}
+
+	for _, c := range cases {
+		t.Run("BytesBE/"+c.name, func(t *testing.T) {
+			want := wantFloatBytesBE(c.in)
+			got := Float(c.in).BytesBE()
+			if len(got) != len(want) {
+				t.Fatalf("BytesBE(%g): length mismatch, want %v (len=%d), got %v (len=%d)",
+					c.in, want, len(want), got, len(got))
+			}
+			for i := range got {
+				if got[i] != want[i] {
+					t.Fatalf("BytesBE(%g): want %v, got %v", c.in, want, got)
+				}
+			}
+		})
+
+		t.Run("BytesLE/"+c.name, func(t *testing.T) {
+			want := wantFloatBytesLE(c.in)
+			got := Float(c.in).BytesLE()
+			if len(got) != len(want) {
+				t.Fatalf("BytesLE(%g): length mismatch, want %v (len=%d), got %v (len=%d)",
+					c.in, want, len(want), got, len(got))
+			}
+			for i := range got {
+				if got[i] != want[i] {
+					t.Fatalf("BytesLE(%g): want %v, got %v", c.in, want, got)
+				}
+			}
+		})
+	}
+}
+
+// Round-trip tests to ensure BytesBE/LE and FloatBE/LE are inverses
+func TestFloatBytes_RoundTrip(t *testing.T) {
+	testValues := []float64{
+		0.0, -0.0, 1.0, -1.0, 0.5, -0.5,
+		math.Pi, math.E, math.Sqrt2, math.Ln2, math.Log2E,
+		42.0, -42.0, 123.456, -123.456,
+		1e-10, -1e-10, 1e10, -1e10,
+		1e-100, -1e-100, 1e100, -1e100,
+		math.MaxFloat64, math.SmallestNonzeroFloat64,
+		math.Inf(1), math.Inf(-1), math.NaN(),
+		1.0 / 3.0, 2.0 / 3.0, -1.0 / 3.0, -2.0 / 3.0,
+		3.141592653589793, 2.718281828459045,
+		1.23456789e-50, -9.87654321e50,
+		0.1, 0.2, 0.3, 0.7, 0.9, // Decimal fractions
+	}
+
+	for i, val := range testValues {
+		t.Run(fmt.Sprintf("BE_%d_%.10g", i, val), func(t *testing.T) {
+			bytes := Float(val).BytesBE()
+			back := float64(bytes.FloatBE())
+
+			// Special handling for NaN since NaN != NaN
+			if math.IsNaN(val) {
+				if !math.IsNaN(back) {
+					t.Fatalf("Round-trip BE failed: NaN -> %v -> %g (not NaN)", bytes, back)
+				}
+				return
+			}
+
+			// For negative zero, check signbit
+			if val == 0 && math.Signbit(val) {
+				if back != 0 || !math.Signbit(back) {
+					t.Fatalf("Round-trip BE failed: -0 -> %v -> %g (signbit: %t)", bytes, back, math.Signbit(back))
+				}
+				return
+			}
+
+			if back != val {
+				t.Fatalf("Round-trip BE failed: %g -> %v -> %g", val, bytes, back)
+			}
+		})
+
+		t.Run(fmt.Sprintf("LE_%d_%.10g", i, val), func(t *testing.T) {
+			bytes := Float(val).BytesLE()
+			back := float64(bytes.FloatLE())
+
+			// Special handling for NaN since NaN != NaN
+			if math.IsNaN(val) {
+				if !math.IsNaN(back) {
+					t.Fatalf("Round-trip LE failed: NaN -> %v -> %g (not NaN)", bytes, back)
+				}
+				return
+			}
+
+			// For negative zero, check signbit
+			if val == 0 && math.Signbit(val) {
+				if back != 0 || !math.Signbit(back) {
+					t.Fatalf("Round-trip LE failed: -0 -> %v -> %g (signbit: %t)", bytes, back, math.Signbit(back))
+				}
+				return
+			}
+
+			if back != val {
+				t.Fatalf("Round-trip LE failed: %g -> %v -> %g", val, bytes, back)
+			}
+		})
+	}
+}
+
+// Test endianness consistency
+func TestFloatBytes_Endianness(t *testing.T) {
+	testValues := []float64{
+		0.0, 1.0, -1.0, math.Pi, math.E, 123.456, -123.456,
+		math.Inf(1), math.Inf(-1), math.NaN(),
+		math.MaxFloat64, math.SmallestNonzeroFloat64,
+	}
+
+	for i, val := range testValues {
+		t.Run(fmt.Sprintf("Endianness_%d_%.6g", i, val), func(t *testing.T) {
+			bytesBE := Float(val).BytesBE()
+			bytesLE := Float(val).BytesLE()
+
+			// Verify that BE and LE are byte-reversed versions of each other
+			if len(bytesBE) != 8 || len(bytesLE) != 8 {
+				t.Fatalf("Expected 8 bytes, got BE: %d, LE: %d", len(bytesBE), len(bytesLE))
+			}
+
+			for j := 0; j < 8; j++ {
+				if bytesBE[j] != bytesLE[7-j] {
+					t.Fatalf("Byte reversal failed at position %d: BE[%d]=%d, LE[%d]=%d",
+						j, j, bytesBE[j], 7-j, bytesLE[7-j])
+				}
+			}
+
+			// Verify both convert back to the same value
+			backBE := float64(bytesBE.FloatBE())
+			backLE := float64(bytesLE.FloatLE())
+
+			// Handle NaN specially
+			if math.IsNaN(val) {
+				if !math.IsNaN(backBE) || !math.IsNaN(backLE) {
+					t.Fatalf("NaN not preserved: original NaN, backBE: %g (isNaN: %t), backLE: %g (isNaN: %t)",
+						backBE, math.IsNaN(backBE), backLE, math.IsNaN(backLE))
+				}
+				return
+			}
+
+			// Handle negative zero specially
+			if val == 0 && math.Signbit(val) {
+				if backBE != 0 || !math.Signbit(backBE) || backLE != 0 || !math.Signbit(backLE) {
+					t.Fatalf("Negative zero not preserved: backBE: %g (signbit: %t), backLE: %g (signbit: %t)",
+						backBE, math.Signbit(backBE), backLE, math.Signbit(backLE))
+				}
+				return
+			}
+
+			if backBE != val || backLE != val {
+				t.Fatalf("Value not preserved: original: %g, backBE: %g, backLE: %g", val, backBE, backLE)
+			}
+		})
 	}
 }

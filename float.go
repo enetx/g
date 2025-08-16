@@ -1,6 +1,7 @@
 package g
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
@@ -15,6 +16,26 @@ func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return
 
 // Transform applies a transformation function to the Float and returns the result.
 func (f Float) Transform(fn func(Float) Float) Float { return fn(f) }
+
+// BytesBE returns the IEEE-754 representation of the Float as Bytes in BigEndian order.
+// The Float is converted to its 64-bit IEEE-754 binary representation.
+func (f Float) BytesBE() Bytes {
+	var buf [8]byte
+	bits := math.Float64bits(float64(f))
+	binary.BigEndian.PutUint64(buf[:], bits)
+
+	return Bytes(buf[:])
+}
+
+// BytesLE returns the IEEE-754 representation of the Float as Bytes in LittleEndian order.
+// The Float is converted to its 64-bit IEEE-754 binary representation.
+func (f Float) BytesLE() Bytes {
+	var buf [8]byte
+	bits := math.Float64bits(float64(f))
+	binary.LittleEndian.PutUint64(buf[:], bits)
+
+	return Bytes(buf[:])
+}
 
 // Min returns the minimum of two Floats.
 func (f Float) Min(b ...Float) Float { return cmp.Min(append(b, f)...) }

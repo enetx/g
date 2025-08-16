@@ -273,3 +273,19 @@ func TestDbgErrorType(t *testing.T) {
 		t.Errorf("Error should be printed to stderr, got: %s", outputStr)
 	}
 }
+
+func TestDbgWithoutParens(t *testing.T) {
+	// Test line parsing when parentheses are not found properly
+	// This should test the scanner logic for malformed lines
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Dbg should handle lines without proper parentheses: %v", r)
+		}
+	}()
+
+	// Create a value to debug
+	specialValue := "no-parens-test"
+
+	// This should work even if the line parsing fails
+	dbg.Dbg(specialValue)
+}

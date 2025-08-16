@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"math"
 	"reflect"
 	"regexp"
 	"testing"
@@ -292,6 +293,33 @@ func TestBytesPrepend(t *testing.T) {
 	if !bytes.Equal(prefixed1, expected1) {
 		t.Errorf("AddPrefix failed. Expected: %s, Got: %s", expected1, prefixed1)
 	}
+
+	// Test case where prefix is empty
+	bs2 := Bytes("world")
+	obs2 := Bytes("")
+	prefixed2 := bs2.Prepend(obs2)
+	expected2 := Bytes("world")
+	if !bytes.Equal(prefixed2, expected2) {
+		t.Errorf("Prepend with empty prefix failed. Expected: %s, Got: %s", expected2, prefixed2)
+	}
+
+	// Test case where original bytes are empty
+	bs3 := Bytes("")
+	obs3 := Bytes("hello")
+	prefixed3 := bs3.Prepend(obs3)
+	expected3 := Bytes("hello")
+	if !bytes.Equal(prefixed3, expected3) {
+		t.Errorf("Prepend to empty bytes failed. Expected: %s, Got: %s", expected3, prefixed3)
+	}
+
+	// Test case where both are empty
+	bs4 := Bytes("")
+	obs4 := Bytes("")
+	prefixed4 := bs4.Prepend(obs4)
+	expected4 := Bytes("")
+	if !bytes.Equal(prefixed4, expected4) {
+		t.Errorf("Prepend empty to empty failed. Expected: %s, Got: %s", expected4, prefixed4)
+	}
 }
 
 func TestBytesStd(t *testing.T) {
@@ -411,6 +439,37 @@ func TestBytesEqFold(t *testing.T) {
 	eqFold2 := bs2.EqFold(obs2)
 	if eqFold2 {
 		t.Errorf("EqFold failed. Expected: false, Got: %t", eqFold2)
+	}
+}
+
+func TestBytesContains(t *testing.T) {
+	testCases := []struct {
+		bs       Bytes
+		obs      Bytes
+		expected bool
+	}{
+		{[]byte("hello world"), []byte("world"), true},
+		{[]byte("hello world"), []byte("hello"), true},
+		{[]byte("hello world"), []byte("gopher"), false},
+		{[]byte("hello"), []byte("hello world"), false},
+		{[]byte(""), []byte(""), true},
+		{[]byte("test"), []byte(""), true},
+		{[]byte(""), []byte("test"), false},
+		{[]byte("abcdef"), []byte("cde"), true},
+		{[]byte("abcdef"), []byte("xyz"), false},
+	}
+
+	for _, tc := range testCases {
+		result := tc.bs.Contains(tc.obs)
+		if result != tc.expected {
+			t.Errorf(
+				"Bytes.Contains(%q, %q): expected %t, got %t",
+				tc.bs,
+				tc.obs,
+				tc.expected,
+				result,
+			)
+		}
 	}
 }
 
@@ -1573,6 +1632,89 @@ func TestBytesIntSigned_Orders(t *testing.T) {
 			got := int64(c.in.IntLE())
 			if got != want {
 				t.Fatalf("IntLE(%v): want %d, got %d", c.in, want, got)
+			}
+		})
+	}
+}
+
+func TestBytesFloat_Orders(t *testing.T) {
+	type tc struct {
+		name string
+		in   Bytes
+		want float64
+	}
+	cases := []tc{
+		{name: "zero BE", in: Bytes{0, 0, 0, 0, 0, 0, 0, 0}, want: 0.0},
+		{name: "negative zero BE", in: Bytes{0x80, 0, 0, 0, 0, 0, 0, 0}, want: math.Copysign(0, -1)},
+		{name: "positive infinity BE", in: Bytes{0x7F, 0xF0, 0, 0, 0, 0, 0, 0}, want: math.Inf(1)},
+		{name: "negative infinity BE", in: Bytes{0xFF, 0xF0, 0, 0, 0, 0, 0, 0}, want: math.Inf(-1)},
+		{name: "NaN BE", in: Bytes{0x7F, 0xF8, 0, 0, 0, 0, 0, 1}, want: math.NaN()},
+		{name: "simple positive BE", in: Bytes{0x40, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, want: 42.0},
+		{name: "simple negative BE", in: Bytes{0xC0, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, want: -42.0},
+
+		// Invalid length cases
+		{name: "empty", in: Bytes{}, want: 0.0},
+		{name: "too short", in: Bytes{1, 2, 3}, want: 0.0},
+		{name: "too long", in: Bytes{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, want: 0.0},
+	}
+
+	for _, c := range cases {
+		t.Run("FloatBE/"+c.name, func(t *testing.T) {
+			got := float64(c.in.FloatBE())
+
+			// Special handling for NaN since NaN != NaN
+			if math.IsNaN(c.want) {
+				if !math.IsNaN(got) {
+					t.Fatalf("FloatBE(%v): want NaN, got %g", c.in, got)
+				}
+				return
+			}
+
+			// Special handling for negative zero
+			if c.want == 0 && math.Signbit(c.want) {
+				if got != 0 || !math.Signbit(got) {
+					t.Fatalf("FloatBE(%v): want -0, got %g (signbit: %t)", c.in, got, math.Signbit(got))
+				}
+				return
+			}
+
+			if got != c.want {
+				t.Fatalf("FloatBE(%v): want %g, got %g", c.in, c.want, got)
+			}
+		})
+
+		t.Run("FloatLE/"+c.name, func(t *testing.T) {
+			// Convert BE bytes to LE for testing
+			var leBytes Bytes
+			if len(c.in) == 8 {
+				leBytes = make(Bytes, 8)
+				for i := 0; i < 8; i++ {
+					leBytes[i] = c.in[7-i]
+				}
+			} else {
+				leBytes = c.in // Invalid length cases
+			}
+
+			got := float64(leBytes.FloatLE())
+
+			// Special handling for NaN since NaN != NaN
+			if math.IsNaN(c.want) {
+				if !math.IsNaN(got) {
+					t.Fatalf("FloatLE(%v): want NaN, got %g", leBytes, got)
+				}
+				return
+			}
+
+			// Special handling for negative zero
+			if c.want == 0 && math.Signbit(c.want) {
+				if got != 0 || !math.Signbit(got) {
+					t.Fatalf("FloatLE(%v): want -0, got %g (signbit: %t)", leBytes, got, math.Signbit(got))
+				}
+				return
+			}
+
+			if got != c.want {
+				t.Fatalf("FloatLE(%v): want %g, got %g", leBytes, c.want, got)
 			}
 		})
 	}

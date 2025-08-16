@@ -1,6 +1,7 @@
 package g
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -163,6 +164,61 @@ func (i Int) UInt64() uint64 { return uint64(i) }
 
 // UInt8 returns the Int as a uint8.
 func (i Int) UInt8() uint8 { return uint8(i) }
+
+// bytesFromInt converts Int to Bytes using the given byte order.
+// For BE: removes leading zeros while preserving the sign bit.
+// For LE: removes trailing zeros while preserving the sign bit.
+func bytesFromInt(i Int, order binary.ByteOrder) Bytes {
+	var buf [8]byte
+	order.PutUint64(buf[:], uint64(i))
+
+	switch order {
+	case binary.BigEndian:
+		start := 0
+		for start < 7 && buf[start] == 0 {
+			start++
+		}
+
+		if i >= 0 && buf[start]&0x80 != 0 {
+			start--
+		}
+
+		if i < 0 && start > 0 && buf[start]&0x80 == 0 {
+			start--
+		}
+
+		return Bytes(buf[start:])
+	case binary.LittleEndian:
+		end := 8
+		for end > 1 && buf[end-1] == 0 {
+			end--
+		}
+
+		if i >= 0 && buf[end-1]&0x80 != 0 {
+			end++
+		}
+
+		if i < 0 && end < 8 && buf[end-1]&0x80 == 0 {
+			end++
+		}
+
+		return Bytes(buf[:end])
+	}
+
+	return Bytes(buf[:])
+}
+
+// BytesBE converts the Int to Bytes in BigEndian order.
+// Leading zero bytes are removed while preserving the sign bit for negative numbers.
+func (i Int) BytesBE() Bytes {
+	return bytesFromInt(i, binary.BigEndian)
+}
+
+// BytesLE converts the Int to Bytes in LittleEndian order.
+// Trailing zero bytes are removed while preserving the sign bit for negative numbers
+func (i Int) BytesLE() Bytes {
+	return bytesFromInt(i, binary.LittleEndian)
+}
 
 // Print writes the value of the Int to the standard output (console)
 // and returns the Int unchanged.

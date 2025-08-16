@@ -525,12 +525,109 @@ func TestSliceToStringSlice(t *testing.T) {
 	}
 }
 
+func TestSliceToStringSlice_AllTypes(t *testing.T) {
+	// Test empty slice
+	empty := SliceOf[any]()
+	if result := empty.ToStringSlice(); result != nil {
+		t.Errorf("Expected nil for empty slice, got %v", result)
+	}
+
+	// Test String type
+	stringSlice := SliceOf[any](String("hello"))
+	stringResult := stringSlice.ToStringSlice()
+	expectedString := []string{"hello"}
+	if !reflect.DeepEqual(stringResult, expectedString) {
+		t.Errorf("String type: expected %v, got %v", expectedString, stringResult)
+	}
+
+	// Test Int type
+	intSlice := SliceOf[any](Int(42))
+	intResult := intSlice.ToStringSlice()
+	expectedInt := []string{"42"}
+	if !reflect.DeepEqual(intResult, expectedInt) {
+		t.Errorf("Int type: expected %v, got %v", expectedInt, intResult)
+	}
+
+	// Test Float type
+	floatSlice := SliceOf[any](Float(3.14))
+	floatResult := floatSlice.ToStringSlice()
+	expectedFloat := []string{"3.14"}
+	if !reflect.DeepEqual(floatResult, expectedFloat) {
+		t.Errorf("Float type: expected %v, got %v", expectedFloat, floatResult)
+	}
+
+	// Test Bytes type
+	bytesSlice := SliceOf[any](Bytes("test"))
+	bytesResult := bytesSlice.ToStringSlice()
+	expectedBytes := []string{"test"}
+	if !reflect.DeepEqual(bytesResult, expectedBytes) {
+		t.Errorf("Bytes type: expected %v, got %v", expectedBytes, bytesResult)
+	}
+
+	// Test primitive types
+	mixedTypes := SliceOf[any]("hello", int(10), int8(20), int16(30), int32(40), int64(50))
+	mixedResult := mixedTypes.ToStringSlice()
+	expectedMixed := []string{"hello", "10", "20", "30", "40", "50"}
+	if !reflect.DeepEqual(mixedResult, expectedMixed) {
+		t.Errorf("mixed types: expected %v, got %v", expectedMixed, mixedResult)
+	}
+
+	// Test unsigned types
+	uintTypes := SliceOf[any](uint(10), uint8(20), uint16(30), uint32(40), uint64(50))
+	uintResult := uintTypes.ToStringSlice()
+	expectedUint := []string{"10", "20", "30", "40", "50"}
+	if !reflect.DeepEqual(uintResult, expectedUint) {
+		t.Errorf("uint types: expected %v, got %v", expectedUint, uintResult)
+	}
+
+	// Test float types
+	floatTypes := SliceOf[any](float32(3.14), float64(2.71))
+	floatTypesResult := floatTypes.ToStringSlice()
+	expectedFloatTypes := []string{"3.14", "2.71"}
+	if !reflect.DeepEqual(floatTypesResult, expectedFloatTypes) {
+		t.Errorf("float types: expected %v, got %v", expectedFloatTypes, floatTypesResult)
+	}
+
+	// Test bool type
+	boolSlice := SliceOf[any](true, false)
+	boolResult := boolSlice.ToStringSlice()
+	expectedBool := []string{"true", "false"}
+	if !reflect.DeepEqual(boolResult, expectedBool) {
+		t.Errorf("bool type: expected %v, got %v", expectedBool, boolResult)
+	}
+
+	// Test default case (fmt.Sprint)
+	type CustomType struct {
+		value int
+	}
+	defaultSlice := SliceOf[any](CustomType{42})
+	defaultResult := defaultSlice.ToStringSlice()
+	expectedDefault := []string{"{42}"}
+	if !reflect.DeepEqual(defaultResult, expectedDefault) {
+		t.Errorf("default type: expected %v, got %v", expectedDefault, defaultResult)
+	}
+}
+
 func TestSliceClone(t *testing.T) {
 	sl := Slice[int]{1, 2, 3}
 	slClone := sl.Clone()
 
 	if !sl.Eq(slClone) {
 		t.Errorf("Clone() failed, expected %v, got %v", sl, slClone)
+	}
+}
+
+func TestSliceClone_EmptySlice(t *testing.T) {
+	// Test cloning empty slice
+	emptySlice := NewSlice[int]()
+	clone := emptySlice.Clone()
+
+	if !clone.Empty() {
+		t.Errorf("Clone of empty slice should be empty, got %v", clone)
+	}
+
+	if clone.Len() != 0 {
+		t.Errorf("Clone of empty slice should have length 0, got %d", clone.Len())
 	}
 }
 
@@ -644,6 +741,31 @@ func TestSliceSFill(t *testing.T) {
 	for _, v := range sl {
 		if v != 0 {
 			t.Errorf("Expected all elements to be 0, but found %d", v)
+		}
+	}
+}
+
+func TestSliceFill_EmptySlice(t *testing.T) {
+	// Test empty slice
+	empty := Slice[int]{}
+	empty.Fill(42)
+	if len(empty) != 0 {
+		t.Errorf("Empty slice should remain empty")
+	}
+}
+
+func TestSliceFill_LargeSlice(t *testing.T) {
+	// Test slice larger than 32 elements (triggers different algorithm)
+	large := make(Slice[int], 100)
+	for i := range large {
+		large[i] = i
+	}
+
+	large.Fill(999)
+
+	for i, v := range large {
+		if v != 999 {
+			t.Errorf("At index %d: expected 999, got %d", i, v)
 		}
 	}
 }
@@ -1298,6 +1420,40 @@ func TestSliceSwap(t *testing.T) {
 	}
 }
 
+func TestSliceSwap_Panic(t *testing.T) {
+	s := Slice[int]{1, 2, 3}
+
+	// Test panic for first index out of bounds
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("Expected panic for first index out of bounds")
+			}
+		}()
+		s.Swap(10, 1) // First index way out of bounds
+	}()
+
+	// Test panic for second index out of bounds
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("Expected panic for second index out of bounds")
+			}
+		}()
+		s.Swap(1, -10) // Second index way out of bounds (negative indices beyond slice length)
+	}()
+
+	// Test panic for both indices out of bounds
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("Expected panic for both indices out of bounds")
+			}
+		}()
+		s.Swap(10, 20) // Both indices out of bounds
+	}()
+}
+
 func TestSliceMaxBy(t *testing.T) {
 	// Test case 1: Maximum integer
 	s := Slice[int]{3, 1, 4, 2, 5}
@@ -1461,6 +1617,34 @@ func TestSliceRandomRange(t *testing.T) {
 	result2 := slice.RandomRange(0, 10)
 	if len(result2) > len(slice) {
 		t.Errorf("RandomRange should not return more elements than in original slice")
+	}
+}
+
+func TestSliceRandomRange_EdgeCases(t *testing.T) {
+	slice := Slice[int]{1, 2, 3, 4, 5}
+
+	// Test negative from value (should be clamped to 0)
+	result := slice.RandomRange(-5, 3)
+	if len(result) < 0 || len(result) > 3 {
+		t.Errorf("RandomRange(-5, 3) should clamp from to 0, got length %d", len(result))
+	}
+
+	// Test negative to value (should be clamped to slice length)
+	result = slice.RandomRange(1, -2)
+	if len(result) < 1 || len(result) > slice.Len().Std() {
+		t.Errorf("RandomRange(1, -2) should clamp to to slice length, got length %d", len(result))
+	}
+
+	// Test from > to (should swap them, so from becomes to)
+	result = slice.RandomRange(4, 2)
+	if len(result) < 0 || len(result) > 2 {
+		t.Errorf("RandomRange(4, 2) should swap values, got length %d", len(result))
+	}
+
+	// Test to > slice length (should be clamped to slice length)
+	result = slice.RandomRange(2, 10)
+	if len(result) < 2 || len(result) > slice.Len().Std() {
+		t.Errorf("RandomRange(2, 10) should clamp to to slice length, got length %d", len(result))
 	}
 }
 
