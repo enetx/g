@@ -10,37 +10,6 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
-func TestMapOrdIntoIter(t *testing.T) {
-	m := NewMapOrd[string, int]()
-	m.Set("a", 1)
-	m.Set("b", 2)
-	m.Set("c", 3)
-
-	iter := m.IntoIter()
-
-	if m.Len() != 0 {
-		t.Fatalf("expected MapOrd to be empty after IntoIter, got %d elements", m.Len())
-	}
-
-	var keys []string
-	var values []int
-
-	iter.ForEach(func(k string, v int) {
-		keys = append(keys, k)
-		values = append(values, v)
-	})
-
-	expectedKeys := []string{"a", "b", "c"}
-	expectedVals := []int{1, 2, 3}
-
-	if !reflect.DeepEqual(keys, expectedKeys) {
-		t.Errorf("keys mismatch: got %v, want %v", keys, expectedKeys)
-	}
-	if !reflect.DeepEqual(values, expectedVals) {
-		t.Errorf("values mismatch: got %v, want %v", values, expectedVals)
-	}
-}
-
 func TestMapOrdIterReverse(t *testing.T) {
 	tests := []struct {
 		name     string

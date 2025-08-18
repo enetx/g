@@ -11,99 +11,6 @@ import (
 	"github.com/enetx/g/f"
 )
 
-func TestPrependUnique(t *testing.T) {
-	s := Slice[int]{3, 4, 5}
-	result := s.PrependUnique(1, 2, 3, 4)
-	expected := Slice[int]{1, 2, 3, 4, 5}
-
-	if len(result) != len(expected) {
-		t.Errorf("expected length %d, got %d", len(expected), len(result))
-	}
-
-	for i, v := range expected {
-		if result[i] != v {
-			t.Errorf("at index %d: expected %v, got %v", i, v, result[i])
-		}
-	}
-}
-
-func TestPushFrontUnique(t *testing.T) {
-	s := Slice[int]{3, 4, 5}
-	s.PushFrontUnique(1, 2, 3, 4)
-	expected := Slice[int]{1, 2, 3, 4, 5}
-
-	if len(s) != len(expected) {
-		t.Errorf("expected length %d, got %d", len(expected), len(s))
-	}
-
-	for i, v := range expected {
-		if s[i] != v {
-			t.Errorf("at index %d: expected %v, got %v", i, v, s[i])
-		}
-	}
-}
-
-func TestPrependUniqueEmpty(t *testing.T) {
-	s := Slice[int]{}
-	result := s.PrependUnique(1, 2, 3)
-	expected := Slice[int]{1, 2, 3}
-
-	for i, v := range expected {
-		if result[i] != v {
-			t.Errorf("at index %d: expected %v, got %v", i, v, result[i])
-		}
-	}
-}
-
-func TestPushFrontUniqueEmpty(t *testing.T) {
-	s := Slice[int]{}
-	s.PushFrontUnique(1, 2, 3)
-	expected := Slice[int]{1, 2, 3}
-
-	for i, v := range expected {
-		if s[i] != v {
-			t.Errorf("at index %d: expected %v, got %v", i, v, s[i])
-		}
-	}
-}
-
-func TestPushFront(t *testing.T) {
-	tests := []struct {
-		name     string
-		initial  Slice[int]
-		input    []int
-		expected Slice[int]
-	}{
-		{
-			name:     "basic prepend",
-			initial:  Slice[int]{3, 4, 5},
-			input:    []int{1, 2},
-			expected: Slice[int]{1, 2, 3, 4, 5},
-		},
-		{
-			name:     "prepend nothing",
-			initial:  Slice[int]{3, 4, 5},
-			input:    []int{},
-			expected: Slice[int]{3, 4, 5},
-		},
-		{
-			name:     "prepend to empty",
-			initial:  Slice[int]{},
-			input:    []int{1, 2, 3},
-			expected: Slice[int]{1, 2, 3},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.initial.PushFront(tt.input...)
-			if !tt.initial.Eq(tt.expected) {
-				t.Errorf("PushFront() = %v, want %v", tt.initial, tt.expected)
-			}
-		})
-	}
-}
-
 func TestSliceUnpack(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -1645,22 +1552,6 @@ func TestSliceRandomRange_EdgeCases(t *testing.T) {
 	result = slice.RandomRange(2, 10)
 	if len(result) < 2 || len(result) > slice.Len().Std() {
 		t.Errorf("RandomRange(2, 10) should clamp to to slice length, got length %d", len(result))
-	}
-}
-
-func TestSlicePrepend(t *testing.T) {
-	slice := Slice[int]{3, 4, 5}
-	result := slice.Prepend(1, 2)
-	expected := Slice[int]{1, 2, 3, 4, 5}
-
-	if len(result) != 5 {
-		t.Errorf("Prepend should return slice with 5 elements, got %d", len(result))
-	}
-
-	for i, v := range result {
-		if v != expected[i] {
-			t.Errorf("Prepend result at index %d: expected %d, got %d", i, expected[i], v)
-		}
 	}
 }
 

@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/enetx/g"
@@ -205,4 +206,168 @@ func TestSet_Iter_Pull(t *testing.T) {
 	if !seen["a"] || !seen["b"] || !seen["c"] {
 		t.Errorf("Not all set values were pulled: %v", seen)
 	}
+}
+
+func TestSetIterContext(t *testing.T) {
+	t.Run("context cancellation stops iteration", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+		set.Insert(3)
+		set.Insert(4)
+		set.Insert(5)
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []int
+		iter := set.Iter().Context(ctx)
+
+		// Cancel context after processing 3 elements
+		count := 0
+		iter(func(v int) bool {
+			collected = append(collected, v)
+			count++
+			if count == 3 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed exactly 3 elements before cancellation
+		if len(collected) != 3 {
+			t.Errorf("Expected 3 elements, got %d: %v", len(collected), collected)
+		}
+
+		// Verify all collected elements are from the original set
+		for _, val := range collected {
+			if !set.Contains(val) {
+				t.Errorf("Collected value %d is not in original set", val)
+			}
+		}
+	})
+
+	t.Run("context timeout", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		var collected []int
+		set.Iter().Context(ctx)(func(v int) bool {
+			collected = append(collected, v)
+			return true
+		})
+
+		// Should collect nothing due to immediate cancellation
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 elements due to cancelled context, got %d: %v", len(collected), collected)
+		}
+	})
+}
+
+func TestSetIterTake(t *testing.T) {
+	t.Run("take first n elements", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+		set.Insert(3)
+		set.Insert(4)
+		set.Insert(5)
+
+		taken := set.Iter().Take(3).Collect()
+
+		if taken.Len() != 3 {
+			t.Errorf("Expected 3 elements, got %d", taken.Len())
+		}
+
+		// Verify all taken elements are from the original set
+		taken.Iter().ForEach(func(v int) {
+			if !set.Contains(v) {
+				t.Errorf("Taken element %d is not in original set", v)
+			}
+		})
+	})
+
+	t.Run("take more than available", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+
+		taken := set.Iter().Take(5).Collect()
+
+		if taken.Len() != 2 {
+			t.Errorf("Expected 2 elements (all available), got %d", taken.Len())
+		}
+	})
+
+	t.Run("take zero elements", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+
+		taken := set.Iter().Take(0).Collect()
+
+		if taken.Len() != 0 {
+			t.Errorf("Expected 0 elements, got %d", taken.Len())
+		}
+	})
+}
+
+func TestSetIterNth(t *testing.T) {
+	t.Run("nth element exists", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(10)
+		set.Insert(20)
+		set.Insert(30)
+		set.Insert(40)
+		set.Insert(50)
+
+		// Get the 2nd element (0-indexed)
+		nth := set.Iter().Nth(2)
+
+		if nth.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			val := nth.Some()
+			if !set.Contains(val) {
+				t.Errorf("Nth element %d is not in original set", val)
+			}
+		}
+	})
+
+	t.Run("nth element out of bounds", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+
+		nth := set.Iter().Nth(5)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for out of bounds index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("negative index", func(t *testing.T) {
+		set := g.NewSet[int]()
+		set.Insert(1)
+		set.Insert(2)
+
+		nth := set.Iter().Nth(-1)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for negative index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("empty set", func(t *testing.T) {
+		set := g.NewSet[int]()
+
+		nth := set.Iter().Nth(0)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for empty set, got Some(%v)", nth.Some())
+		}
+	})
 }

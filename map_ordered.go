@@ -99,35 +99,14 @@ func (mo *MapOrd[K, V]) Entry(key K) MapOrdEntry[K, V] { return MapOrdEntry[K, V
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of an ordered Map
 // in a functional style, enabling operations like mapping or filtering.
-func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] { return seqMapOrd(mo) }
-
-// IntoIter returns a consuming iterator (SeqMapOrd[K, V]) for the ordered Map,
-// transferring ownership of its key-value pairs and clearing the original MapOrd.
-//
-// After calling IntoIter, the original MapOrd is emptied and should not be reused
-// unless reassigned or repopulated.
-//
-// Returns:
-//
-// A SeqMapOrd[K, V], yielding all key-value pairs in insertion order, consuming them in the process.
-//
-// Example usage:
-//
-//	m := g.NewMapOrd[string, int]()
-//	m.Set("a", 1)
-//	m.Set("b", 2)
-//
-//	iter := m.IntoIter()
-//	m.Len() // 0
-//
-//	iter.ForEach(func(k string, v int) {
-//	    fmt.Println(k, v)
-//	})
-func (mo *MapOrd[K, V]) IntoIter() SeqMapOrd[K, V] {
-	data := *mo
-	*mo = nil
-
-	return seqMapOrd(data)
+func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, v := range mo {
+			if !yield(v.Key, v.Value) {
+				return
+			}
+		}
+	}
 }
 
 // IterReverse returns an iterator (SeqMapOrd[K, V]) for the ordered Map that allows for sequential iteration
@@ -152,7 +131,16 @@ func (mo *MapOrd[K, V]) IntoIter() SeqMapOrd[K, V] {
 //
 // The 'IterReverse' method complements the 'Iter' method by providing a way to access the elements
 // in a reverse sequence, offering additional flexibility in data processing scenarios.
-func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] { return revSeqMapOrd(mo) }
+func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] {
+	return func(yield func(K, V) bool) {
+		for i := len(mo) - 1; i >= 0; i-- {
+			v := mo[i]
+			if !yield(v.Key, v.Value) {
+				return
+			}
+		}
+	}
+}
 
 // MapOrdFromStd converts a standard Go map to an ordered Map.
 // The resulting ordered Map will maintain the order of its key-value pairs based on the order of

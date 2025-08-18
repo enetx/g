@@ -3,59 +3,11 @@ package g
 import (
 	"context"
 	"reflect"
-	"runtime"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/constraints"
 	"github.com/enetx/g/f"
 	"github.com/enetx/g/iter"
 )
-
-// Range returns a SeqSlice[T] yielding a sequence of integers of type T,
-// starting at start, incrementing by step, and ending before stop (exclusive).
-//
-//   - If step is omitted, it defaults to 1.
-//   - If step is 0, the sequence is empty.
-//   - If step does not move toward stop (e.g., positive step with start > stop),
-//     the sequence is empty.
-//
-// Examples:
-//   - Range(0, 5) yields [0, 1, 2, 3, 4]
-//   - Range(5, 0, -1) yields [5, 4, 3, 2, 1]
-func Range[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
-	return SeqSlice[T](iter.Iota(start, stop, step...))
-}
-
-// RangeInclusive returns a SeqSlice[T] yielding a sequence of integers of type T,
-// starting at start, incrementing by step, and ending at stop (inclusive).
-//
-//   - If step is omitted, it defaults to 1.
-//   - If step is 0, the sequence is empty.
-//   - If step does not move toward stop (e.g., positive step with start > stop),
-//     the sequence is empty.
-//
-// Examples:
-//   - RangeInclusive(0, 5) yields [0, 1, 2, 3, 4, 5]
-//   - RangeInclusive(5, 0, -1) yields [5, 4, 3, 2, 1, 0]
-func RangeInclusive[T constraints.Integer](start, stop T, step ...T) SeqSlice[T] {
-	return SeqSlice[T](iter.IotaInclusive(start, stop, step...))
-}
-
-// Parallel runs this SeqSlice in parallel using the given number of workers.
-func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
-	numCPU := Int(runtime.NumCPU())
-	count := Slice[Int](workers).Get(0).UnwrapOr(numCPU)
-
-	if count.Lte(0) {
-		count = numCPU
-	}
-
-	return SeqSlicePar[V]{
-		seq:     seq,
-		workers: count,
-		process: func(v V) (V, bool) { return v, true },
-	}
-}
 
 // Pull converts the "push-style" iterator sequence seq
 // into a "pull-style" iterator accessed by the two functions
@@ -76,7 +28,7 @@ func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
 //
 // It is an error to call next or stop from multiple goroutines
 // simultaneously.
-func (seq SeqSlice[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
+func (seq SeqHeap[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator
@@ -91,12 +43,13 @@ func (seq SeqSlice[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter
 //
 // Example usage:
 //
-//	slice := g.SliceOf(1, 2, 3, 4, 5, 6, 7, -1, -2)
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5, 6, 7, -1, -2)
 //	isPositive := func(num int) bool { return num > 0 }
-//	allPositive := slice.Iter().All(isPositive)
+//	allPositive := heap.Iter().All(isPositive)
 //
 // The resulting allPositive will be true if all elements returned by the iterator are positive.
-func (seq SeqSlice[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V](seq), fn) }
+func (seq SeqHeap[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V](seq), fn) }
 
 // Any checks whether any element in the iterator satisfies the provided condition.
 // This function is useful when you want to determine if at least one element in an iterator
@@ -111,12 +64,13 @@ func (seq SeqSlice[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V]
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 3, 5, 7, 9}
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 3, 5, 7, 9)
 //	isEven := func(num int) bool { return num%2 == 0 }
-//	anyEven := slice.Iter().Any(isEven)
+//	anyEven := heap.Iter().Any(isEven)
 //
 // The resulting anyEven will be true if at least one element returned by the iterator is even.
-func (seq SeqSlice[V]) Any(fn func(V) bool) bool { return iter.Any(iter.Seq[V](seq), fn) }
+func (seq SeqHeap[V]) Any(fn func(V) bool) bool { return iter.Any(iter.Seq[V](seq), fn) }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
 //
@@ -125,28 +79,28 @@ func (seq SeqSlice[V]) Any(fn func(V) bool) bool { return iter.Any(iter.Seq[V](s
 //
 // Params:
 //
-// - seqs ([]SeqSlice[V]): Other iterators to be concatenated with the current iterator.
+// - seqs ([]SeqHeap[V]): Other iterators to be concatenated with the current iterator.
 //
 // Returns:
 //
-// - sequence[V]: A new iterator containing elements from the current iterator and the provided iterators.
+// - SeqHeap[V]: A new iterator containing elements from the current iterator and the provided iterators.
 //
 // Example usage:
 //
-//	iter1 := g.Slice[int]{1, 2, 3}.Iter()
-//	iter2 := g.Slice[int]{4, 5, 6}.Iter()
-//	iter1.Chain(iter2).Collect().Print()
-//
-// Output: [1, 2, 3, 4, 5, 6]
+//	heap1 := g.NewHeap(cmp.Cmp[int])
+//	heap1.Push(1, 2, 3)
+//	heap2 := g.NewHeap(cmp.Cmp[int])
+//	heap2.Push(4, 5, 6)
+//	heap1.Iter().Chain(heap2.Iter()).Collect() // Creates new heap with all elements
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
-func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
+func (seq SeqHeap[V]) Chain(seqs ...SeqHeap[V]) SeqHeap[V] {
 	iterSeqs := make([]iter.Seq[V], len(seqs))
 	for i, s := range seqs {
 		iterSeqs[i] = iter.Seq[V](s)
 	}
 
-	return SeqSlice[V](iter.Chain(iter.Seq[V](seq), iterSeqs...))
+	return SeqHeap[V](iter.Chain(iter.Seq[V](seq), iterSeqs...))
 }
 
 // Chunks returns an iterator that yields chunks of elements of the specified size.
@@ -164,56 +118,81 @@ func (seq SeqSlice[V]) Chain(seqs ...SeqSlice[V]) SeqSlice[V] {
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
-//	chunks := slice.Iter().Chunks(2).Collect()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5, 6)
+//	chunks := heap.Iter().Chunks(2).Collect()
 //
 // Output: [Slice[1, 2] Slice[3, 4] Slice[5, 6]]
 //
 // The resulting iterator will yield chunks of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Chunks(n Int) SeqSlices[V] {
+func (seq SeqHeap[V]) Chunks(n Int) SeqSlices[V] {
 	return SeqSlices[V](iter.Chunks(iter.Seq[V](seq), int(n)))
 }
 
-// Collect gathers all elements from the iterator into a Slice.
-func (seq SeqSlice[V]) Collect() Slice[V] { return iter.ToSlice(iter.Seq[V](seq)) }
+// Collect gathers all elements from the iterator into a new Heap.
+// The heap will be created with a default comparison function that works for comparable types.
+// For custom comparison, use CollectWith.
+func (seq SeqHeap[V]) Collect() *Heap[V] {
+	result := &Heap[V]{
+		data: make(Slice[V], 0),
+		cmp: func(a, b V) cmp.Ordering {
+			if f.IsComparable(a) {
+				if any(a) == any(b) {
+					return cmp.Equal
+				}
+				return cmp.Equal
+			}
+			if f.Eqd(a)(b) {
+				return cmp.Equal
+			}
+			return cmp.Equal
+		},
+	}
 
-// Collect gathers all elements from the iterator into a []Slice.
-func (seqs SeqSlices[V]) Collect() []Slice[V] {
-	collection := make([]Slice[V], 0)
-
-	seqs(func(v []V) bool {
-		inner := SeqSlice[V](iter.FromSlice(v)).Collect()
-		collection = append(collection, inner)
+	seq(func(v V) bool {
+		result.Push(v)
 		return true
 	})
 
-	return collection
+	return result
+}
+
+// CollectWith gathers all elements from the iterator into a new Heap with a custom comparison function.
+func (seq SeqHeap[V]) CollectWith(compareFn func(V, V) cmp.Ordering) *Heap[V] {
+	result := NewHeap(compareFn)
+	seq(func(v V) bool {
+		result.Push(v)
+		return true
+	})
+
+	return result
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSlice[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
+func (seq SeqHeap[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 
 // Counter returns a map where each key is a unique element
-// from the slice and each value is the count of how many times that element appears.
+// from the heap and each value is the count of how many times that element appears.
 //
-// The function counts the occurrences of each element in the slice
+// The function counts the occurrences of each element in the heap
 // and returns a map representing the unique elements and their respective counts.
 // This method uses iter.Counter from the iter package.
 //
 // Returns:
 //
-// - map[any]Int: with keys representing the unique elements in the slice
+// - SeqMapOrd[V, Int]: with keys representing the unique elements in the heap
 // and values representing the counts of those elements.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 1, 2, 1}
-//	counts := slice.Iter().Counter()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 1, 2, 1)
+//	counts := heap.Iter().Counter()
 //	// The counts map will contain:
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
+func (seq SeqHeap[V]) Counter() SeqMapOrd[V, Int] {
 	return func(yield func(V, Int) bool) {
 		for k, v := range iter.Counter(iter.Seq[V](seq)) {
 			if !yield(k.(V), Int(v)) {
@@ -231,7 +210,7 @@ func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
 // elements that satisfy the provided equality condition.
 //
 // Notes:
-//   - Each group is returned as a copy of the elements, since `SeqSlice` does not guarantee
+//   - Each group is returned as a copy of the elements, since `SeqHeap` does not guarantee
 //     that elements share the same backing array.
 //
 // Parameters:
@@ -242,23 +221,24 @@ func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
 //
 // Example usage:
 //
-//	slice := g.SliceOf(1, 1, 2, 3, 2, 3, 4)
-//	groups := slice.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 1, 2, 3, 2, 3, 4)
+//	groups := heap.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
 //	// Output: [Slice[1, 1, 2, 3] Slice[2, 3, 4]]
 //
 // The resulting iterator will yield groups of consecutive elements according to the provided function.
-func (seq SeqSlice[V]) GroupBy(fn func(a, b V) bool) SeqSlices[V] {
+func (seq SeqHeap[V]) GroupBy(fn func(a, b V) bool) SeqSlices[V] {
 	return SeqSlices[V](iter.GroupByAdjacent(iter.Seq[V](seq), fn))
 }
 
 // Combinations generates all combinations of length 'n' from the sequence.
-func (seq SeqSlice[V]) Combinations(size Int) SeqSlices[V] {
+func (seq SeqHeap[V]) Combinations(size Int) SeqSlices[V] {
 	return SeqSlices[V](iter.Combinations(iter.Seq[V](seq), int(size)))
 }
 
 // Cycle returns an iterator that endlessly repeats the elements of the current sequence.
-func (seq SeqSlice[V]) Cycle() SeqSlice[V] {
-	return SeqSlice[V](iter.Cycle(iter.Seq[V](seq)))
+func (seq SeqHeap[V]) Cycle() SeqHeap[V] {
+	return SeqHeap[V](iter.Cycle(iter.Seq[V](seq)))
 }
 
 // Enumerate adds an index to each element in the iterator.
@@ -271,15 +251,16 @@ func (seq SeqSlice[V]) Cycle() SeqSlice[V] {
 //
 // Example usage:
 //
-//	ps := g.SliceOf[g.String]("bbb", "ddd", "xxx", "aaa", "ccc").
-//		Iter().
+//	heap := g.NewHeap(cmp.Cmp[g.String])
+//	heap.Push("bbb", "ddd", "xxx", "aaa", "ccc")
+//	ps := heap.Iter().
 //		Enumerate().
 //		Collect()
 //
 //	ps.Print()
 //
-// Output: MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
-func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
+// Output: MapOrd{0:aaa, 1:bbb, 2:ccc, 3:ddd, 4:xxx}
+func (seq SeqHeap[V]) Enumerate() SeqMapOrd[Int, V] {
 	return func(yield func(Int, V) bool) {
 		iterEnum := iter.Enumerate(iter.Seq[V](seq), 0)
 		iterEnum(func(i int, v V) bool {
@@ -295,20 +276,21 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
 // - None
 //
 // Returns:
-// - SeqSlice[V]: A new iterator with consecutive duplicates removed.
+// - SeqHeap[V]: A new iterator with consecutive duplicates removed.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 2, 3, 4, 4, 4, 5}
-//	iter := slice.Iter().Dedup()
-//	result := iter.Collect()
-//	result.Print()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 2, 3, 4, 4, 4, 5)
+//	iter := heap.Iter().Dedup()
+//	result := iter.CollectWith(cmp.Cmp[int])
+//	result.Iter().ForEach(func(v int) { fmt.Print(v, " ") })
 //
-// Output: [1 2 3 4 5]
+// Output: 1 2 3 4 5
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
-func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
-	return SeqSlice[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
+func (seq SeqHeap[V]) Dedup() SeqHeap[V] {
+	return SeqHeap[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
 		if f.IsComparable(a) {
 			return f.Eq[any](a)(b)
 		}
@@ -328,24 +310,22 @@ func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
 //
 // Returns:
 //
-// - SeqSlice[V]: A new iterator containing the elements that satisfy the given condition.
+// - SeqHeap[V]: A new iterator containing the elements that satisfy the given condition.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	even := slice.Iter().
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	even := heap.Iter().
 //		Filter(
 //			func(val int) bool {
 //				return val%2 == 0
 //			}).
-//		Collect()
-//	even.Print()
-//
-// Output: [2 4].
+//		CollectWith(cmp.Cmp[int])
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
-func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] {
-	return SeqSlice[V](iter.Filter(iter.Seq[V](seq), fn))
+func (seq SeqHeap[V]) Filter(fn func(V) bool) SeqHeap[V] {
+	return SeqHeap[V](iter.Filter(iter.Seq[V](seq), fn))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -360,24 +340,22 @@ func (seq SeqSlice[V]) Filter(fn func(V) bool) SeqSlice[V] {
 //
 // Returns:
 //
-// - SeqSlice[V]: A new iterator containing the elements that do not satisfy the given condition.
+// - SeqHeap[V]: A new iterator containing the elements that do not satisfy the given condition.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	notEven := slice.Iter().
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	notEven := heap.Iter().
 //		Exclude(
 //			func(val int) bool {
 //				return val%2 == 0
 //			}).
-//		Collect()
-//	notEven.Print()
-//
-// Output: [1, 3, 5]
+//		CollectWith(cmp.Cmp[int])
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
-func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] {
-	return SeqSlice[V](iter.Exclude(iter.Seq[V](seq), fn))
+func (seq SeqHeap[V]) Exclude(fn func(V) bool) SeqHeap[V] {
+	return SeqHeap[V](iter.Exclude(iter.Seq[V](seq), fn))
 }
 
 // Fold accumulates values in the iterator using a function.
@@ -397,8 +375,9 @@ func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] {
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	sum := slice.Iter().
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	sum := heap.Iter().
 //		Fold(0,
 //			func(acc, val int) int {
 //				return acc + val
@@ -408,7 +387,7 @@ func (seq SeqSlice[V]) Exclude(fn func(V) bool) SeqSlice[V] {
 // Output: 15.
 //
 // The resulting value will be the accumulation of elements based on the provided function.
-func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V {
+func (seq SeqHeap[V]) Fold(init V, fn func(acc, val V) V) V {
 	return iter.Fold(iter.Seq[V](seq), init, fn)
 }
 
@@ -424,14 +403,15 @@ func (seq SeqSlice[V]) Fold(init V, fn func(acc, val V) V) V {
 //
 // Example:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	product := slice.Iter().Reduce(func(a, b int) int { return a * b })
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	product := heap.Iter().Reduce(func(a, b int) int { return a * b })
 //	if product.IsSome() {
 //	    fmt.Println(product.Some()) // 120
 //	} else {
 //	    fmt.Println("empty")
 //	}
-func (seq SeqSlice[V]) Reduce(fn func(a, b V) V) Option[V] {
+func (seq SeqHeap[V]) Reduce(fn func(a, b V) V) Option[V] {
 	return OptionOf(iter.Reduce(iter.Seq[V](seq), fn))
 }
 
@@ -445,13 +425,14 @@ func (seq SeqSlice[V]) Reduce(fn func(a, b V) V) Option[V] {
 //
 // Example usage:
 //
-//	iter := g.Slice[int]{1, 2, 3, 4, 5}.Iter()
-//	iter.ForEach(func(val V) {
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	heap.Iter().ForEach(func(val int) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (seq SeqSlice[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) }
+func (seq SeqHeap[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) }
 
 // Flatten flattens an iterator of iterators into a single iterator.
 //
@@ -460,24 +441,25 @@ func (seq SeqSlice[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn
 //
 // Returns:
 //
-// - SeqSlice[V]: A single iterator containing elements from the sequence of iterators.
+// - SeqHeap[V]: A single iterator containing elements from the sequence of iterators.
 //
 // Example usage:
 //
-//	nestedSlice := g.Slice[any]{
+//	heap := g.NewHeap(cmp.Cmp[any])
+//	heap.Push(
 //		1,
 //		g.SliceOf(2, 3),
 //		"abc",
 //		g.SliceOf("def", "ghi"),
 //		g.SliceOf(4.5, 6.7),
-//	}
+//	)
 //
-//	nestedSlice.Iter().Flatten().Collect().Print()
+//	heap.Iter().Flatten().ForEach(func(v any) { fmt.Print(v, " ") })
 //
-// Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+// Output: 1 2 3 abc def ghi 4.5 6.7
 //
 // The resulting iterator will contain elements from each iterator in sequence.
-func (seq SeqSlice[V]) Flatten() SeqSlice[V] {
+func (seq SeqHeap[V]) Flatten() SeqHeap[V] {
 	return func(yield func(V) bool) {
 		var flatten func(item any) bool
 		flatten = func(item any) bool {
@@ -507,8 +489,8 @@ func (seq SeqSlice[V]) Flatten() SeqSlice[V] {
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
-func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] {
-	return SeqSlice[V](iter.Inspect(iter.Seq[V](seq), fn))
+func (seq SeqHeap[V]) Inspect(fn func(v V)) SeqHeap[V] {
+	return SeqHeap[V](iter.Inspect(iter.Seq[V](seq), fn))
 }
 
 // Intersperse inserts the provided separator between elements of the iterator.
@@ -522,22 +504,21 @@ func (seq SeqSlice[V]) Inspect(fn func(v V)) SeqSlice[V] {
 //
 // Returns:
 //
-// - SeqSlice[V]: An iterator containing elements with the separator interspersed.
+// - SeqHeap[V]: An iterator containing elements with the separator interspersed.
 //
 // Example usage:
 //
-//	g.Slice[string]{"Hello", "World", "!"}.
-//		Iter().
+//	heap := g.NewHeap(cmp.Cmp[string])
+//	heap.Push("Hello", "World", "!")
+//	heap.Iter().
 //		Intersperse(" ").
-//		Collect().
-//		Join().
-//		Print()
+//		ForEach(func(s string) { fmt.Print(s) })
 //
-// Output: "Hello World !".
+// Output: "! Hello World".
 //
 // The resulting iterator will contain elements with the separator interspersed.
-func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] {
-	return SeqSlice[V](iter.Intersperse(iter.Seq[V](seq), sep))
+func (seq SeqHeap[V]) Intersperse(sep V) SeqHeap[V] {
+	return SeqHeap[V](iter.Intersperse(iter.Seq[V](seq), sep))
 }
 
 // Map transforms each element in the iterator using the given function.
@@ -551,52 +532,30 @@ func (seq SeqSlice[V]) Intersperse(sep V) SeqSlice[V] {
 //
 // Returns:
 //
-// - SeqSlice[V]: A iterator containing elements transformed by the provided function.
+// - SeqHeap[V]: A iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3}
-//	doubled := slice.
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3)
+//	doubled := heap.
 //		Iter().
 //		Map(
 //			func(val int) int {
 //				return val * 2
 //			}).
-//		Collect()
-//	doubled.Print()
-//
-// Output: [2 4 6].
+//		CollectWith(cmp.Cmp[int])
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] {
-	return SeqSlice[V](iter.Map(iter.Seq[V](seq), transform))
+func (seq SeqHeap[V]) Map(transform func(V) V) SeqHeap[V] {
+	return SeqHeap[V](iter.Map(iter.Seq[V](seq), transform))
 }
 
-// transformSeq converts a generic iter.Seq[V] into a SeqSlice[U] by mapping each element
-// with the provided transformation function `fn`.
-func transformSeq[V, U any](seq iter.Seq[V], fn func(V) U) SeqSlice[U] {
-	return func(yield func(U) bool) {
-		seq(func(v V) bool {
-			return yield(fn(v))
-		})
-	}
-}
-
-// transformStdSeq converts a standard library iter.Seq[V] into a SeqSlice[U] by mapping each element
-// with the provided transformation function `fn`.
-func transformStdSeq[V, U any](seq func(func(V) bool), fn func(V) U) SeqSlice[U] {
-	return func(yield func(U) bool) {
-		seq(func(v V) bool {
-			return yield(fn(v))
-		})
-	}
-}
-
-// Partition divides the elements of the iterator into two separate slices based on a given predicate function.
+// Partition divides the elements of the iterator into two separate heaps based on a given predicate function.
 //
 // The function takes a predicate function 'fn', which should return true or false for each element in the iterator.
-// Elements for which 'fn' returns true are collected into the left slice, while those for which 'fn' returns false
-// are collected into the right slice.
+// Elements for which 'fn' returns true are collected into the left heap, while those for which 'fn' returns false
+// are collected into the right heap.
 //
 // Params:
 //
@@ -604,23 +563,90 @@ func transformStdSeq[V, U any](seq func(func(V) bool), fn func(V) U) SeqSlice[U]
 //
 // Returns:
 //
-// - (Slice[V], Slice[V]): Two slices representing elements that satisfy and don't satisfy the predicate, respectively.
+// - (*Heap[V], *Heap[V]): Two heaps representing elements that satisfy and don't satisfy the predicate, respectively.
 //
 // Example usage:
 //
-//	evens, odds := g.Slice[int]{1, 2, 3, 4, 5}.
-//		Iter().
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	evens, odds := heap.Iter().
 //		Partition(
 //			func(v int) bool {
 //				return v%2 == 0
 //			})
 //
-//	fmt.Println("Even numbers:", evens) // Output: Even numbers: Slice[2, 4]
-//	fmt.Println("Odd numbers:", odds)   // Output: Odd numbers: Slice[1, 3, 5]
+//	fmt.Println("Even numbers:", evens.Iter().Fold([]int{}, func(acc []int, v int) []int { return append(acc, v) }))
+//	fmt.Println("Odd numbers:", odds.Iter().Fold([]int{}, func(acc []int, v int) []int { return append(acc, v) }))
 //
-// The resulting two slices will contain elements separated based on whether they satisfy the predicate or not.
-func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) {
-	return iter.Partition(iter.Seq[V](seq), fn)
+// The resulting two heaps will contain elements separated based on whether they satisfy the predicate or not.
+func (seq SeqHeap[V]) Partition(fn func(v V) bool) (*Heap[V], *Heap[V]) {
+	left := &Heap[V]{
+		data: make(Slice[V], 0),
+		cmp: func(a, b V) cmp.Ordering {
+			if f.IsComparable(a) {
+				// Use direct comparison for comparable types
+				if any(a) == any(b) {
+					return cmp.Equal
+				}
+				// For non-ordered comparables, maintain insertion order
+				return cmp.Equal
+			}
+			// For non-comparable types, use deep equal
+			if f.Eqd(a)(b) {
+				return cmp.Equal
+			}
+			// For non-equal non-comparable types, maintain insertion order
+			return cmp.Equal
+		},
+	}
+
+	right := &Heap[V]{
+		data: make(Slice[V], 0),
+		cmp: func(a, b V) cmp.Ordering {
+			if f.IsComparable(a) {
+				// Use direct comparison for comparable types
+				if any(a) == any(b) {
+					return cmp.Equal
+				}
+				// For non-ordered comparables, maintain insertion order
+				return cmp.Equal
+			}
+			// For non-comparable types, use deep equal
+			if f.Eqd(a)(b) {
+				return cmp.Equal
+			}
+			// For non-equal non-comparable types, maintain insertion order
+			return cmp.Equal
+		},
+	}
+
+	seq(func(v V) bool {
+		if fn(v) {
+			left.Push(v)
+		} else {
+			right.Push(v)
+		}
+		return true
+	})
+
+	return left, right
+}
+
+// PartitionWith divides the elements of the iterator into two separate heaps with custom comparison functions.
+func (seq SeqHeap[V]) PartitionWith(fn func(v V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
+	left := NewHeap(leftCmp)
+	right := NewHeap(rightCmp)
+
+	seq(func(v V) bool {
+		if fn(v) {
+			left.Push(v)
+		} else {
+			right.Push(v)
+		}
+		return true
+	})
+
+	return left, right
 }
 
 // Permutations generates iterators of all permutations of elements.
@@ -636,14 +662,14 @@ func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) {
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3}
-//	perms := slice.Iter().Permutations().Collect()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3)
+//	perms := heap.Iter().Permutations().Collect()
 //	for _, perm := range perms {
 //	    fmt.Println(perm)
 //	}
 //
 // Output:
-
 // Slice[1, 2, 3]
 // Slice[2, 1, 3]
 // Slice[3, 1, 2]
@@ -653,7 +679,7 @@ func (seq SeqSlice[V]) Partition(fn func(v V) bool) (Slice[V], Slice[V]) {
 //
 // The resulting iterator will contain iterators representing all possible permutations
 // of the elements in the original iterator.
-func (seq SeqSlice[V]) Permutations() SeqSlices[V] {
+func (seq SeqHeap[V]) Permutations() SeqSlices[V] {
 	return SeqSlices[V](iter.Permutations(iter.Seq[V](seq)))
 }
 
@@ -668,14 +694,15 @@ func (seq SeqSlice[V]) Permutations() SeqSlices[V] {
 //
 // Example usage:
 //
-//	iter := g.Slice[int]{1, 2, 3, 4, 5}.Iter()
-//	iter.Range(func(val int) bool {
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	heap.Iter().Range(func(val int) bool {
 //	    fmt.Println(val) // Replace this with the function logic you need.
 //	    return val < 5 // Replace this with the condition for continuing iteration.
 //	})
 //
 // The iteration will stop when the provided function returns false for an element.
-func (seq SeqSlice[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn) }
+func (seq SeqHeap[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn) }
 
 // Skip returns a new iterator skipping the first n elements.
 //
@@ -688,18 +715,19 @@ func (seq SeqSlice[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), f
 //
 // Returns:
 //
-// - SeqSlice[V]: An iterator that starts after skipping the first n elements.
+// - SeqHeap[V]: An iterator that starts after skipping the first n elements.
 //
 // Example usage:
 //
-//	iter := g.Slice[int]{1, 2, 3, 4, 5, 6}.Iter()
-//	iter.Skip(3).Collect().Print()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5, 6)
+//	heap.Iter().Skip(3).ForEach(func(v int) { fmt.Print(v, " ") })
 //
-// Output: [4, 5, 6]
+// Output: 4 5 6
 //
 // The resulting iterator will start after skipping the specified number of elements.
-func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] {
-	return SeqSlice[V](iter.Skip(iter.Seq[V](seq), int(n)))
+func (seq SeqHeap[V]) Skip(n uint) SeqHeap[V] {
+	return SeqHeap[V](iter.Skip(iter.Seq[V](seq), int(n)))
 }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
@@ -709,52 +737,51 @@ func (seq SeqSlice[V]) Skip(n uint) SeqSlice[V] {
 // - n uint: The step size, indicating how many elements to skip between each iteration.
 //
 // Returns:
-// - SeqSlice[V]: A new iterator that produces elements from the original iterator with a step size of N.
+// - SeqHeap[V]: A new iterator that produces elements from the original iterator with a step size of N.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-//	iter := slice.Iter().StepBy(3)
-//	result := iter.Collect()
-//	result.Print()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+//	heap.Iter().StepBy(3).ForEach(func(v int) { fmt.Print(v, " ") })
 //
-// Output: [1 4 7 10]
+// Output: 1 4 7 10
 //
 // The resulting iterator will produce elements from the original iterator with a step size of N.
-func (seq SeqSlice[V]) StepBy(n uint) SeqSlice[V] {
-	return SeqSlice[V](iter.StepBy(iter.Seq[V](seq), int(n)))
+func (seq SeqHeap[V]) StepBy(n uint) SeqHeap[V] {
+	return SeqHeap[V](iter.StepBy(iter.Seq[V](seq), int(n)))
 }
 
 // SortBy applies a custom sorting function to the elements in the iterator
 // and returns a new iterator containing the sorted elements.
 //
 // The sorting function 'fn' should take two arguments, 'a' and 'b' of type V,
-// and return true if 'a' should be ordered before 'b', and false otherwise.
+// and return the ordering between them.
 //
 // Example:
 //
-//	g.SliceOf("a", "c", "b").
-//		Iter().
-//		SortBy(func(a, b string) cmp.Ordering { return b.Cmp(a) }).
-//		Collect().
-//		Print()
+//	heap := g.NewHeap(cmp.Cmp[string])
+//	heap.Push("a", "c", "b")
+//	heap.Iter().
+//		SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).
+//		ForEach(func(s string) { fmt.Print(s, " ") })
 //
-// Output: Slice[c, b, a]
+// Output: c b a
 //
-// The returned iterator is of type SeqSlice[V], which implements the iterator
+// The returned iterator is of type SeqHeap[V], which implements the iterator
 // interface for further iteration over the sorted elements.
-func (seq SeqSlice[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqSlice[V] {
-	return SeqSlice[V](iter.SortBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
+func (seq SeqHeap[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqHeap[V] {
+	return SeqHeap[V](iter.SortBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
-func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] {
-	return SeqSlice[V](iter.Take(iter.Seq[V](seq), int(n)))
+func (seq SeqHeap[V]) Take(n uint) SeqHeap[V] {
+	return SeqHeap[V](iter.Take(iter.Seq[V](seq), int(n)))
 }
 
 // Nth returns the nth element (0-indexed) in the sequence.
-func (seq SeqSlice[V]) Nth(n Int) Option[V] {
+func (seq SeqHeap[V]) Nth(n Int) Option[V] {
 	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
 }
 
@@ -773,16 +800,17 @@ func (seq SeqSlice[V]) Nth(n Int) Option[V] {
 //
 // Example usage:
 //
-//	iter := g.Slice[int]{1, 2, 3}.Iter()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3)
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
-//	ch := iter.ToChan(ctx)
+//	ch := heap.Iter().ToChan(ctx)
 //	for val := range ch {
 //	    fmt.Println(val)
 //	}
 //
 // The resulting channel allows streaming elements from the iterator with optional context handling.
-func (seq SeqSlice[V]) ToChan(ctxs ...context.Context) chan V {
+func (seq SeqHeap[V]) ToChan(ctxs ...context.Context) chan V {
 	ctx := context.Background()
 	if len(ctxs) > 0 {
 		ctx = ctxs[0]
@@ -797,24 +825,24 @@ func (seq SeqSlice[V]) ToChan(ctxs ...context.Context) chan V {
 //
 // Returns:
 //
-// - SeqSlice[V]: An iterator containing unique elements from the original iterator.
+// - SeqHeap[V]: An iterator containing unique elements from the original iterator.
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 2, 4, 5, 3}
-//	unique := slice.Iter().Unique().Collect()
-//	unique.Print()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 2, 4, 5, 3)
+//	heap.Iter().Unique().ForEach(func(v int) { fmt.Print(v, " ") })
 //
-// Output: [1, 2, 3, 4, 5].
+// Output: 1 2 3 4 5
 //
 // The resulting iterator will contain only unique elements from the original iterator.
-func (seq SeqSlice[V]) Unique() SeqSlice[V] {
-	return SeqSlice[V](iter.Unique(iter.Seq[V](seq)))
+func (seq SeqHeap[V]) Unique() SeqHeap[V] {
+	return SeqHeap[V](iter.Unique(iter.Seq[V](seq)))
 }
 
 // Zip combines elements from the current sequence and another sequence into pairs,
 // creating an ordered map with identical keys and values of type V.
-func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] {
+func (seq SeqHeap[V]) Zip(two SeqHeap[V]) SeqMapOrd[V, V] {
 	return func(yield func(V, V) bool) {
 		zipSeq := iter.Zip(iter.Seq[V](seq), iter.Seq[V](two))
 		zipSeq(func(a, b V) bool {
@@ -838,9 +866,9 @@ func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] {
 //
 // Example usage:
 //
-//	iter := g.Slice[int]{1, 2, 3, 4, 5}.Iter()
-//
-//	found := iter.Find(
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	found := heap.Iter().Find(
 //		func(i int) bool {
 //			return i == 2
 //		})
@@ -852,7 +880,7 @@ func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] {
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] {
+func (seq SeqHeap[V]) Find(fn func(v V) bool) Option[V] {
 	return OptionOf(iter.Find(iter.Seq[V](seq), fn))
 }
 
@@ -871,65 +899,33 @@ func (seq SeqSlice[V]) Find(fn func(v V) bool) Option[V] {
 //
 // Example usage:
 //
-//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
-//	windows := slice.Iter().Windows(3).Collect()
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5, 6)
+//	windows := heap.Iter().Windows(3).Collect()
 //
 // Output: [Slice[1, 2, 3] Slice[2, 3, 4] Slice[3, 4, 5] Slice[4, 5, 6]]
 //
 // The resulting iterator will yield sliding windows of elements, each containing the specified number of elements.
-func (seq SeqSlice[V]) Windows(n Int) SeqSlices[V] {
+func (seq SeqHeap[V]) Windows(n Int) SeqSlices[V] {
 	return SeqSlices[V](iter.Windows(iter.Seq[V](seq), int(n)))
 }
 
 // Context allows the iteration to be controlled with a context.Context.
-func (seq SeqSlice[V]) Context(ctx context.Context) SeqSlice[V] {
-	return SeqSlice[V](iter.Context(iter.Seq[V](seq), ctx))
+func (seq SeqHeap[V]) Context(ctx context.Context) SeqHeap[V] {
+	return SeqHeap[V](iter.Context(iter.Seq[V](seq), ctx))
 }
 
 // MaxBy returns the maximum element in the sequence using the provided comparison function.
-func (seq SeqSlice[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
+func (seq SeqHeap[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
 	return OptionOf(iter.MaxBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
-// Min returns the minimum element in the sequence using the provided comparison function.
-func (seq SeqSlice[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
+// MinBy returns the minimum element in the sequence using the provided comparison function.
+func (seq SeqHeap[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
 	return OptionOf(iter.MinBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
-// FromChan converts a channel into an iterator.
-//
-// This function takes a channel as input and converts its elements into an iterator,
-// allowing seamless integration of channels into iterator-based processing pipelines.
-// It continuously reads from the channel until it's closed,
-// yielding each element to the provided yield function.
-//
-// Parameters:
-// - ch (<-chan V): The input channel to convert into an iterator.
-//
-// Returns:
-// - SeqSlice[V]: An iterator that yields elements from the channel.
-//
-// Example usage:
-//
-//	ch := make(chan int)
-//	go func() {
-//		defer close(ch)
-//		for i := 1; i <= 5; i++ {
-//			ch <- i
-//		}
-//	}()
-//
-//	// Convert the channel into an iterator and apply filtering and mapping operations.
-//	g.FromChan(ch).
-//		Filter(func(i int) bool { return i%2 == 0 }). // Filter even numbers.
-//		Map(func(i int) int { return i * 2 }).        // Double each element.
-//		Collect().                                    // Collect the results into a slice.
-//		Print()                                       // Print the collected results.
-//
-// Output: Slice[4, 8]
-//
-// The resulting iterator will yield elements from the provided channel, filtering out odd numbers,
-// doubling each even number, and finally collecting the results into a slice.
-func FromChan[V any](ch <-chan V) SeqSlice[V] {
-	return SeqSlice[V](iter.FromChan(ch))
+// Eq checks whether two heap sequences are equal.
+func (seq SeqHeap[T]) Eq(other SeqHeap[T]) bool {
+	return iter.Equal(iter.Seq[T](seq), iter.Seq[T](other))
 }

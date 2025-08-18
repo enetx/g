@@ -1,6 +1,8 @@
 package g
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {
@@ -61,32 +63,18 @@ func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
-func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
-
-// IntoIter returns a consuming iterator (SeqSet[T]) for the Set,
-// transferring ownership of its elements and clearing the original Set.
-//
-// After calling IntoIter, the original Set is emptied and should not be reused
-// unless reassigned or repopulated.
-//
-// Returns:
-//
-// A SeqSet[T] that yields the elements of the Set and consumes them in the process.
-//
-// Example:
-//
-//	s := g.SetOf(1, 2, 3)
-//	iter := s.IntoIter()
-//	s.Len() // 0
-//	iter.ForEach(func(v int) {
-//	    fmt.Println(v)
-//	})
-func (s *Set[T]) IntoIter() SeqSet[T] {
-	data := *s
-	*s = nil
-
-	return seqSet(data)
+// func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
+func (s Set[T]) Iter() SeqSet[T] {
+	return func(yield func(T) bool) {
+		for v := range s {
+			if !yield(v) {
+				return
+			}
+		}
+	}
 }
+
+// func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
 
 // Insert adds the provided elements to the set.
 func (s Set[T]) Insert(values ...T) {

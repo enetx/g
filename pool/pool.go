@@ -113,7 +113,7 @@ func (p *Pool[T]) Wait() Slice[Result[T]] {
 	p.Cancel()
 	p.tokens = nil
 
-	return p.results.IntoIter().Values().Collect()
+	return p.results.Iter().Values().Collect()
 }
 
 // Limit sets the maximum number of concurrently running tasks.

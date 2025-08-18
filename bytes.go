@@ -175,7 +175,7 @@ func (bs Bytes) StripSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cu
 
 // Split splits the Bytes by the specified separator and returns the iterator.
 func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
-	return transformSeq(
+	return transformStdSeq(
 		bytes.SplitSeq(bs, Slice[Bytes](sep).Get(0).UnwrapOrDefault()),
 		func(b []byte) Bytes { return Bytes(b) },
 	)
@@ -183,18 +183,18 @@ func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
 
 // SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
 func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
-	return transformSeq(bytes.SplitAfterSeq(bs, sep), func(b []byte) Bytes { return Bytes(b) })
+	return transformStdSeq(bytes.SplitAfterSeq(bs, sep), func(b []byte) Bytes { return Bytes(b) })
 }
 
 // Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
 func (bs Bytes) Fields() SeqSlice[Bytes] {
-	return transformSeq(bytes.FieldsSeq(bs), func(b []byte) Bytes { return Bytes(b) })
+	return transformStdSeq(bytes.FieldsSeq(bs), func(b []byte) Bytes { return Bytes(b) })
 }
 
 // FieldsBy splits the Bytes into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
 func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
-	return transformSeq(bytes.FieldsFuncSeq(bs, fn), func(b []byte) Bytes { return Bytes(b) })
+	return transformStdSeq(bytes.FieldsFuncSeq(bs, fn), func(b []byte) Bytes { return Bytes(b) })
 }
 
 // Append appends the given Bytes to the current Bytes.

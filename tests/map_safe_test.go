@@ -73,39 +73,6 @@ func TestMapSafeGetAndSet(t *testing.T) {
 	}
 }
 
-func TestMapSafeIntoIter(t *testing.T) {
-	ms := NewMapSafe[string, int]()
-	ms.Set("a", 1)
-	ms.Set("b", 2)
-	ms.Set("c", 3)
-
-	if ms.Len() != 3 {
-		t.Fatalf("expected Len = 3, got %d", ms.Len())
-	}
-
-	collected := make(map[string]int)
-
-	ms.IntoIter().ForEach(func(k string, v int) {
-		collected[k] = v
-	})
-
-	if ms.Len() != 0 {
-		t.Fatalf("expected map to be empty after IntoIter, got Len = %d", ms.Len())
-	}
-
-	expected := map[string]int{"a": 1, "b": 2, "c": 3}
-	if len(collected) != len(expected) {
-		t.Fatalf("expected %d collected items, got %d", len(expected), len(collected))
-	}
-
-	for k, v := range expected {
-		got, ok := collected[k]
-		if !ok || got != v {
-			t.Errorf("expected %q: %d, got %d (ok=%v)", k, v, got, ok)
-		}
-	}
-}
-
 func TestMapSafe(t *testing.T) {
 	t.Run("TestNewMapSafe", func(t *testing.T) {
 		ms := NewMapSafe[string, int]()

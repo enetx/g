@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -564,5 +565,159 @@ func TestSeqMapParChainComprehensive(t *testing.T) {
 		}
 
 		t.Logf("Map value correctness - All %d pairs verified", len(expectedPairs))
+	})
+}
+
+func TestMapOrderedIterContext(t *testing.T) {
+	t.Run("context cancellation stops iteration", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+		m.Set("fourth", 4)
+		m.Set("fifth", 5)
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []g.Pair[string, int]
+		iter := m.Iter().Context(ctx)
+
+		// Cancel context after processing 3 elements
+		count := 0
+		iter(func(k string, v int) bool {
+			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			count++
+			if count == 3 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed exactly 3 elements before cancellation
+		if len(collected) != 3 {
+			t.Errorf("Expected 3 elements, got %d: %v", len(collected), collected)
+		}
+
+		// Verify order is maintained
+		expected := []g.Pair[string, int]{
+			{Key: "first", Value: 1},
+			{Key: "second", Value: 2},
+			{Key: "third", Value: 3},
+		}
+
+		for i, pair := range collected {
+			if pair.Key != expected[i].Key || pair.Value != expected[i].Value {
+				t.Errorf("Order mismatch at index %d: got %v, want %v", i, pair, expected[i])
+			}
+		}
+	})
+
+	t.Run("context timeout", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		var collected []g.Pair[string, int]
+		m.Iter().Context(ctx)(func(k string, v int) bool {
+			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			return true
+		})
+
+		// Should collect nothing due to immediate cancellation
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 elements due to cancelled context, got %d: %v", len(collected), collected)
+		}
+	})
+}
+
+func TestMapOrderedIterNth(t *testing.T) {
+	t.Run("nth element exists with order preservation", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+		m.Set("fourth", 4)
+		m.Set("fifth", 5)
+
+		// Get the 2nd pair (0-indexed) - should be "third": 3
+		nth := m.Iter().Nth(2)
+
+		if nth.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := nth.Some()
+			if pair.Key != "third" || pair.Value != 3 {
+				t.Errorf("Expected {third: 3}, got {%s: %d}", pair.Key, pair.Value)
+			}
+		}
+	})
+
+	t.Run("nth element maintains insertion order", func(t *testing.T) {
+		m := g.NewMapOrd[int, string]()
+		m.Set(10, "ten")
+		m.Set(20, "twenty")
+		m.Set(30, "thirty")
+		m.Set(40, "forty")
+
+		// Test each position
+		testCases := []struct {
+			index    g.Int
+			expected g.Pair[int, string]
+		}{
+			{0, g.Pair[int, string]{Key: 10, Value: "ten"}},
+			{1, g.Pair[int, string]{Key: 20, Value: "twenty"}},
+			{2, g.Pair[int, string]{Key: 30, Value: "thirty"}},
+			{3, g.Pair[int, string]{Key: 40, Value: "forty"}},
+		}
+
+		for _, tc := range testCases {
+			nth := m.Iter().Nth(tc.index)
+			if nth.IsNone() {
+				t.Errorf("Expected Some value at index %d, got None", tc.index)
+			} else {
+				pair := nth.Some()
+				if pair.Key != tc.expected.Key || pair.Value != tc.expected.Value {
+					t.Errorf("At index %d: expected {%d: %s}, got {%d: %s}",
+						tc.index, tc.expected.Key, tc.expected.Value, pair.Key, pair.Value)
+				}
+			}
+		}
+	})
+
+	t.Run("nth element out of bounds", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+
+		nth := m.Iter().Nth(5)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for out of bounds index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("negative index", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+
+		nth := m.Iter().Nth(-1)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for negative index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+
+		nth := m.Iter().Nth(0)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for empty map, got Some(%v)", nth.Some())
+		}
 	})
 }

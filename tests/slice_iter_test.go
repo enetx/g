@@ -117,27 +117,6 @@ func TestSliceIterGroupBy_Strings(t *testing.T) {
 	}
 }
 
-func TestSliceIntoIter(t *testing.T) {
-	s := SliceOf(1, 2, 3, 4, 5)
-
-	if len(s) != 5 {
-		t.Fatalf("expected slice to have 5 elements, got %d", len(s))
-	}
-
-	iter := s.IntoIter()
-
-	if len(s) != 0 {
-		t.Fatalf("expected slice to be empty after IntoIter, got %d elements", len(s))
-	}
-
-	result := iter.Map(func(x int) int { return x * 10 }).Collect()
-
-	expected := SliceOf(10, 20, 30, 40, 50)
-	if !result.Eq(expected) {
-		t.Errorf("expected result %v, got %v", expected, result)
-	}
-}
-
 func TestSliceIterFromChan(t *testing.T) {
 	// Create a channel and populate it with some test data
 	ch := make(chan int)
@@ -443,7 +422,6 @@ func TestSliceIterPermutations(t *testing.T) {
 	slice1 := SliceOf(1)
 	perms1 := slice1.Iter().Permutations().Collect()
 	expectedPerms1 := []Slice[int]{slice1}
-
 	if !reflect.DeepEqual(perms1, expectedPerms1) {
 		t.Errorf("expected %v, but got %v", expectedPerms1, perms1)
 	}
@@ -455,23 +433,21 @@ func TestSliceIterPermutations(t *testing.T) {
 		{"a", "b"},
 		{"b", "a"},
 	}
-
 	if !reflect.DeepEqual(perms2, expectedPerms2) {
 		t.Errorf("expected %v, but got %v", expectedPerms2, perms2)
 	}
 
-	// Test case 3: Three-element float64 slice
+	// Test case 3: Three-element float64 slice (Heap order)
 	slice3 := SliceOf(1.0, 2.0, 3.0)
 	perms3 := slice3.Iter().Permutations().Collect()
 	expectedPerms3 := []Slice[float64]{
 		{1.0, 2.0, 3.0},
-		{1.0, 3.0, 2.0},
 		{2.0, 1.0, 3.0},
-		{2.0, 3.0, 1.0},
 		{3.0, 1.0, 2.0},
+		{1.0, 3.0, 2.0},
+		{2.0, 3.0, 1.0},
 		{3.0, 2.0, 1.0},
 	}
-
 	if !reflect.DeepEqual(perms3, expectedPerms3) {
 		t.Errorf("expected %v, but got %v", expectedPerms3, perms3)
 	}
@@ -480,41 +456,39 @@ func TestSliceIterPermutations(t *testing.T) {
 	slice4 := Slice[any]{}
 	perms4 := slice4.Iter().Permutations().Collect()
 	expectedPerms4 := []Slice[any]{}
-
 	if !reflect.DeepEqual(perms4, expectedPerms4) {
 		t.Errorf("expected %v, but got %v", expectedPerms4, perms4)
 	}
 
-	// Additional Test case 5: Four-element mixed-type slice
+	// Additional Test case 5: Four-element mixed-type slice (Heap order)
 	slice5 := SliceOf[any]("a", 1, 2.5, true)
 	perms5 := slice5.Iter().Permutations().Collect()
 	expectedPerms5 := []Slice[any]{
 		{"a", 1, 2.5, true},
-		{"a", 1, true, 2.5},
-		{"a", 2.5, 1, true},
-		{"a", 2.5, true, 1},
-		{"a", true, 1, 2.5},
-		{"a", true, 2.5, 1},
 		{1, "a", 2.5, true},
-		{1, "a", true, 2.5},
-		{1, 2.5, "a", true},
-		{1, 2.5, true, "a"},
-		{1, true, "a", 2.5},
-		{1, true, 2.5, "a"},
 		{2.5, "a", 1, true},
-		{2.5, "a", true, 1},
+		{"a", 2.5, 1, true},
+		{1, 2.5, "a", true},
 		{2.5, 1, "a", true},
-		{2.5, 1, true, "a"},
-		{2.5, true, "a", 1},
-		{2.5, true, 1, "a"},
-		{true, "a", 1, 2.5},
-		{true, "a", 2.5, 1},
-		{true, 1, "a", 2.5},
 		{true, 1, 2.5, "a"},
-		{true, 2.5, "a", 1},
+		{1, true, 2.5, "a"},
+		{2.5, true, 1, "a"},
 		{true, 2.5, 1, "a"},
+		{1, 2.5, true, "a"},
+		{2.5, 1, true, "a"},
+		{true, "a", 2.5, 1},
+		{"a", true, 2.5, 1},
+		{2.5, true, "a", 1},
+		{true, 2.5, "a", 1},
+		{"a", 2.5, true, 1},
+		{2.5, "a", true, 1},
+		{true, "a", 1, 2.5},
+		{"a", true, 1, 2.5},
+		{1, true, "a", 2.5},
+		{true, 1, "a", 2.5},
+		{"a", 1, true, 2.5},
+		{1, "a", true, 2.5},
 	}
-
 	if !reflect.DeepEqual(perms5, expectedPerms5) {
 		t.Errorf("expected %v, but got %v", expectedPerms5, perms5)
 	}
@@ -1347,4 +1321,133 @@ func TestRangeInclusive(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSliceIterContext(t *testing.T) {
+	t.Run("context cancellation stops iteration", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []int
+		iter := slice.Iter().Context(ctx)
+
+		// Cancel context after processing 3 elements
+		count := 0
+		iter(func(v int) bool {
+			collected = append(collected, v)
+			count++
+			if count == 3 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed exactly 3 elements before cancellation
+		if len(collected) != 3 {
+			t.Errorf("Expected 3 elements, got %d: %v", len(collected), collected)
+		}
+
+		expected := []int{1, 2, 3}
+		if !reflect.DeepEqual(collected, expected) {
+			t.Errorf("Expected %v, got %v", expected, collected)
+		}
+	})
+
+	t.Run("context timeout", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3, 4, 5)
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		var collected []int
+		slice.Iter().Context(ctx)(func(v int) bool {
+			collected = append(collected, v)
+			return true
+		})
+
+		// Should collect nothing due to immediate cancellation
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 elements due to cancelled context, got %d: %v", len(collected), collected)
+		}
+	})
+}
+
+func TestSliceIterNth(t *testing.T) {
+	t.Run("nth element exists", func(t *testing.T) {
+		slice := SliceOf(10, 20, 30, 40, 50)
+
+		// Get the 2nd element (0-indexed) - should be 30
+		nth := slice.Iter().Nth(2)
+
+		if nth.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if nth.Some() != 30 {
+			t.Errorf("Expected 30, got %d", nth.Some())
+		}
+	})
+
+	t.Run("nth element maintains order", func(t *testing.T) {
+		slice := SliceOf("first", "second", "third", "fourth", "fifth")
+
+		testCases := []struct {
+			index    Int
+			expected string
+		}{
+			{0, "first"},
+			{1, "second"},
+			{2, "third"},
+			{3, "fourth"},
+			{4, "fifth"},
+		}
+
+		for _, tc := range testCases {
+			nth := slice.Iter().Nth(tc.index)
+			if nth.IsNone() {
+				t.Errorf("Expected Some value at index %d, got None", tc.index)
+			} else if nth.Some() != tc.expected {
+				t.Errorf("At index %d: expected %s, got %s", tc.index, tc.expected, nth.Some())
+			}
+		}
+	})
+
+	t.Run("nth element out of bounds", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3)
+
+		nth := slice.Iter().Nth(5)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for out of bounds index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("negative index", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3)
+
+		nth := slice.Iter().Nth(-1)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for negative index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		slice := SliceOf[int]()
+
+		nth := slice.Iter().Nth(0)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for empty slice, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("first element", func(t *testing.T) {
+		slice := SliceOf(42)
+
+		nth := slice.Iter().Nth(0)
+
+		if nth.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if nth.Some() != 42 {
+			t.Errorf("Expected 42, got %d", nth.Some())
+		}
+	})
 }

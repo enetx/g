@@ -1,9 +1,11 @@
 package g
 
 import (
-	"iter"
 	"os"
 	"sync"
+
+	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/iter"
 )
 
 type (
@@ -71,10 +73,7 @@ type (
 	Set[T comparable] map[T]struct{}
 
 	// Pair is a struct representing a key-value Pair for MapOrd.
-	Pair[K, V any] struct {
-		Key   K // Key of the pair.
-		Value V // Value associated with the key.
-	}
+	Pair[K, V any] = iter.Pair[K, V]
 
 	// MapOrd is a generic alias for a slice of ordered key-value pairs.
 	MapOrd[K, V any] []Pair[K, V]
@@ -91,6 +90,19 @@ type (
 		data sync.Map
 	}
 
+	Heap[T any] struct {
+		data Slice[T]
+		cmp  func(T, T) cmp.Ordering
+	}
+
+	// Deque is a double-ended queue implemented with a growable ring buffer.
+	// It provides efficient insertion and removal of elements at both ends.
+	Deque[T any] struct {
+		data  Slice[T]
+		front Int
+		len   Int
+	}
+
 	// Named is a map-like type that stores key-value pairs for resolving named
 	// placeholders in Sprintf.
 	Named Map[String, any]
@@ -100,6 +112,11 @@ type (
 
 	// SeqSlice is an iterator over sequences of individual values.
 	SeqSlice[V any] iter.Seq[V]
+
+	SeqHeap[V any] iter.Seq[V]
+
+	// SeqDeque is an iterator over sequences of Deque values.
+	SeqDeque[V any] iter.Seq[V]
 
 	// SeqResult is an iterator over sequences of Result[V] values.
 	SeqResult[V any] iter.Seq[Result[V]]

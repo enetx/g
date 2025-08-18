@@ -1,6 +1,10 @@
 package g
 
-import "iter"
+import (
+	"context"
+
+	"github.com/enetx/g/iter"
+)
 
 // Pull converts the “push-style” iterator sequence seq
 // into a “pull-style” iterator accessed by the two functions
@@ -26,12 +30,7 @@ func (seq SeqSet[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.S
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (seq SeqSet[V]) Inspect(fn func(v V)) SeqSet[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			fn(v)
-			return yield(v)
-		})
-	}
+	return SeqSet[V](iter.Inspect(iter.Seq[V](seq), fn))
 }
 
 // Collect gathers all elements from the iterator into a Set.
@@ -69,25 +68,16 @@ func (seq SeqSet[V]) Collect() Set[V] {
 //
 // The resulting iterator will contain elements from both iterators.
 func (seq SeqSet[V]) Chain(seqs ...SeqSet[V]) SeqSet[V] {
-	return func(yield func(V) bool) {
-		for _, seq := range append([]SeqSet[V]{seq}, seqs...) {
-			seq(func(v V) bool {
-				return yield(v)
-			})
-		}
+	iterSeqs := make([]iter.Seq[V], len(seqs))
+	for i, s := range seqs {
+		iterSeqs[i] = iter.Seq[V](s)
 	}
+
+	return SeqSet[V](iter.Chain(iter.Seq[V](seq), iterSeqs...))
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSet[V]) Count() Int {
-	var counter Int
-	seq(func(V) bool {
-		counter++
-		return true
-	})
-
-	return counter
-}
+func (seq SeqSet[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 
 // ForEach iterates through all elements and applies the given function to each.
 //
@@ -105,12 +95,7 @@ func (seq SeqSet[V]) Count() Int {
 //	})
 //
 // The provided function will be applied to each element in the iterator.
-func (seq SeqSet[V]) ForEach(fn func(v V)) {
-	seq(func(v V) bool {
-		fn(v)
-		return true
-	})
-}
+func (seq SeqSet[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) }
 
 // Range iterates through elements until the given function returns false.
 //
@@ -131,11 +116,7 @@ func (seq SeqSet[V]) ForEach(fn func(v V)) {
 //	    print(v)
 //	    return true
 //	})
-func (seq SeqSet[V]) Range(fn func(v V) bool) {
-	seq(func(v V) bool {
-		return fn(v)
-	})
-}
+func (seq SeqSet[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn) }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -166,14 +147,7 @@ func (seq SeqSet[V]) Range(fn func(v V) bool) {
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if fn(v) {
-				return yield(v)
-			}
-			return true
-		})
-	}
+	return SeqSet[V](iter.Filter(iter.Seq[V](seq), fn))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -205,14 +179,7 @@ func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			if !fn(v) {
-				return yield(v)
-			}
-			return true
-		})
-	}
+	return SeqSet[V](iter.Exclude(iter.Seq[V](seq), fn))
 }
 
 // Map transforms each element in the iterator using the given function.
@@ -243,11 +210,7 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
 //
 // The resulting iterator will contain elements transformed by the provided function.
 func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
-	return func(yield func(V) bool) {
-		seq(func(v V) bool {
-			return yield(transform(v))
-		})
-	}
+	return SeqSet[V](iter.Map(iter.Seq[V](seq), transform))
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -279,26 +242,22 @@ func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (seq SeqSet[V]) Find(fn func(v V) bool) (r Option[V]) {
-	seq(func(v V) bool {
-		if !fn(v) {
-			return true
-		}
-		r = Some(v)
-		return false
-	})
-
-	return r
+func (seq SeqSet[V]) Find(fn func(v V) bool) Option[V] {
+	return OptionOf(iter.Find(iter.Seq[V](seq), fn))
 }
 
-func seqSet[V comparable](slice Set[V]) SeqSet[V] {
-	return func(yield func(V) bool) {
-		for v := range slice {
-			if !yield(v) {
-				return
-			}
-		}
-	}
+// Context allows the iteration to be controlled with a context.Context.
+func (seq SeqSet[V]) Context(ctx context.Context) SeqSet[V] {
+	return SeqSet[V](iter.Context(iter.Seq[V](seq), ctx))
+}
+
+// Take returns a new iterator with the first n elements.
+// The function creates a new iterator containing the first n elements from the original iterator.
+func (seq SeqSet[V]) Take(n uint) SeqSet[V] { return SeqSet[V](iter.Take(iter.Seq[V](seq), int(n))) }
+
+// Nth returns the nth element (0-indexed) in the sequence.
+func (seq SeqSet[V]) Nth(n Int) Option[V] {
+	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
 }
 
 func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {

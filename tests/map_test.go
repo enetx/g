@@ -804,43 +804,6 @@ func TestMapTransformMap(t *testing.T) {
 	}
 }
 
-func TestMapIntoIter(t *testing.T) {
-	m := Map[string, int]{
-		"one":   1,
-		"two":   2,
-		"three": 3,
-	}
-
-	if len(m) != 3 {
-		t.Fatalf("expected map to have 3 items, got %d", len(m))
-	}
-
-	collected := make(map[string]int)
-	m.IntoIter().ForEach(func(k string, v int) {
-		collected[k] = v
-	})
-
-	if len(m) != 0 {
-		t.Fatalf("expected map to be empty after IntoIter, got %d", len(m))
-	}
-
-	expected := map[string]int{
-		"one":   1,
-		"two":   2,
-		"three": 3,
-	}
-
-	if len(collected) != len(expected) {
-		t.Fatalf("expected %d collected items, got %d", len(expected), len(collected))
-	}
-
-	for k, v := range expected {
-		if got, ok := collected[k]; !ok || got != v {
-			t.Errorf("expected key %q with value %d, got %d (ok=%v)", k, v, got, ok)
-		}
-	}
-}
-
 // go test -bench=. -benchmem -count=4
 
 func genM() Map[String, int] {

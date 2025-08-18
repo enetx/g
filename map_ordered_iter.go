@@ -2,9 +2,9 @@ package g
 
 import (
 	"context"
-	"iter"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/iter"
 )
 
 // Pull converts the “push-style” iterator sequence seq
@@ -32,20 +32,12 @@ func (seq SeqMapOrd[K, V]) Pull() (func() (K, V, bool), func()) {
 
 // Keys returns an iterator containing all the keys in the ordered Map.
 func (seq SeqMapOrd[K, V]) Keys() SeqSlice[K] {
-	return func(yield func(K) bool) {
-		seq(func(k K, _ V) bool {
-			return yield(k)
-		})
-	}
+	return SeqSlice[K](iter.Keys(iter.Seq2[K, V](seq)))
 }
 
 // Values returns an iterator containing all the values in the ordered Map.
 func (seq SeqMapOrd[K, V]) Values() SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(_ K, v V) bool {
-			return yield(v)
-		})
-	}
+	return SeqSlice[V](iter.Values(iter.Seq2[K, V](seq)))
 }
 
 // Unzip returns a tuple of slices containing keys and values from the ordered map.
@@ -82,10 +74,9 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 // The returned iterator is of type SeqMapOrd[K, V], which implements the iterator
 // interface for further iteration over the sorted elements.
 func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapOrd[K, V] {
-	items := seq.Collect()
-	items.SortBy(fn)
-
-	return items.Iter()
+	return SeqMapOrd[K, V](
+		iter.SortBy2(iter.Seq2[K, V](seq), func(a, b iter.Pair[K, V]) bool { return fn(a, b) == cmp.Less }),
+	)
 }
 
 // SortByKey applies a custom sorting function to the keys in the iterator
@@ -112,10 +103,7 @@ func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapO
 //
 // Output: MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
 func (seq SeqMapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) SeqMapOrd[K, V] {
-	items := seq.Collect()
-	items.SortByKey(fn)
-
-	return items.Iter()
+	return SeqMapOrd[K, V](iter.OrderByKey(iter.Seq2[K, V](seq), func(a, b K) bool { return fn(a, b) == cmp.Less }))
 }
 
 // SortByValue applies a custom sorting function to the values in the iterator
@@ -142,21 +130,13 @@ func (seq SeqMapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) SeqMapOrd[K, 
 //
 // Output: MapOrd{1:aa, 6:bb, 2:cc, 0:dd, 3:ff, 5:xx, 4:zz}
 func (seq SeqMapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) SeqMapOrd[K, V] {
-	items := seq.Collect()
-	items.SortByValue(fn)
-
-	return items.Iter()
+	return SeqMapOrd[K, V](iter.OrderByValue(iter.Seq2[K, V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
 func (seq SeqMapOrd[K, V]) Inspect(fn func(k K, v V)) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			fn(k, v)
-			return yield(k, v)
-		})
-	}
+	return SeqMapOrd[K, V](iter.Inspect2(iter.Seq2[K, V](seq), fn))
 }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
@@ -179,17 +159,7 @@ func (seq SeqMapOrd[K, V]) Inspect(fn func(k K, v V)) SeqMapOrd[K, V] {
 //
 // The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
 func (seq SeqMapOrd[K, V]) StepBy(n uint) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		i := uint(0)
-		seq(func(k K, v V) bool {
-			i++
-			if (i-1)%n == 0 {
-				return yield(k, v)
-			}
-
-			return true
-		})
-	}
+	return SeqMapOrd[K, V](iter.StepBy2(iter.Seq2[K, V](seq), int(n)))
 }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
@@ -220,33 +190,23 @@ func (seq SeqMapOrd[K, V]) StepBy(n uint) SeqMapOrd[K, V] {
 //
 // The resulting iterator will contain elements from both iterators in the specified order.
 func (seq SeqMapOrd[K, V]) Chain(seqs ...SeqMapOrd[K, V]) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		for _, seq := range append([]SeqMapOrd[K, V]{seq}, seqs...) {
-			seq(func(k K, v V) bool {
-				return yield(k, v)
-			})
-		}
+	iterSeqs := make([]iter.Seq2[K, V], len(seqs))
+	for i, s := range seqs {
+		iterSeqs[i] = iter.Seq2[K, V](s)
 	}
+
+	return SeqMapOrd[K, V](iter.Chain2(iter.Seq2[K, V](seq), iterSeqs...))
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqMapOrd[K, V]) Count() Int {
-	var counter Int
-
-	seq(func(K, V) bool {
-		counter++
-		return true
-	})
-
-	return counter
-}
+func (seq SeqMapOrd[K, V]) Count() Int { return Int(iter.Count2(iter.Seq2[K, V](seq))) }
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
 func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
 	var collection MapOrd[K, V]
 
 	seq(func(k K, v V) bool {
-		collection = append(collection, Pair[K, V]{k, v})
+		collection = append(collection, Pair[K, V]{Key: k, Value: v})
 		return true
 	})
 
@@ -284,15 +244,7 @@ func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (seq SeqMapOrd[K, V]) Skip(n uint) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if n > 0 {
-				n--
-				return true
-			}
-			return yield(k, v)
-		})
-	}
+	return SeqMapOrd[K, V](iter.Skip2(iter.Seq2[K, V](seq), int(n)))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -330,14 +282,7 @@ func (seq SeqMapOrd[K, V]) Skip(n uint) SeqMapOrd[K, V] {
 //
 // The resulting iterator will exclude elements based on the provided condition.
 func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if !fn(k, v) {
-				return yield(k, v)
-			}
-			return true
-		})
-	}
+	return SeqMapOrd[K, V](iter.Exclude2(iter.Seq2[K, V](seq), fn))
 }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
@@ -375,14 +320,7 @@ func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] {
 //
 // The resulting iterator will include elements based on the provided condition.
 func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if fn(k, v) {
-				return yield(k, v)
-			}
-			return true
-		})
-	}
+	return SeqMapOrd[K, V](iter.Filter2(iter.Seq2[K, V](seq), fn))
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -408,16 +346,13 @@ func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] {
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (seq SeqMapOrd[K, V]) Find(fn func(k K, v V) bool) (r Option[Pair[K, V]]) {
-	seq(func(k K, v V) bool {
-		if !fn(k, v) {
-			return true
-		}
-		r = Some(Pair[K, V]{k, v})
-		return false
-	})
+func (seq SeqMapOrd[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
+	key, value, found := iter.Find2(iter.Seq2[K, V](seq), fn)
+	if found {
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
 
-	return r
+	return None[Pair[K, V]]()
 }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
@@ -445,10 +380,7 @@ func (seq SeqMapOrd[K, V]) Find(fn func(k K, v V) bool) (r Option[Pair[K, V]]) {
 //
 // The provided function will be applied to each key-value pair in the iterator.
 func (seq SeqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
-	seq(func(k K, v V) bool {
-		fn(k, v)
-		return true
-	})
+	iter.ForEach2(iter.Seq2[K, V](seq), fn)
 }
 
 // Map creates a new iterator by applying the given function to each key-value pair.
@@ -486,11 +418,7 @@ func (seq SeqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
 //
 // The resulting iterator will contain transformed key-value pairs.
 func (seq SeqMapOrd[K, V]) Map(transform func(K, V) (K, V)) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			return yield(transform(k, v))
-		})
-	}
+	return SeqMapOrd[K, V](iter.Map2(iter.Seq2[K, V](seq), transform))
 }
 
 // Range iterates through elements until the given function returns false.
@@ -520,23 +448,28 @@ func (seq SeqMapOrd[K, V]) Map(transform func(K, V) (K, V)) SeqMapOrd[K, V] {
 //
 // The iteration will stop when the provided function returns false.
 func (seq SeqMapOrd[K, V]) Range(fn func(k K, v V) bool) {
-	seq(func(k K, v V) bool {
-		return fn(k, v)
-	})
+	iter.Range2(iter.Seq2[K, V](seq), fn)
+}
+
+// Context allows the iteration to be controlled with a context.Context.
+func (seq SeqMapOrd[K, V]) Context(ctx context.Context) SeqMapOrd[K, V] {
+	return SeqMapOrd[K, V](iter.Context2(iter.Seq2[K, V](seq), ctx))
 }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (seq SeqMapOrd[K, V]) Take(n uint) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if n == 0 {
-				return false
-			}
-			n--
-			return yield(k, v)
-		})
+	return SeqMapOrd[K, V](iter.Take2(iter.Seq2[K, V](seq), int(n)))
+}
+
+// Nth returns the nth key-value pair (0-indexed) in the sequence.
+func (seq SeqMapOrd[K, V]) Nth(n Int) Option[Pair[K, V]] {
+	key, value, found := iter.Nth2(iter.Seq2[K, V](seq), int(n))
+	if found {
+		return Some(Pair[K, V]{Key: key, Value: value})
 	}
+
+	return None[Pair[K, V]]()
 }
 
 // ToChan converts the iterator into a channel, optionally with context(s).
@@ -573,46 +506,10 @@ func (seq SeqMapOrd[K, V]) Take(n uint) SeqMapOrd[K, V] {
 //
 // The function converts the iterator into a channel to allow sequential or concurrent processing of key-value pairs.
 func (seq SeqMapOrd[K, V]) ToChan(ctxs ...context.Context) chan Pair[K, V] {
-	ch := make(chan Pair[K, V])
-
 	ctx := context.Background()
-	if len(ctxs) != 0 {
+	if len(ctxs) > 0 {
 		ctx = ctxs[0]
 	}
 
-	go func() {
-		defer close(ch)
-
-		for k, v := range seq {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				ch <- Pair[K, V]{k, v}
-			}
-		}
-	}()
-
-	return ch
-}
-
-func seqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		for _, v := range mo {
-			if !yield(v.Key, v.Value) {
-				return
-			}
-		}
-	}
-}
-
-func revSeqMapOrd[K, V any](mo MapOrd[K, V]) SeqMapOrd[K, V] {
-	return func(yield func(K, V) bool) {
-		for i := len(mo) - 1; i >= 0; i-- {
-			v := mo[i]
-			if !yield(v.Key, v.Value) {
-				return
-			}
-		}
-	}
+	return iter.ToChan2(iter.Seq2[K, V](seq), ctx)
 }

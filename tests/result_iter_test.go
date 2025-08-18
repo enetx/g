@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -2040,6 +2041,208 @@ func TestSeqResultPull(t *testing.T) {
 			if !items[i].IsOk() || items[i].Ok() != expected {
 				t.Errorf("at index %d: expected Ok(%d), got %v", i, expected, items[i])
 			}
+		}
+	})
+}
+
+func TestSeqResultContext(t *testing.T) {
+	t.Run("context cancellation stops iteration", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+			yield(Ok(4))
+			yield(Ok(5))
+		})
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []Result[int]
+		iter := seq.Context(ctx)
+
+		// Cancel context after processing 3 elements
+		count := 0
+		iter(func(v Result[int]) bool {
+			collected = append(collected, v)
+			count++
+			if count == 3 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed exactly 3 elements before cancellation
+		if len(collected) != 3 {
+			t.Errorf("Expected 3 elements, got %d: %v", len(collected), collected)
+		}
+
+		// Verify all collected elements are Ok and have expected values
+		for i, result := range collected {
+			if result.IsErr() {
+				t.Errorf("Expected Ok result at index %d, got Err: %v", i, result.Err())
+			} else if result.Ok() != i+1 {
+				t.Errorf("Expected value %d at index %d, got %d", i+1, i, result.Ok())
+			}
+		}
+	})
+
+	t.Run("context cancellation with error in sequence", func(t *testing.T) {
+		testErr := errors.New("test error")
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Err[int](testErr))
+			yield(Ok(3))
+		})
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []Result[int]
+		iter := seq.Context(ctx)
+
+		// Cancel context after processing 2 elements
+		count := 0
+		iter(func(v Result[int]) bool {
+			collected = append(collected, v)
+			count++
+			if count == 2 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed 2 elements before cancellation
+		if len(collected) != 2 {
+			t.Errorf("Expected 2 elements, got %d: %v", len(collected), collected)
+		}
+
+		if collected[0].IsErr() || collected[0].Ok() != 1 {
+			t.Errorf("First element should be Ok(1), got %v", collected[0])
+		}
+
+		if collected[1].IsOk() || collected[1].Err().Error() != "test error" {
+			t.Errorf("Second element should be Err(test error), got %v", collected[1])
+		}
+	})
+
+	t.Run("context timeout", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+		})
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		var collected []Result[int]
+		seq.Context(ctx)(func(v Result[int]) bool {
+			collected = append(collected, v)
+			return true
+		})
+
+		// Should collect nothing due to immediate cancellation
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 elements due to cancelled context, got %d: %v", len(collected), collected)
+		}
+	})
+}
+
+func TestSeqResultNth(t *testing.T) {
+	t.Run("nth Ok element exists", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Ok(20))
+			yield(Ok(30))
+			yield(Ok(40))
+			yield(Ok(50))
+		})
+
+		// Get the 2nd Ok element (0-indexed) - should be 30
+		nth := seq.Nth(2)
+
+		if nth.IsErr() {
+			t.Errorf("Expected Ok result, got Err: %v", nth.Err())
+		} else if nth.Ok().IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if nth.Ok().Some() != 30 {
+			t.Errorf("Expected 30, got %d", nth.Ok().Some())
+		}
+	})
+
+	t.Run("nth element with error before nth", func(t *testing.T) {
+		testErr := errors.New("test error")
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Err[int](testErr))
+			yield(Ok(30))
+		})
+
+		// Should return the error before reaching index 2
+		nth := seq.Nth(2)
+
+		if nth.IsOk() {
+			t.Errorf("Expected Err result, got Ok: %v", nth.Ok())
+		} else if nth.Err().Error() != "test error" {
+			t.Errorf("Expected 'test error', got %v", nth.Err())
+		}
+	})
+
+	t.Run("nth element out of bounds", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Ok(20))
+		})
+
+		nth := seq.Nth(5)
+
+		if nth.IsErr() {
+			t.Errorf("Expected Ok result, got Err: %v", nth.Err())
+		} else if nth.Ok().IsSome() {
+			t.Errorf("Expected None for out of bounds index, got Some(%v)", nth.Ok().Some())
+		}
+	})
+
+	t.Run("negative index", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Ok(20))
+		})
+
+		nth := seq.Nth(-1)
+
+		if nth.IsErr() {
+			t.Errorf("Expected Ok result, got Err: %v", nth.Err())
+		} else if nth.Ok().IsSome() {
+			t.Errorf("Expected None for negative index, got Some(%v)", nth.Ok().Some())
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// Empty sequence
+		})
+
+		nth := seq.Nth(0)
+
+		if nth.IsErr() {
+			t.Errorf("Expected Ok result, got Err: %v", nth.Err())
+		} else if nth.Ok().IsSome() {
+			t.Errorf("Expected None for empty sequence, got Some(%v)", nth.Ok().Some())
+		}
+	})
+
+	t.Run("sequence with only errors", func(t *testing.T) {
+		testErr := errors.New("first error")
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](testErr))
+			yield(Err[int](errors.New("second error")))
+		})
+
+		nth := seq.Nth(0)
+
+		if nth.IsOk() {
+			t.Errorf("Expected Err result, got Ok: %v", nth.Ok())
+		} else if nth.Err().Error() != "first error" {
+			t.Errorf("Expected 'first error', got %v", nth.Err())
 		}
 	})
 }

@@ -1,8 +1,10 @@
 package g
 
 import (
-	"iter"
+	"context"
 	"runtime"
+
+	"github.com/enetx/g/iter"
 )
 
 // IterPar parallelizes the SeqMap using the specified number of workers.
@@ -45,33 +47,27 @@ func (seq SeqMap[K, V]) Pull() (func() (K, V, bool), func()) { return iter.Pull2
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (seq SeqMap[K, V]) Take(n uint) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if n == 0 {
-				return false
-			}
-			n--
-			return yield(k, v)
-		})
+	return SeqMap[K, V](iter.Take2(iter.Seq2[K, V](seq), int(n)))
+}
+
+// Nth returns the nth key-value pair (0-indexed) in the sequence.
+func (seq SeqMap[K, V]) Nth(n Int) Option[Pair[K, V]] {
+	key, value, found := iter.Nth2(iter.Seq2[K, V](seq), int(n))
+	if found {
+		return Some(Pair[K, V]{Key: key, Value: value})
 	}
+
+	return None[Pair[K, V]]()
 }
 
 // Keys returns an iterator containing all the keys in the ordered Map.
 func (seq SeqMap[K, V]) Keys() SeqSlice[K] {
-	return func(yield func(K) bool) {
-		seq(func(k K, _ V) bool {
-			return yield(k)
-		})
-	}
+	return SeqSlice[K](iter.Keys(iter.Seq2[K, V](seq)))
 }
 
 // Values returns an iterator containing all the values in the ordered Map.
 func (seq SeqMap[K, V]) Values() SeqSlice[V] {
-	return func(yield func(V) bool) {
-		seq(func(_ K, v V) bool {
-			return yield(v)
-		})
-	}
+	return SeqSlice[V](iter.Values(iter.Seq2[K, V](seq)))
 }
 
 // Chain creates a new iterator by concatenating the current iterator with other iterators.
@@ -99,25 +95,16 @@ func (seq SeqMap[K, V]) Values() SeqSlice[V] {
 //
 // The resulting iterator will contain elements from both iterators.
 func (seq SeqMap[K, V]) Chain(seqs ...SeqMap[K, V]) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		for _, seq := range append([]SeqMap[K, V]{seq}, seqs...) {
-			seq(func(k K, v V) bool {
-				return yield(k, v)
-			})
-		}
+	iterSeqs := make([]iter.Seq2[K, V], len(seqs))
+	for i, s := range seqs {
+		iterSeqs[i] = iter.Seq2[K, V](s)
 	}
+
+	return SeqMap[K, V](iter.Chain2(iter.Seq2[K, V](seq), iterSeqs...))
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqMap[K, V]) Count() Int {
-	var counter Int
-	seq(func(K, V) bool {
-		counter++
-		return true
-	})
-
-	return counter
-}
+func (seq SeqMap[K, V]) Count() Int { return Int(iter.Count2(iter.Seq2[K, V](seq))) }
 
 // Collect collects all key-value pairs from the iterator and returns a Map.
 func (seq SeqMap[K, V]) Collect() Map[K, V] {
@@ -164,14 +151,7 @@ func (seq SeqMap[K, V]) Collect() Map[K, V] {
 //
 // The resulting iterator will contain elements for which the function returns true.
 func (seq SeqMap[K, V]) Filter(fn func(K, V) bool) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if fn(k, v) {
-				return yield(k, v)
-			}
-			return true
-		})
-	}
+	return SeqMap[K, V](iter.Filter2(iter.Seq2[K, V](seq), fn))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -209,14 +189,7 @@ func (seq SeqMap[K, V]) Filter(fn func(K, V) bool) SeqMap[K, V] {
 //
 // The resulting iterator will exclude elements for which the function returns true.
 func (seq SeqMap[K, V]) Exclude(fn func(K, V) bool) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			if !fn(k, v) {
-				return yield(k, v)
-			}
-			return true
-		})
-	}
+	return SeqMap[K, V](iter.Exclude2(iter.Seq2[K, V](seq), fn))
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -242,16 +215,13 @@ func (seq SeqMap[K, V]) Exclude(fn func(K, V) bool) SeqMap[K, V] {
 //	}
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
-func (seq SeqMap[K, V]) Find(fn func(k K, v V) bool) (r Option[Pair[K, V]]) {
-	seq(func(k K, v V) bool {
-		if !fn(k, v) {
-			return true
-		}
-		r = Some(Pair[K, V]{k, v})
-		return false
-	})
+func (seq SeqMap[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
+	key, value, found := iter.Find2(iter.Seq2[K, V](seq), fn)
+	if found {
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
 
-	return r
+	return None[Pair[K, V]]()
 }
 
 // ForEach iterates through all elements and applies the given function to each key-value pair.
@@ -284,22 +254,12 @@ func (seq SeqMap[K, V]) Find(fn func(k K, v V) bool) (r Option[Pair[K, V]]) {
 // Output: Map{1:1, 4:4, 9:9, 16:16, 25:25} // The output order may vary as Map is not ordered.
 //
 // The function fn will be executed for each key-value pair in the iterator.
-func (seq SeqMap[K, V]) ForEach(fn func(k K, v V)) {
-	seq(func(k K, v V) bool {
-		fn(k, v)
-		return true
-	})
-}
+func (seq SeqMap[K, V]) ForEach(fn func(k K, v V)) { iter.ForEach2(iter.Seq2[K, V](seq), fn) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each key-value pair as it passes through.
 func (seq SeqMap[K, V]) Inspect(fn func(k K, v V)) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			fn(k, v)
-			return yield(k, v)
-		})
-	}
+	return SeqMap[K, V](iter.Inspect2(iter.Seq2[K, V](seq), fn))
 }
 
 // Map creates a new iterator by applying the given function to each key-value pair.
@@ -338,26 +298,13 @@ func (seq SeqMap[K, V]) Inspect(fn func(k K, v V)) SeqMap[K, V] {
 //
 // The resulting iterator will contain key-value pairs transformed by the given function.
 func (seq SeqMap[K, V]) Map(transform func(K, V) (K, V)) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		seq(func(k K, v V) bool {
-			return yield(transform(k, v))
-		})
-	}
+	return SeqMap[K, V](iter.Map2(iter.Seq2[K, V](seq), transform))
 }
 
 // The iteration will stop when the provided function returns false for an element.
-func (seq SeqMap[K, V]) Range(fn func(k K, v V) bool) {
-	seq(func(k K, v V) bool {
-		return fn(k, v)
-	})
-}
+func (seq SeqMap[K, V]) Range(fn func(k K, v V) bool) { iter.Range2(iter.Seq2[K, V](seq), fn) }
 
-func seqMap[K comparable, V any](hashmap map[K]V) SeqMap[K, V] {
-	return func(yield func(K, V) bool) {
-		for k, v := range hashmap {
-			if !yield(k, v) {
-				return
-			}
-		}
-	}
+// Context allows the iteration to be controlled with a context.Context.
+func (seq SeqMap[K, V]) Context(ctx context.Context) SeqMap[K, V] {
+	return SeqMap[K, V](iter.Context2(iter.Seq2[K, V](seq), ctx))
 }

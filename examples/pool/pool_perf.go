@@ -56,12 +56,12 @@ func main() {
 		})
 	}
 
-	results := TransformSlice(p.Wait(), Result[time.Duration].Ok)
+	results := TransformSlice(p.Wait(), Result[time.Duration].Ok).Iter()
 
-	taskSum := results.Iter().Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
+	taskSum := results.Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
 
-	taskMin := results.MinBy(cmp.Cmp)
-	taskMax := results.MaxBy(cmp.Cmp)
+	taskMin := results.MinBy(cmp.Cmp).Some()
+	taskMax := results.MaxBy(cmp.Cmp).Some()
 	taskAvg := taskSum / TASKS_NUM
 	total := time.Since(start).Seconds()
 

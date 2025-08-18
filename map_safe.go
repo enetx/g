@@ -23,44 +23,6 @@ func (ms *MapSafe[K, V]) Entry(key K) MapSafeEntry[K, V] {
 	return MapSafeEntry[K, V]{m: ms, key: key}
 }
 
-// IntoIter returns a consuming iterator (SeqMap[K, V]) over the MapSafe's key-value pairs.
-// The iterator transfers ownership by removing the elements from the underlying map
-// as they are iterated over. After iteration, the map will be empty.
-//
-// Returns:
-//
-// A SeqMap[K, V] that yields key-value pairs and removes them from the MapSafe.
-//
-// Example:
-//
-//	m := g.NewMapSafe[string, int]()
-//	m.Set("a", 1)
-//	m.Set("b", 2)
-//	m.IntoIter().ForEach(func(k string, v int) {
-//		fmt.Println(k, v)
-//	})
-//	m.Len() // Output: 0
-func (ms *MapSafe[K, V]) IntoIter() SeqMap[K, V] {
-	var pairs []Pair[K, V]
-
-	ms.data.Range(func(key, value any) bool {
-		k := key.(K)
-		v := *(value.(*V))
-		pairs = append(pairs, Pair[K, V]{k, v})
-		return true
-	})
-
-	ms.Clear()
-
-	return func(yield func(K, V) bool) {
-		for _, pair := range pairs {
-			if !yield(pair.Key, pair.Value) {
-				return
-			}
-		}
-	}
-}
-
 // Keys returns a slice of the MapSafe's keys.
 func (ms *MapSafe[K, V]) Keys() Slice[K] {
 	var keys Slice[K]

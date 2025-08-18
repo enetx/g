@@ -359,18 +359,18 @@ func (s String) EndsWithAny(suffixes ...String) bool {
 
 // Lines splits the String by lines and returns the iterator.
 func (s String) Lines() SeqSlice[String] {
-	return transformSeq(strings.Lines(s.Std()), NewString).Map(String.TrimEnd)
+	return transformStdSeq(strings.Lines(s.Std()), NewString).Map(String.TrimEnd)
 }
 
 // Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
 func (s String) Fields() SeqSlice[String] {
-	return transformSeq(strings.FieldsSeq(s.Std()), NewString)
+	return transformStdSeq(strings.FieldsSeq(s.Std()), NewString)
 }
 
 // FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
 func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] {
-	return transformSeq(strings.FieldsFuncSeq(s.Std(), fn), NewString)
+	return transformStdSeq(strings.FieldsFuncSeq(s.Std(), fn), NewString)
 }
 
 // Split splits the String by the specified separator and returns the iterator.
@@ -380,12 +380,12 @@ func (s String) Split(sep ...String) SeqSlice[String] {
 		separator = sep[0]
 	}
 
-	return transformSeq(strings.SplitSeq(s.Std(), separator.Std()), NewString)
+	return transformStdSeq(strings.SplitSeq(s.Std(), separator.Std()), NewString)
 }
 
 // SplitAfter splits the String after each instance of the specified separator and returns the iterator.
 func (s String) SplitAfter(sep String) SeqSlice[String] {
-	return transformSeq(strings.SplitAfterSeq(s.Std(), sep.Std()), NewString)
+	return transformStdSeq(strings.SplitAfterSeq(s.Std(), sep.Std()), NewString)
 }
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.

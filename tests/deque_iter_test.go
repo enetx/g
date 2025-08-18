@@ -1,0 +1,645 @@
+package g
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
+)
+
+func TestSeqDeque_All(t *testing.T) {
+	deque := g.DequeOf(2, 4, 6, 8)
+	allEven := deque.Iter().All(func(v int) bool { return v%2 == 0 })
+	if !allEven {
+		t.Error("Expected all elements to be even")
+	}
+
+	deque2 := g.DequeOf(1, 2, 3, 4)
+	allEven2 := deque2.Iter().All(func(v int) bool { return v%2 == 0 })
+	if allEven2 {
+		t.Error("Expected not all elements to be even")
+	}
+}
+
+func TestSeqDeque_Any(t *testing.T) {
+	deque := g.DequeOf(1, 3, 5, 7)
+	anyEven := deque.Iter().Any(func(v int) bool { return v%2 == 0 })
+	if anyEven {
+		t.Error("Expected no even elements")
+	}
+
+	deque2 := g.DequeOf(1, 2, 3, 5)
+	anyEven2 := deque2.Iter().Any(func(v int) bool { return v%2 == 0 })
+	if !anyEven2 {
+		t.Error("Expected at least one even element")
+	}
+}
+
+func TestSeqDeque_Chain(t *testing.T) {
+	deque1 := g.DequeOf(1, 2, 3)
+	deque2 := g.DequeOf(4, 5, 6)
+
+	result := make([]int, 0)
+	deque1.Iter().Chain(deque2.Iter()).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 2, 3, 4, 5, 6}
+	if len(result) != len(expected) {
+		t.Errorf("Chain: expected %v, got %v", expected, result)
+	}
+
+	for i, v := range expected {
+		if i < len(result) && result[i] != v {
+			t.Errorf("Chain at index %d: expected %d, got %d", i, v, result[i])
+		}
+	}
+}
+
+func TestSeqDeque_Chunks(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	chunks := deque.Iter().Chunks(2).Collect()
+
+	if len(chunks) != 3 {
+		t.Errorf("Expected 3 chunks, got %d", len(chunks))
+	}
+
+	expectedSizes := []int{2, 2, 2}
+	for i, chunk := range chunks {
+		if len(chunk) != expectedSizes[i] {
+			t.Errorf("Chunk %d: expected size %d, got %d", i, expectedSizes[i], len(chunk))
+		}
+	}
+}
+
+func TestSeqDeque_Collect(t *testing.T) {
+	deque := g.DequeOf(3, 1, 4, 1, 5)
+	collected := deque.Iter().Collect()
+
+	if collected.Len() != 5 {
+		t.Errorf("Expected collected deque length 5, got %d", collected.Len())
+	}
+
+	// Verify elements using iterator
+	expected := []int{3, 1, 4, 1, 5}
+	actual := make([]int, 0)
+	deque.Iter().ForEach(func(v int) {
+		actual = append(actual, v)
+	})
+
+	for i, v := range expected {
+		if i < len(actual) && actual[i] != v {
+			t.Errorf("Collect at index %d: expected %d, got %d", i, v, actual[i])
+		}
+	}
+}
+
+func TestSeqDeque_Count(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	count := deque.Iter().Count()
+	if count != 5 {
+		t.Errorf("Expected count 5, got %d", count)
+	}
+}
+
+func TestSeqDeque_Counter(t *testing.T) {
+	deque := g.DequeOf(1, 2, 1, 3, 2, 1)
+	counts := make(map[int]g.Int)
+
+	deque.Iter().Counter().ForEach(func(k int, v g.Int) {
+		counts[k] = v
+	})
+
+	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
+	for k, v := range expected {
+		if counts[k] != v {
+			t.Errorf("Counter for %d: expected %d, got %d", k, v, counts[k])
+		}
+	}
+}
+
+func TestSeqDeque_Dedup(t *testing.T) {
+	deque := g.DequeOf(1, 1, 2, 2, 3, 3, 3)
+	result := make([]int, 0)
+
+	deque.Iter().Dedup().ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Dedup: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Enumerate(t *testing.T) {
+	deque := g.DequeOf("a", "b", "c")
+	pairs := make(map[g.Int]string)
+
+	deque.Iter().Enumerate().ForEach(func(i g.Int, v string) {
+		pairs[i] = v
+	})
+
+	expected := map[g.Int]string{0: "a", 1: "b", 2: "c"}
+	for k, v := range expected {
+		if pairs[k] != v {
+			t.Errorf("Enumerate at %d: expected %s, got %s", k, v, pairs[k])
+		}
+	}
+}
+
+func TestSeqDeque_Filter(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	result := make([]int, 0)
+
+	deque.Iter().Filter(func(v int) bool { return v%2 == 0 }).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{2, 4, 6}
+	if len(result) != len(expected) {
+		t.Errorf("Filter: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Exclude(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := make([]int, 0)
+
+	deque.Iter().Exclude(func(v int) bool { return v%2 == 0 }).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 3, 5}
+	if len(result) != len(expected) {
+		t.Errorf("Exclude: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Find(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	found := deque.Iter().Find(func(v int) bool { return v > 3 })
+
+	if !found.IsSome() {
+		t.Error("Expected to find element > 3")
+	}
+
+	if found.Some() != 4 {
+		t.Errorf("Expected to find 4, got %d", found.Some())
+	}
+}
+
+func TestSeqDeque_Fold(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	sum := deque.Iter().Fold(0, func(acc, val int) int {
+		return acc + val
+	})
+
+	if sum != 15 {
+		t.Errorf("Expected sum 15, got %d", sum)
+	}
+}
+
+func TestSeqDeque_Reduce(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	product := deque.Iter().Reduce(func(a, b int) int {
+		return a * b
+	})
+
+	if !product.IsSome() {
+		t.Error("Expected reduce to return some value")
+	}
+
+	if product.Some() != 120 {
+		t.Errorf("Expected product 120, got %d", product.Some())
+	}
+}
+
+func TestSeqDeque_ForEach(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	sum := 0
+
+	deque.Iter().ForEach(func(v int) {
+		sum += v
+	})
+
+	if sum != 6 {
+		t.Errorf("Expected sum 6, got %d", sum)
+	}
+}
+
+func TestSeqDeque_Map(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	result := make([]int, 0)
+
+	deque.Iter().Map(func(v int) int {
+		return v * 2
+	}).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{2, 4, 6}
+	if len(result) != len(expected) {
+		t.Errorf("Map: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Skip(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := make([]int, 0)
+
+	deque.Iter().Skip(2).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{3, 4, 5}
+	if len(result) != len(expected) {
+		t.Errorf("Skip: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Take(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := make([]int, 0)
+
+	deque.Iter().Take(3).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Take: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_StepBy(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	result := make([]int, 0)
+
+	deque.Iter().StepBy(2).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 3, 5}
+	if len(result) != len(expected) {
+		t.Errorf("StepBy: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Unique(t *testing.T) {
+	deque := g.DequeOf(1, 2, 1, 3, 2, 4)
+	result := make([]int, 0)
+
+	deque.Iter().Unique().ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	// Should contain each unique element once
+	expected := []int{1, 2, 3, 4}
+	if len(result) != len(expected) {
+		t.Errorf("Unique: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Windows(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	windows := deque.Iter().Windows(3).Collect()
+
+	if len(windows) != 3 { // [1,2,3], [2,3,4], [3,4,5]
+		t.Errorf("Expected 3 windows, got %d", len(windows))
+	}
+
+	for _, window := range windows {
+		if len(window) != 3 {
+			t.Errorf("Expected window size 3, got %d", len(window))
+		}
+	}
+}
+
+func TestSeqDeque_Zip(t *testing.T) {
+	deque1 := g.DequeOf(1, 2, 3)
+	deque2 := g.DequeOf(4, 5, 6)
+
+	pairs := make([][2]int, 0)
+	deque1.Iter().Zip(deque2.Iter()).ForEach(func(a, b int) {
+		pairs = append(pairs, [2]int{a, b})
+	})
+
+	expected := [][2]int{{1, 4}, {2, 5}, {3, 6}}
+	if len(pairs) != len(expected) {
+		t.Errorf("Zip: expected %v, got %v", expected, pairs)
+	}
+}
+
+func TestSeqDeque_Intersperse(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	result := make([]int, 0)
+
+	deque.Iter().Intersperse(0).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 0, 2, 0, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Intersperse: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Nth(t *testing.T) {
+	deque := g.DequeOf(10, 20, 30, 40, 50)
+	second := deque.Iter().Nth(1)
+
+	if !second.IsSome() {
+		t.Error("Expected to find element at index 1")
+	}
+
+	if second.Some() != 20 {
+		t.Errorf("Expected 20 at index 1, got %d", second.Some())
+	}
+}
+
+func TestSeqDeque_Partition(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	evens, odds := deque.Iter().Partition(func(v int) bool { return v%2 == 0 })
+
+	if evens.Len() != 3 {
+		t.Errorf("Expected 3 even numbers, got %d", evens.Len())
+	}
+
+	if odds.Len() != 3 {
+		t.Errorf("Expected 3 odd numbers, got %d", odds.Len())
+	}
+}
+
+func TestSeqDeque_Context(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	result := make([]int, 0)
+	deque.Iter().Context(ctx).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	// Should complete quickly before timeout
+	if len(result) != 5 {
+		t.Errorf("Expected all 5 elements, got %d", len(result))
+	}
+}
+
+func TestSeqDeque_Pull(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	next, stop := deque.Iter().Pull()
+	defer stop()
+
+	val, ok := next()
+	if !ok || val != 1 {
+		t.Errorf("Expected first element 1, got %d (ok: %t)", val, ok)
+	}
+
+	val, ok = next()
+	if !ok || val != 2 {
+		t.Errorf("Expected second element 2, got %d (ok: %t)", val, ok)
+	}
+}
+
+func TestSeqDeque_ToChan(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	ch := deque.Iter().ToChan(ctx)
+	result := make([]int, 0)
+
+	for val := range ch {
+		result = append(result, val)
+	}
+
+	expected := []int{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("ToChan: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Combinations(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	combos := deque.Iter().Combinations(2).Collect()
+
+	if len(combos) != 3 { // C(3,2) = 3
+		t.Errorf("Expected 3 combinations, got %d", len(combos))
+	}
+
+	for _, combo := range combos {
+		if len(combo) != 2 {
+			t.Errorf("Expected combination size 2, got %d", len(combo))
+		}
+	}
+}
+
+func TestSeqDeque_Cycle(t *testing.T) {
+	deque := g.DequeOf(1, 2)
+	result := make([]int, 0)
+
+	deque.Iter().Cycle().Take(6).ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{1, 2, 1, 2, 1, 2} // cycle repeats
+	if len(result) != len(expected) {
+		t.Errorf("Cycle: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_Flatten(t *testing.T) {
+	// Test with deque containing nested any elements that can be flattened
+	deque := g.DequeOf[any](1, []any{2, 3}, 4, []any{5, 6})
+	result := make([]any, 0)
+
+	deque.Iter().Flatten().ForEach(func(v any) {
+		result = append(result, v)
+	})
+
+	expected := []any{1, 2, 3, 4, 5, 6}
+	if len(result) != len(expected) {
+		t.Errorf("Flatten: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_GroupBy(t *testing.T) {
+	deque := g.DequeOf(1, 1, 2, 3, 2, 3, 4)
+	groups := deque.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+
+	if len(groups) == 0 {
+		t.Error("Expected at least one group")
+	}
+
+	// Verify we have some groups
+	totalElements := 0
+	for _, group := range groups {
+		totalElements += len(group)
+	}
+
+	if totalElements != 7 {
+		t.Errorf("Expected total of 7 elements in groups, got %d", totalElements)
+	}
+}
+
+func TestSeqDeque_Inspect(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	inspected := make([]int, 0)
+	result := make([]int, 0)
+
+	deque.Iter().
+		Inspect(func(v int) { inspected = append(inspected, v) }).
+		ForEach(func(v int) { result = append(result, v) })
+
+	// Both should have same elements
+	if len(inspected) != len(result) {
+		t.Errorf("Inspect: inspected=%v, result=%v", inspected, result)
+	}
+}
+
+func TestSeqDeque_MaxBy(t *testing.T) {
+	deque := g.DequeOf("a", "bb", "ccc", "dd")
+
+	// Find max by string length
+	maxByLen := deque.Iter().MaxBy(func(a, b string) cmp.Ordering {
+		return cmp.Cmp(len(a), len(b))
+	})
+
+	if !maxByLen.IsSome() || maxByLen.Some() != "ccc" {
+		t.Errorf("MaxBy: expected 'ccc', got %v", maxByLen)
+	}
+}
+
+func TestSeqDeque_MinBy(t *testing.T) {
+	deque := g.DequeOf("a", "bb", "ccc", "dd")
+
+	// Find min by string length
+	minByLen := deque.Iter().MinBy(func(a, b string) cmp.Ordering {
+		return cmp.Cmp(len(a), len(b))
+	})
+
+	if !minByLen.IsSome() || minByLen.Some() != "a" {
+		t.Errorf("MinBy: expected 'a', got %v", minByLen)
+	}
+}
+
+func TestSeqDeque_Permutations(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3)
+	perms := deque.Iter().Permutations().Collect()
+
+	if len(perms) != 6 { // 3! = 6
+		t.Errorf("Expected 6 permutations, got %d", len(perms))
+	}
+
+	for _, perm := range perms {
+		if len(perm) != 3 {
+			t.Errorf("Expected permutation size 3, got %d", len(perm))
+		}
+	}
+}
+
+func TestSeqDeque_Range(t *testing.T) {
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := make([]int, 0)
+
+	deque.Iter().Range(func(val int) bool {
+		result = append(result, val)
+		return val < 3 // Stop when we reach 3 or higher
+	})
+
+	expected := []int{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Range: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_SortBy(t *testing.T) {
+	deque := g.DequeOf("apple", "banana", "cherry")
+	result := make([]string, 0)
+
+	// Sort by string length (ascending)
+	deque.Iter().SortBy(func(a, b string) cmp.Ordering {
+		return cmp.Cmp(len(a), len(b))
+	}).ForEach(func(v string) {
+		result = append(result, v)
+	})
+
+	expected := []string{"apple", "banana", "cherry"} // by length: 5, 6, 6
+	if len(result) != len(expected) {
+		t.Errorf("SortBy: expected %v, got %v", expected, result)
+	}
+}
+
+// Additional tests to improve coverage
+
+func TestSeqDeque_CounterEdgeCases(t *testing.T) {
+	// Test Counter on empty deque
+	empty := g.NewDeque[int]()
+	counts := make(map[int]g.Int)
+
+	empty.Iter().Counter().ForEach(func(k int, v g.Int) {
+		counts[k] = v
+	})
+
+	if len(counts) != 0 {
+		t.Errorf("Expected empty counter from empty deque, got %d entries", len(counts))
+	}
+}
+
+func TestSeqDeque_DedupEdgeCases(t *testing.T) {
+	// Test Dedup on empty deque
+	empty := g.NewDeque[int]()
+	result := make([]int, 0)
+
+	empty.Iter().Dedup().ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	if len(result) != 0 {
+		t.Errorf("Expected empty result from empty deque dedup, got %v", result)
+	}
+
+	// Test Dedup on single element
+	single := g.DequeOf(42)
+	result = nil
+
+	single.Iter().Dedup().ForEach(func(v int) {
+		result = append(result, v)
+	})
+
+	expected := []int{42}
+	if len(result) != len(expected) || result[0] != expected[0] {
+		t.Errorf("Dedup single: expected %v, got %v", expected, result)
+	}
+}
+
+func TestSeqDeque_FlattenEdgeCases(t *testing.T) {
+	// Test Flatten on empty deque
+	empty := g.NewDeque[any]()
+	result := make([]any, 0)
+
+	empty.Iter().Flatten().ForEach(func(v any) {
+		result = append(result, v)
+	})
+
+	if len(result) != 0 {
+		t.Errorf("Expected empty result from empty deque flatten, got %v", result)
+	}
+
+	// Test Flatten with non-slice elements
+	simple := g.DequeOf[any](1, 2, 3)
+	result = nil
+
+	simple.Iter().Flatten().ForEach(func(v any) {
+		result = append(result, v)
+	})
+
+	expected := []any{1, 2, 3}
+	if len(result) != len(expected) {
+		t.Errorf("Flatten simple: expected %v, got %v", expected, result)
+	}
+}

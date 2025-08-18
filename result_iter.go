@@ -1,6 +1,7 @@
 package g
 
 import (
+	"context"
 	"iter"
 
 	"github.com/enetx/g/f"
@@ -106,18 +107,14 @@ func (seq SeqResult[V]) Count() Int {
 // Map transforms each Ok value in the sequence using the given function, returning a new sequence of Result.
 //
 // If an Err is encountered, it is passed downstream as-is and ends the iteration (yield returns false).
-func (seq SeqResult[V]) Map(transform func(V) V) SeqResult[V] { return transformResult(seq, transform) }
-
-// transformResult is an internal helper for Map.
-// It applies fn to every Ok value, passing Err values unchanged.
-func transformResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
-	return func(yield func(Result[U]) bool) {
+func (seq SeqResult[V]) Map(transform func(V) V) SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(Err[U](v.err))
+				yield(v)
 				return false
 			}
-			return yield(Ok(fn(v.v)))
+			return yield(Ok(transform(v.v)))
 		})
 	}
 }
@@ -126,11 +123,7 @@ func transformResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
 //
 // If an Err is encountered, it is yielded immediately as Err (and stops further iteration).
 // Only Ok elements for which fn returns true are yielded downstream as Ok.
-func (seq SeqResult[V]) Filter(fn func(V) bool) SeqResult[V] { return filterResult(seq, fn) }
-
-// filterResult is an internal helper for Filter and Exclude.
-// It yields Err values immediately (stopping iteration) or Ok values that pass the predicate.
-func filterResult[V any](seq SeqResult[V], fn func(V) bool) SeqResult[V] {
+func (seq SeqResult[V]) Filter(fn func(V) bool) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -150,7 +143,18 @@ func filterResult[V any](seq SeqResult[V], fn func(V) bool) SeqResult[V] {
 // If an Err is encountered, it is yielded as Err (and stops iteration).
 // Only Ok elements for which 'fn' returns false are yielded downstream.
 func (seq SeqResult[V]) Exclude(fn func(V) bool) SeqResult[V] {
-	return filterResult(seq, func(v V) bool { return !fn(v) })
+	return func(yield func(Result[V]) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				yield(v)
+				return false
+			}
+			if !fn(v.v) {
+				return yield(v)
+			}
+			return true
+		})
+	}
 }
 
 // Dedup removes consecutive duplicates of Ok values from the sequence, returning a new sequence.
@@ -291,6 +295,39 @@ func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
 	}
 }
 
+// Nth returns the nth Ok element (0-indexed) in the sequence.
+// If an Err is encountered before reaching the nth element, that Err is returned.
+// If there are fewer than n+1 Ok elements, None is returned.
+func (seq SeqResult[V]) Nth(n Int) Result[Option[V]] {
+	if n < 0 {
+		return Ok(None[V]())
+	}
+
+	var i Int
+	result := Ok(None[V]())
+	found := false
+
+	seq(func(v Result[V]) bool {
+		if found {
+			return false
+		}
+		if v.IsErr() {
+			result = Err[Option[V]](v.err)
+			found = true
+			return false
+		}
+		if i == n {
+			result = Ok(Some(v.v))
+			found = true
+			return false
+		}
+		i++
+		return true
+	})
+
+	return result
+}
+
 // Chain concatenates this sequence with other sequences, returning a new sequence of Result[V].
 //
 // The function yields all elements (Ok or Err) from the current sequence, then from each of the provided sequences in order.
@@ -368,4 +405,18 @@ func (seq SeqResult[V]) Find(fn func(V) bool) Result[Option[V]] {
 	})
 
 	return result
+}
+
+// Context allows the iteration to be controlled with a context.Context.
+func (seq SeqResult[V]) Context(ctx context.Context) SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
+		seq(func(v Result[V]) bool {
+			select {
+			case <-ctx.Done():
+				return false
+			default:
+				return yield(v)
+			}
+		})
+	}
 }

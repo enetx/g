@@ -11,6 +11,7 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
+	"github.com/enetx/g/iter"
 	"github.com/enetx/g/rand"
 )
 
@@ -79,6 +80,40 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
+// Heap converts the slice to a min/max heap with the specified comparison function.
+//
+// The comparison function should return:
+//   - cmp.Less if a < b (for min heap)
+//   - cmp.Greater if a > b (for max heap)
+//   - cmp.Equal if a == b
+//
+// Example usage:
+//
+//	slice := g.SliceOf(5, 2, 8, 1, 9)
+//
+//	minHeap := slice.Heap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
+//	maxHeap := slice.Heap(func(a, b int) cmp.Ordering {
+//		return cmp.Cmp(b, a)
+//	})	// Max heap: Pop() returns largest
+//
+// Time complexity: O(n)
+// Space complexity: O(n) - creates a copy of the slice
+func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
+	if compareFn == nil {
+		panic("compareFn cannot be nil")
+	}
+
+	h := &Heap[T]{
+		data: make(Slice[T], len(sl)),
+		cmp:  compareFn,
+	}
+
+	copy(h.data, sl)
+	h.heapify()
+
+	return h
+}
+
 // Transform applies a transformation function to the Slice and returns the result.
 func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl) }
 
@@ -101,37 +136,7 @@ func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Slice
 // in a functional style, enabling operations like mapping or filtering.
-func (sl Slice[T]) Iter() SeqSlice[T] { return seqSlice(sl) }
-
-// IntoIter returns a consuming iterator (SeqSlice[T]) for the Slice,
-// transferring ownership of its elements and clearing the original Slice.
-//
-// This method is useful when you no longer need access to the original Slice
-// and want to process its elements in a functional, sequential manner.
-// After calling IntoIter, the original Slice is emptied and should not be reused
-// unless reassigned.
-//
-// Returns:
-//
-// A SeqSlice[T] that yields the elements of the Slice and consumes them in the process.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	iterator := slice.IntoIter()
-//	result := iterator.Map(func(x int) int {
-//		return x * 2
-//	}).Collect()
-//	slice.Println() // Output: Slice[]
-//
-// The 'IntoIter' method enables ownership-like semantics, allowing
-// iteration with transformation while invalidating the original Slice.
-func (sl *Slice[T]) IntoIter() SeqSlice[T] {
-	data := *sl
-	*sl = nil
-
-	return seqSlice(data)
-}
+func (sl Slice[T]) Iter() SeqSlice[T] { return SeqSlice[T](iter.FromSlice(sl)) }
 
 // IterReverse returns an iterator (SeqSlice[T]) for the Slice that allows for sequential iteration
 // over its elements in reverse order. This method is useful when you need to traverse the elements
@@ -152,7 +157,7 @@ func (sl *Slice[T]) IntoIter() SeqSlice[T] {
 //
 // The 'IterReverse' method enhances the functionality of the Slice by providing an alternative
 // way to iterate through its elements, enhancing flexibility in how data within a Slice is accessed and manipulated.
-func (sl Slice[T]) IterReverse() SeqSlice[T] { return revSeqSlice(sl) }
+func (sl Slice[T]) IterReverse() SeqSlice[T] { return SeqSlice[T](iter.FromSliceReverse(sl)) }
 
 // AsAny converts each element of the slice to the 'any' type.
 // It returns a new slice containing the elements as 'any' g.Slice[any].
@@ -722,9 +727,6 @@ func (sl Slice[T]) String() string {
 // Append appends the provided elements to the slice and returns the modified slice.
 func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 
-// Prepend prepends the provided elements to the slice and returns the modified slice.
-func (sl Slice[T]) Prepend(elems ...T) Slice[T] { return append(elems, sl...) }
-
 // AppendUnique appends unique elements from the provided arguments to the current slice.
 //
 // The function iterates over the provided elements and checks if they are already present
@@ -758,41 +760,8 @@ func (sl Slice[T]) AppendUnique(elems ...T) Slice[T] {
 	return sl
 }
 
-// PrependUnique prepends unique elements from the provided arguments to the current slice.
-//
-// The function iterates over the provided elements and checks if they are already present
-// in the slice. If an element is not already present, it is prepended to the beginning of the slice.
-// The resulting slice is returned.
-//
-// Example:
-//
-//	slice := g.Slice[int]{3, 4, 5}
-//	slice = slice.PrependUnique(1, 2, 3, 4)
-//	fmt.Println(slice) // [1 2 3 4 5]
-func (sl Slice[T]) PrependUnique(elems ...T) Slice[T] {
-	var unique []T
-
-	for _, elem := range elems {
-		if !sl.Contains(elem) {
-			unique = append(unique, elem)
-		}
-	}
-
-	return append(unique, sl...)
-}
-
 // Push appends the provided elements to the slice and modifies the original slice.
 func (sl *Slice[T]) Push(elems ...T) { *sl = append(*sl, elems...) }
-
-// PushFront inserts the provided elements at the beginning of the slice.
-// It modifies the original slice in place.
-//
-// Example:
-//
-//	s := g.Slice[int]{3, 4, 5}
-//	s.PushFront(1, 2)
-//	fmt.Println(s) // [1 2 3 4 5]
-func (sl *Slice[T]) PushFront(elems ...T) { *sl = append(elems, *sl...) }
 
 // PushUnique appends unique elements from the provided arguments to the current slice.
 //
@@ -815,28 +784,6 @@ func (sl *Slice[T]) PushUnique(elems ...T) {
 		if !sl.Contains(elem) {
 			sl.Push(elem)
 		}
-	}
-}
-
-// PushFrontUnique prepends unique elements to the beginning of the slice in place.
-//
-// It modifies the current slice, adding only those elements that are not already present.
-//
-// Example:
-//
-//	slice := g.Slice[int]{3, 4, 5}
-//	slice.PushFrontUnique(1, 2, 3, 4)
-//	fmt.Println(slice) // [1 2 3 4 5]
-func (sl *Slice[T]) PushFrontUnique(elems ...T) {
-	var unique []T
-	for _, elem := range elems {
-		if !sl.Contains(elem) {
-			unique = append(unique, elem)
-		}
-	}
-
-	if len(unique) > 0 {
-		*sl = append(unique, *sl...)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"maps"
 
 	"github.com/enetx/g/f"
+	"github.com/enetx/g/iter"
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
@@ -49,32 +50,7 @@ func (m Map[K, V]) Entry(key K) MapEntry[K, V] { return MapEntry[K, V]{m, key} }
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-func (m Map[K, V]) Iter() SeqMap[K, V] { return seqMap(m) }
-
-// IntoIter returns a consuming iterator (SeqMap[K, V]) for the Map,
-// transferring ownership of its key-value pairs and clearing the original Map.
-//
-// After calling IntoIter, the original Map is emptied and should not be reused
-// unless reassigned or repopulated.
-//
-// Returns:
-//
-// - SeqMap[K, V], yielding all key-value pairs, consuming them in the process.
-//
-// Example usage:
-//
-//	m := g.Map[string, int]{"a": 1, "b": 2}
-//	iter := m.IntoIter()
-//	m.Len() // 0
-//	iter.ForEach(func(k string, v int) {
-//	    fmt.Println(k, v)
-//	})
-func (m *Map[K, V]) IntoIter() SeqMap[K, V] {
-	data := *m
-	*m = nil
-
-	return seqMap(data)
-}
+func (m Map[K, V]) Iter() SeqMap[K, V] { return SeqMap[K, V](iter.FromMap(m)) }
 
 // Invert inverts the keys and values of the Map, returning a new Map with values as keys and
 // keys as values. Note that the inverted Map will have 'any' as the key type, since not all value

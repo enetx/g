@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/enetx/g"
@@ -163,4 +164,114 @@ func TestMap_Iter_Pull(t *testing.T) {
 	if count != 3 {
 		t.Errorf("Expected to pull 3 pairs, got %d", count)
 	}
+}
+
+func TestMapIterContext(t *testing.T) {
+	t.Run("context cancellation stops iteration", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+		m.Set("three", 3)
+		m.Set("four", 4)
+		m.Set("five", 5)
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		var collected []g.Pair[string, int]
+		iter := m.Iter().Context(ctx)
+
+		// Cancel context after processing 2 elements
+		count := 0
+		iter(func(k string, v int) bool {
+			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			count++
+			if count == 2 {
+				cancel()
+			}
+			return true
+		})
+
+		// Should have processed exactly 2 elements before cancellation
+		if len(collected) != 2 {
+			t.Errorf("Expected 2 elements, got %d: %v", len(collected), collected)
+		}
+	})
+
+	t.Run("context timeout", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
+
+		var collected []g.Pair[string, int]
+		m.Iter().Context(ctx)(func(k string, v int) bool {
+			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			return true
+		})
+
+		// Should collect nothing due to immediate cancellation
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 elements due to cancelled context, got %d: %v", len(collected), collected)
+		}
+	})
+}
+
+func TestMapIterNth(t *testing.T) {
+	t.Run("nth element exists", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+		m.Set("fourth", 4)
+		m.Set("fifth", 5)
+
+		// Get the 2nd pair (0-indexed)
+		nth := m.Iter().Nth(2)
+
+		if nth.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := nth.Some()
+			// Verify the pair is from the original map
+			if value := m.Get(pair.Key); value.IsNone() || value.Some() != pair.Value {
+				t.Errorf("Nth pair {%s: %d} is not in original map", pair.Key, pair.Value)
+			}
+		}
+	})
+
+	t.Run("nth element out of bounds", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+
+		nth := m.Iter().Nth(5)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for out of bounds index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("negative index", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		m.Set("one", 1)
+		m.Set("two", 2)
+
+		nth := m.Iter().Nth(-1)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for negative index, got Some(%v)", nth.Some())
+		}
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+
+		nth := m.Iter().Nth(0)
+
+		if nth.IsSome() {
+			t.Errorf("Expected None for empty map, got Some(%v)", nth.Some())
+		}
+	})
 }
