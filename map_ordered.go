@@ -248,7 +248,7 @@ func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
 		return Some(prev)
 	}
 
-	mp := Pair[K, V]{key, value}
+	mp := Pair[K, V]{Key: key, Value: value}
 	*mo = append(*mo, mp)
 
 	return None[V]()

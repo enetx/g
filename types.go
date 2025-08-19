@@ -64,6 +64,9 @@ type (
 		key K
 	}
 
+	// MapSafeEntry provides a view into a single key of a concurrent-safe Map.
+	// It exposes a fluent, chain-friendly interface for inspecting, inserting,
+	// mutating, or deleting a value with a single key lookup.
 	MapSafeEntry[K comparable, V any] struct {
 		m   *MapSafe[K, V]
 		key K
@@ -90,6 +93,8 @@ type (
 		data sync.Map
 	}
 
+	// Heap is a generic binary heap data structure that maintains elements in heap order.
+	// It can be configured as either a min-heap or max-heap based on the comparison function.
 	Heap[T any] struct {
 		data Slice[T]
 		cmp  func(T, T) cmp.Ordering

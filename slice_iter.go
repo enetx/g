@@ -572,19 +572,9 @@ func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] {
 	return SeqSlice[V](iter.Map(iter.Seq[V](seq), transform))
 }
 
-// transformSeq converts a generic iter.Seq[V] into a SeqSlice[U] by mapping each element
+// transformSeq converts a standard library iter.Seq[V] into a SeqSlice[U] by mapping each element
 // with the provided transformation function `fn`.
-func transformSeq[V, U any](seq iter.Seq[V], fn func(V) U) SeqSlice[U] {
-	return func(yield func(U) bool) {
-		seq(func(v V) bool {
-			return yield(fn(v))
-		})
-	}
-}
-
-// transformStdSeq converts a standard library iter.Seq[V] into a SeqSlice[U] by mapping each element
-// with the provided transformation function `fn`.
-func transformStdSeq[V, U any](seq func(func(V) bool), fn func(V) U) SeqSlice[U] {
+func transformSeq[V, U any](seq func(func(V) bool), fn func(V) U) SeqSlice[U] {
 	return func(yield func(U) bool) {
 		seq(func(v V) bool {
 			return yield(fn(v))

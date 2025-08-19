@@ -42,7 +42,7 @@ func main() {
 	HeapIterators()
 	CustomTypes()
 	PerformanceComparison()
-	ErrorHandling2()
+	ErrorHandling()
 }
 
 // Example 1: Basic Heap Operations
@@ -102,7 +102,7 @@ func HeapFromSlice() {
 	fmt.Printf("Original slice: %v\n", numbers)
 
 	// Convert to min heap in O(n) time
-	heap := numbers.Heap(cmp.Cmp[int])
+	heap := numbers.ToHeap(cmp.Cmp[int])
 
 	// Get all elements in sorted order
 	sorted := heap.Iter().Collect()
@@ -130,13 +130,11 @@ func TaskScheduler() {
 	)
 
 	// Create priority queue: higher priority first, then by deadline
-	scheduler := tasks.Heap(func(a, b Task) cmp.Ordering {
+	scheduler := tasks.ToHeap(func(a, b Task) cmp.Ordering {
 		// First by priority (higher = better)
-		if priorityOrder := cmp.Cmp(b.Priority, a.Priority); priorityOrder != cmp.Equal {
-			return priorityOrder
-		}
-		// Then by deadline (earlier = better)
-		return cmp.Cmp(a.Deadline.Unix(), b.Deadline.Unix())
+		return cmp.Cmp(b.Priority, a.Priority).
+			// Then by deadline (earlier = better)
+			Then(cmp.Cmp(a.Deadline.Unix(), b.Deadline.Unix()))
 	})
 
 	fmt.Println("Tasks in execution order:")
@@ -175,7 +173,7 @@ func TopKElements() {
 	fmt.Printf("Top %d elements: %v\n", k, topK)
 
 	// Method 2: Using full heap (simpler but uses more memory)
-	allSorted := data.Heap(func(a, b int) cmp.Ordering {
+	allSorted := data.ToHeap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // Max heap
 	}).Iter().Take(uint(k)).Collect()
 
@@ -202,7 +200,7 @@ func EventScheduler() {
 	)
 
 	// Schedule events by time (earliest first)
-	scheduler := events.Heap(func(a, b Event) cmp.Ordering {
+	scheduler := events.ToHeap(func(a, b Event) cmp.Ordering {
 		return cmp.Cmp(a.Time.Unix(), b.Time.Unix())
 	})
 
@@ -224,11 +222,11 @@ func HeapSort() {
 	fmt.Printf("Unsorted: %v\n", unsorted)
 
 	// Heap sort in ascending order
-	ascending := unsorted.Heap(cmp.Cmp[int]).Iter().Collect()
+	ascending := unsorted.ToHeap(cmp.Cmp).Iter().Collect()
 	fmt.Printf("Ascending: %v\n", ascending)
 
 	// Heap sort in descending order
-	descending := unsorted.Heap(func(a, b int) cmp.Ordering {
+	descending := unsorted.ToHeap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a)
 	}).Iter().Collect()
 	fmt.Printf("Descending: %v\n", descending)
@@ -239,13 +237,14 @@ func HeapIterators() {
 	fmt.Println("\n=== Heap Iterators ===")
 
 	numbers := SliceOf(1, 5, 3, 8, 2, 9, 4, 7, 6)
-	heap := numbers.Heap(cmp.Cmp[int])
+	heap := numbers.ToHeap(cmp.Cmp)
 
 	// Non-consuming iteration (heap remains intact)
 	fmt.Print("All elements (heap unchanged): ")
 	heap.Iter().ForEach(func(x int) {
 		fmt.Printf("%d ", x)
 	})
+
 	fmt.Printf("\nHeap size after iteration: %d\n", heap.Len()) // Still 9
 
 	// Functional operations on heap iterator
@@ -263,6 +262,7 @@ func HeapIterators() {
 	heap.IntoIter().ForEach(func(x int) {
 		fmt.Printf("%d ", x)
 	})
+
 	fmt.Printf("\nHeap size after consuming: %d\n", heap.Len()) // Now 0
 }
 
@@ -271,9 +271,9 @@ func CustomTypes() {
 	fmt.Println("\n=== Custom Complex Types ===")
 
 	type Student struct {
-		Name  string
-		Grade float64
-		Age   int
+		Name  String
+		Grade Float
+		Age   Int
 	}
 
 	students := SliceOf(
@@ -285,17 +285,13 @@ func CustomTypes() {
 	)
 
 	// Multi-level comparison: Grade (desc), then Age (asc), then Name (asc)
-	topStudents := students.Heap(func(a, b Student) cmp.Ordering {
+	topStudents := students.ToHeap(func(a, b Student) cmp.Ordering {
 		// Primary: Grade (higher is better)
-		if gradeOrder := cmp.Cmp(b.Grade, a.Grade); gradeOrder != cmp.Equal {
-			return gradeOrder
-		}
-		// Secondary: Age (younger is better)
-		if ageOrder := cmp.Cmp(a.Age, b.Age); ageOrder != cmp.Equal {
-			return ageOrder
-		}
-		// Tertiary: Name (alphabetical)
-		return cmp.Cmp(a.Name, b.Name)
+		return b.Grade.Cmp(a.Grade).
+			// Secondary: Age (younger is better)
+			Then(a.Age.Cmp(b.Age)).
+			// Tertiary: Name (alphabetical)
+			Then(a.Name.Cmp(b.Name))
 	})
 
 	fmt.Println("Students by rank:")
@@ -318,7 +314,7 @@ func PerformanceComparison() {
 
 	// Method 1: Build heap from slice - O(n)
 	start := time.Now()
-	heap1 := data.Heap(cmp.Cmp[int])
+	heap1 := data.ToHeap(cmp.Cmp)
 	duration1 := time.Since(start)
 	fmt.Printf("Heap() construction: %v\n", duration1)
 
@@ -328,6 +324,7 @@ func PerformanceComparison() {
 	for _, item := range data {
 		heap2.Push(item)
 	}
+
 	duration2 := time.Since(start)
 	fmt.Printf("Individual Push() construction: %v\n", duration2)
 
@@ -365,7 +362,7 @@ func ErrorHandling() {
 
 	// Duplicate elements
 	duplicates := SliceOf[Int](5, 3, 5, 1, 3, 5, 1, 1)
-	dupHeap := duplicates.Heap(Int.Cmp)
+	dupHeap := duplicates.ToHeap(Int.Cmp)
 	sorted := dupHeap.Iter().Collect()
 	fmt.Printf("✓ Handles duplicates: %v\n", sorted)
 }

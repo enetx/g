@@ -80,7 +80,7 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
-// Heap converts the slice to a min/max heap with the specified comparison function.
+// ToHeap converts the slice to a min/max heap with the specified comparison function.
 //
 // The comparison function should return:
 //   - cmp.Less if a < b (for min heap)
@@ -91,14 +91,14 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 //
 //	slice := g.SliceOf(5, 2, 8, 1, 9)
 //
-//	minHeap := slice.Heap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
-//	maxHeap := slice.Heap(func(a, b int) cmp.Ordering {
+//	minHeap := slice.ToHeap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
+//	maxHeap := slice.ToHeap(func(a, b int) cmp.Ordering {
 //		return cmp.Cmp(b, a)
 //	})	// Max heap: Pop() returns largest
 //
 // Time complexity: O(n)
 // Space complexity: O(n) - creates a copy of the slice
-func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
+func (sl Slice[T]) ToHeap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
 	if compareFn == nil {
 		panic("compareFn cannot be nil")
 	}
