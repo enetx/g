@@ -603,3 +603,27 @@ func TestFloatBytes_Endianness(t *testing.T) {
 		})
 	}
 }
+
+func TestFloatBits(t *testing.T) {
+	testCases := []Float{
+		0.0,
+		1.0,
+		-1.0,
+		3.14159,
+		-3.14159,
+		Float(math.Inf(1)),
+		Float(math.Inf(-1)),
+		Float(math.NaN()),
+		Float(math.SmallestNonzeroFloat64),
+		Float(math.MaxFloat64),
+	}
+
+	for _, f := range testCases {
+		expected := math.Float64bits(f.Std())
+		result := f.Bits()
+
+		if result != expected {
+			t.Errorf("Bits() for %v: expected %d, got %d", f, expected, result)
+		}
+	}
+}

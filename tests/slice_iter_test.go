@@ -1451,3 +1451,87 @@ func TestSliceIterNth(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqSlicePull(t *testing.T) {
+	slice := SliceOf(1, 2, 3, 4, 5)
+
+	next, stop := slice.Iter().Pull()
+	defer stop()
+
+	// Test pulling elements one by one
+	for i := 1; i <= 5; i++ {
+		val, ok := next()
+		if !ok {
+			t.Errorf("Expected element %d to be available", i)
+		}
+		if val != i {
+			t.Errorf("Expected element %d, got %d", i, val)
+		}
+	}
+
+	// Test that no more elements are available
+	val, ok := next()
+	if ok {
+		t.Errorf("Expected no more elements, got %d", val)
+	}
+}
+
+func TestSeqSliceMaxBy(t *testing.T) {
+	// Test with integers
+	slice := SliceOf(5, 2, 8, 1, 9, 3)
+	max := slice.Iter().MaxBy(cmp.Cmp[int])
+
+	if max.IsNone() {
+		t.Errorf("Expected Some value, got None")
+	} else if max.Unwrap() != 9 {
+		t.Errorf("Expected max 9, got %d", max.Unwrap())
+	}
+
+	// Test with empty slice
+	empty := Slice[int]{}
+	maxEmpty := empty.Iter().MaxBy(cmp.Cmp[int])
+
+	if maxEmpty.IsSome() {
+		t.Errorf("Expected None for empty slice, got Some(%d)", maxEmpty.Unwrap())
+	}
+
+	// Test with single element
+	single := SliceOf(42)
+	maxSingle := single.Iter().MaxBy(cmp.Cmp[int])
+
+	if maxSingle.IsNone() {
+		t.Errorf("Expected Some(42), got None")
+	} else if maxSingle.Unwrap() != 42 {
+		t.Errorf("Expected 42, got %d", maxSingle.Unwrap())
+	}
+}
+
+func TestSeqSliceMinBy(t *testing.T) {
+	// Test with integers
+	slice := SliceOf(5, 2, 8, 1, 9, 3)
+	min := slice.Iter().MinBy(cmp.Cmp[int])
+
+	if min.IsNone() {
+		t.Errorf("Expected Some value, got None")
+	} else if min.Unwrap() != 1 {
+		t.Errorf("Expected min 1, got %d", min.Unwrap())
+	}
+
+	// Test with empty slice
+	empty := Slice[int]{}
+	minEmpty := empty.Iter().MinBy(cmp.Cmp[int])
+
+	if minEmpty.IsSome() {
+		t.Errorf("Expected None for empty slice, got Some(%d)", minEmpty.Unwrap())
+	}
+
+	// Test with single element
+	single := SliceOf(42)
+	minSingle := single.Iter().MinBy(cmp.Cmp[int])
+
+	if minSingle.IsNone() {
+		t.Errorf("Expected Some(42), got None")
+	} else if minSingle.Unwrap() != 42 {
+		t.Errorf("Expected 42, got %d", minSingle.Unwrap())
+	}
+}

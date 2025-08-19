@@ -984,3 +984,35 @@ func TestDequeEqEdgeCases(t *testing.T) {
 		t.Errorf("Deque should be equal to itself")
 	}
 }
+
+func TestDequePrint(t *testing.T) {
+	// Test Print method - should return the deque unchanged
+	dq := g.DequeOf(1, 2, 3)
+	result := dq.Print()
+
+	// Should return the same deque instance
+	if result != dq {
+		t.Errorf("Print() should return the same deque instance")
+	}
+
+	// Deque should be unchanged
+	if dq.Len() != 3 {
+		t.Errorf("Print() should not modify deque, expected length 3, got %d", dq.Len())
+	}
+}
+
+func TestDequePrintln(t *testing.T) {
+	// Test Println method - should return the deque unchanged
+	dq := g.DequeOf(1, 2, 3)
+	result := dq.Println()
+
+	// Should return the same deque instance
+	if result != dq {
+		t.Errorf("Println() should return the same deque instance")
+	}
+
+	// Deque should be unchanged
+	if dq.Len() != 3 {
+		t.Errorf("Println() should not modify deque, expected length 3, got %d", dq.Len())
+	}
+}

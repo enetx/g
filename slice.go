@@ -11,8 +11,8 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/iter"
 	"github.com/enetx/g/rand"
+	"github.com/enetx/iter"
 )
 
 // NewSlice creates a new Slice of the given generic type T with the specified length and

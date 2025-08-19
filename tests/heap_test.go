@@ -480,3 +480,71 @@ func TestHeap_String(t *testing.T) {
 		t.Errorf("Expected '%s' for single element heap, got '%s'", expected, singleStr)
 	}
 }
+
+func TestHeapHeapify(t *testing.T) {
+	// Create a heap and add elements to trigger heapify
+	heap := g.NewHeap(cmp.Cmp[int])
+
+	// Add elements in non-heap order
+	elements := []int{5, 3, 8, 1, 9, 2}
+	for _, elem := range elements {
+		heap.Push(elem)
+	}
+
+	// Verify heap property is maintained
+	sorted := make([]int, 0, len(elements))
+	for !heap.Empty() {
+		val := heap.Pop()
+		if val.IsSome() {
+			sorted = append(sorted, val.Unwrap())
+		}
+	}
+
+	// Should be sorted in ascending order (min-heap)
+	for i := 1; i < len(sorted); i++ {
+		if sorted[i-1] > sorted[i] {
+			t.Errorf("Heap property violated: elements not in order: %v", sorted)
+			break
+		}
+	}
+}
+
+func TestHeapPrint(t *testing.T) {
+	// Test Print method - should return the heap unchanged
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1)
+	heap.Push(2)
+	heap.Push(3)
+
+	result := heap.Print()
+
+	// Should return the same heap instance
+	if result != heap {
+		t.Errorf("Print() should return the same heap instance")
+	}
+
+	// Heap should be unchanged
+	if heap.Len() != 3 {
+		t.Errorf("Print() should not modify heap, expected length 3, got %d", heap.Len())
+	}
+}
+
+func TestHeapPrintln(t *testing.T) {
+	// Test Println method - should return the heap unchanged
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1)
+	heap.Push(2)
+	heap.Push(3)
+
+	result := heap.Println()
+
+	// Should return the same heap instance
+	if result != heap {
+		t.Errorf("Println() should return the same heap instance")
+	}
+
+	// Heap should be unchanged
+	if heap.Len() != 3 {
+		t.Errorf("Println() should not modify heap, expected length 3, got %d", heap.Len())
+	}
+}

@@ -696,3 +696,24 @@ func TestIntRandom_NormalCase(t *testing.T) {
 		t.Errorf("Random(1) should return 0, got %d", result)
 	}
 }
+
+func TestIntUInt64(t *testing.T) {
+	testCases := []struct {
+		input    Int
+		expected uint64
+	}{
+		{Int(0), uint64(0)},
+		{Int(42), uint64(42)},
+		{Int(123456789), uint64(123456789)},
+		{Int(9223372036854775807), uint64(9223372036854775807)}, // max int64
+		{Int(-1), uint64(18446744073709551615)},                 // -1 as uint64
+		{Int(-42), uint64(18446744073709551574)},                // -42 as uint64
+	}
+
+	for _, tc := range testCases {
+		result := tc.input.UInt64()
+		if result != tc.expected {
+			t.Errorf("UInt64() for %d: expected %d, got %d", tc.input, tc.expected, result)
+		}
+	}
+}

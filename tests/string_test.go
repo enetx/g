@@ -2080,3 +2080,46 @@ func TestStringPrintln(t *testing.T) {
 		t.Errorf("Println() should return original string unchanged")
 	}
 }
+
+func TestStringFormat(t *testing.T) {
+	// Test basic formatting with a string
+	s := String("World")
+	template := String("Hello, {}!")
+	result := s.Format(template)
+	expected := String("Hello, World!")
+
+	if result != expected {
+		t.Errorf("Format() expected '%s', got '%s'", expected, result)
+	}
+
+	// Test with multiple placeholders
+	name := String("Alice")
+	template2 := String("Hello, {}! Your age is {} years.")
+	result2 := name.Format(template2)
+	// Should replace first placeholder only
+	expected2 := String("Hello, Alice! Your age is {} years.")
+
+	if result2 != expected2 {
+		t.Errorf("Format() expected '%s', got '%s'", expected2, result2)
+	}
+
+	// Test with no placeholders
+	s3 := String("test")
+	template3 := String("No placeholders here")
+	result3 := s3.Format(template3)
+	expected3 := template3
+
+	if result3 != expected3 {
+		t.Errorf("Format() with no placeholders expected '%s', got '%s'", expected3, result3)
+	}
+
+	// Test with empty string
+	empty := String("")
+	template4 := String("Value: {}")
+	result4 := empty.Format(template4)
+	expected4 := String("Value: ")
+
+	if result4 != expected4 {
+		t.Errorf("Format() with empty string expected '%s', got '%s'", expected4, result4)
+	}
+}

@@ -1620,3 +1620,80 @@ func TestSlicePrintln(t *testing.T) {
 		t.Errorf("Println() should return original slice unchanged")
 	}
 }
+
+func TestSliceToHeap(t *testing.T) {
+	slice := Slice[int]{5, 2, 8, 1, 9, 3}
+
+	// Test ToHeap with a comparison function
+	heap := slice.ToHeap(cmp.Cmp[int])
+
+	// Verify heap is created
+	if heap == nil {
+		t.Errorf("ToHeap() should return a valid heap")
+	}
+
+	// Verify heap has correct length
+	if int(heap.Len()) != len(slice) {
+		t.Errorf("ToHeap() heap length should be %d, got %d", len(slice), heap.Len())
+	}
+
+	// Test heap property by popping all elements
+	var sorted []int
+	for !heap.Empty() {
+		val := heap.Pop()
+		if val.IsSome() {
+			sorted = append(sorted, val.Unwrap())
+		}
+	}
+
+	// Should be sorted (min-heap)
+	for i := 1; i < len(sorted); i++ {
+		if sorted[i-1] > sorted[i] {
+			t.Errorf("Heap elements not in order: %v", sorted)
+			break
+		}
+	}
+}
+
+func TestSliceAppend(t *testing.T) {
+	slice := Slice[int]{1, 2, 3}
+
+	// Test appending single element
+	result := slice.Append(4)
+	expected := Slice[int]{1, 2, 3, 4}
+
+	if len(result) != len(expected) {
+		t.Errorf("Append single element: expected length %d, got %d", len(expected), len(result))
+	}
+
+	for i, v := range expected {
+		if result[i] != v {
+			t.Errorf("Append single element: expected %v, got %v", expected, result)
+			break
+		}
+	}
+
+	// Test appending multiple elements
+	result2 := slice.Append(4, 5, 6)
+	expected2 := Slice[int]{1, 2, 3, 4, 5, 6}
+
+	if len(result2) != len(expected2) {
+		t.Errorf("Append multiple elements: expected length %d, got %d", len(expected2), len(result2))
+	}
+
+	for i, v := range expected2 {
+		if result2[i] != v {
+			t.Errorf("Append multiple elements: expected %v, got %v", expected2, result2)
+			break
+		}
+	}
+
+	// Test appending to empty slice
+	empty := Slice[int]{}
+	result3 := empty.Append(1, 2, 3)
+	expected3 := Slice[int]{1, 2, 3}
+
+	if len(result3) != len(expected3) {
+		t.Errorf("Append to empty: expected length %d, got %d", len(expected3), len(result3))
+	}
+}

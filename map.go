@@ -5,7 +5,7 @@ import (
 	"maps"
 
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/iter"
+	"github.com/enetx/iter"
 )
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.

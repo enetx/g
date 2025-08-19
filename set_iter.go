@@ -3,7 +3,7 @@ package g
 import (
 	"context"
 
-	"github.com/enetx/g/iter"
+	"github.com/enetx/iter"
 )
 
 // Pull converts the “push-style” iterator sequence seq

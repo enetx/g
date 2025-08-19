@@ -762,3 +762,40 @@ func TestSeqHeap_Range(t *testing.T) {
 		t.Errorf("Range: expected %v, got %v", expected, result)
 	}
 }
+
+func TestSeqHeapEq(t *testing.T) {
+	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1.Push(1, 2, 3)
+
+	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2.Push(1, 2, 3)
+
+	// Test equal heaps
+	if !heap1.Iter().Eq(heap2.Iter()) {
+		t.Errorf("Equal heaps should be equal")
+	}
+
+	// Test unequal heaps (different elements)
+	heap3 := g.NewHeap(cmp.Cmp[int])
+	heap3.Push(1, 2, 4)
+
+	if heap1.Iter().Eq(heap3.Iter()) {
+		t.Errorf("Heaps with different elements should not be equal")
+	}
+
+	// Test unequal heaps (different lengths)
+	heap4 := g.NewHeap(cmp.Cmp[int])
+	heap4.Push(1, 2, 3, 4)
+
+	if heap1.Iter().Eq(heap4.Iter()) {
+		t.Errorf("Heaps with different lengths should not be equal")
+	}
+
+	// Test empty heaps
+	heap5 := g.NewHeap(cmp.Cmp[int])
+	heap6 := g.NewHeap(cmp.Cmp[int])
+
+	if !heap5.Iter().Eq(heap6.Iter()) {
+		t.Errorf("Empty heaps should be equal")
+	}
+}

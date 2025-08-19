@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/iter"
+	"github.com/enetx/iter"
 )
 
 type (
@@ -118,6 +118,7 @@ type (
 	// SeqSlice is an iterator over sequences of individual values.
 	SeqSlice[V any] iter.Seq[V]
 
+	// SeqHeap is an iterator over sequences of Heap values.
 	SeqHeap[V any] iter.Seq[V]
 
 	// SeqDeque is an iterator over sequences of Deque values.
@@ -134,19 +135,4 @@ type (
 
 	// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
 	SeqMap[K comparable, V any] iter.Seq2[K, V]
-
-	// SeqSlicePar is a parallel iterator over a slice of elements of type T.
-	// It uses a fixed-size pool of worker goroutines to process elements concurrently.
-	SeqSlicePar[V any] struct {
-		seq     SeqSlice[V]
-		workers Int
-		process func(V) (V, bool)
-	}
-
-	// SeqMapPar is the parallel version of SeqMap[K,V].
-	SeqMapPar[K comparable, V any] struct {
-		seq     SeqMap[K, V]
-		workers Int
-		process func(Pair[K, V]) (Pair[K, V], bool)
-	}
 )

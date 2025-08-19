@@ -13,8 +13,7 @@ func main() {
 	// Chain the iterators of p1 and p2 and collect the results into a new slice pp
 	pp := p1.
 		Iter().
-		Parallel(10).
-		Chain(p2.Iter().Parallel().Map(String.Upper).Filter(f.Eq(String("AAA")))).
+		Chain(p2.Iter().Map(String.Upper).Filter(f.Eq(String("AAA")))).
 		Collect()
 
 	// Iterate over the resulting slice pp and print each element
