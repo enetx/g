@@ -1,4 +1,4 @@
-package g
+package g_test
 
 import (
 	"sync"
