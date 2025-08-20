@@ -217,14 +217,18 @@ func (p SeqHeapPar[V]) Find(fn func(V) bool) Option[V] {
 // Note: This collects all processed elements first, then folds sequentially.
 // The parallel processing happens during the Range phase.
 func (p SeqHeapPar[V]) Fold(init V, fn func(acc, v V) V) V {
-	var elements []V
-	p.Range(func(v V) bool {
-		elements = append(elements, v)
-		return true
-	})
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
 
 	acc := init
-	for _, v := range elements {
+	for v := range ch {
 		acc = fn(acc, v)
 	}
 
@@ -331,19 +335,33 @@ func (p SeqHeapPar[V]) Flatten() SeqHeapPar[V] {
 // Note: This collects all processed elements first, then reduces sequentially.
 // The parallel processing happens during the Range phase.
 func (p SeqHeapPar[V]) Reduce(fn func(a, b V) V) Option[V] {
-	var elements []V
-	p.Range(func(v V) bool {
-		elements = append(elements, v)
-		return true
-	})
+	ch := make(chan V)
 
-	if len(elements) == 0 {
-		return None[V]()
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var (
+		acc   V
+		first = true
+	)
+
+	for v := range ch {
+		if first {
+			acc = v
+			first = false
+			continue
+		}
+
+		acc = fn(acc, v)
 	}
 
-	acc := elements[0]
-	for i := 1; i < len(elements); i++ {
-		acc = fn(acc, elements[i])
+	if first {
+		return None[V]()
 	}
 
 	return Some(acc)
