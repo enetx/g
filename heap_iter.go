@@ -3,6 +3,7 @@ package g
 import (
 	"context"
 	"reflect"
+	"runtime"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
@@ -29,6 +30,24 @@ import (
 // It is an error to call next or stop from multiple goroutines
 // simultaneously.
 func (seq SeqHeap[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
+
+// Parallel converts a sequential heap iterator into a parallel iterator with the specified number of workers.
+// If no worker count is provided, it defaults to the number of CPU cores.
+// The parallel iterator processes elements concurrently using a worker pool.
+func (seq SeqHeap[V]) Parallel(workers ...Int) SeqHeapPar[V] {
+	numCPU := Int(runtime.NumCPU())
+	count := Slice[Int](workers).Get(0).UnwrapOr(numCPU)
+
+	if count.Lte(0) {
+		count = numCPU
+	}
+
+	return SeqHeapPar[V]{
+		seq:     seq,
+		workers: count,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator

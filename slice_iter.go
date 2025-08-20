@@ -3,12 +3,29 @@ package g
 import (
 	"context"
 	"reflect"
+	"runtime"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/constraints"
 	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
 )
+
+// Parallel runs this SeqSlice in parallel using the given number of workers.
+func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
+	numCPU := Int(runtime.NumCPU())
+	count := Slice[Int](workers).Get(0).UnwrapOr(numCPU)
+
+	if count.Lte(0) {
+		count = numCPU
+	}
+
+	return SeqSlicePar[V]{
+		seq:     seq,
+		workers: count,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
 
 // Range returns a SeqSlice[T] yielding a sequence of integers of type T,
 // starting at start, incrementing by step, and ending before stop (exclusive).
