@@ -191,6 +191,171 @@ func (p SeqHeapPar[V]) Filter(fn func(V) bool) SeqHeapPar[V] {
 	}
 }
 
+// FlatMap applies fn to each element in parallel, flattening the resulting sequences.
+func (p SeqHeapPar[V]) FlatMap(fn func(V) SeqHeap[V]) SeqHeapPar[V] {
+	return SeqHeapPar[V]{
+		seq: func(yield func(V) bool) {
+			done := make(chan struct{})
+			result := make(chan V, 100)
+
+			var (
+				wg   sync.WaitGroup
+				once sync.Once
+			)
+
+			go func() {
+				defer close(result)
+
+				p.Range(func(v V) bool {
+					select {
+					case <-done:
+						return false
+					default:
+					}
+
+					wg.Add(1)
+					go func(val V) {
+						defer wg.Done()
+						fn(val)(func(item V) bool {
+							select {
+							case <-done:
+								return false
+							case result <- item:
+								return true
+							}
+						})
+					}(v)
+
+					return true
+				})
+
+				wg.Wait()
+			}()
+
+			for {
+				select {
+				case <-done:
+					return
+				case v, ok := <-result:
+					if !ok {
+						return
+					}
+					if !yield(v) {
+						once.Do(func() { close(done) })
+						return
+					}
+				}
+			}
+		},
+		workers: p.workers,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
+
+// FilterMap applies fn to each element in parallel, keeping only Some values.
+func (p SeqHeapPar[V]) FilterMap(fn func(V) Option[V]) SeqHeapPar[V] {
+	prev := p.process
+
+	return SeqHeapPar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				if opt := fn(mid); opt.IsSome() {
+					return opt.Some(), true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// StepBy yields every nth element.
+func (p SeqHeapPar[V]) StepBy(n uint) SeqHeapPar[V] {
+	if n == 0 {
+		n = 1
+	}
+
+	prev := p.process
+	counter := &atomic.Uint64{}
+
+	return SeqHeapPar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				count := counter.Add(1)
+				if (count-1)%uint64(n) == 0 {
+					return mid, true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// MaxBy returns the maximum element according to the comparison function.
+func (p SeqHeapPar[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var max V
+	hasMax := false
+
+	for v := range ch {
+		if !hasMax {
+			max = v
+			hasMax = true
+		} else if fn(v, max).IsGt() {
+			max = v
+		}
+	}
+
+	if hasMax {
+		return Some(max)
+	}
+	return None[V]()
+}
+
+// MinBy returns the minimum element according to the comparison function.
+func (p SeqHeapPar[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var min V
+	hasMin := false
+
+	for v := range ch {
+		if !hasMin {
+			min = v
+			hasMin = true
+		} else if fn(v, min).IsLt() {
+			min = v
+		}
+	}
+
+	if hasMin {
+		return Some(min)
+	}
+	return None[V]()
+}
+
 // Find returns the first element satisfying fn, or None if no such element exists.
 func (p SeqHeapPar[V]) Find(fn func(V) bool) Option[V] {
 	ch := make(chan V)
@@ -444,7 +609,6 @@ func (p SeqHeapPar[V]) Partition(fn func(V) bool) (*Heap[V], *Heap[V]) {
 			return cmp.Equal
 		},
 	}
-
 	right := &Heap[V]{
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
@@ -472,7 +636,7 @@ func (p SeqHeapPar[V]) Partition(fn func(V) bool) (*Heap[V], *Heap[V]) {
 	return left, right
 }
 
-// PartitionWith divides the elements into two separate heaps with custom comparison functions.
+// PartitionWith partitions elements using custom comparison functions for each heap.
 func (p SeqHeapPar[V]) PartitionWith(fn func(V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
 	type item struct {
 		value  V
@@ -551,9 +715,9 @@ func (p SeqHeapPar[V]) Skip(n uint) SeqHeapPar[V] {
 
 	return SeqHeapPar[V]{
 		seq: func(yield func(V) bool) {
-			var cnt int64
+			var cnt uint64
 			p.seq(func(v V) bool {
-				if atomic.AddInt64(&cnt, 1) > int64(n) {
+				if atomic.AddUint64(&cnt, 1) > uint64(n) {
 					return yield(v)
 				}
 				return true
@@ -569,9 +733,9 @@ func (p SeqHeapPar[V]) Take(n uint) SeqHeapPar[V] {
 
 	return SeqHeapPar[V]{
 		seq: func(yield func(V) bool) {
-			var cnt int64
+			var cnt uint64
 			p.seq(func(v V) bool {
-				if atomic.AddInt64(&cnt, 1) <= int64(n) {
+				if atomic.AddUint64(&cnt, 1) <= uint64(n) {
 					return yield(v)
 				}
 				return false

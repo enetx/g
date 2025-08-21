@@ -948,3 +948,97 @@ func (seq SeqHeap[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
 func (seq SeqHeap[T]) Eq(other SeqHeap[T]) bool {
 	return iter.Equal(iter.Seq[T](seq), iter.Seq[T](other))
 }
+
+// FlatMap applies a function to each element and flattens the results into a single sequence.
+//
+// The function transforms each element into a new SeqHeap and then flattens all resulting
+// sequences into a single sequence.
+//
+// Params:
+//
+//   - fn (func(V) SeqHeap[V]): The function that transforms each element into a SeqHeap.
+//
+// Returns:
+//
+// - SeqHeap[V]: A flattened sequence containing all elements from the transformed sequences.
+//
+// Example usage:
+//
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3)
+//	result := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
+//		subHeap := g.NewHeap(cmp.Cmp[int])
+//		subHeap.Push(n, n*10)
+//		return subHeap.Iter()
+//	}).CollectWith(cmp.Cmp[int])
+//	// result contains: 1, 10, 2, 20, 3, 30 (order depends on heap implementation)
+func (seq SeqHeap[V]) FlatMap(fn func(V) SeqHeap[V]) SeqHeap[V] {
+	mapped := iter.MapTo(iter.Seq[V](seq), func(v V) iter.Seq[V] {
+		return iter.Seq[V](fn(v))
+	})
+	return SeqHeap[V](iter.FlattenSeq(mapped))
+}
+
+// FilterMap applies a function to each element and filters out None results.
+//
+// The function transforms and filters elements in a single pass. Elements where the function
+// returns None are filtered out, and elements where it returns Some are unwrapped
+// and included in the result.
+//
+// Params:
+//
+//   - fn (func(V) Option[V]): The function that transforms and filters elements.
+//     Returns Some(value) to include the transformed element, or None to filter it out.
+//
+// Returns:
+//
+// - SeqHeap[V]: A sequence containing only the successfully transformed elements.
+//
+// Example usage:
+//
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	result := heap.Iter().FilterMap(func(n int) g.Option[int] {
+//		if n%2 == 0 {
+//			return g.Some(n * 10)
+//		}
+//		return g.None[int]()
+//	}).CollectWith(cmp.Cmp[int])
+//	// result contains only even numbers multiplied by 10
+func (seq SeqHeap[V]) FilterMap(fn func(V) Option[V]) SeqHeap[V] {
+	return SeqHeap[V](iter.FilterMap(iter.Seq[V](seq), func(v V) (V, bool) {
+		return fn(v).Option()
+	}))
+}
+
+// Scan applies a function to each element and produces a sequence of successive accumulated results.
+//
+// The function takes an initial value and applies the provided function to each element along
+// with the accumulated value, producing a new sequence where each element is the result of
+// the accumulation. The initial value is included as the first element.
+//
+// Params:
+//
+//   - init (V): The initial value for the accumulation.
+//   - fn (func(acc, val V) V): The function that combines the accumulator with each element.
+//
+// Returns:
+//
+// - SeqHeap[V]: A sequence containing the initial value and all accumulated results.
+//
+// Example usage:
+//
+//	heap := g.NewHeap(cmp.Cmp[int])
+//	heap.Push(1, 2, 3, 4, 5)
+//	result := heap.Iter().Scan(0, func(acc, val int) int {
+//		return acc + val
+//	}).CollectWith(cmp.Cmp[int])
+//	// result contains: 0, plus cumulative sums of heap elements
+func (seq SeqHeap[V]) Scan(init V, fn func(acc, val V) V) SeqHeap[V] {
+	return func(yield func(V) bool) {
+		if !yield(init) {
+			return
+		}
+		iter.Scan(iter.Seq[V](seq), init, fn)(yield)
+	}
+}

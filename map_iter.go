@@ -301,6 +301,46 @@ func (seq SeqMap[K, V]) Map(transform func(K, V) (K, V)) SeqMap[K, V] {
 	return SeqMap[K, V](iter.Map2(iter.Seq2[K, V](seq), transform))
 }
 
+// FilterMap applies a function to each key-value pair and filters out None results.
+//
+// The function transforms and filters pairs in a single pass. Pairs where the function
+// returns None are filtered out, and pairs where it returns Some are unwrapped
+// and included in the result.
+//
+// Params:
+//
+//   - fn (func(K, V) Option[Pair[K, V]]): The function that transforms and filters pairs.
+//     Returns Some(Pair{key, value}) to include the transformed pair, or None to filter it out.
+//
+// Returns:
+//
+// - SeqMap[K, V]: A sequence containing only the successfully transformed pairs.
+//
+// Example usage:
+//
+//	configs := g.Map[string, string]{"host": "localhost", "port": "8080", "debug": "invalid"}
+//	validConfigs := configs.Iter().FilterMap(func(k string, v string) Option[Pair[string, string]] {
+//		if k == "port" || k == "host" {
+//			return Some(Pair[string, string]{Key: k, Value: v + "_validated"})
+//		}
+//		return None[Pair[string, string]]()
+//	})
+//	// validConfigs will yield: {"host": "localhost_validated", "port": "8080_validated"}
+//
+//	users := g.Map[string, int]{"alice": 25, "bob": 17, "charlie": 30}
+//	adults := users.Iter().FilterMap(func(name string, age int) Option[Pair[string, int]] {
+//		if age >= 18 {
+//			return Some(Pair[string, int]{Key: name, Value: age})
+//		}
+//		return None[Pair[string, int]]()
+//	})
+//	// adults will yield: {"alice": 25, "charlie": 30}
+func (seq SeqMap[K, V]) FilterMap(fn func(K, V) Option[Pair[K, V]]) SeqMap[K, V] {
+	return SeqMap[K, V](iter.FilterMap2(iter.Seq2[K, V](seq), func(k K, v V) (iter.Pair[K, V], bool) {
+		return fn(k, v).Option()
+	}))
+}
+
 // The iteration will stop when the provided function returns false for an element.
 func (seq SeqMap[K, V]) Range(fn func(k K, v V) bool) { iter.Range2(iter.Seq2[K, V](seq), fn) }
 

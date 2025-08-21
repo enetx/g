@@ -121,6 +121,15 @@ func (o Option[T]) Result(err error) Result[T] {
 	return Err[T](err)
 }
 
+func (o Option[T]) Option() (T, bool) {
+	if o.IsSome() {
+		return o.Some(), true
+	}
+
+	var zero T
+	return zero, false
+}
+
 // String returns a string representation of the Option.
 // If the Option contains a value, it returns a string in the format "Some(value)".
 // Otherwise, it returns "None".

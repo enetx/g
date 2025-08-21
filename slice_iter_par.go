@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/enetx/g/cmp"
 )
 
 // All returns true only if fn returns true for every element.
@@ -541,4 +543,171 @@ func flattenToSlice(item any) []any {
 	recurse(item)
 
 	return result
+}
+
+// FlatMap applies fn to each element in parallel, flattening the resulting sequences.
+func (p SeqSlicePar[V]) FlatMap(fn func(V) SeqSlice[V]) SeqSlicePar[V] {
+	return SeqSlicePar[V]{
+		seq: func(yield func(V) bool) {
+			done := make(chan struct{})
+			result := make(chan V, 100)
+
+			var (
+				wg   sync.WaitGroup
+				once sync.Once
+			)
+
+			go func() {
+				defer close(result)
+
+				p.Range(func(v V) bool {
+					select {
+					case <-done:
+						return false
+					default:
+					}
+
+					wg.Add(1)
+					go func(val V) {
+						defer wg.Done()
+						fn(val)(func(item V) bool {
+							select {
+							case <-done:
+								return false
+							case result <- item:
+								return true
+							}
+						})
+					}(v)
+
+					return true
+				})
+
+				wg.Wait()
+			}()
+
+			for {
+				select {
+				case <-done:
+					return
+				case v, ok := <-result:
+					if !ok {
+						return
+					}
+					if !yield(v) {
+						once.Do(func() { close(done) })
+						return
+					}
+				}
+			}
+		},
+		workers: p.workers,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
+
+// FilterMap applies fn to each element in parallel, keeping only Some values.
+func (p SeqSlicePar[V]) FilterMap(fn func(V) Option[V]) SeqSlicePar[V] {
+	prev := p.process
+
+	return SeqSlicePar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				if opt := fn(mid); opt.IsSome() {
+					return opt.Some(), true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// StepBy yields every nth element.
+func (p SeqSlicePar[V]) StepBy(n uint) SeqSlicePar[V] {
+	if n == 0 {
+		n = 1
+	}
+
+	prev := p.process
+	counter := &atomic.Uint64{}
+
+	return SeqSlicePar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				count := counter.Add(1)
+				if (count-1)%uint64(n) == 0 {
+					return mid, true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// MaxBy returns the maximum element according to the comparison function.
+func (p SeqSlicePar[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var max V
+	hasMax := false
+
+	for v := range ch {
+		if !hasMax {
+			max = v
+			hasMax = true
+		} else if fn(v, max).IsGt() {
+			max = v
+		}
+	}
+
+	if hasMax {
+		return Some(max)
+	}
+
+	return None[V]()
+}
+
+// MinBy returns the minimum element according to the comparison function.
+func (p SeqSlicePar[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var min V
+	hasMin := false
+
+	for v := range ch {
+		if !hasMin {
+			min = v
+			hasMin = true
+		} else if fn(v, min).IsLt() {
+			min = v
+		}
+	}
+
+	if hasMin {
+		return Some(min)
+	}
+
+	return None[V]()
 }

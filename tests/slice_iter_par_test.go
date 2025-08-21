@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -719,4 +720,569 @@ func TestFlattenParallel(t *testing.T) {
 
 	t.Logf("Flatten - Max concurrency: %d, Duration: %v, Items: %d",
 		cc.Max(), duration, len(result))
+}
+
+// TestSliceParFlattenComprehensive tests Flatten method edge cases for better coverage.
+func TestSliceParFlattenComprehensive(t *testing.T) {
+	t.Run("nil_elements", func(t *testing.T) {
+		// Test with nil elements
+		nestedData := []any{
+			SliceOf(1, 2),
+			nil,
+			SliceOf(3, 4),
+		}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		// Should get [1, 2, 3, 4] - nil should be skipped
+		expected := []int{1, 2, 3, 4}
+		if len(result) != len(expected) {
+			t.Errorf("Expected %d elements, got %d", len(expected), len(result))
+		}
+	})
+
+	t.Run("empty_slices", func(t *testing.T) {
+		// Test with empty slices
+		nestedData := []any{
+			SliceOf[int](), // empty slice
+			SliceOf(1, 2),
+			SliceOf[int](), // another empty slice
+			SliceOf(3),
+		}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		// Should get [1, 2, 3] - empty slices should be skipped
+		if len(result) != 3 {
+			t.Errorf("Expected 3 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("mixed_types", func(t *testing.T) {
+		// Test with different slice types converted to compatible any
+		slice1 := SliceOf(1, 2)
+		slice2 := SliceOf(3, 4, 5)
+		nestedData := []any{slice1, slice2}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		if len(result) != 5 {
+			t.Errorf("Expected 5 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("non_interfaceable_elements", func(t *testing.T) {
+		// Test with elements that can't interface
+		// This is harder to test directly, but we can test with different types
+		type unexported struct {
+			value int
+		}
+
+		// Create a slice with mixed types that should be flattened differently
+		slice1 := SliceOf(1, 2)
+		slice2 := SliceOf(3, 4)
+		nestedData := []any{slice1, slice2}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		if len(result) != 4 {
+			t.Errorf("Expected 4 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("deeply_nested", func(t *testing.T) {
+		// Test with nested structures
+		innerSlice := SliceOf(SliceOf(1, 2), SliceOf(3, 4))
+		nestedData := []any{innerSlice}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		// Should recursively flatten
+		if len(result) < 1 {
+			t.Error("Expected at least 1 element from deeply nested structure")
+		}
+	})
+
+	t.Run("early_termination", func(t *testing.T) {
+		// Test early termination case
+		nestedData := []any{
+			SliceOf(1, 2, 3, 4, 5),
+			SliceOf(6, 7, 8, 9, 10),
+		}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Take(3). // Force early termination
+			Collect()
+
+		if len(result) != 3 {
+			t.Errorf("Expected exactly 3 elements due to Take(3), got %d", len(result))
+		}
+	})
+
+	t.Run("invalid_reflect_value", func(t *testing.T) {
+		// Test with values that create invalid reflect values
+		var invalidPtr *int
+		nestedData := []any{
+			SliceOf(1, 2),
+			invalidPtr, // This should be handled gracefully
+			SliceOf(3, 4),
+		}
+
+		result := SliceOf(nestedData...).
+			Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		// Should get elements, exact count may vary depending on how nil pointer is handled
+		if len(result) < 4 {
+			t.Errorf("Expected at least 4 elements, got %d", len(result))
+		}
+	})
+}
+
+// TestSliceParFlatMap tests the new FlatMap method
+func TestSliceParFlatMap(t *testing.T) {
+	t.Run("basic flat mapping", func(t *testing.T) {
+		data := SliceOf(1, 2, 3)
+		result := data.Iter().
+			Parallel(2).
+			FlatMap(func(x int) SeqSlice[int] {
+				return SliceOf(x, x*10).Iter()
+			}).
+			Collect()
+
+		if len(result) != 6 {
+			t.Errorf("Expected 6 elements, got %d", len(result))
+		}
+
+		// Check that we have the expected values (order may vary due to parallelism)
+		valueCount := make(map[int]int)
+		for _, v := range result {
+			valueCount[v]++
+		}
+
+		expected := map[int]int{1: 1, 10: 1, 2: 1, 20: 1, 3: 1, 30: 1}
+		for k, v := range expected {
+			if valueCount[k] != v {
+				t.Errorf("Expected %d occurrences of %d, got %d", v, k, valueCount[k])
+			}
+		}
+	})
+
+	t.Run("empty input", func(t *testing.T) {
+		data := Slice[int]{}
+		result := data.Iter().
+			Parallel(2).
+			FlatMap(func(x int) SeqSlice[int] {
+				return SliceOf(x, x*2).Iter()
+			}).
+			Collect()
+
+		if len(result) != 0 {
+			t.Errorf("Expected empty result, got %d elements", len(result))
+		}
+	})
+
+	t.Run("parallelism verification", func(t *testing.T) {
+		data := make(Slice[int], 20)
+		for i := range data {
+			data[i] = i
+		}
+
+		cc := &concurrentCounter{sleep: 30 * time.Millisecond}
+
+		result := data.Iter().
+			Parallel(4).
+			Inspect(cc.Fn).
+			FlatMap(func(x int) SeqSlice[int] {
+				return SliceOf(x).Iter()
+			}).
+			Collect()
+
+		if len(result) != 20 {
+			t.Errorf("Expected 20 elements, got %d", len(result))
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+}
+
+// TestSliceParFilterMap tests the new FilterMap method
+func TestSliceParFilterMap(t *testing.T) {
+	t.Run("filter and transform", func(t *testing.T) {
+		data := SliceOf(1, 2, 3, 4, 5, 6)
+		result := data.Iter().
+			Parallel(2).
+			FilterMap(func(x int) Option[int] {
+				if x%2 == 0 {
+					return Some(x * 10)
+				}
+				return None[int]()
+			}).
+			Collect()
+
+		if len(result) != 3 {
+			t.Errorf("Expected 3 elements, got %d", len(result))
+		}
+
+		valueCount := make(map[int]int)
+		for _, v := range result {
+			valueCount[v]++
+		}
+
+		expected := map[int]int{20: 1, 40: 1, 60: 1}
+		for k, v := range expected {
+			if valueCount[k] != v {
+				t.Errorf("Expected %d occurrences of %d, got %d", v, k, valueCount[k])
+			}
+		}
+	})
+
+	t.Run("all filtered out", func(t *testing.T) {
+		data := SliceOf(1, 3, 5, 7)
+		result := data.Iter().
+			Parallel(2).
+			FilterMap(func(x int) Option[int] {
+				if x%2 == 0 {
+					return Some(x * 10)
+				}
+				return None[int]()
+			}).
+			Collect()
+
+		if len(result) != 0 {
+			t.Errorf("Expected empty result, got %d elements", len(result))
+		}
+	})
+
+	t.Run("parallelism with filtering", func(t *testing.T) {
+		data := make(Slice[int], 100)
+		for i := range data {
+			data[i] = i
+		}
+
+		cc := &concurrentCounter{sleep: 10 * time.Millisecond}
+
+		result := data.Iter().
+			Parallel(4).
+			Inspect(cc.Fn).
+			FilterMap(func(x int) Option[int] {
+				if x%3 == 0 {
+					return Some(x * 2)
+				}
+				return None[int]()
+			}).
+			Collect()
+
+		// Should get numbers divisible by 3, transformed
+		expectedCount := len(data) / 3
+		if len(result) < expectedCount-1 || len(result) > expectedCount+1 {
+			t.Errorf("Expected ~%d elements, got %d", expectedCount, len(result))
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+}
+
+// TestSliceParStepBy tests the new StepBy method
+func TestSliceParStepBy(t *testing.T) {
+	t.Run("step by 2", func(t *testing.T) {
+		data := SliceOf(1, 2, 3, 4, 5, 6, 7, 8)
+		result := data.Iter().
+			Parallel(2).
+			StepBy(2).
+			Collect()
+
+		if len(result) != 4 {
+			t.Errorf("Expected 4 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("step by 3", func(t *testing.T) {
+		data := SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9)
+		result := data.Iter().
+			Parallel(2).
+			StepBy(3).
+			Collect()
+
+		if len(result) != 3 {
+			t.Errorf("Expected 3 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("step by 0 defaults to 1", func(t *testing.T) {
+		data := SliceOf(1, 2, 3)
+		result := data.Iter().
+			Parallel(2).
+			StepBy(0).
+			Collect()
+
+		if len(result) != 3 {
+			t.Errorf("Expected 3 elements, got %d", len(result))
+		}
+	})
+
+	t.Run("parallel step counting", func(t *testing.T) {
+		data := make(Slice[int], 50)
+		for i := range data {
+			data[i] = i
+		}
+
+		cc := &concurrentCounter{sleep: 5 * time.Millisecond}
+
+		result := data.Iter().
+			Parallel(4).
+			Inspect(cc.Fn).
+			StepBy(5).
+			Collect()
+
+		expectedCount := 10 // 50/5 = 10
+		if len(result) != expectedCount {
+			t.Errorf("Expected %d elements, got %d", expectedCount, len(result))
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+}
+
+// TestSliceParMaxMinBy tests the new MaxBy/MinBy methods
+func TestSliceParMaxMinBy(t *testing.T) {
+	t.Run("find maximum", func(t *testing.T) {
+		data := SliceOf(3, 1, 4, 1, 5, 9, 2, 6)
+		result := data.Iter().
+			Parallel(2).
+			MaxBy(func(a, b int) cmp.Ordering {
+				return cmp.Cmp(a, b)
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 9 {
+			t.Errorf("Expected maximum 9, got %d", result.Some())
+		}
+	})
+
+	t.Run("find minimum", func(t *testing.T) {
+		data := SliceOf(3, 1, 4, 1, 5, 9, 2, 6)
+		result := data.Iter().
+			Parallel(2).
+			MinBy(func(a, b int) cmp.Ordering {
+				return cmp.Cmp(a, b)
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 1 {
+			t.Errorf("Expected minimum 1, got %d", result.Some())
+		}
+	})
+
+	t.Run("empty collection", func(t *testing.T) {
+		data := Slice[int]{}
+
+		maxResult := data.Iter().
+			Parallel(2).
+			MaxBy(func(a, b int) cmp.Ordering {
+				return cmp.Cmp(a, b)
+			})
+
+		minResult := data.Iter().
+			Parallel(2).
+			MinBy(func(a, b int) cmp.Ordering {
+				return cmp.Cmp(a, b)
+			})
+
+		if maxResult.IsSome() {
+			t.Errorf("Expected None for max, got Some(%v)", maxResult.Some())
+		}
+
+		if minResult.IsSome() {
+			t.Errorf("Expected None for min, got Some(%v)", minResult.Some())
+		}
+	})
+
+	t.Run("custom comparison with parallelism", func(t *testing.T) {
+		data := SliceOf("a", "bb", "ccc", "d", "ee", "ffff")
+
+		cc := &concurrentCounter{sleep: 20 * time.Millisecond}
+
+		maxResult := data.Iter().
+			Parallel(3).
+			Inspect(func(s string) { cc.Fn(len(s)) }).
+			MaxBy(func(a, b string) cmp.Ordering {
+				return cmp.Cmp(len(a), len(b))
+			})
+
+		if maxResult.IsNone() {
+			t.Error("Expected Some value for max, got None")
+		}
+
+		if maxResult.Some() != "ffff" {
+			t.Errorf("Expected longest string 'ffff', got %s", maxResult.Some())
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+}
+
+// TestSliceParReduce tests the Reduce method for parallel slice iterators.
+func TestSliceParReduce(t *testing.T) {
+	t.Run("sum_numbers", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+
+		result := slice.Iter().
+			Parallel(3).
+			Reduce(func(a, b int) int {
+				return a + b
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 55 { // 1+2+...+10 = 55
+			t.Errorf("Expected sum 55, got %d", result.Some())
+		}
+	})
+
+	t.Run("find_maximum", func(t *testing.T) {
+		slice := SliceOf(3, 1, 4, 1, 5, 9, 2, 6, 5, 3)
+
+		result := slice.Iter().
+			Parallel(2).
+			Reduce(func(a, b int) int {
+				if a > b {
+					return a
+				}
+				return b
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 9 {
+			t.Errorf("Expected maximum 9, got %d", result.Some())
+		}
+	})
+
+	t.Run("string_concatenation", func(t *testing.T) {
+		slice := SliceOf("a", "b", "c", "d", "e")
+
+		result := slice.Iter().
+			Parallel(2).
+			Reduce(func(a, b string) string {
+				return a + b
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		// Result order might vary due to parallelism, but should contain all characters
+		resultStr := result.Some()
+		if len(resultStr) != 5 {
+			t.Errorf("Expected length 5, got %d", len(resultStr))
+		}
+
+		// Check all characters are present
+		for _, char := range []string{"a", "b", "c", "d", "e"} {
+			if !strings.Contains(resultStr, char) {
+				t.Errorf("Expected result to contain '%s', got '%s'", char, resultStr)
+			}
+		}
+	})
+
+	t.Run("empty_slice", func(t *testing.T) {
+		slice := NewSlice[int]()
+
+		result := slice.Iter().
+			Parallel(2).
+			Reduce(func(a, b int) int {
+				return a + b
+			})
+
+		if result.IsSome() {
+			t.Errorf("Expected None for empty slice, got %v", result)
+		}
+	})
+
+	t.Run("single_element", func(t *testing.T) {
+		slice := SliceOf(42)
+
+		result := slice.Iter().
+			Parallel(2).
+			Reduce(func(a, b int) int {
+				return a + b
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 42 {
+			t.Errorf("Expected 42, got %d", result.Some())
+		}
+	})
+
+	t.Run("parallel_execution", func(t *testing.T) {
+		slice := SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20)
+
+		cc := &concurrentCounter{sleep: 5 * time.Millisecond}
+
+		result := slice.Iter().
+			Parallel(4).
+			Inspect(cc.Fn).
+			Reduce(func(a, b int) int {
+				return a + b
+			})
+
+		if result.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+
+		if result.Some() != 210 { // 1+2+...+20 = 210
+			t.Errorf("Expected sum 210, got %d", result.Some())
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
 }

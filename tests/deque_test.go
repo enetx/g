@@ -867,6 +867,177 @@ func TestDequeShrinkToFitEdgeCases(t *testing.T) {
 	// Should not crash
 }
 
+func TestDequeContainsComprehensive(t *testing.T) {
+	t.Run("comparable_types", func(t *testing.T) {
+		// Test with integers (comparable type)
+		dq := g.DequeOf(1, 2, 3, 4, 5)
+
+		// Test existing elements
+		for i := 1; i <= 5; i++ {
+			if !dq.Contains(i) {
+				t.Errorf("Expected deque to contain %d", i)
+			}
+		}
+
+		// Test non-existing element
+		if dq.Contains(10) {
+			t.Errorf("Expected deque not to contain 10")
+		}
+
+		// Test with zero value
+		dqWithZero := g.DequeOf(0, 1, 2)
+		if !dqWithZero.Contains(0) {
+			t.Errorf("Expected deque to contain zero value")
+		}
+
+		// Test with strings (comparable type)
+		stringDq := g.DequeOf("hello", "world", "test")
+		if !stringDq.Contains("hello") {
+			t.Errorf("Expected deque to contain 'hello'")
+		}
+		if !stringDq.Contains("world") {
+			t.Errorf("Expected deque to contain 'world'")
+		}
+		if stringDq.Contains("missing") {
+			t.Errorf("Expected deque not to contain 'missing'")
+		}
+	})
+
+	t.Run("non_comparable_types", func(t *testing.T) {
+		// Test with slices (non-comparable type)
+		type TestSlice []int
+		dq := g.NewDeque[TestSlice]()
+		dq.PushBack(TestSlice{1, 2, 3})
+		dq.PushBack(TestSlice{4, 5, 6})
+		dq.PushBack(TestSlice{7, 8, 9})
+
+		// Test existing slice
+		if !dq.Contains(TestSlice{1, 2, 3}) {
+			t.Errorf("Expected deque to contain {1, 2, 3}")
+		}
+		if !dq.Contains(TestSlice{4, 5, 6}) {
+			t.Errorf("Expected deque to contain {4, 5, 6}")
+		}
+		if !dq.Contains(TestSlice{7, 8, 9}) {
+			t.Errorf("Expected deque to contain {7, 8, 9}")
+		}
+
+		// Test non-existing slice
+		if dq.Contains(TestSlice{1, 2, 4}) {
+			t.Errorf("Expected deque not to contain {1, 2, 4}")
+		}
+		if dq.Contains(TestSlice{}) {
+			t.Errorf("Expected deque not to contain empty slice")
+		}
+
+		// Test with maps (non-comparable type)
+		type TestMap map[string]int
+		mapDq := g.NewDeque[TestMap]()
+		map1 := TestMap{"a": 1, "b": 2}
+		map2 := TestMap{"c": 3, "d": 4}
+		mapDq.PushBack(map1)
+		mapDq.PushBack(map2)
+
+		if !mapDq.Contains(map1) {
+			t.Errorf("Expected deque to contain map1")
+		}
+		if !mapDq.Contains(map2) {
+			t.Errorf("Expected deque to contain map2")
+		}
+		if mapDq.Contains(TestMap{"e": 5}) {
+			t.Errorf("Expected deque not to contain different map")
+		}
+	})
+
+	t.Run("edge_cases", func(t *testing.T) {
+		// Test Contains on empty deque
+		empty := g.NewDeque[int]()
+		if empty.Contains(42) {
+			t.Errorf("Empty deque should not contain any element")
+		}
+
+		// Test Contains with single element
+		single := g.DequeOf(42)
+		if !single.Contains(42) {
+			t.Errorf("Single element deque should contain its element")
+		}
+		if single.Contains(43) {
+			t.Errorf("Single element deque should not contain other elements")
+		}
+
+		// Test Contains with duplicate elements
+		duplicates := g.DequeOf(1, 2, 2, 3, 2, 4)
+		if !duplicates.Contains(2) {
+			t.Errorf("Expected deque with duplicates to contain 2")
+		}
+
+		// Test Contains after modifications
+		dq := g.DequeOf(1, 2, 3)
+		if !dq.Contains(2) {
+			t.Errorf("Expected deque to contain 2 before modification")
+		}
+
+		// Remove middle element and test
+		dq.Remove(1) // Remove element at index 1 (value 2)
+		if dq.Contains(2) {
+			t.Errorf("Expected deque not to contain 2 after removal")
+		}
+		if !dq.Contains(1) || !dq.Contains(3) {
+			t.Errorf("Expected deque to still contain 1 and 3")
+		}
+
+		// Test with negative numbers
+		negatives := g.DequeOf(-5, -10, 0, 5, 10)
+		if !negatives.Contains(-5) {
+			t.Errorf("Expected deque to contain -5")
+		}
+		if !negatives.Contains(-10) {
+			t.Errorf("Expected deque to contain -10")
+		}
+		if negatives.Contains(-1) {
+			t.Errorf("Expected deque not to contain -1")
+		}
+	})
+
+	t.Run("with_circular_buffer", func(t *testing.T) {
+		// Test Contains when deque wraps around (circular buffer behavior)
+		dq := g.NewDeque[int]()
+
+		// Fill deque and then pop/push to cause wrapping
+		for i := 0; i < 10; i++ {
+			dq.PushBack(i)
+		}
+
+		// Remove front elements
+		for i := 0; i < 5; i++ {
+			dq.PopFront()
+		}
+
+		// Add more elements to cause wrapping
+		for i := 10; i < 15; i++ {
+			dq.PushBack(i)
+		}
+
+		// Now deque should contain: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+		// Test contains on wrapped buffer
+		for i := 5; i < 15; i++ {
+			if !dq.Contains(i) {
+				t.Errorf("Expected wrapped deque to contain %d", i)
+			}
+		}
+
+		// Test elements that should not be there
+		for i := 0; i < 5; i++ {
+			if dq.Contains(i) {
+				t.Errorf("Expected wrapped deque not to contain %d", i)
+			}
+		}
+		if dq.Contains(15) {
+			t.Errorf("Expected wrapped deque not to contain 15")
+		}
+	})
+}
+
 func TestDequeContainsEdgeCases(t *testing.T) {
 	// Test Contains on empty deque
 	empty := g.NewDeque[int]()

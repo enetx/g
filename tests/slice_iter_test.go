@@ -1535,3 +1535,201 @@ func TestSeqSliceMinBy(t *testing.T) {
 		t.Errorf("Expected 42, got %d", minSingle.Unwrap())
 	}
 }
+
+func TestSeqSliceFlatMap(t *testing.T) {
+	// Test basic FlatMap - expand each number to a range
+	numbers := SliceOf(1, 2, 3)
+	expanded := numbers.Iter().FlatMap(func(n int) SeqSlice[int] {
+		return SliceOf(n, n*10, n*100).Iter()
+	}).Collect()
+
+	expected := SliceOf(1, 10, 100, 2, 20, 200, 3, 30, 300)
+	if !reflect.DeepEqual(expanded, expected) {
+		t.Errorf("FlatMap expansion failed: got %v, want %v", expanded, expected)
+	}
+
+	// Test FlatMap with strings - split words into characters
+	words := SliceOf("hi", "go")
+	chars := words.Iter().FlatMap(func(s string) SeqSlice[string] {
+		// Split string into individual characters
+		result := Slice[string]{}
+		for _, ch := range s {
+			result = append(result, string(ch))
+		}
+		return result.Iter()
+	}).Collect()
+
+	expectedChars := SliceOf("h", "i", "g", "o")
+	if !reflect.DeepEqual(chars, expectedChars) {
+		t.Errorf("FlatMap string split failed: got %v, want %v", chars, expectedChars)
+	}
+
+	// Test FlatMap with empty sequences
+	mixed := SliceOf(1, 2, 3)
+	filtered := mixed.Iter().FlatMap(func(n int) SeqSlice[int] {
+		if n == 2 {
+			return Slice[int]{}.Iter() // Return empty for 2
+		}
+		return SliceOf(n, n*2).Iter()
+	}).Collect()
+
+	expectedFiltered := SliceOf(1, 2, 3, 6)
+	if !reflect.DeepEqual(filtered, expectedFiltered) {
+		t.Errorf("FlatMap with empty sequences failed: got %v, want %v", filtered, expectedFiltered)
+	}
+
+	// Test empty input
+	emptySlice := Slice[int]{}
+	emptyResult := emptySlice.Iter().FlatMap(func(n int) SeqSlice[int] {
+		return SliceOf(n, n*2).Iter()
+	}).Collect()
+
+	if len(emptyResult) != 0 {
+		t.Errorf("FlatMap on empty slice should return empty, got %v", emptyResult)
+	}
+}
+
+func TestSeqSliceFilterMap(t *testing.T) {
+	// Test FilterMap with Option - parse strings to ints
+	strings := SliceOf("1", "2", "abc", "3", "xyz", "4")
+	numbers := strings.Iter().FilterMap(func(s string) Option[string] {
+		// Simple string to int conversion - return string version of parsed int
+		switch s {
+		case "1":
+			return Some("1")
+		case "2":
+			return Some("2")
+		case "3":
+			return Some("3")
+		case "4":
+			return Some("4")
+		default:
+			return None[string]()
+		}
+	}).Collect()
+
+	expected := SliceOf("1", "2", "3", "4")
+	if !reflect.DeepEqual(numbers, expected) {
+		t.Errorf("FilterMap string parsing failed: got %v, want %v", numbers, expected)
+	}
+
+	// Test FilterMap with positive numbers only and transformation
+	values := SliceOf(1, -2, 3, -4, 5, 0)
+	positiveDoubled := values.Iter().FilterMap(func(n int) Option[int] {
+		if n > 0 {
+			return Some(n * 2)
+		}
+		return None[int]()
+	}).Collect()
+
+	expectedDoubled := SliceOf(2, 6, 10)
+	if !reflect.DeepEqual(positiveDoubled, expectedDoubled) {
+		t.Errorf("FilterMap positive doubling failed: got %v, want %v", positiveDoubled, expectedDoubled)
+	}
+
+	// Test FilterMap that filters all elements
+	allNegative := SliceOf(-1, -2, -3)
+	noPositive := allNegative.Iter().FilterMap(func(n int) Option[int] {
+		if n > 0 {
+			return Some(n)
+		}
+		return None[int]()
+	}).Collect()
+
+	if len(noPositive) != 0 {
+		t.Errorf("FilterMap should filter all negative numbers, got %v", noPositive)
+	}
+
+	// Test FilterMap that keeps all elements with transformation
+	allPositive := SliceOf(1, 2, 3)
+	allSquared := allPositive.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * n)
+	}).Collect()
+
+	expectedSquared := SliceOf(1, 4, 9)
+	if !reflect.DeepEqual(allSquared, expectedSquared) {
+		t.Errorf("FilterMap squaring all failed: got %v, want %v", allSquared, expectedSquared)
+	}
+
+	// Test empty input
+	emptySlice := Slice[int]{}
+	emptyResult := emptySlice.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * 2)
+	}).Collect()
+
+	if len(emptyResult) != 0 {
+		t.Errorf("FilterMap on empty slice should return empty, got %v", emptyResult)
+	}
+}
+
+func TestSeqSliceScan(t *testing.T) {
+	// Test Scan with sum accumulation
+	numbers := SliceOf(1, 2, 3, 4)
+	sums := numbers.Iter().Scan(0, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	expectedSums := SliceOf(0, 1, 3, 6, 10)
+	if !reflect.DeepEqual(sums, expectedSums) {
+		t.Errorf("Scan sum failed: got %v, want %v", sums, expectedSums)
+	}
+
+	// Test Scan with string concatenation
+	words := SliceOf("a", "b", "c")
+	concatenated := words.Iter().Scan("", func(acc, val string) string {
+		return acc + val
+	}).Collect()
+
+	expectedConcat := SliceOf("", "a", "ab", "abc")
+	if !reflect.DeepEqual(concatenated, expectedConcat) {
+		t.Errorf("Scan concatenation failed: got %v, want %v", concatenated, expectedConcat)
+	}
+
+	// Test Scan with multiplication
+	factors := SliceOf(2, 3, 4)
+	products := factors.Iter().Scan(1, func(acc, val int) int {
+		return acc * val
+	}).Collect()
+
+	expectedProducts := SliceOf(1, 2, 6, 24)
+	if !reflect.DeepEqual(products, expectedProducts) {
+		t.Errorf("Scan multiplication failed: got %v, want %v", products, expectedProducts)
+	}
+
+	// Test Scan with max tracking
+	values := SliceOf(3, 1, 4, 1, 5, 9, 2)
+	maxValues := values.Iter().Scan(0, func(acc, val int) int {
+		if val > acc {
+			return val
+		}
+		return acc
+	}).Collect()
+
+	expectedMax := SliceOf(0, 3, 3, 4, 4, 5, 9, 9)
+	if !reflect.DeepEqual(maxValues, expectedMax) {
+		t.Errorf("Scan max tracking failed: got %v, want %v", maxValues, expectedMax)
+	}
+
+	// Test Scan with empty input
+	emptySlice := Slice[int]{}
+	emptyResult := emptySlice.Iter().Scan(100, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	// Should only contain the initial value
+	expectedEmpty := SliceOf(100)
+	if !reflect.DeepEqual(emptyResult, expectedEmpty) {
+		t.Errorf("Scan on empty slice should return only initial value: got %v, want %v", emptyResult, expectedEmpty)
+	}
+
+	// Test Scan with single element
+	single := SliceOf(5)
+	singleResult := single.Iter().Scan(10, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	expectedSingle := SliceOf(10, 15)
+	if !reflect.DeepEqual(singleResult, expectedSingle) {
+		t.Errorf("Scan with single element failed: got %v, want %v", singleResult, expectedSingle)
+	}
+}

@@ -799,3 +799,291 @@ func TestSeqHeapEq(t *testing.T) {
 		t.Errorf("Empty heaps should be equal")
 	}
 }
+
+func TestSeqHeapFlatMap(t *testing.T) {
+	// Test FlatMap with expanding elements
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1, 2, 3)
+
+	result := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
+		subHeap := g.NewHeap(cmp.Cmp[int])
+		subHeap.Push(n, n*10)
+		return subHeap.Iter()
+	}).CollectWith(cmp.Cmp[int])
+
+	// Count elements - should have 6 total (2 per original element)
+	count := 0
+	result.Iter().ForEach(func(v int) { count++ })
+
+	if count != 6 {
+		t.Errorf("FlatMap count: expected 6, got %d", count)
+	}
+
+	// Verify all elements are present (though order depends on heap)
+	elements := make(map[int]bool)
+	result.Iter().ForEach(func(v int) { elements[v] = true })
+
+	expected := []int{1, 10, 2, 20, 3, 30}
+	for _, v := range expected {
+		if !elements[v] {
+			t.Errorf("FlatMap missing element: %d", v)
+		}
+	}
+
+	// Test FlatMap with empty results
+	emptyResult := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
+		return g.NewHeap(cmp.Cmp[int]).Iter()
+	}).CollectWith(cmp.Cmp[int])
+
+	if !emptyResult.Empty() {
+		t.Errorf("FlatMap empty: expected empty heap, got %d elements", emptyResult.Len())
+	}
+
+	// Test FlatMap on empty heap
+	empty := g.NewHeap(cmp.Cmp[int])
+	emptyFlatMapped := empty.Iter().FlatMap(func(n int) g.SeqHeap[int] {
+		subHeap := g.NewHeap(cmp.Cmp[int])
+		subHeap.Push(n)
+		return subHeap.Iter()
+	}).CollectWith(cmp.Cmp[int])
+
+	if !emptyFlatMapped.Empty() {
+		t.Errorf("FlatMap empty input: expected empty heap, got %d elements", emptyFlatMapped.Len())
+	}
+
+	// Test FlatMap with single elements
+	singleResult := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
+		subHeap := g.NewHeap(cmp.Cmp[int])
+		subHeap.Push(n * 2)
+		return subHeap.Iter()
+	}).CollectWith(cmp.Cmp[int])
+
+	singleCount := 0
+	singleResult.Iter().ForEach(func(v int) { singleCount++ })
+
+	if singleCount != 3 { // Same number as original heap
+		t.Errorf("FlatMap single count: expected 3, got %d", singleCount)
+	}
+}
+
+func TestSeqHeapFilterMap(t *testing.T) {
+	// Test FilterMap with transformation and filtering
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1, 2, 3, 4, 5)
+
+	result := heap.Iter().FilterMap(func(n int) g.Option[int] {
+		if n%2 == 0 {
+			return g.Some(n * 10)
+		}
+		return g.None[int]()
+	}).CollectWith(cmp.Cmp[int])
+
+	// Should have 2 even numbers (2, 4) transformed to (20, 40)
+	expected := []int{20, 40}
+	actual := make([]int, 0)
+	result.Iter().ForEach(func(v int) { actual = append(actual, v) })
+
+	if len(actual) != len(expected) {
+		t.Errorf("FilterMap length: expected %d, got %d", len(expected), len(actual))
+	}
+
+	// Since heap order may vary, check that all expected elements are present
+	actualSet := make(map[int]bool)
+	for _, v := range actual {
+		actualSet[v] = true
+	}
+
+	for _, v := range expected {
+		if !actualSet[v] {
+			t.Errorf("FilterMap missing element: %d", v)
+		}
+	}
+
+	// Test FilterMap that filters all elements
+	allFiltered := heap.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.None[int]()
+	}).CollectWith(cmp.Cmp[int])
+
+	if !allFiltered.Empty() {
+		t.Errorf("FilterMap all filtered: expected empty heap, got %d elements", allFiltered.Len())
+	}
+
+	// Test FilterMap that keeps all elements with transformation
+	allKept := heap.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.Some(n * 2)
+	}).CollectWith(cmp.Cmp[int])
+
+	keptCount := 0
+	allKept.Iter().ForEach(func(v int) { keptCount++ })
+
+	if keptCount != 5 { // Same as original heap size
+		t.Errorf("FilterMap all kept count: expected 5, got %d", keptCount)
+	}
+
+	// Test FilterMap on empty heap
+	empty := g.NewHeap(cmp.Cmp[int])
+	emptyFiltered := empty.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.Some(n * 2)
+	}).CollectWith(cmp.Cmp[int])
+
+	if !emptyFiltered.Empty() {
+		t.Errorf("FilterMap empty input: expected empty heap, got %d elements", emptyFiltered.Len())
+	}
+
+	// Test FilterMap with string processing
+	stringHeap := g.NewHeap(cmp.Cmp[string])
+	stringHeap.Push("hello", "", "world", "   ", "go")
+
+	processedWords := stringHeap.Iter().FilterMap(func(s string) g.Option[string] {
+		trimmed := g.String(s).Trim()
+		if !trimmed.Empty() {
+			return g.Some(string(trimmed.Upper()))
+		}
+		return g.None[string]()
+	}).CollectWith(cmp.Cmp[string])
+
+	// Should have 3 valid words: "HELLO", "WORLD", "GO"
+	wordCount := 0
+	processedWords.Iter().ForEach(func(s string) { wordCount++ })
+
+	if wordCount != 3 {
+		t.Errorf("FilterMap strings count: expected 3, got %d", wordCount)
+	}
+
+	// Verify expected words are present
+	words := make(map[string]bool)
+	processedWords.Iter().ForEach(func(s string) { words[s] = true })
+
+	expectedWords := []string{"HELLO", "WORLD", "GO"}
+	for _, word := range expectedWords {
+		if !words[word] {
+			t.Errorf("FilterMap missing word: %s", word)
+		}
+	}
+}
+
+func TestSeqHeapScan(t *testing.T) {
+	// Test Scan with sum accumulation
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1, 2, 3, 4, 5)
+
+	result := heap.Iter().Scan(0, func(acc, val int) int {
+		return acc + val
+	}).CollectWith(cmp.Cmp[int])
+
+	// Should have 6 elements: initial value + 5 accumulated values
+	count := 0
+	result.Iter().ForEach(func(v int) { count++ })
+
+	if count != 6 {
+		t.Errorf("Scan count: expected 6, got %d", count)
+	}
+
+	// Check that 0 (initial value) is present
+	hasZero := false
+	result.Iter().ForEach(func(v int) {
+		if v == 0 {
+			hasZero = true
+		}
+	})
+
+	if !hasZero {
+		t.Errorf("Scan should include initial value 0")
+	}
+
+	// Test Scan with multiplication
+	small := g.NewHeap(cmp.Cmp[int])
+	small.Push(2, 3, 4)
+
+	product := small.Iter().Scan(1, func(acc, val int) int {
+		return acc * val
+	}).CollectWith(cmp.Cmp[int])
+
+	productCount := 0
+	product.Iter().ForEach(func(v int) { productCount++ })
+
+	if productCount != 4 { // initial + 3 elements
+		t.Errorf("Scan product count: expected 4, got %d", productCount)
+	}
+
+	// Check that 1 (initial value) is present
+	hasOne := false
+	product.Iter().ForEach(func(v int) {
+		if v == 1 {
+			hasOne = true
+		}
+	})
+
+	if !hasOne {
+		t.Errorf("Scan should include initial value 1")
+	}
+
+	// Test Scan on empty heap (should just return initial value)
+	empty := g.NewHeap(cmp.Cmp[int])
+	emptyScanned := empty.Iter().Scan(42, func(acc, val int) int {
+		return acc + val
+	}).CollectWith(cmp.Cmp[int])
+
+	if emptyScanned.Len() != 1 {
+		t.Errorf("Scan empty length: expected 1, got %d", emptyScanned.Len())
+	}
+
+	// Verify the single element is the initial value
+	foundInitial := false
+	emptyScanned.Iter().ForEach(func(v int) {
+		if v == 42 {
+			foundInitial = true
+		}
+	})
+
+	if !foundInitial {
+		t.Errorf("Scan empty should contain initial value 42")
+	}
+
+	// Test Scan with single element
+	single := g.NewHeap(cmp.Cmp[int])
+	single.Push(10)
+
+	singleScanned := single.Iter().Scan(5, func(acc, val int) int {
+		return acc + val
+	}).CollectWith(cmp.Cmp[int])
+
+	if singleScanned.Len() != 2 { // initial + 1 element
+		t.Errorf("Scan single length: expected 2, got %d", singleScanned.Len())
+	}
+
+	// Check both expected values are present
+	values := make(map[int]bool)
+	singleScanned.Iter().ForEach(func(v int) { values[v] = true })
+
+	if !values[5] || !values[15] {
+		t.Errorf("Scan single should contain both 5 and 15")
+	}
+
+	// Test Scan with string concatenation
+	stringHeap := g.NewHeap(cmp.Cmp[string])
+	stringHeap.Push("a", "b", "c")
+
+	concatenated := stringHeap.Iter().Scan("", func(acc, val string) string {
+		return acc + val
+	}).CollectWith(cmp.Cmp[string])
+
+	concatCount := 0
+	concatenated.Iter().ForEach(func(s string) { concatCount++ })
+
+	if concatCount != 4 { // initial + 3 elements
+		t.Errorf("Scan concat count: expected 4, got %d", concatCount)
+	}
+
+	// Check that empty string (initial value) is present
+	hasEmpty := false
+	concatenated.Iter().ForEach(func(s string) {
+		if s == "" {
+			hasEmpty = true
+		}
+	})
+
+	if !hasEmpty {
+		t.Errorf("Scan should include initial empty string")
+	}
+}

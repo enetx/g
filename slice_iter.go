@@ -572,6 +572,80 @@ func (seq SeqSlice[V]) Map(transform func(V) V) SeqSlice[V] {
 	return SeqSlice[V](iter.Map(iter.Seq[V](seq), transform))
 }
 
+// FlatMap applies a function to each element that returns an iterator, then flattens the results.
+//
+// The function transforms each element into a sequence and then concatenates all sequences
+// into a single flat sequence.
+//
+// Params:
+//
+// - fn (func(V) SeqSlice[V]): The function that transforms each element into a sequence.
+//
+// Returns:
+//
+// - SeqSlice[V]: A flattened sequence containing all elements from the transformed sequences.
+//
+// Example usage:
+//
+//	words := g.Slice[string]{"hello world", "foo bar"}.Iter()
+//	chars := words.FlatMap(func(s string) SeqSlice[string] {
+//		return g.String(s).Split("")
+//	})
+//	// chars will yield: "h", "e", "l", "l", "o", " ", "w", "o", "r", "l", "d", "f", "o", "o", " ", "b", "a", "r"
+//
+//	numbers := g.Slice[int]{1, 2, 3}.Iter()
+//	expanded := numbers.FlatMap(func(n int) SeqSlice[int] {
+//		return g.Slice[int]{n, n*10, n*100}.Iter()
+//	})
+//	// expanded will yield: 1, 10, 100, 2, 20, 200, 3, 30, 300
+func (seq SeqSlice[V]) FlatMap(fn func(V) SeqSlice[V]) SeqSlice[V] {
+	mapped := iter.MapTo(iter.Seq[V](seq), func(v V) iter.Seq[V] {
+		return iter.Seq[V](fn(v))
+	})
+
+	return SeqSlice[V](iter.FlattenSeq(mapped))
+}
+
+// FilterMap applies a function to each element and filters out None results.
+//
+// The function transforms and filters in a single pass. Elements where the function
+// returns None are filtered out, and elements where it returns Some are unwrapped
+// and included in the result.
+//
+// Params:
+//
+//   - fn (func(V) Option[V]): The function that transforms and filters elements.
+//     Returns Some(value) to include the transformed value, or None to filter it out.
+//
+// Returns:
+//
+// - SeqSlice[V]: A sequence containing only the successfully transformed elements.
+//
+// Example usage:
+//
+//	strings := g.Slice[string]{"1", "2", "abc", "3", "xyz"}.Iter()
+//	numbers := strings.FilterMap(func(s string) Option[int] {
+//		if n, err := strconv.Atoi(s); err == nil {
+//			return Some(n)
+//		}
+//		return None[int]()
+//	})
+//	// numbers will yield: 1, 2, 3
+//
+//	values := g.Slice[int]{1, -2, 3, -4, 5}.Iter()
+//	positiveDoubled := values.FilterMap(func(n int) Option[int] {
+//		if n > 0 {
+//			return Some(n * 2)
+//		}
+//		return None[int]()
+//	})
+//	// positiveDoubled will yield: 2, 6, 10
+func (seq SeqSlice[V]) FilterMap(fn func(V) Option[V]) SeqSlice[V] {
+	return SeqSlice[V](iter.FilterMap(iter.Seq[V](seq), func(v V) (V, bool) {
+		return fn(v).Option()
+	}))
+}
+
 // transformSeq converts a standard library iter.Seq[V] into a SeqSlice[U] by mapping each element
 // with the provided transformation function `fn`.
 func transformSeq[V, U any](seq func(func(V) bool), fn func(V) U) SeqSlice[U] {
@@ -810,6 +884,42 @@ func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] {
 		zipSeq(func(a, b V) bool {
 			return yield(a, b)
 		})
+	}
+}
+
+// Scan accumulates values of the iterator using a function, yielding all intermediate states.
+//
+// The function takes an initial accumulator value and a function that combines the accumulator
+// with each element. It yields the initial value followed by each accumulated state.
+//
+// Params:
+//
+// - init (V): The initial accumulator value.
+// - fn (func(acc V, val V) V): The function that combines the accumulator with each element.
+//
+// Returns:
+//
+// - SeqSlice[V]: A sequence of all intermediate accumulator states.
+//
+// Example usage:
+//
+//	numbers := g.Slice[int]{1, 2, 3, 4}.Iter()
+//	sums := numbers.Scan(0, func(acc, val int) int {
+//		return acc + val
+//	})
+//	// sums will yield: 0, 1, 3, 6, 10
+//
+//	words := g.Slice[string]{"a", "b", "c"}.Iter()
+//	concatenated := words.Scan("", func(acc, val string) string {
+//		return acc + val
+//	})
+//	// concatenated will yield: "", "a", "ab", "abc"
+func (seq SeqSlice[V]) Scan(init V, fn func(acc, val V) V) SeqSlice[V] {
+	return func(yield func(V) bool) {
+		if !yield(init) {
+			return
+		}
+		iter.Scan(iter.Seq[V](seq), init, fn)(yield)
 	}
 }
 

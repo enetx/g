@@ -1,9 +1,10 @@
 package g
 
 import (
-	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/enetx/g/cmp"
 )
 
 // All returns true only if fn returns true for every element.
@@ -110,7 +111,7 @@ func (p SeqDequePar[V]) Collect() *Deque[V] {
 		})
 	}()
 
-	result := NewDeque[V]()
+	result := NewDeque[V](0)
 	for v := range ch {
 		result.PushBack(v)
 	}
@@ -174,8 +175,6 @@ func (p SeqDequePar[V]) Find(fn func(V) bool) Option[V] {
 }
 
 // Fold reduces all elements into a single value, using fn to accumulate results.
-// Note: This collects all processed elements first, then folds sequentially.
-// The parallel processing happens during the Range phase.
 func (p SeqDequePar[V]) Fold(init V, fn func(acc, v V) V) V {
 	ch := make(chan V)
 
@@ -198,46 +197,6 @@ func (p SeqDequePar[V]) Fold(init V, fn func(acc, v V) V) V {
 // Flatten unpacks nested slices or arrays in the source, returning a flat parallel sequence.
 func (p SeqDequePar[V]) Flatten() SeqDequePar[V] {
 	seq := func(yield func(V) bool) {
-		var recurse func(any) bool
-
-		recurse = func(item any) bool {
-			if item == nil {
-				return true
-			}
-
-			rv := reflect.ValueOf(item)
-
-			if !rv.IsValid() {
-				return true
-			}
-
-			switch rv.Kind() {
-			case reflect.Slice, reflect.Array:
-				if rv.IsNil() {
-					return true
-				}
-
-				for i := range rv.Len() {
-					elem := rv.Index(i)
-
-					if !elem.CanInterface() {
-						continue
-					}
-
-					if !recurse(elem.Interface()) {
-						return false
-					}
-				}
-			default:
-				if v, ok := item.(V); ok {
-					if !yield(v) {
-						return false
-					}
-				}
-			}
-			return true
-		}
-
 		resultsChan := make(chan V, 100)
 		doneChan := make(chan struct{})
 		var once sync.Once
@@ -289,11 +248,174 @@ func (p SeqDequePar[V]) Flatten() SeqDequePar[V] {
 	}
 }
 
+// FlatMap applies fn to each element in parallel, flattening the resulting sequences.
+func (p SeqDequePar[V]) FlatMap(fn func(V) SeqDeque[V]) SeqDequePar[V] {
+	return SeqDequePar[V]{
+		seq: func(yield func(V) bool) {
+			done := make(chan struct{})
+			result := make(chan V, 100)
+
+			var (
+				wg   sync.WaitGroup
+				once sync.Once
+			)
+
+			go func() {
+				defer close(result)
+
+				p.Range(func(v V) bool {
+					select {
+					case <-done:
+						return false
+					default:
+					}
+
+					wg.Add(1)
+					go func(val V) {
+						defer wg.Done()
+						fn(val)(func(item V) bool {
+							select {
+							case <-done:
+								return false
+							case result <- item:
+								return true
+							}
+						})
+					}(v)
+
+					return true
+				})
+
+				wg.Wait()
+			}()
+
+			for {
+				select {
+				case <-done:
+					return
+				case v, ok := <-result:
+					if !ok {
+						return
+					}
+					if !yield(v) {
+						once.Do(func() { close(done) })
+						return
+					}
+				}
+			}
+		},
+		workers: p.workers,
+		process: func(v V) (V, bool) { return v, true },
+	}
+}
+
+// FilterMap applies fn to each element in parallel, keeping only Some values.
+func (p SeqDequePar[V]) FilterMap(fn func(V) Option[V]) SeqDequePar[V] {
+	prev := p.process
+
+	return SeqDequePar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				if opt := fn(mid); opt.IsSome() {
+					return opt.Some(), true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// StepBy yields every nth element.
+func (p SeqDequePar[V]) StepBy(n uint) SeqDequePar[V] {
+	if n == 0 {
+		n = 1
+	}
+
+	prev := p.process
+	counter := &atomic.Uint64{}
+
+	return SeqDequePar[V]{
+		seq:     p.seq,
+		workers: p.workers,
+		process: func(v V) (V, bool) {
+			if mid, ok := prev(v); ok {
+				count := counter.Add(1)
+				if (count-1)%uint64(n) == 0 {
+					return mid, true
+				}
+			}
+			var zero V
+			return zero, false
+		},
+	}
+}
+
+// MaxBy returns the maximum element according to the comparison function.
+func (p SeqDequePar[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var max V
+	hasMax := false
+
+	for v := range ch {
+		if !hasMax {
+			max = v
+			hasMax = true
+		} else if fn(v, max).IsGt() {
+			max = v
+		}
+	}
+
+	if hasMax {
+		return Some(max)
+	}
+	return None[V]()
+}
+
+// MinBy returns the minimum element according to the comparison function.
+func (p SeqDequePar[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
+	ch := make(chan V)
+
+	go func() {
+		defer close(ch)
+		p.Range(func(v V) bool {
+			ch <- v
+			return true
+		})
+	}()
+
+	var min V
+	hasMin := false
+
+	for v := range ch {
+		if !hasMin {
+			min = v
+			hasMin = true
+		} else if fn(v, min).IsLt() {
+			min = v
+		}
+	}
+
+	if hasMin {
+		return Some(min)
+	}
+	return None[V]()
+}
+
 // Reduce aggregates elements of the parallel sequence using the provided function.
 // The first received element is used as the initial accumulator.
 // If the sequence is empty, returns None[V].
-// Note: This collects all processed elements first, then reduces sequentially.
-// The parallel processing happens during the Range phase.
 func (p SeqDequePar[V]) Reduce(fn func(a, b V) V) Option[V] {
 	ch := make(chan V)
 
@@ -389,8 +511,7 @@ func (p SeqDequePar[V]) Partition(fn func(V) bool) (*Deque[V], *Deque[V]) {
 		})
 	}()
 
-	left := NewDeque[V]()
-	right := NewDeque[V]()
+	left, right := NewDeque[V](0), NewDeque[V](0)
 	for it := range ch {
 		if it.isLeft {
 			left.PushBack(it.value)
@@ -447,9 +568,9 @@ func (p SeqDequePar[V]) Skip(n uint) SeqDequePar[V] {
 
 	return SeqDequePar[V]{
 		seq: func(yield func(V) bool) {
-			var cnt int64
+			var cnt uint64
 			p.seq(func(v V) bool {
-				if atomic.AddInt64(&cnt, 1) > int64(n) {
+				if atomic.AddUint64(&cnt, 1) > uint64(n) {
 					return yield(v)
 				}
 				return true
@@ -465,9 +586,9 @@ func (p SeqDequePar[V]) Take(n uint) SeqDequePar[V] {
 
 	return SeqDequePar[V]{
 		seq: func(yield func(V) bool) {
-			var cnt int64
+			var cnt uint64
 			p.seq(func(v V) bool {
-				if atomic.AddInt64(&cnt, 1) <= int64(n) {
+				if atomic.AddUint64(&cnt, 1) <= uint64(n) {
 					return yield(v)
 				}
 				return false

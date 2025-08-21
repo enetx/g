@@ -275,3 +275,96 @@ func TestMapIterNth(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqMapFilterMap(t *testing.T) {
+	// Test FilterMap with config validation
+	configs := g.NewMap[string, string]()
+	configs.Set("host", "localhost")
+	configs.Set("port", "8080")
+	configs.Set("debug", "invalid")
+	configs.Set("timeout", "30")
+
+	validConfigs := configs.Iter().FilterMap(func(k string, v string) g.Option[g.Pair[string, string]] {
+		// Keep only port and host configs with validation suffix
+		if k == "port" || k == "host" {
+			return g.Some(g.Pair[string, string]{Key: k, Value: v + "_validated"})
+		}
+		return g.None[g.Pair[string, string]]()
+	}).Collect()
+
+	if validConfigs.Len() != 2 {
+		t.Errorf("Expected 2 valid configs, got %d", validConfigs.Len())
+	}
+
+	if !validConfigs.Contains("host") || !validConfigs.Contains("port") {
+		keys := validConfigs.Keys()
+		keySlice := make([]string, 0)
+		keys.Iter().ForEach(func(k string) { keySlice = append(keySlice, k) })
+		t.Errorf("Expected host and port keys, got %v", keySlice)
+	}
+
+	if validConfigs.Get("host").UnwrapOr("") != "localhost_validated" {
+		t.Errorf("Expected 'localhost_validated', got %v", validConfigs.Get("host"))
+	}
+
+	if validConfigs.Get("port").UnwrapOr("") != "8080_validated" {
+		t.Errorf("Expected '8080_validated', got %v", validConfigs.Get("port"))
+	}
+
+	// Test FilterMap with age filtering
+	users := g.NewMap[string, int]()
+	users.Set("alice", 25)
+	users.Set("bob", 17)
+	users.Set("charlie", 30)
+	users.Set("diana", 16)
+
+	adults := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
+		if age >= 18 {
+			return g.Some(g.Pair[string, int]{Key: name, Value: age})
+		}
+		return g.None[g.Pair[string, int]]()
+	}).Collect()
+
+	if adults.Len() != 2 {
+		t.Errorf("Expected 2 adults, got %d", adults.Len())
+	}
+
+	if !adults.Contains("alice") || !adults.Contains("charlie") {
+		keys := adults.Keys()
+		keySlice := make([]string, 0)
+		keys.Iter().ForEach(func(k string) { keySlice = append(keySlice, k) })
+		t.Errorf("Expected alice and charlie, got %v", keySlice)
+	}
+
+	// Test FilterMap that filters all elements
+	allFiltered := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
+		return g.None[g.Pair[string, int]]() // Filter all out
+	}).Collect()
+
+	if allFiltered.Len() != 0 {
+		t.Errorf("Expected empty map, got %d elements", allFiltered.Len())
+	}
+
+	// Test FilterMap that keeps all elements with transformation
+	doubled := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
+		return g.Some(g.Pair[string, int]{Key: name + "_user", Value: age * 2})
+	}).Collect()
+
+	if doubled.Len() != users.Len() {
+		t.Errorf("Expected %d elements, got %d", users.Len(), doubled.Len())
+	}
+
+	if doubled.Get("alice_user").UnwrapOr(0) != 50 {
+		t.Errorf("Expected alice_user age 50, got %v", doubled.Get("alice_user"))
+	}
+
+	// Test FilterMap with empty input
+	emptyMap := g.NewMap[string, int]()
+	emptyResult := emptyMap.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
+		return g.Some(g.Pair[string, int]{Key: name, Value: age * 2})
+	}).Collect()
+
+	if emptyResult.Len() != 0 {
+		t.Errorf("FilterMap on empty map should return empty, got %d elements", emptyResult.Len())
+	}
+}

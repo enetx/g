@@ -1159,6 +1159,158 @@ func TestMapOrdPrintln(t *testing.T) {
 	}
 }
 
+func TestMapOrdSet(t *testing.T) {
+	t.Run("setting_new_key", func(t *testing.T) {
+		m := NewMapOrd[string, int]()
+
+		// Setting a new key should return None
+		prev := m.Set("new_key", 100)
+		if prev.IsSome() {
+			t.Errorf("Expected None when setting new key, got Some(%v)", prev.Some())
+		}
+
+		// Verify the key was set
+		if val := m.Get("new_key"); val.IsNone() || val.Some() != 100 {
+			t.Errorf("Expected Some(100), got %v", val)
+		}
+
+		if m.Len() != 1 {
+			t.Errorf("Expected length 1, got %v", m.Len())
+		}
+	})
+
+	t.Run("updating_existing_key", func(t *testing.T) {
+		m := NewMapOrd[string, int]()
+
+		// First set
+		prev := m.Set("existing_key", 100)
+		if prev.IsSome() {
+			t.Errorf("Expected None on first set, got Some(%v)", prev.Some())
+		}
+
+		// Update existing key should return previous value
+		prev = m.Set("existing_key", 200)
+		if prev.IsNone() {
+			t.Errorf("Expected Some(100) when updating existing key, got None")
+		}
+		if prev.Some() != 100 {
+			t.Errorf("Expected Some(100) when updating existing key, got Some(%v)", prev.Some())
+		}
+
+		// Verify the key was updated
+		if val := m.Get("existing_key"); val.IsNone() || val.Some() != 200 {
+			t.Errorf("Expected Some(200), got %v", val)
+		}
+
+		// Length should still be 1
+		if m.Len() != 1 {
+			t.Errorf("Expected length 1, got %v", m.Len())
+		}
+	})
+
+	t.Run("multiple_updates_same_key", func(t *testing.T) {
+		m := NewMapOrd[int, string]()
+
+		// Chain of updates on same key
+		prev1 := m.Set(1, "first")
+		prev2 := m.Set(1, "second")
+		prev3 := m.Set(1, "third")
+
+		if prev1.IsSome() {
+			t.Errorf("Expected None on first set, got Some(%v)", prev1.Some())
+		}
+		if prev2.IsNone() || prev2.Some() != "first" {
+			t.Errorf("Expected Some('first'), got %v", prev2)
+		}
+		if prev3.IsNone() || prev3.Some() != "second" {
+			t.Errorf("Expected Some('second'), got %v", prev3)
+		}
+
+		// Final value should be "third"
+		if val := m.Get(1); val.IsNone() || val.Some() != "third" {
+			t.Errorf("Expected Some('third'), got %v", val)
+		}
+
+		// Still only one entry
+		if m.Len() != 1 {
+			t.Errorf("Expected length 1, got %v", m.Len())
+		}
+	})
+
+	t.Run("mixed_new_and_existing_keys", func(t *testing.T) {
+		m := NewMapOrd[string, int]()
+
+		// Set multiple new keys
+		prev1 := m.Set("a", 1)
+		prev2 := m.Set("b", 2)
+		prev3 := m.Set("c", 3)
+
+		// All should return None (new keys)
+		if prev1.IsSome() || prev2.IsSome() || prev3.IsSome() {
+			t.Errorf("Expected None for all new keys")
+		}
+
+		// Update existing keys
+		prev4 := m.Set("b", 20) // Update middle
+		prev5 := m.Set("a", 10) // Update first
+		prev6 := m.Set("c", 30) // Update last
+
+		// Should return previous values
+		if prev4.IsNone() || prev4.Some() != 2 {
+			t.Errorf("Expected Some(2), got %v", prev4)
+		}
+		if prev5.IsNone() || prev5.Some() != 1 {
+			t.Errorf("Expected Some(1), got %v", prev5)
+		}
+		if prev6.IsNone() || prev6.Some() != 3 {
+			t.Errorf("Expected Some(3), got %v", prev6)
+		}
+
+		// Verify final values
+		if val := m.Get("a"); val.IsNone() || val.Some() != 10 {
+			t.Errorf("Expected Some(10) for 'a', got %v", val)
+		}
+		if val := m.Get("b"); val.IsNone() || val.Some() != 20 {
+			t.Errorf("Expected Some(20) for 'b', got %v", val)
+		}
+		if val := m.Get("c"); val.IsNone() || val.Some() != 30 {
+			t.Errorf("Expected Some(30) for 'c', got %v", val)
+		}
+
+		// Should have 3 entries
+		if m.Len() != 3 {
+			t.Errorf("Expected length 3, got %v", m.Len())
+		}
+	})
+
+	t.Run("edge_case_zero_values", func(t *testing.T) {
+		m := NewMapOrd[int, int]()
+
+		// Set zero value - should still work correctly
+		prev := m.Set(0, 0)
+		if prev.IsSome() {
+			t.Errorf("Expected None when setting new key 0, got Some(%v)", prev.Some())
+		}
+
+		// Update with zero value
+		prev = m.Set(0, 1)
+		if prev.IsNone() || prev.Some() != 0 {
+			t.Errorf("Expected Some(0) when updating key 0, got %v", prev)
+		}
+
+		// Update back to zero
+		prev = m.Set(0, 0)
+		if prev.IsNone() || prev.Some() != 1 {
+			t.Errorf("Expected Some(1) when updating key 0, got %v", prev)
+		}
+
+		// Final value should be 0
+		if val := m.Get(0); val.IsNone() || val.Some() != 0 {
+			t.Errorf("Expected Some(0), got %v", val)
+		}
+	})
+}
+
 func TestMapOrdAsAny(t *testing.T) {
 	m := NewMapOrd[string, int]()
 	m.Set("test", 42)

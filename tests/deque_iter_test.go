@@ -643,3 +643,239 @@ func TestSeqDeque_FlattenEdgeCases(t *testing.T) {
 		t.Errorf("Flatten simple: expected %v, got %v", expected, result)
 	}
 }
+
+func TestSeqDequeFlatMap(t *testing.T) {
+	// Test FlatMap with expanding elements
+	deque := g.DequeOf(1, 2, 3)
+	result := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
+		return g.DequeOf(n, n*10).Iter()
+	}).Collect()
+
+	expected := []int{1, 10, 2, 20, 3, 30}
+	actual := make([]int, 0)
+	result.Iter().ForEach(func(v int) { actual = append(actual, v) })
+
+	if len(actual) != len(expected) {
+		t.Errorf("FlatMap length: expected %d, got %d", len(expected), len(actual))
+	}
+
+	for i, v := range expected {
+		if i >= len(actual) || actual[i] != v {
+			t.Errorf("FlatMap result[%d]: expected %d, got %v", i, v, actual)
+			break
+		}
+	}
+
+	// Test FlatMap with empty results
+	emptyResult := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
+		return g.NewDeque[int]().Iter()
+	}).Collect()
+
+	if emptyResult.Len() != 0 {
+		t.Errorf("FlatMap empty: expected 0 elements, got %d", emptyResult.Len())
+	}
+
+	// Test FlatMap with single elements
+	singleResult := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
+		return g.DequeOf(n * 2).Iter()
+	}).Collect()
+
+	expectedSingle := []int{2, 4, 6}
+	actualSingle := make([]int, 0)
+	singleResult.Iter().ForEach(func(v int) { actualSingle = append(actualSingle, v) })
+
+	for i, v := range expectedSingle {
+		if i >= len(actualSingle) || actualSingle[i] != v {
+			t.Errorf("FlatMap single[%d]: expected %d, got %v", i, v, actualSingle)
+		}
+	}
+
+	// Test FlatMap on empty deque
+	empty := g.NewDeque[int]()
+	emptyFlatMapped := empty.Iter().FlatMap(func(n int) g.SeqDeque[int] {
+		return g.DequeOf(n).Iter()
+	}).Collect()
+
+	if emptyFlatMapped.Len() != 0 {
+		t.Errorf("FlatMap empty input: expected 0 elements, got %d", emptyFlatMapped.Len())
+	}
+}
+
+func TestSeqDequeFilterMap(t *testing.T) {
+	// Test FilterMap with transformation and filtering
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := deque.Iter().FilterMap(func(n int) g.Option[int] {
+		if n%2 == 0 {
+			return g.Some(n * 10)
+		}
+		return g.None[int]()
+	}).Collect()
+
+	expected := []int{20, 40}
+	actual := make([]int, 0)
+	result.Iter().ForEach(func(v int) { actual = append(actual, v) })
+
+	if len(actual) != len(expected) {
+		t.Errorf("FilterMap length: expected %d, got %d", len(expected), len(actual))
+	}
+
+	for i, v := range expected {
+		if i >= len(actual) || actual[i] != v {
+			t.Errorf("FilterMap result[%d]: expected %d, got %v", i, v, actual)
+			break
+		}
+	}
+
+	// Test FilterMap that filters all elements
+	allFiltered := deque.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.None[int]()
+	}).Collect()
+
+	if allFiltered.Len() != 0 {
+		t.Errorf("FilterMap all filtered: expected 0 elements, got %d", allFiltered.Len())
+	}
+
+	// Test FilterMap that keeps all elements with transformation
+	allKept := deque.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.Some(n * 2)
+	}).Collect()
+
+	expectedAll := []int{2, 4, 6, 8, 10}
+	actualAll := make([]int, 0)
+	allKept.Iter().ForEach(func(v int) { actualAll = append(actualAll, v) })
+
+	if len(actualAll) != len(expectedAll) {
+		t.Errorf("FilterMap all kept length: expected %d, got %d", len(expectedAll), len(actualAll))
+	}
+
+	// Test FilterMap on empty deque
+	empty := g.NewDeque[int]()
+	emptyFiltered := empty.Iter().FilterMap(func(n int) g.Option[int] {
+		return g.Some(n * 2)
+	}).Collect()
+
+	if emptyFiltered.Len() != 0 {
+		t.Errorf("FilterMap empty input: expected 0 elements, got %d", emptyFiltered.Len())
+	}
+
+	// Test FilterMap with string processing
+	words := g.DequeOf("hello", "", "world", "   ", "go")
+	processedWords := words.Iter().FilterMap(func(s string) g.Option[string] {
+		trimmed := g.String(s).Trim()
+		if !trimmed.Empty() {
+			return g.Some(string(trimmed.Upper()))
+		}
+		return g.None[string]()
+	}).Collect()
+
+	expectedWords := []string{"HELLO", "WORLD", "GO"}
+	actualWords := make([]string, 0)
+	processedWords.Iter().ForEach(func(s string) { actualWords = append(actualWords, s) })
+
+	if len(actualWords) != len(expectedWords) {
+		t.Errorf("FilterMap strings length: expected %d, got %d", len(expectedWords), len(actualWords))
+	}
+
+	for i, expected := range expectedWords {
+		if i >= len(actualWords) || actualWords[i] != expected {
+			t.Errorf("FilterMap strings[%d]: expected %s, got %v", i, expected, actualWords)
+		}
+	}
+}
+
+func TestSeqDequeScan(t *testing.T) {
+	// Test Scan with sum accumulation
+	deque := g.DequeOf(1, 2, 3, 4, 5)
+	result := deque.Iter().Scan(0, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	expected := []int{0, 1, 3, 6, 10, 15}
+	actual := make([]int, 0)
+	result.Iter().ForEach(func(v int) { actual = append(actual, v) })
+
+	if len(actual) != len(expected) {
+		t.Errorf("Scan length: expected %d, got %d", len(expected), len(actual))
+	}
+
+	for i, v := range expected {
+		if i >= len(actual) || actual[i] != v {
+			t.Errorf("Scan result[%d]: expected %d, got %v", i, v, actual)
+			break
+		}
+	}
+
+	// Test Scan with multiplication
+	small := g.DequeOf(2, 3, 4)
+	product := small.Iter().Scan(1, func(acc, val int) int {
+		return acc * val
+	}).Collect()
+
+	expectedProduct := []int{1, 2, 6, 24}
+	actualProduct := make([]int, 0)
+	product.Iter().ForEach(func(v int) { actualProduct = append(actualProduct, v) })
+
+	if len(actualProduct) != len(expectedProduct) {
+		t.Errorf("Scan product length: expected %d, got %d", len(expectedProduct), len(actualProduct))
+	}
+
+	for i, v := range expectedProduct {
+		if i >= len(actualProduct) || actualProduct[i] != v {
+			t.Errorf("Scan product[%d]: expected %d, got %v", i, v, actualProduct)
+		}
+	}
+
+	// Test Scan on empty deque (should just return initial value)
+	empty := g.NewDeque[int]()
+	emptyScanned := empty.Iter().Scan(42, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	if emptyScanned.Len() != 1 {
+		t.Errorf("Scan empty length: expected 1, got %d", emptyScanned.Len())
+	}
+
+	if emptyScanned.Front().UnwrapOr(0) != 42 {
+		t.Errorf("Scan empty value: expected 42, got %v", emptyScanned.Front())
+	}
+
+	// Test Scan with single element
+	single := g.DequeOf(10)
+	singleScanned := single.Iter().Scan(5, func(acc, val int) int {
+		return acc + val
+	}).Collect()
+
+	expectedSingle := []int{5, 15}
+	actualSingle := make([]int, 0)
+	singleScanned.Iter().ForEach(func(v int) { actualSingle = append(actualSingle, v) })
+
+	if len(actualSingle) != len(expectedSingle) {
+		t.Errorf("Scan single length: expected %d, got %d", len(expectedSingle), len(actualSingle))
+	}
+
+	for i, v := range expectedSingle {
+		if i >= len(actualSingle) || actualSingle[i] != v {
+			t.Errorf("Scan single[%d]: expected %d, got %v", i, v, actualSingle)
+		}
+	}
+
+	// Test Scan with string concatenation
+	stringDeque := g.DequeOf("a", "b", "c")
+	concatenated := stringDeque.Iter().Scan("", func(acc, val string) string {
+		return acc + val
+	}).Collect()
+
+	expectedConcat := []string{"", "a", "ab", "abc"}
+	actualConcat := make([]string, 0)
+	concatenated.Iter().ForEach(func(s string) { actualConcat = append(actualConcat, s) })
+
+	if len(actualConcat) != len(expectedConcat) {
+		t.Errorf("Scan concat length: expected %d, got %d", len(expectedConcat), len(actualConcat))
+	}
+
+	for i, v := range expectedConcat {
+		if i >= len(actualConcat) || actualConcat[i] != v {
+			t.Errorf("Scan concat[%d]: expected %s, got %v", i, v, actualConcat)
+		}
+	}
+}

@@ -850,3 +850,92 @@ func (seq SeqDeque[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
 func (seq SeqDeque[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
 	return OptionOf(iter.MinBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
+
+// FlatMap applies a function to each element and flattens the results into a single sequence.
+//
+// The function transforms each element into a new SeqDeque and then flattens all resulting
+// sequences into a single sequence.
+//
+// Params:
+//
+//   - fn (func(V) SeqDeque[V]): The function that transforms each element into a SeqDeque.
+//
+// Returns:
+//
+// - SeqDeque[V]: A flattened sequence containing all elements from the transformed sequences.
+//
+// Example usage:
+//
+//	deque := g.DequeOf(1, 2, 3)
+//	result := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
+//		return g.DequeOf(n, n*10).Iter()
+//	}).Collect()
+//	result.Print() // Deque[1, 10, 2, 20, 3, 30]
+func (seq SeqDeque[V]) FlatMap(fn func(V) SeqDeque[V]) SeqDeque[V] {
+	mapped := iter.MapTo(iter.Seq[V](seq), func(v V) iter.Seq[V] {
+		return iter.Seq[V](fn(v))
+	})
+	return SeqDeque[V](iter.FlattenSeq(mapped))
+}
+
+// FilterMap applies a function to each element and filters out None results.
+//
+// The function transforms and filters elements in a single pass. Elements where the function
+// returns None are filtered out, and elements where it returns Some are unwrapped
+// and included in the result.
+//
+// Params:
+//
+//   - fn (func(V) Option[V]): The function that transforms and filters elements.
+//     Returns Some(value) to include the transformed element, or None to filter it out.
+//
+// Returns:
+//
+// - SeqDeque[V]: A sequence containing only the successfully transformed elements.
+//
+// Example usage:
+//
+//	deque := g.DequeOf(1, 2, 3, 4, 5)
+//	result := deque.Iter().FilterMap(func(n int) g.Option[int] {
+//		if n%2 == 0 {
+//			return g.Some(n * 10)
+//		}
+//		return g.None[int]()
+//	}).Collect()
+//	result.Print() // Deque[20, 40]
+func (seq SeqDeque[V]) FilterMap(fn func(V) Option[V]) SeqDeque[V] {
+	return SeqDeque[V](iter.FilterMap(iter.Seq[V](seq), func(v V) (V, bool) {
+		return fn(v).Option()
+	}))
+}
+
+// Scan applies a function to each element and produces a sequence of successive accumulated results.
+//
+// The function takes an initial value and applies the provided function to each element along
+// with the accumulated value, producing a new sequence where each element is the result of
+// the accumulation. The initial value is included as the first element.
+//
+// Params:
+//
+//   - init (V): The initial value for the accumulation.
+//   - fn (func(acc, val V) V): The function that combines the accumulator with each element.
+//
+// Returns:
+//
+// - SeqDeque[V]: A sequence containing the initial value and all accumulated results.
+//
+// Example usage:
+//
+//	deque := g.DequeOf(1, 2, 3, 4, 5)
+//	result := deque.Iter().Scan(0, func(acc, val int) int {
+//		return acc + val
+//	}).Collect()
+//	result.Print() // Deque[0, 1, 3, 6, 10, 15]
+func (seq SeqDeque[V]) Scan(init V, fn func(acc, val V) V) SeqDeque[V] {
+	return func(yield func(V) bool) {
+		if !yield(init) {
+			return
+		}
+		iter.Scan(iter.Seq[V](seq), init, fn)(yield)
+	}
+}

@@ -2,6 +2,8 @@ package g_test
 
 import (
 	"fmt"
+	"sort"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -498,4 +500,506 @@ func TestHeapFlattenParallel(t *testing.T) {
 
 	t.Logf("Heap Flatten - Max concurrency: %d, Duration: %v, Items: %d",
 		cc.Max(), duration, result.Len())
+}
+
+// TestHeapParFlatMap verifies FlatMap correctness and parallel execution.
+func TestHeapParFlatMap(t *testing.T) {
+	nums := []int{1, 2, 3}
+	heap := NewHeap(cmp.Cmp[int])
+	for _, n := range nums {
+		heap.Push(n)
+	}
+
+	workers := Int(2)
+	cc := &concurrentCounterHeap{sleep: 30 * time.Millisecond}
+
+	start := time.Now()
+	result := heap.Iter().
+		Parallel(workers).
+		Inspect(cc.Fn).
+		FlatMap(func(v int) SeqHeap[int] {
+			h := NewHeap(cmp.Cmp[int])
+			h.Push(v*10, v*10+1)
+			return h.Iter()
+		}).
+		Collect()
+	duration := time.Since(start)
+
+	// Expected: [10,11, 20,21, 30,31] = 6 elements
+	if result.Len() != 6 {
+		t.Errorf("FlatMap result length: got %d, want 6", result.Len())
+	}
+
+	// Check that all expected values are present
+	resultSlice := make([]int, 0)
+	for !result.Empty() {
+		resultSlice = append(resultSlice, result.Pop().Some())
+	}
+	SliceOf(resultSlice...).SortBy(cmp.Cmp)
+
+	expected := []int{10, 11, 20, 21, 30, 31}
+	if !SliceOf(resultSlice...).Eq(expected) {
+		t.Errorf("FlatMap result: got %v, want %v", resultSlice, expected)
+	}
+
+	// Verify parallelism
+	if cc.Max() < 2 {
+		t.Errorf("Expected parallel FlatMap, got max concurrency %d", cc.Max())
+	}
+
+	// Should be faster than sequential (3 * 30ms = 90ms)
+	if duration > 80*time.Millisecond {
+		t.Logf("Warning: FlatMap might not be parallel: %v", duration)
+	}
+
+	t.Logf("FlatMap - Max concurrency: %d, Duration: %v", cc.Max(), duration)
+
+	// Test with empty result
+	emptyResult := heap.Iter().
+		Parallel(workers).
+		FlatMap(func(v int) SeqHeap[int] {
+			return NewHeap(cmp.Cmp[int]).Iter()
+		}).
+		Collect()
+
+	if emptyResult.Len() != 0 {
+		t.Errorf("FlatMap empty result: got %d, want 0", emptyResult.Len())
+	}
+}
+
+// TestHeapParFilterMap verifies FilterMap correctness and parallel execution.
+func TestHeapParFilterMap(t *testing.T) {
+	nums := []int{1, 2, 3, 4, 5, 6}
+	heap := NewHeap(cmp.Cmp[int])
+	for _, n := range nums {
+		heap.Push(n)
+	}
+
+	workers := Int(3)
+	cc := &concurrentCounterHeap{sleep: 20 * time.Millisecond}
+
+	start := time.Now()
+	result := heap.Iter().
+		Parallel(workers).
+		Inspect(cc.Fn).
+		FilterMap(func(v int) Option[int] {
+			if v%2 == 0 {
+				return Some(v * 2)
+			}
+			return None[int]()
+		}).
+		Collect()
+	duration := time.Since(start)
+
+	// Expected: even numbers * 2 = [4, 8, 12]
+	resultSlice := make([]int, 0)
+	for !result.Empty() {
+		resultSlice = append(resultSlice, result.Pop().Some())
+	}
+	SliceOf(resultSlice...).SortBy(cmp.Cmp)
+
+	expected := []int{4, 8, 12}
+	if !SliceOf(resultSlice...).Eq(expected) {
+		t.Errorf("FilterMap result: got %v, want %v", resultSlice, expected)
+	}
+
+	// Verify parallelism
+	if cc.Max() < 2 {
+		t.Errorf("Expected parallel FilterMap, got max concurrency %d", cc.Max())
+	}
+
+	// Should be faster than sequential (6 * 20ms = 120ms)
+	if duration > 100*time.Millisecond {
+		t.Logf("Warning: FilterMap might not be parallel: %v", duration)
+	}
+
+	t.Logf("FilterMap - Max concurrency: %d, Duration: %v", cc.Max(), duration)
+
+	// Test with all filtered out
+	emptyResult := heap.Iter().
+		Parallel(workers).
+		FilterMap(func(v int) Option[int] {
+			return None[int]()
+		}).
+		Collect()
+
+	if emptyResult.Len() != 0 {
+		t.Errorf("FilterMap all filtered: got %d, want 0", emptyResult.Len())
+	}
+}
+
+// TestHeapParStepBy verifies StepBy correctness and parallel execution.
+func TestHeapParStepBy(t *testing.T) {
+	nums := make([]int, 10)
+	for i := 0; i < 10; i++ {
+		nums[i] = i + 1
+	}
+
+	heap := NewHeap(cmp.Cmp[int])
+	for _, n := range nums {
+		heap.Push(n)
+	}
+
+	workers := Int(3)
+	cc := &concurrentCounterHeap{sleep: 15 * time.Millisecond}
+
+	start := time.Now()
+	result := heap.Iter().
+		Parallel(workers).
+		Inspect(cc.Fn).
+		StepBy(3).
+		Collect()
+	duration := time.Since(start)
+
+	// StepBy(3) should return approximately 1/3 of elements (3-4 elements from 10 total)
+	resultSlice := make([]int, 0)
+	for !result.Empty() {
+		resultSlice = append(resultSlice, result.Pop().Some())
+	}
+	SliceOf(resultSlice...).SortBy(cmp.Cmp)
+
+	// Should have about 3-4 elements (every 3rd from 10 elements)
+	expectedCount := 4 // positions 0, 3, 6, 9
+	if len(resultSlice) != expectedCount {
+		t.Errorf("StepBy result count: got %d, want %d", len(resultSlice), expectedCount)
+	}
+
+	// All results should be valid numbers from 1-10
+	for _, v := range resultSlice {
+		if v < 1 || v > 10 {
+			t.Errorf("StepBy invalid result: got %d, want 1-10", v)
+		}
+	}
+
+	// Verify parallelism
+	if cc.Max() < 2 {
+		t.Errorf("Expected parallel StepBy, got max concurrency %d", cc.Max())
+	}
+
+	// Should be faster than sequential
+	if duration > 100*time.Millisecond {
+		t.Logf("Warning: StepBy might not be parallel: %v", duration)
+	}
+
+	t.Logf("StepBy - Max concurrency: %d, Duration: %v", cc.Max(), duration)
+
+	// Test StepBy(0) should default to StepBy(1)
+	allResult := heap.Iter().
+		Parallel(workers).
+		StepBy(0).
+		Collect()
+
+	if allResult.Len() != Int(len(nums)) {
+		t.Errorf("StepBy(0) result length: got %d, want %d", allResult.Len(), len(nums))
+	}
+}
+
+// TestHeapParMaxMinBy verifies MaxBy and MinBy correctness and parallel execution.
+func TestHeapParMaxMinBy(t *testing.T) {
+	nums := []int{3, 1, 4, 1, 5, 9, 2, 6}
+	heap := NewHeap(cmp.Cmp[int])
+	for _, n := range nums {
+		heap.Push(n)
+	}
+
+	workers := Int(3)
+	cc := &concurrentCounterHeap{sleep: 10 * time.Millisecond}
+
+	start := time.Now()
+	maxResult := heap.Iter().
+		Parallel(workers).
+		Inspect(cc.Fn).
+		MaxBy(func(a, b int) cmp.Ordering {
+			return cmp.Cmp(a, b)
+		})
+	maxDuration := time.Since(start)
+
+	if !maxResult.IsSome() || maxResult.Some() != 9 {
+		t.Errorf("MaxBy result: got %v, want Some(9)", maxResult)
+	}
+
+	// Verify parallelism
+	if cc.Max() < 2 {
+		t.Errorf("Expected parallel MaxBy, got max concurrency %d", cc.Max())
+	}
+
+	t.Logf("MaxBy - Max concurrency: %d, Duration: %v", cc.Max(), maxDuration)
+
+	// Test MinBy
+	cc2 := &concurrentCounterHeap{sleep: 10 * time.Millisecond}
+	minResult := heap.Iter().
+		Parallel(workers).
+		Inspect(cc2.Fn).
+		MinBy(func(a, b int) cmp.Ordering {
+			return cmp.Cmp(a, b)
+		})
+
+	if !minResult.IsSome() || minResult.Some() != 1 {
+		t.Errorf("MinBy result: got %v, want Some(1)", minResult)
+	}
+
+	if cc2.Max() < 2 {
+		t.Errorf("Expected parallel MinBy, got max concurrency %d", cc2.Max())
+	}
+
+	// Test with empty heap
+	emptyHeap := NewHeap(cmp.Cmp[int])
+	emptyMax := emptyHeap.Iter().
+		Parallel(workers).
+		MaxBy(func(a, b int) cmp.Ordering {
+			return cmp.Cmp(a, b)
+		})
+
+	if emptyMax.IsSome() {
+		t.Errorf("MaxBy empty heap: got %v, want None", emptyMax)
+	}
+
+	emptyMin := emptyHeap.Iter().
+		Parallel(workers).
+		MinBy(func(a, b int) cmp.Ordering {
+			return cmp.Cmp(a, b)
+		})
+
+	if emptyMin.IsSome() {
+		t.Errorf("MinBy empty heap: got %v, want None", emptyMin)
+	}
+}
+
+// TestHeapParExclude tests the Exclude method for parallel heap iterators.
+func TestHeapParExclude(t *testing.T) {
+	t.Run("basic_exclude", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 10; i++ {
+			heap.Push(i)
+		}
+
+		// Exclude even numbers
+		result := heap.Iter().
+			Parallel(3).
+			Exclude(func(n int) bool {
+				return n%2 == 0
+			}).
+			Collect()
+
+		// Should have odd numbers: 1, 3, 5, 7, 9
+		expected := []int{1, 3, 5, 7, 9}
+		if result.Len() != Int(len(expected)) {
+			t.Errorf("Expected %d elements, got %d", len(expected), result.Len())
+		}
+
+		resultSlice := result.ToSlice()
+		resultSlice.SortBy(cmp.Cmp)
+		for i, exp := range expected {
+			if resultSlice[i] != exp {
+				t.Errorf("Expected %d at index %d, got %d", exp, i, resultSlice[i])
+			}
+		}
+	})
+
+	t.Run("exclude_none", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 5; i++ {
+			heap.Push(i)
+		}
+
+		// Exclude nothing (predicate always returns false)
+		result := heap.Iter().
+			Parallel(2).
+			Exclude(func(n int) bool {
+				return false
+			}).
+			Collect()
+
+		if result.Len() != Int(5) {
+			t.Errorf("Expected all 5 elements, got %d", result.Len())
+		}
+	})
+
+	t.Run("exclude_all", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 5; i++ {
+			heap.Push(i)
+		}
+
+		// Exclude everything (predicate always returns true)
+		result := heap.Iter().
+			Parallel(2).
+			Exclude(func(n int) bool {
+				return true
+			}).
+			Collect()
+
+		if result.Len() != Int(0) {
+			t.Errorf("Expected 0 elements, got %d", result.Len())
+		}
+	})
+
+	t.Run("parallel_execution", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 20; i++ {
+			heap.Push(i)
+		}
+
+		cc := &concurrentCounterHeap{sleep: 10 * time.Millisecond}
+
+		result := heap.Iter().
+			Parallel(4).
+			Inspect(cc.Fn).
+			Exclude(func(n int) bool {
+				return n > 10 // Exclude numbers > 10
+			}).
+			Collect()
+
+		// Should have numbers 1-10
+		if result.Len() != Int(10) {
+			t.Errorf("Expected 10 elements, got %d", result.Len())
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+}
+
+// TestHeapParForEach tests the ForEach method for parallel heap iterators.
+func TestHeapParForEach(t *testing.T) {
+	t.Run("basic_foreach", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 10; i++ {
+			heap.Push(i)
+		}
+
+		var processed []int
+		var mu sync.Mutex
+
+		heap.Iter().
+			Parallel(3).
+			ForEach(func(n int) {
+				mu.Lock()
+				processed = append(processed, n)
+				mu.Unlock()
+			})
+
+		if len(processed) != 10 {
+			t.Errorf("Expected 10 processed elements, got %d", len(processed))
+		}
+
+		// Check all numbers are present (order may vary due to parallelism)
+		sort.Ints(processed)
+		for i, expected := range []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10} {
+			if processed[i] != expected {
+				t.Errorf("Expected %d at index %d, got %d", expected, i, processed[i])
+			}
+		}
+	})
+
+	t.Run("parallel_execution", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		for i := 1; i <= 20; i++ {
+			heap.Push(i)
+		}
+
+		cc := &concurrentCounterHeap{sleep: 10 * time.Millisecond}
+
+		heap.Iter().
+			Parallel(4).
+			ForEach(func(n int) {
+				cc.Fn(n)
+			})
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+
+	t.Run("empty_heap", func(t *testing.T) {
+		heap := NewHeap(cmp.Cmp[int])
+		executed := false
+
+		heap.Iter().
+			Parallel(2).
+			ForEach(func(n int) {
+				executed = true
+			})
+
+		if executed {
+			t.Error("ForEach should not execute for empty heap")
+		}
+	})
+}
+
+// TestHeapParFlattenComprehensive tests Flatten method edge cases for better coverage.
+func TestHeapParFlattenComprehensive(t *testing.T) {
+	t.Run("nested_slices", func(t *testing.T) {
+		// Create heap with any type to hold nested structures
+		heap := NewHeap(func(a, b any) cmp.Ordering {
+			// Simple comparison based on string representation
+			aStr := fmt.Sprintf("%v", a)
+			bStr := fmt.Sprintf("%v", b)
+			return cmp.Cmp(aStr, bStr)
+		})
+
+		heap.Push(SliceOf(1, 2))
+		heap.Push(SliceOf(3, 4, 5))
+
+		resultSlice := heap.Iter().
+			Parallel(2).
+			Flatten().
+			Collect()
+
+		// Should get elements from the nested slices
+		if resultSlice.Len() < Int(1) {
+			t.Errorf("Expected at least 1 element, got %d", resultSlice.Len())
+		}
+	})
+
+	t.Run("parallel_execution", func(t *testing.T) {
+		heap := NewHeap(func(a, b any) cmp.Ordering {
+			aStr := fmt.Sprintf("%v", a)
+			bStr := fmt.Sprintf("%v", b)
+			return cmp.Cmp(aStr, bStr)
+		})
+
+		for i := 0; i < 5; i++ {
+			heap.Push(SliceOf(i*2, i*2+1))
+		}
+
+		cc := &concurrentCounterHeap{sleep: 5 * time.Millisecond}
+
+		resultSlice := heap.Iter().
+			Parallel(4).
+			Inspect(func(v any) { cc.Fn(1) }).
+			Flatten().
+			Collect()
+
+		// Should have elements from the nested slices
+		if resultSlice.Len() < Int(5) {
+			t.Errorf("Expected at least 5 elements, got %d", resultSlice.Len())
+		}
+
+		if cc.Max() < 2 {
+			t.Errorf("Expected parallel execution, got max concurrency %d", cc.Max())
+		}
+	})
+
+	t.Run("early_termination", func(t *testing.T) {
+		heap := NewHeap(func(a, b any) cmp.Ordering {
+			aStr := fmt.Sprintf("%v", a)
+			bStr := fmt.Sprintf("%v", b)
+			return cmp.Cmp(aStr, bStr)
+		})
+
+		heap.Push(SliceOf(1, 2, 3, 4, 5))
+		heap.Push(SliceOf(6, 7, 8, 9, 10))
+
+		resultSlice := heap.Iter().
+			Parallel(2).
+			Flatten().
+			Take(3). // Force early termination
+			Collect()
+
+		if resultSlice.Len() != Int(3) {
+			t.Errorf("Expected exactly 3 elements due to Take(3), got %d", resultSlice.Len())
+		}
+	})
 }
