@@ -78,8 +78,12 @@ type (
 	// Pair is a struct representing a key-value Pair for MapOrd.
 	Pair[K, V any] = iter.Pair[K, V]
 
-	// MapOrd is a generic alias for a slice of ordered key-value pairs.
-	MapOrd[K, V any] []Pair[K, V]
+	// MapOrd is an ordered map that maintains insertion order using a slice for pairs
+	// and a map for fast index lookups.
+	MapOrd[K, V any] struct {
+		pairs  []Pair[K, V] // ordered key-value pairs
+		lookup map[any]int  // maps keys to indices in pairs slice
+	}
 
 	// MapOrdEntry provides a view into a single key of an ordered Map (MapOrd),
 	// enabling fluent insertion, mutation, and deletion while preserving entry order.

@@ -16,7 +16,7 @@ func main() {
 	zipped.Println() // MapOrd{1:4, 2:5, 3:6}
 
 	// Iterate over the zipped tuples and print each one
-	for _, v := range zipped {
-		fmt.Println(v)
+	for k, v := range zipped.Iter() {
+		fmt.Println(k, v)
 	}
 }

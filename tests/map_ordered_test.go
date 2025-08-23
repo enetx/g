@@ -1,9 +1,7 @@
 package g_test
 
 import (
-	"context"
 	"reflect"
-	"slices"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -182,11 +180,10 @@ func TestMapOrdIterStepBy(t *testing.T) {
 func TestMapOrdIterRange(t *testing.T) {
 	// Test scenario: Function stops at a specific key-value pair
 	t.Run("FunctionStopsAtSpecificPair", func(t *testing.T) {
-		orderedMap := MapOrd[string, int]{
-			{Key: "a", Value: 1},
-			{Key: "b", Value: 2},
-			{Key: "c", Value: 3},
-		}
+		orderedMap := NewMapOrd[string, int]()
+		orderedMap.Set("a", 1)
+		orderedMap.Set("b", 2)
+		orderedMap.Set("c", 3)
 		expected := map[string]int{"a": 1, "b": 2}
 
 		result := make(map[string]int)
@@ -204,11 +201,10 @@ func TestMapOrdIterRange(t *testing.T) {
 
 	// Test scenario: Function always returns true
 	t.Run("FunctionAlwaysTrue", func(t *testing.T) {
-		orderedMap := MapOrd[string, int]{
-			{"a", 1},
-			{"b", 2},
-			{"c", 3},
-		}
+		orderedMap := NewMapOrd[string, int]()
+		orderedMap.Set("a", 1)
+		orderedMap.Set("b", 2)
+		orderedMap.Set("c", 3)
 
 		expected := map[string]int{"a": 1, "b": 2, "c": 3}
 
@@ -227,7 +223,7 @@ func TestMapOrdIterRange(t *testing.T) {
 
 	// Test scenario: Empty ordered map
 	t.Run("EmptyMap", func(t *testing.T) {
-		emptyMap := MapOrd[string, int]{}
+		emptyMap := NewMapOrd[string, int]()
 		expected := make(map[string]int)
 
 		result := make(map[string]int)
@@ -404,11 +400,11 @@ func TestMapOrdContains(t *testing.T) {
 		t.Errorf("Expected map not to contain the key")
 	}
 
-	// Test case 3: Map contains the key
-	m2 := NewMapOrd[[]int, []int]()
-	m2.Set([]int{0}, []int{1})
+	// Test case 3: Map with string keys (hashable)
+	m2 := NewMapOrd[string, []int]()
+	m2.Set("key", []int{1})
 
-	if !m2.Contains([]int{0}) {
+	if !m2.Contains("key") {
 		t.Errorf("Expected map to contain the key")
 	}
 }
@@ -524,65 +520,64 @@ func TestMapOrdCopy(t *testing.T) {
 
 func TestMapOrdSortBy(t *testing.T) {
 	// Test case 1: Sort by key
-	m := MapOrd[string, int]{
-		{"b", 2},
-		{"c", 3},
-		{"a", 1},
-	}
+	m := NewMapOrd[string, int]()
+	m.Set("b", 2)
+	m.Set("c", 3)
+	m.Set("a", 1)
 	m.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) })
 	expectedKeyOrder := []string{"a", "b", "c"}
-	for i, p := range m {
-		if p.Key != expectedKeyOrder[i] {
-			t.Errorf("Expected key at index %d to be %s, got %s", i, expectedKeyOrder[i], p.Key)
+	i := 0
+	m.Iter().ForEach(func(key string, _ int) {
+		if key != expectedKeyOrder[i] {
+			t.Errorf("Expected key at index %d to be %s, got %s", i, expectedKeyOrder[i], key)
 		}
-	}
+		i++
+	})
 
 	// Test case 2: Sort by value
-	m2 := MapOrd[string, int]{
-		{"a", 3},
-		{"b", 1},
-		{"c", 2},
-	}
+	m2 := NewMapOrd[string, int]()
+	m2.Set("a", 3)
+	m2.Set("b", 1)
+	m2.Set("c", 2)
 	m2.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 	expectedValueOrder := []int{1, 2, 3}
-	for i, p := range m2 {
-		if p.Value != expectedValueOrder[i] {
-			t.Errorf("Expected value at index %d to be %d, got %d", i, expectedValueOrder[i], p.Value)
+	i = 0
+	m2.Iter().ForEach(func(_ string, value int) {
+		if value != expectedValueOrder[i] {
+			t.Errorf("Expected value at index %d to be %d, got %d", i, expectedValueOrder[i], value)
 		}
-	}
+		i++
+	})
 }
 
 func TestSortByKey(t *testing.T) {
 	// Create a sample MapOrd to test sorting by keys
-	mo := MapOrd[string, int]{
-		{"b", 2},
-		{"a", 1},
-		{"c", 3},
-	}
+	mo := NewMapOrd[string, int]()
+	mo.Set("b", 2)
+	mo.Set("a", 1)
+	mo.Set("c", 3)
 
 	// Sort the MapOrd by keys using the custom comparison function
 	mo.SortByKey(cmp.Cmp)
 
 	// Expected sorted order by keys
-	expected := MapOrd[string, int]{
-		{"a", 1},
-		{"b", 2},
-		{"c", 3},
-	}
+	expected := NewMapOrd[string, int]()
+	expected.Set("a", 1)
+	expected.Set("b", 2)
+	expected.Set("c", 3)
 
 	// Check if the MapOrd is sorted as expected
-	if !slices.Equal(mo, expected) {
+	if !mo.Eq(expected) {
 		t.Errorf("SortByKey failed: expected %v, got %v", expected, mo)
 	}
 }
 
 func TestSortByValue(t *testing.T) {
 	// Create a sample MapOrd to test sorting by values
-	mo := MapOrd[string, int]{
-		{"a", 2},
-		{"b", 1},
-		{"c", 3},
-	}
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 2)
+	mo.Set("b", 1)
+	mo.Set("c", 3)
 
 	// Define a custom comparison function for integers
 	customIntCmp := func(a, b int) cmp.Ordering {
@@ -598,49 +593,45 @@ func TestSortByValue(t *testing.T) {
 	mo.SortByValue(customIntCmp)
 
 	// Expected sorted order by values
-	expected := MapOrd[string, int]{
-		{"b", 1},
-		{"a", 2},
-		{"c", 3},
-	}
+	expected := NewMapOrd[string, int]()
+	expected.Set("b", 1)
+	expected.Set("a", 2)
+	expected.Set("c", 3)
 
 	// Check if the MapOrd is sorted as expected
-	if !slices.Equal(mo, expected) {
+	if !mo.Eq(expected) {
 		t.Errorf("SortByValue failed: expected %v, got %v", expected, mo)
 	}
 }
 
 func TestSortIterByKey(t *testing.T) {
 	// Create a sample MapOrd to test sorting by keys
-	mo := MapOrd[string, int]{
-		{"b", 2},
-		{"a", 1},
-		{"c", 3},
-	}
+	mo := NewMapOrd[string, int]()
+	mo.Set("b", 2)
+	mo.Set("a", 1)
+	mo.Set("c", 3)
 
 	// Sort the MapOrd by keys using the custom comparison function
 	mo = mo.Iter().SortByKey(cmp.Cmp).Collect()
 
 	// Expected sorted order by keys
-	expected := MapOrd[string, int]{
-		{"a", 1},
-		{"b", 2},
-		{"c", 3},
-	}
+	expected := NewMapOrd[string, int]()
+	expected.Set("a", 1)
+	expected.Set("b", 2)
+	expected.Set("c", 3)
 
 	// Check if the MapOrd is sorted as expected
-	if !slices.Equal(mo, expected) {
+	if !mo.Eq(expected) {
 		t.Errorf("SortByKey failed: expected %v, got %v", expected, mo)
 	}
 }
 
 func TestSortIterByValue(t *testing.T) {
 	// Create a sample MapOrd to test sorting by values
-	mo := MapOrd[string, int]{
-		{"a", 2},
-		{"b", 1},
-		{"c", 3},
-	}
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 2)
+	mo.Set("b", 1)
+	mo.Set("c", 3)
 
 	// Define a custom comparison function for integers
 	customIntCmp := func(a, b int) cmp.Ordering {
@@ -656,14 +647,13 @@ func TestSortIterByValue(t *testing.T) {
 	mo = mo.Iter().SortByValue(customIntCmp).Collect()
 
 	// Expected sorted order by values
-	expected := MapOrd[string, int]{
-		{"b", 1},
-		{"a", 2},
-		{"c", 3},
-	}
+	expected := NewMapOrd[string, int]()
+	expected.Set("b", 1)
+	expected.Set("a", 2)
+	expected.Set("c", 3)
 
 	// Check if the MapOrd is sorted as expected
-	if !slices.Equal(mo, expected) {
+	if !mo.Eq(expected) {
 		t.Errorf("SortByValue failed: expected %v, got %v", expected, mo)
 	}
 }
@@ -684,16 +674,18 @@ func TestMapOrdFromMap(t *testing.T) {
 		{"c", 3},
 	}
 
-	for i, p := range mapOrd {
-		if p != expected[i] {
-			t.Errorf("Expected mapOrd[%d] to be %v, got %v", i, expected[i], p)
+	i := 0
+	mapOrd.Iter().ForEach(func(key string, value int) {
+		if i < len(expected) && (key != expected[i].Key || value != expected[i].Value) {
+			t.Errorf("Expected mapOrd[%d] to be %v, got {%s, %d}", i, expected[i], key, value)
 		}
-	}
+		i++
+	})
 
 	// Test case 2: Empty Map
 	m2 := NewMap[string, int]()
 	mapOrd2 := m2.ToMapOrd()
-	if len(mapOrd2) != 0 {
+	if mapOrd2.Len() != 0 {
 		t.Errorf("Expected mapOrd2 to be empty")
 	}
 }
@@ -702,7 +694,7 @@ func TestMapOrdFromStd(t *testing.T) {
 	// Test case 1: Map with elements
 	inputMap := map[string]int{"a": 1, "b": 2, "c": 3}
 	orderedMap := MapOrdFromStd(inputMap)
-	if len(orderedMap) != len(inputMap) {
+	if int(orderedMap.Len()) != len(inputMap) {
 		t.Errorf("Expected ordered map to have length %d, got %d", len(inputMap), orderedMap.Len())
 	}
 	for key, value := range inputMap {
@@ -712,7 +704,7 @@ func TestMapOrdFromStd(t *testing.T) {
 	}
 
 	// Test case 2: Empty Map
-	emptyMap := map[string]int{}
+	emptyMap := make(map[string]int)
 	orderedEmptyMap := MapOrdFromStd(emptyMap)
 	if orderedEmptyMap.Len() != 0 {
 		t.Errorf("Expected ordered map of an empty map to be empty")
@@ -858,7 +850,7 @@ func TestMapOrdIterExclude(t *testing.T) {
 	mo.Set(5, 5)
 
 	// Exclude even values
-	notEven := mo.Iter().Exclude(func(k, v int) bool {
+	notEven := mo.Iter().Exclude(func(_, v int) bool {
 		return v%2 == 0
 	})
 
@@ -886,7 +878,7 @@ func TestMapOrdIterFilter(t *testing.T) {
 	mo.Set(5, 5)
 
 	// Filter even values
-	even := mo.Iter().Filter(func(k, v int) bool {
+	even := mo.Iter().Filter(func(_, v int) bool {
 		return v%2 == 0
 	})
 
@@ -913,7 +905,7 @@ func TestMapOrdIterFind(t *testing.T) {
 	mo.Set(5, 5)
 
 	// Find the first even value
-	found := mo.Iter().Find(func(k, v int) bool {
+	found := mo.Iter().Find(func(_, v int) bool {
 		return v%2 == 0
 	}).Some()
 
@@ -991,8 +983,7 @@ func TestMapOrdIterToChannel(t *testing.T) {
 	mo.Set(5, 5)
 
 	// Convert the iterator to a channel
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Ensure cancellation to avoid goroutine leaks.
+	ctx := t.Context()
 
 	ch := mo.Iter().ToChan(ctx)
 
@@ -1054,20 +1045,21 @@ func TestMapOrdShuffle(t *testing.T) {
 
 func TestMapOrdTransform(t *testing.T) {
 	// Исходные данные
-	original := MapOrd[string, int]{
-		{"a", 1},
-		{"b", 2},
-	}
+	original := NewMapOrd[string, int]()
+	original.Set("a", 1)
+	original.Set("b", 2)
 
 	addEntry := func(mo MapOrd[string, int]) MapOrd[string, int] {
-		return append(mo, Pair[string, int]{"c", 3})
+		result := mo.Clone()
+		// Add new entry
+		result.Set("c", 3)
+		return result
 	}
 
-	expected := MapOrd[string, int]{
-		{"a", 1},
-		{"b", 2},
-		{"c", 3},
-	}
+	expected := NewMapOrd[string, int]()
+	expected.Set("a", 1)
+	expected.Set("b", 2)
+	expected.Set("c", 3)
 
 	result := original.Transform(addEntry)
 
@@ -1076,24 +1068,204 @@ func TestMapOrdTransform(t *testing.T) {
 	}
 
 	removeEntry := func(mo MapOrd[string, int]) MapOrd[string, int] {
-		filtered := MapOrd[string, int]{}
-		for _, pair := range mo {
-			if pair.Key != "a" {
-				filtered = append(filtered, pair)
+		filtered := NewMapOrd[string, int]()
+		mo.Iter().ForEach(func(key string, value int) {
+			if key != "a" {
+				filtered.Set(key, value)
 			}
-		}
+		})
 		return filtered
 	}
 
-	expectedAfterRemoval := MapOrd[string, int]{
-		{"b", 2},
-		{"c", 3},
-	}
+	expectedAfterRemoval := NewMapOrd[string, int]()
+	expectedAfterRemoval.Set("b", 2)
+	expectedAfterRemoval.Set("c", 3)
 
 	resultAfterRemoval := result.Transform(removeEntry)
 
 	if !reflect.DeepEqual(resultAfterRemoval, expectedAfterRemoval) {
 		t.Errorf("Transform with removal failed: expected %v, got %v", expectedAfterRemoval, resultAfterRemoval)
+	}
+}
+
+func TestSortByKeyIterator(t *testing.T) {
+	// Test SeqMapOrd.SortByKey method
+	mo := NewMapOrd[string, int]()
+	mo.Set("c", 3)
+	mo.Set("a", 1)
+	mo.Set("b", 2)
+
+	sorted := mo.Iter().SortByKey(cmp.Cmp).Collect()
+
+	expected := NewMapOrd[string, int]()
+	expected.Set("a", 1)
+	expected.Set("b", 2)
+	expected.Set("c", 3)
+
+	if !sorted.Eq(expected) {
+		t.Errorf("SortByKey iterator failed: expected %v, got %v", expected, sorted)
+	}
+
+	// Test with empty map
+	empty := NewMapOrd[string, int]()
+	emptySorted := empty.Iter().SortByKey(cmp.Cmp).Collect()
+	if !emptySorted.Empty() {
+		t.Errorf("SortByKey on empty map should return empty map")
+	}
+}
+
+func TestSortByValueIterator(t *testing.T) {
+	// Test SeqMapOrd.SortByValue method
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 3)
+	mo.Set("b", 1)
+	mo.Set("c", 2)
+
+	sorted := mo.Iter().SortByValue(cmp.Cmp).Collect()
+
+	expected := NewMapOrd[string, int]()
+	expected.Set("b", 1)
+	expected.Set("c", 2)
+	expected.Set("a", 3)
+
+	if !sorted.Eq(expected) {
+		t.Errorf("SortByValue iterator failed: expected %v, got %v", expected, sorted)
+	}
+
+	// Test with empty map
+	empty := NewMapOrd[string, int]()
+	emptySorted := empty.Iter().SortByValue(cmp.Cmp).Collect()
+	if !emptySorted.Empty() {
+		t.Errorf("SortByValue on empty map should return empty map")
+	}
+}
+
+func TestMapOrdEntryDeleteEdgeCases(t *testing.T) {
+	// Test Delete on non-existent key
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 1)
+	mo.Set("b", 2)
+
+	entry := mo.Entry("nonexistent")
+	result := entry.Delete()
+
+	if result.IsSome() {
+		t.Errorf("Delete on non-existent key should return None")
+	}
+
+	// Verify map unchanged
+	if mo.Len() != 2 {
+		t.Errorf("Map should be unchanged after deleting non-existent key")
+	}
+
+	// Test Delete on existing key
+	entry2 := mo.Entry("a")
+	result2 := entry2.Delete()
+
+	if !result2.IsSome() || result2.Some() != 1 {
+		t.Errorf("Delete on existing key should return Some(1), got %v", result2)
+	}
+
+	if mo.Len() != 1 {
+		t.Errorf("Map should have 1 element after deletion, got %d", mo.Len())
+	}
+
+	// Verify remaining element
+	if !mo.Contains("b") || mo.Get("b").Some() != 2 {
+		t.Errorf("Remaining element should be 'b': 2")
+	}
+}
+
+func TestSeqMapOrdFindEdgeCases(t *testing.T) {
+	// Test Find with no matching elements
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 1)
+	mo.Set("b", 2)
+	mo.Set("c", 3)
+
+	notFound := mo.Iter().Find(func(_ string, v int) bool {
+		return v > 10
+	})
+
+	if notFound.IsSome() {
+		t.Errorf("Find should return None when no elements match")
+	}
+
+	// Test Find with matching element
+	found := mo.Iter().Find(func(_ string, v int) bool {
+		return v == 2
+	})
+
+	if !found.IsSome() || found.Some().Key != "b" || found.Some().Value != 2 {
+		t.Errorf("Find should return Some(Pair{b, 2}), got %v", found)
+	}
+
+	// Test Find on empty map
+	empty := NewMapOrd[string, int]()
+	emptyResult := empty.Iter().Find(func(string, int) bool { return true })
+
+	if emptyResult.IsSome() {
+		t.Errorf("Find on empty map should return None")
+	}
+}
+
+func TestIterReverseEmptyMap(t *testing.T) {
+	// Test IterReverse on empty map
+	empty := NewMapOrd[string, int]()
+
+	count := 0
+	empty.IterReverse().ForEach(func(string, int) {
+		count++
+	})
+
+	if count != 0 {
+		t.Errorf("IterReverse on empty map should iterate 0 times, got %d", count)
+	}
+}
+
+func TestKeysEmptyMap(t *testing.T) {
+	// Test Keys method on empty map
+	empty := NewMapOrd[string, int]()
+	keys := empty.Keys()
+
+	if !keys.Empty() {
+		t.Errorf("Keys on empty map should return empty slice")
+	}
+
+	if keys.Len() != 0 {
+		t.Errorf("Keys on empty map should have length 0, got %d", keys.Len())
+	}
+}
+
+func TestAsAnyEdgeCases(t *testing.T) {
+	// Test AsAny on empty map
+	empty := NewMapOrd[string, int]()
+	anyEmpty := empty.AsAny()
+
+	if !anyEmpty.Empty() {
+		t.Errorf("AsAny on empty map should return empty map")
+	}
+
+	// Test AsAny with different types
+	mo := NewMapOrd[int, string]()
+	mo.Set(1, "one")
+	mo.Set(2, "two")
+
+	anyMo := mo.AsAny()
+
+	if anyMo.Len() != 2 {
+		t.Errorf("AsAny should preserve length, got %d", anyMo.Len())
+	}
+
+	// Verify values are preserved
+	val1 := anyMo.Get(1)
+	if !val1.IsSome() || val1.Some().(string) != "one" {
+		t.Errorf("AsAny should preserve values, got %v", val1)
+	}
+
+	val2 := anyMo.Get(2)
+	if !val2.IsSome() || val2.Some().(string) != "two" {
+		t.Errorf("AsAny should preserve values, got %v", val2)
 	}
 }
 

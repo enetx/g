@@ -783,7 +783,11 @@ func TestSliceIterForEach(t *testing.T) {
 func TestSliceIterZip(t *testing.T) {
 	s1 := SliceOf(1, 2, 3, 4)
 	s2 := SliceOf(5, 6, 7, 8)
-	expected := MapOrd[int, int]{{1, 5}, {2, 6}, {3, 7}, {4, 8}}
+	expected := NewMapOrd[int, int]()
+	expected.Set(1, 5)
+	expected.Set(2, 6)
+	expected.Set(3, 7)
+	expected.Set(4, 8)
 	result := s1.Iter().Zip(s2.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -792,7 +796,9 @@ func TestSliceIterZip(t *testing.T) {
 
 	s3 := SliceOf(1, 2, 3)
 	s4 := SliceOf(4, 5)
-	expected = MapOrd[int, int]{{1, 4}, {2, 5}}
+	expected = NewMapOrd[int, int]()
+	expected.Set(1, 4)
+	expected.Set(2, 5)
 	result = s3.Iter().Zip(s4.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -936,11 +942,13 @@ func TestSliceIterEnumerate(t *testing.T) {
 	expected.Set(3, "aaa")
 	expected.Set(4, "ccc")
 
-	for i, v := range enumerated {
-		if expected[i] != v {
-			t.Errorf("Expected element at index %d to be %v, got %v", i, expected[i], v)
+	i := 0
+	enumerated.Iter().ForEach(func(index Int, value string) {
+		if expected.Get(index).Some() != value {
+			t.Errorf("Expected element at index %d to be %v, got %v", i, expected.Get(index).Some(), value)
 		}
-	}
+		i++
+	})
 }
 
 func TestSliceIterSkip(t *testing.T) {

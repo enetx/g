@@ -203,10 +203,10 @@ func (seq SeqMapOrd[K, V]) Count() Int { return Int(iter.Count2(iter.Seq2[K, V](
 
 // Collect collects all key-value pairs from the iterator and returns a MapOrd.
 func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
-	var collection MapOrd[K, V]
+	collection := NewMapOrd[K, V]()
 
 	seq(func(k K, v V) bool {
-		collection = append(collection, Pair[K, V]{Key: k, Value: v})
+		collection.Set(k, v)
 		return true
 	})
 

@@ -253,18 +253,43 @@ func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
 		return sl.Clone()
 	}
 
-	result := make(Slice[T], 0, sequence)
-	used := make(map[Int]bool, sequence)
-
-	for result.Len() < sequence {
-		idx := rand.N(sl.Len())
-		if !used[idx] {
-			used[idx] = true
-			result = append(result, sl[idx])
-		}
+	if sequence <= 0 {
+		return Slice[T]{}
 	}
 
-	return result
+	n := sl.Len()
+
+	if Float(sequence) < Float(n)*0.25 {
+		result := make(Slice[T], sequence)
+		swapped := make(map[Int]Int, sequence)
+
+		for i := range sequence {
+			j := i + rand.N(n-i)
+
+			vi, foundI := swapped[i]
+			if !foundI {
+				vi = i
+			}
+
+			vj, foundJ := swapped[j]
+			if !foundJ {
+				vj = j
+			}
+
+			swapped[i] = vj
+			if i != j {
+				swapped[j] = vi
+			}
+
+			result[i] = sl[vj]
+		}
+		return result
+	}
+
+	result := sl.Clone()
+	result.Shuffle()
+
+	return result[:sequence]
 }
 
 // RandomRange returns a new slice containing a random sample of elements from a subrange of the original slice.

@@ -318,33 +318,33 @@ func toType(param String, targetType reflect.Type) Result[reflect.Value] {
 }
 
 func extractFromMapOrd(param String, targetType reflect.Value) Option[any] {
-	slice := targetType.Interface().(MapOrd[any, any])
-	if slice.Empty() {
+	mo := targetType.Interface().(MapOrd[any, any])
+	if mo.Empty() {
 		return None[any]()
 	}
 
-	mapKeyType := reflect.ValueOf(slice[0].Key).Type()
+	mapKeyType := reflect.ValueOf(mo.pairs[0].Key).Type()
 
 	switch mapKeyType {
 	case reflect.TypeOf(""):
-		return slice.Get(param.Std())
+		return mo.Get(param.Std())
 	case reflect.TypeOf(String("")):
-		return slice.Get(param)
+		return mo.Get(param)
 	case reflect.TypeOf(0):
-		return slice.Get(param.ToInt().v.Std())
+		return mo.Get(param.ToInt().v.Std())
 	case reflect.TypeOf(Int(0)):
-		return slice.Get(param.ToInt().v)
+		return mo.Get(param.ToInt().v)
 	case reflect.TypeOf(0.0):
-		return slice.Get(param.ToFloat().v.Std())
+		return mo.Get(param.ToFloat().v.Std())
 	case reflect.TypeOf(Float(0.0)):
-		return slice.Get(param.ToFloat().v)
+		return mo.Get(param.ToFloat().v)
 	default:
 		return None[any]()
 	}
 }
 
 func resolveIndirect(targetType reflect.Value) reflect.Value {
-	for targetType.Kind() == reflect.Interface || targetType.Kind() == reflect.Ptr {
+	for targetType.Kind() == reflect.Interface || targetType.Kind() == reflect.Pointer {
 		if targetType.IsNil() {
 			return reflect.Value{}
 		}
@@ -413,7 +413,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 		return value
 	}
 
-	for current.Kind() == reflect.Ptr || current.Kind() == reflect.Interface {
+	for current.Kind() == reflect.Pointer || current.Kind() == reflect.Interface {
 		if current.IsNil() {
 			return value
 		}
@@ -436,20 +436,23 @@ func applyMod(value any, name String, params Slice[String]) any {
 
 		current = resolveIndirect(current.MapIndex(key.v))
 	case reflect.Slice, reflect.Array:
+		index := name.ToInt()
+		if index.IsErr() || index.v.Gte(Int(current.Len())) {
+			return value
+		}
+
+		current = current.Index(index.v.Std())
+	case reflect.Struct:
 		if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
-			if pair := extractFromMapOrd(name, current); pair.IsSome() {
-				current = reflect.ValueOf(pair.v)
-			}
-		} else {
-			index := name.ToInt()
-			if index.IsErr() || index.v.Gte(Int(current.Len())) {
+			pair := extractFromMapOrd(name, current)
+			if pair.IsNone() {
 				return value
 			}
 
-			current = current.Index(index.v.Std())
+			current = reflect.ValueOf(pair.v)
+		} else {
+			current = current.FieldByName(name.Std())
 		}
-	case reflect.Struct:
-		current = current.FieldByName(name.Std())
 	}
 
 	if current.IsValid() && current.CanInterface() {

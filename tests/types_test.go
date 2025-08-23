@@ -198,16 +198,15 @@ func TestPair_Type(t *testing.T) {
 
 func TestMapOrd_Type(t *testing.T) {
 	// Test MapOrd type alias
-	var orderedMap g.MapOrd[string, int] = []g.Pair[string, int]{
-		{Key: "first", Value: 1},
-		{Key: "second", Value: 2},
+	orderedMap := g.NewMapOrd[string, int]()
+	orderedMap.Set("first", 1)
+	orderedMap.Set("second", 2)
+
+	if orderedMap.Len() != 2 {
+		t.Errorf("MapOrd creation failed: got length %d, want 2", orderedMap.Len())
 	}
 
-	if len(orderedMap) != 2 {
-		t.Errorf("MapOrd creation failed: got length %d, want 2", len(orderedMap))
-	}
-
-	if orderedMap[0].Key != "first" || orderedMap[0].Value != 1 {
+	if orderedMap.Get("first").Some() != 1 {
 		t.Error("MapOrd first element incorrect")
 	}
 }
