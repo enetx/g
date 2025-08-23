@@ -447,7 +447,7 @@ func (dq *Deque[T]) Contains(value T) bool {
 
 	if f.IsComparable(zero) {
 		for i := Int(0); i < dq.len; i++ {
-			if any(dq.data[dq.realIndex(i)]) == any(value) {
+			if f.Eq[any](dq.data[dq.realIndex(i)])(value) {
 				return true
 			}
 		}
@@ -469,7 +469,7 @@ func (dq *Deque[T]) Index(value T) Int {
 
 	if f.IsComparable(zero) {
 		for i := Int(0); i < dq.len; i++ {
-			if any(dq.data[dq.realIndex(i)]) == any(value) {
+			if f.Eq[any](dq.data[dq.realIndex(i)])(value) {
 				return i
 			}
 		}
@@ -551,7 +551,7 @@ func (dq *Deque[T]) Eq(other *Deque[T]) bool {
 		for i := Int(0); i < dq.len; i++ {
 			a := dq.data[dq.realIndex(i)]
 			b := other.data[other.realIndex(i)]
-			if any(a) != any(b) {
+			if !f.Eq[any](a)(b) {
 				return false
 			}
 		}

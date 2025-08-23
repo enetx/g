@@ -119,11 +119,12 @@ func (p SeqHeapPar[V]) Collect() *Heap[V] {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
 				return cmp.Equal
 			}
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}
@@ -598,11 +599,12 @@ func (p SeqHeapPar[V]) Partition(fn func(V) bool) (*Heap[V], *Heap[V]) {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
 				return cmp.Equal
 			}
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}
@@ -613,11 +615,12 @@ func (p SeqHeapPar[V]) Partition(fn func(V) bool) (*Heap[V], *Heap[V]) {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
 				return cmp.Equal
 			}
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}

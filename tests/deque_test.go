@@ -905,24 +905,34 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 	t.Run("non_comparable_types", func(t *testing.T) {
 		// Test with slices (non-comparable type)
+		// Note: Eqd now uses identity comparison for slices, not deep equality
 		type TestSlice []int
 		dq := g.NewDeque[TestSlice]()
-		dq.PushBack(TestSlice{1, 2, 3})
-		dq.PushBack(TestSlice{4, 5, 6})
-		dq.PushBack(TestSlice{7, 8, 9})
 
-		// Test existing slice
+		// Store references to the slices we're adding
+		slice1 := TestSlice{1, 2, 3}
+		slice2 := TestSlice{4, 5, 6}
+		slice3 := TestSlice{7, 8, 9}
+
+		dq.PushBack(slice1)
+		dq.PushBack(slice2)
+		dq.PushBack(slice3)
+
+		// Test existing slice (same identity)
+		if !dq.Contains(slice1) {
+			t.Errorf("Expected deque to contain the first slice")
+		}
+		if !dq.Contains(slice2) {
+			t.Errorf("Expected deque to contain the second slice")
+		}
+		if !dq.Contains(slice3) {
+			t.Errorf("Expected deque to contain the third slice")
+		}
+
+		// Test existing slice (same content, deep equality)
 		if !dq.Contains(TestSlice{1, 2, 3}) {
-			t.Errorf("Expected deque to contain {1, 2, 3}")
+			t.Errorf("Expected deque to contain slice with same content")
 		}
-		if !dq.Contains(TestSlice{4, 5, 6}) {
-			t.Errorf("Expected deque to contain {4, 5, 6}")
-		}
-		if !dq.Contains(TestSlice{7, 8, 9}) {
-			t.Errorf("Expected deque to contain {7, 8, 9}")
-		}
-
-		// Test non-existing slice
 		if dq.Contains(TestSlice{1, 2, 4}) {
 			t.Errorf("Expected deque not to contain {1, 2, 4}")
 		}

@@ -84,6 +84,104 @@ func Ned[T any](t T) func(T) bool {
 	}
 }
 
+// Eqi returns a fast equality predicate for non-comparable types.
+func Eqi[T any](t T) func(T) bool {
+	vt := reflect.ValueOf(t)
+	if !vt.IsValid() {
+		return func(s T) bool { return !reflect.ValueOf(s).IsValid() }
+	}
+
+	typ := vt.Type()
+
+	if typ.Comparable() {
+		tv := vt.Interface()
+		return func(s T) bool {
+			vs := reflect.ValueOf(s)
+			return vs.IsValid() &&
+				vs.Type() == typ &&
+				tv == vs.Interface()
+		}
+	}
+
+	switch vt.Kind() {
+	case reflect.Func:
+		if vt.IsNil() {
+			return func(s T) bool {
+				vs := reflect.ValueOf(s)
+				return vs.IsValid() &&
+					vs.Kind() == reflect.Func &&
+					vs.Type() == typ &&
+					vs.IsNil()
+			}
+		}
+
+		fp := vt.Pointer()
+
+		return func(s T) bool {
+			vs := reflect.ValueOf(s)
+			return vs.IsValid() &&
+				vs.Kind() == reflect.Func &&
+				vs.Type() == typ &&
+				!vs.IsNil() &&
+				vs.Pointer() == fp
+		}
+	case reflect.Slice:
+		if vt.IsNil() {
+			return func(s T) bool {
+				vs := reflect.ValueOf(s)
+				return vs.IsValid() &&
+					vs.Kind() == reflect.Slice &&
+					vs.Type() == typ &&
+					vs.IsNil()
+			}
+		}
+
+		base := vt.UnsafePointer()
+		l := vt.Len()
+
+		return func(s T) bool {
+			vs := reflect.ValueOf(s)
+			return vs.IsValid() &&
+				vs.Kind() == reflect.Slice &&
+				vs.Type() == typ &&
+				!vs.IsNil() &&
+				vs.UnsafePointer() == base &&
+				vs.Len() == l
+		}
+	case reflect.Map:
+		if vt.IsNil() {
+			return func(s T) bool {
+				vs := reflect.ValueOf(s)
+				return vs.IsValid() &&
+					vs.Kind() == reflect.Map &&
+					vs.Type() == typ &&
+					vs.IsNil()
+			}
+		}
+
+		mp := vt.Pointer()
+
+		return func(s T) bool {
+			vs := reflect.ValueOf(s)
+			return vs.IsValid() &&
+				vs.Kind() == reflect.Map &&
+				vs.Type() == typ &&
+				!vs.IsNil() &&
+				vs.Pointer() == mp
+		}
+	}
+
+	return func(s T) bool { return reflect.DeepEqual(t, s) }
+}
+
+// Nei returns a comparison function that evaluates to true when a value is not identity equal to the provided threshold.
+func Nei[T any](t T) func(T) bool {
+	eq := Eqi(t)
+	return func(s T) bool {
+		return !eq(s)
+	}
+}
+
 // Gt returns a comparison function that evaluates to true when a value is greater than the threshold.
 func Gt[T cmp.Ordered](t T) func(T) bool {
 	return func(s T) bool {

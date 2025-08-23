@@ -156,11 +156,12 @@ func (seq SeqHeap[V]) Collect() *Heap[V] {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
 				return cmp.Equal
 			}
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}
@@ -603,18 +604,15 @@ func (seq SeqHeap[V]) Partition(fn func(v V) bool) (*Heap[V], *Heap[V]) {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				// Use direct comparison for comparable types
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
-				// For non-ordered comparables, maintain insertion order
 				return cmp.Equal
 			}
-			// For non-comparable types, use deep equal
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}
-			// For non-equal non-comparable types, maintain insertion order
 			return cmp.Equal
 		},
 	}
@@ -623,18 +621,15 @@ func (seq SeqHeap[V]) Partition(fn func(v V) bool) (*Heap[V], *Heap[V]) {
 		data: make(Slice[V], 0),
 		cmp: func(a, b V) cmp.Ordering {
 			if f.IsComparable(a) {
-				// Use direct comparison for comparable types
-				if any(a) == any(b) {
+				if f.Eq[any](a)(b) {
 					return cmp.Equal
 				}
-				// For non-ordered comparables, maintain insertion order
 				return cmp.Equal
 			}
-			// For non-comparable types, use deep equal
+
 			if f.Eqd(a)(b) {
 				return cmp.Equal
 			}
-			// For non-equal non-comparable types, maintain insertion order
 			return cmp.Equal
 		},
 	}

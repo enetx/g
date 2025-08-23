@@ -1495,3 +1495,171 @@ func TestMapOrdAsAny(t *testing.T) {
 		t.Errorf("AsAny() should preserve length: expected %d, got %d", m.Len(), anyMap.Len())
 	}
 }
+
+func TestMapOrdNonHashableKeys(t *testing.T) {
+	t.Run("FunctionKeys", func(t *testing.T) {
+		mo := NewMapOrd[func(int) int, string]()
+
+		fn1 := func(x int) int { return x + 1 }
+		fn2 := func(x int) int { return x + 2 }
+		fn3 := func(x int) int { return x + 3 }
+
+		mo.Set(fn1, "function1")
+		mo.Set(fn2, "function2")
+		mo.Set(fn3, "function3")
+
+		if mo.Len() != 3 {
+			t.Errorf("Expected length 3, got %d", mo.Len())
+		}
+
+		if result := mo.Get(fn1); result.IsNone() || result.Some() != "function1" {
+			t.Errorf("Expected to find fn1 -> function1, got %v", result)
+		}
+
+		if result := mo.Get(fn2); result.IsNone() || result.Some() != "function2" {
+			t.Errorf("Expected to find fn2 -> function2, got %v", result)
+		}
+
+		if !mo.Contains(fn1) {
+			t.Errorf("Expected to contain fn1")
+		}
+
+		if !mo.Contains(fn2) {
+			t.Errorf("Expected to contain fn2")
+		}
+
+		mo.Delete(fn2)
+		if mo.Len() != 2 {
+			t.Errorf("Expected length 2 after delete, got %d", mo.Len())
+		}
+
+		if mo.Contains(fn2) {
+			t.Errorf("Expected fn2 to be deleted")
+		}
+
+		if result := mo.Get(fn1); result.IsNone() || result.Some() != "function1" {
+			t.Errorf("fn1 should still exist after deleting fn2, got %v", result)
+		}
+	})
+
+	t.Run("SliceKeys", func(t *testing.T) {
+		mo := NewMapOrd[[]int, string]()
+
+		slice1 := []int{1, 2, 3}
+		slice2 := []int{4, 5, 6}
+		slice3 := []int{1, 2, 3}
+
+		mo.Set(slice1, "slice1")
+		mo.Set(slice2, "slice2")
+		mo.Set(slice3, "slice3")
+
+		if mo.Len() != 3 {
+			t.Errorf("Expected length 3, got %d", mo.Len())
+		}
+
+		if result := mo.Get(slice1); result.IsNone() || result.Some() != "slice1" {
+			t.Errorf("Expected to find slice1, got %v", result)
+		}
+
+		if result := mo.Get(slice2); result.IsNone() || result.Some() != "slice2" {
+			t.Errorf("Expected to find slice2, got %v", result)
+		}
+
+		if result := mo.Get(slice3); result.IsNone() || result.Some() != "slice3" {
+			t.Errorf("Expected to find slice3, got %v", result)
+		}
+	})
+
+	t.Run("MapKeys", func(t *testing.T) {
+		mo := NewMapOrd[map[string]int, string]()
+
+		map1 := map[string]int{"a": 1, "b": 2}
+		map2 := map[string]int{"c": 3, "d": 4}
+
+		mo.Set(map1, "map1")
+		mo.Set(map2, "map2")
+
+		if mo.Len() != 2 {
+			t.Errorf("Expected length 2, got %d", mo.Len())
+		}
+
+		if result := mo.Get(map1); result.IsNone() || result.Some() != "map1" {
+			t.Errorf("Expected to find map1, got %v", result)
+		}
+
+		if result := mo.Get(map2); result.IsNone() || result.Some() != "map2" {
+			t.Errorf("Expected to find map2, got %v", result)
+		}
+
+		if !mo.Contains(map1) {
+			t.Errorf("Expected to contain map1")
+		}
+
+		mo.Delete(map1)
+		if mo.Len() != 1 {
+			t.Errorf("Expected length 1 after delete, got %d", mo.Len())
+		}
+
+		if mo.Contains(map1) {
+			t.Errorf("Expected map1 to be deleted")
+		}
+	})
+
+	t.Run("MixedKeys", func(t *testing.T) {
+		mo := NewMapOrd[any, string]()
+
+		mo.Set("string_key", "string_value")
+		mo.Set(42, "int_value")
+		mo.Set(3.14, "float_value")
+
+		fn := func() {}
+		slice := []int{1, 2, 3}
+		m := map[string]int{"x": 1}
+
+		mo.Set(fn, "function_value")
+		mo.Set(slice, "slice_value")
+		mo.Set(m, "map_value")
+
+		if mo.Len() != 6 {
+			t.Errorf("Expected length 6, got %d", mo.Len())
+		}
+
+		if result := mo.Get("string_key"); result.IsNone() || result.Some() != "string_value" {
+			t.Errorf("Expected to find string_key, got %v", result)
+		}
+
+		if result := mo.Get(42); result.IsNone() || result.Some() != "int_value" {
+			t.Errorf("Expected to find int key 42, got %v", result)
+		}
+
+		if result := mo.Get(fn); result.IsNone() || result.Some() != "function_value" {
+			t.Errorf("Expected to find function key, got %v", result)
+		}
+
+		if result := mo.Get(slice); result.IsNone() || result.Some() != "slice_value" {
+			t.Errorf("Expected to find slice key, got %v", result)
+		}
+
+		if result := mo.Get(m); result.IsNone() || result.Some() != "map_value" {
+			t.Errorf("Expected to find map key, got %v", result)
+		}
+
+		keys := mo.Keys()
+		if keys.Len() != 6 {
+			t.Errorf("Expected 6 keys in iteration, got %d", keys.Len())
+		}
+
+		mo.Delete("string_key", fn, slice)
+		if mo.Len() != 3 {
+			t.Errorf("Expected length 3 after mixed delete, got %d", mo.Len())
+		}
+
+		if mo.Contains("string_key") || mo.Contains(fn) || mo.Contains(slice) {
+			t.Errorf("Deleted keys should not be found")
+		}
+
+		if !mo.Contains(42) || !mo.Contains(3.14) || !mo.Contains(m) {
+			t.Errorf("Non-deleted keys should still be found")
+		}
+	})
+}

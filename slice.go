@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -218,7 +217,7 @@ func (sl Slice[T]) Fill(val T) {
 func (sl Slice[T]) Index(val T) Int {
 	var zero T
 	if f.IsComparable(zero) {
-		return sl.IndexBy(func(v T) bool { return any(v) == any(val) })
+		return sl.IndexBy(func(v T) bool { return f.Eq[any](v)(val) })
 	}
 
 	return sl.IndexBy(f.Eqd(val))
@@ -712,10 +711,10 @@ func (sl Slice[T]) LastIndex() Int {
 func (sl Slice[T]) Eq(other Slice[T]) bool {
 	var zero T
 	if f.IsComparable(zero) {
-		return sl.EqBy(other, func(x, y T) bool { return any(x) == any(y) })
+		return sl.EqBy(other, func(x, y T) bool { return f.Eq[any](x)(y) })
 	}
 
-	return sl.EqBy(other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
+	return sl.EqBy(other, func(x, y T) bool { return f.Eqd(x)(y) })
 }
 
 // EqBy reports whether two slices are equal using an equality
