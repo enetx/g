@@ -33,10 +33,10 @@ type TaskInfo struct {
 }
 
 func main() {
-	example1_BasicOperations()
-	example2_AtomicUpdates()
-	example3_CacheWithUpdate()
-	example4_SwapOperations()
+	BasicOperations()
+	AtomicUpdates()
+	CacheWithUpdate()
+	SwapOperations()
 }
 
 // =========================================================================
@@ -44,7 +44,7 @@ func main() {
 //	Example 1: Basic Cell Operations - Get, Set, Replace
 //
 // =========================================================================
-func example1_BasicOperations() {
+func BasicOperations() {
 	Println("=== Example 1: Basic Cell Operations ===")
 
 	// Create a new Cell with initial configuration
@@ -82,7 +82,7 @@ func example1_BasicOperations() {
 //	Example 2: Atomic Updates with Update method
 //
 // =========================================================================
-func example2_AtomicUpdates() {
+func AtomicUpdates() {
 	Println("\n=== Example 2: Atomic Updates ===")
 
 	counter := cell.New(&Counter{Value: 0})
@@ -137,7 +137,7 @@ func example2_AtomicUpdates() {
 //	Example 3: Cache with Conditional Updates
 //
 // =========================================================================
-func example3_CacheWithUpdate() {
+func CacheWithUpdate() {
 	Println("\n=== Example 3: Cache with Conditional Updates ===")
 
 	// Create cache with stale data
@@ -193,7 +193,7 @@ func example3_CacheWithUpdate() {
 //	Example 4: Swap Operations and Task Management
 //
 // =========================================================================
-func example4_SwapOperations() {
+func SwapOperations() {
 	Println("\n=== Example 4: Swap Operations ===")
 
 	// Create two cells with different task info

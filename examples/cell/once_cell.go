@@ -18,10 +18,10 @@ type AppConfig struct {
 }
 
 func main() {
-	example1_BasicUsage()
-	example2_GlobalConfiguration()
-	example3_ConcurrentInitialization()
-	example4_ConditionalInitialization()
+	BasicUsage()
+	GlobalConfiguration()
+	ConcurrentInitialization()
+	ConditionalInitialization()
 }
 
 // =========================================================================
@@ -29,7 +29,7 @@ func main() {
 //	Example 1: Basic OnceCell Usage
 //
 // =========================================================================
-func example1_BasicUsage() {
+func BasicUsage() {
 	Println("=== Example 1: Basic OnceCell Usage ===")
 
 	// Create empty OnceCell
@@ -65,7 +65,7 @@ func example1_BasicUsage() {
 //	Example 2: Global Configuration Pattern
 //
 // =========================================================================
-func example2_GlobalConfiguration() {
+func GlobalConfiguration() {
 	Println("\n=== Example 2: Global Configuration ===")
 
 	// Function to initialize config (expensive operation)
@@ -102,7 +102,7 @@ func example2_GlobalConfiguration() {
 //	Example 3: Concurrent Initialization Race
 //
 // =========================================================================
-func example3_ConcurrentInitialization() {
+func ConcurrentInitialization() {
 	Println("\n=== Example 3: Concurrent Initialization Race ===")
 
 	raceCell := cell.NewOnce[int]()
@@ -135,7 +135,7 @@ func example3_ConcurrentInitialization() {
 //	Example 4: Conditional Initialization
 //
 // =========================================================================
-func example4_ConditionalInitialization() {
+func ConditionalInitialization() {
 	Println("\n=== Example 4: Conditional Initialization ===")
 
 	// OnceCell for caching expensive computation result
