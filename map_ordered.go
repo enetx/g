@@ -412,6 +412,7 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) {
 	}
 
 	mo.pairs = mo.pairs[:writePos]
+	mo.rebuild()
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
