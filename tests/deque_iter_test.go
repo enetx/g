@@ -879,3 +879,63 @@ func TestSeqDequeScan(t *testing.T) {
 		}
 	}
 }
+
+func TestSeqDequeNext(t *testing.T) {
+	t.Run("Next with non-empty iterator", func(t *testing.T) {
+		iter := g.DequeOf(1, 2, 3, 4, 5).Iter()
+
+		// First element
+		first := iter.Next()
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected Some(1), got %v", first)
+		}
+
+		// Second element
+		second := iter.Next()
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected Some(2), got %v", second)
+		}
+
+		// Remaining elements
+		remaining := iter.Collect()
+		expected := g.DequeOf(3, 4, 5)
+		if !remaining.Eq(expected) {
+			t.Errorf("Expected remaining %v, got %v", expected, remaining)
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		deque := g.Deque[int]{}
+		iter := deque.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		iter := g.DequeOf(1, 2).Iter()
+
+		// Extract all elements
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected first to be Some(1), got %v", first)
+		}
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected second to be Some(2), got %v", second)
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		if remaining.Len() != 0 {
+			t.Errorf("Expected empty deque, got %v", remaining)
+		}
+	})
+}

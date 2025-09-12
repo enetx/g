@@ -284,7 +284,7 @@ func TestSeqMapFilterMap(t *testing.T) {
 	configs.Set("debug", "invalid")
 	configs.Set("timeout", "30")
 
-	validConfigs := configs.Iter().FilterMap(func(k string, v string) g.Option[g.Pair[string, string]] {
+	validConfigs := configs.Iter().FilterMap(func(k, v string) g.Option[g.Pair[string, string]] {
 		// Keep only port and host configs with validation suffix
 		if k == "port" || k == "host" {
 			return g.Some(g.Pair[string, string]{Key: k, Value: v + "_validated"})
@@ -367,4 +367,64 @@ func TestSeqMapFilterMap(t *testing.T) {
 	if emptyResult.Len() != 0 {
 		t.Errorf("FilterMap on empty map should return empty, got %d elements", emptyResult.Len())
 	}
+}
+
+func TestSeqMapNext(t *testing.T) {
+	t.Run("Next with non-empty iterator", func(t *testing.T) {
+		m := g.Map[string, int]{"x": 100}
+		iter := m.Iter()
+
+		// Extract first pair
+		first := iter.Next()
+		if !first.IsSome() {
+			t.Errorf("Expected Some(Pair), got None")
+		}
+
+		firstPair := first.Some()
+		if firstPair.Key != "x" || firstPair.Value != 100 {
+			t.Errorf("Expected {x: 100}, got {%s: %d}", firstPair.Key, firstPair.Value)
+		}
+
+		// Second call should return None
+		second := iter.Next()
+		if second.IsSome() {
+			t.Errorf("Expected None after exhausting single-element map, got Some(%v)", second.Some())
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		m := g.NewMap[string, int]()
+		iter := m.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		m := g.Map[string, int]{"a": 1, "b": 2}
+		iter := m.Iter()
+
+		// Extract all pairs
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() {
+			t.Errorf("Expected first to be Some(Pair), got None")
+		}
+		if !second.IsSome() {
+			t.Errorf("Expected second to be Some(Pair), got None")
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		if remaining.Len() != 0 {
+			t.Errorf("Expected empty map, got length %d", remaining.Len())
+		}
+	})
 }

@@ -996,6 +996,23 @@ func (seq SeqSlice[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
 	return OptionOf(iter.MinBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
+// Next extracts the next element from the iterator and advances it.
+//
+// This method consumes the next element from the iterator and returns it wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+// This is similar to calling Pull() but more convenient for single-element extraction.
+//
+// Returns:
+// - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
+func (seq *SeqSlice[V]) Next() Option[V] {
+	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
+		*seq = SeqSlice[V](remaining)
+		return Some(value)
+	}
+
+	return None[V]()
+}
+
 // FromChan converts a channel into an iterator.
 //
 // This function takes a channel as input and converts its elements into an iterator,

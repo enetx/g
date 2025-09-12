@@ -1087,3 +1087,66 @@ func TestSeqHeapScan(t *testing.T) {
 		t.Errorf("Scan should include initial empty string")
 	}
 }
+
+func TestSeqHeapNext(t *testing.T) {
+	t.Run("Next with non-empty iterator", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(3, 1, 4, 2, 5)
+		iter := heap.Iter()
+
+		// Extract first element (should be smallest in min-heap)
+		first := iter.Next()
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected Some(1), got %v", first)
+		}
+
+		// Extract second element
+		second := iter.Next()
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected Some(2), got %v", second)
+		}
+
+		// Check that remaining elements can be collected
+		remaining := iter.CollectWith(cmp.Cmp[int])
+		if remaining.Len() != 3 {
+			t.Errorf("Expected 3 remaining elements, got %d", remaining.Len())
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		iter := heap.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(1, 2)
+		iter := heap.Iter()
+
+		// Extract all elements
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected first to be Some(1), got %v", first)
+		}
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected second to be Some(2), got %v", second)
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.CollectWith(cmp.Cmp[int])
+		if remaining.Len() != 0 {
+			t.Errorf("Expected empty heap, got length %d", remaining.Len())
+		}
+	})
+}

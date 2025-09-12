@@ -371,3 +371,74 @@ func TestSetIterNth(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqSetNext(t *testing.T) {
+	t.Run("Next with non-empty iterator", func(t *testing.T) {
+		set := g.SetOf(1, 2, 3, 4, 5)
+		iter := set.Iter()
+
+		// Extract first element (set order is not guaranteed)
+		first := iter.Next()
+		if !first.IsSome() {
+			t.Errorf("Expected Some(value), got None")
+		}
+
+		firstValue := first.Some()
+		if !set.Contains(firstValue) {
+			t.Errorf("First value %v should be in original set", firstValue)
+		}
+
+		// Extract second element
+		second := iter.Next()
+		if !second.IsSome() {
+			t.Errorf("Expected Some(value), got None")
+		}
+
+		secondValue := second.Some()
+		if !set.Contains(secondValue) || secondValue == firstValue {
+			t.Errorf("Second value %v should be different from first and in original set", secondValue)
+		}
+
+		// Remaining elements
+		remaining := iter.Collect()
+		if remaining.Len() != 3 {
+			t.Errorf("Expected 3 remaining elements, got %d", remaining.Len())
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		set := g.NewSet[int]()
+		iter := set.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		set := g.SetOf(1, 2)
+		iter := set.Iter()
+
+		// Extract all elements
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() {
+			t.Errorf("Expected first to be Some(value), got None")
+		}
+		if !second.IsSome() {
+			t.Errorf("Expected second to be Some(value), got None")
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		if remaining.Len() != 0 {
+			t.Errorf("Expected empty set, got length %d", remaining.Len())
+		}
+	})
+}

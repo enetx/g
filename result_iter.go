@@ -2,9 +2,9 @@ package g
 
 import (
 	"context"
-	"iter"
 
 	"github.com/enetx/g/f"
+	"github.com/enetx/iter"
 )
 
 // Pull converts the “push-style” sequence of Result[V] into a “pull-style” iterator accessed by two functions: next and stop.
@@ -419,4 +419,20 @@ func (seq SeqResult[V]) Context(ctx context.Context) SeqResult[V] {
 			}
 		})
 	}
+}
+
+// Next extracts the next element from the iterator and advances it.
+//
+// This method consumes the next element from the iterator and returns it wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+//
+// Returns:
+// - Option[Result[V]]: Some(Result[V]) if an element exists, None if the iterator is exhausted.
+func (seq *SeqResult[V]) Next() Option[Result[V]] {
+	if value, remaining, ok := iter.Next(iter.Seq[Result[V]](*seq)); ok {
+		*seq = SeqResult[V](remaining)
+		return Some(value)
+	}
+
+	return None[Result[V]]()
 }

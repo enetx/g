@@ -513,3 +513,19 @@ func (seq SeqMapOrd[K, V]) ToChan(ctxs ...context.Context) chan Pair[K, V] {
 
 	return iter.ToChan2(iter.Seq2[K, V](seq), ctx)
 }
+
+// Next extracts the next key-value pair from the iterator and advances it.
+//
+// This method consumes the next key-value pair from the iterator and returns them wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+//
+// Returns:
+// - Option[Pair[K, V]]: Some(Pair{Key, Value}) if a pair exists, None if the iterator is exhausted.
+func (seq *SeqMapOrd[K, V]) Next() Option[Pair[K, V]] {
+	if key, value, remaining, ok := iter.Next2(iter.Seq2[K, V](*seq)); ok {
+		*seq = SeqMapOrd[K, V](remaining)
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
+
+	return None[Pair[K, V]]()
+}

@@ -2246,3 +2246,85 @@ func TestSeqResultNth(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqResultNext(t *testing.T) {
+	t.Run("Next with mixed results", func(t *testing.T) {
+		iter := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Err[int](errors.New("error1")))
+			yield(Ok(3))
+		})
+
+		// First result (Ok)
+		first := iter.Next()
+		if !first.IsSome() {
+			t.Errorf("Expected Some(Result), got None")
+		}
+
+		firstResult := first.Some()
+		if firstResult.IsErr() || firstResult.Ok() != 1 {
+			t.Errorf("Expected Ok(1), got %v", firstResult)
+		}
+
+		// Second result (Err)
+		second := iter.Next()
+		if !second.IsSome() {
+			t.Errorf("Expected Some(Result), got None")
+		}
+
+		secondResult := second.Some()
+		if secondResult.IsOk() || secondResult.Err().Error() != "error1" {
+			t.Errorf("Expected Err(error1), got %v", secondResult)
+		}
+
+		// Remaining results
+		remaining := iter.Collect()
+		remainingSlice := remaining.UnwrapOr(Slice[int]{})
+		if len(remainingSlice) != 1 {
+			t.Errorf("Expected 1 remaining result, got %d", len(remainingSlice))
+		}
+		if len(remainingSlice) > 0 && remainingSlice[0] != 3 {
+			t.Errorf("Expected value 3, got %v", remainingSlice[0])
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		iter := SeqResult[int](func(func(Result[int]) bool) {
+			// empty
+		})
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		iter := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+		})
+
+		// Extract all elements
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() {
+			t.Errorf("Expected first to be Some(Result), got None")
+		}
+		if !second.IsSome() {
+			t.Errorf("Expected second to be Some(Result), got None")
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		remainingSlice := remaining.UnwrapOr(Slice[int]{})
+		if len(remainingSlice) != 0 {
+			t.Errorf("Expected empty results, got %d", len(remainingSlice))
+		}
+	})
+}

@@ -359,3 +359,93 @@ func TestMapOrderedIterNth(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqMapOrdNext(t *testing.T) {
+	t.Run("Next with non-empty iterator maintains insertion order", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+		iter := m.Iter()
+
+		// First pair (should be "first" since it maintains insertion order)
+		first := iter.Next()
+		if !first.IsSome() {
+			t.Errorf("Expected Some(Pair), got None")
+		}
+
+		firstPair := first.Some()
+		if firstPair.Key != "first" || firstPair.Value != 1 {
+			t.Errorf("Expected first pair {first: 1}, got {%s: %d}", firstPair.Key, firstPair.Value)
+		}
+
+		// Second pair (should be "second")
+		second := iter.Next()
+		if !second.IsSome() {
+			t.Errorf("Expected Some(Pair), got None")
+		}
+
+		secondPair := second.Some()
+		if secondPair.Key != "second" || secondPair.Value != 2 {
+			t.Errorf("Expected second pair {second: 2}, got {%s: %d}", secondPair.Key, secondPair.Value)
+		}
+
+		// Remaining pairs
+		remaining := iter.Collect()
+		if remaining.Len() != 1 {
+			t.Errorf("Expected 1 remaining pair, got %d", remaining.Len())
+		}
+
+		// Check the remaining pair
+		remainingKeys := remaining.Keys()
+		if len(remainingKeys) != 1 || remainingKeys[0] != "third" {
+			t.Errorf("Expected remaining key 'third', got %v", remainingKeys)
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		iter := m.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("a", 1)
+		m.Set("b", 2)
+		iter := m.Iter()
+
+		// Extract all pairs
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() {
+			t.Errorf("Expected first to be Some(Pair), got None")
+		}
+		if !second.IsSome() {
+			t.Errorf("Expected second to be Some(Pair), got None")
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Verify order is maintained
+		if first.Some().Key != "a" || first.Some().Value != 1 {
+			t.Errorf("Expected first pair {a: 1}, got {%s: %d}", first.Some().Key, first.Some().Value)
+		}
+		if second.Some().Key != "b" || second.Some().Value != 2 {
+			t.Errorf("Expected second pair {b: 2}, got {%s: %d}", second.Some().Key, second.Some().Value)
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		if remaining.Len() != 0 {
+			t.Errorf("Expected empty map, got length %d", remaining.Len())
+		}
+	})
+}

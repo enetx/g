@@ -1037,3 +1037,19 @@ func (seq SeqHeap[V]) Scan(init V, fn func(acc, val V) V) SeqHeap[V] {
 		iter.Scan(iter.Seq[V](seq), init, fn)(yield)
 	}
 }
+
+// Next extracts the next element from the iterator and advances it.
+//
+// This method consumes the next element from the iterator and returns it wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+//
+// Returns:
+// - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
+func (seq *SeqHeap[V]) Next() Option[V] {
+	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
+		*seq = SeqHeap[V](remaining)
+		return Some(value)
+	}
+
+	return None[V]()
+}

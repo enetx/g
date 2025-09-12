@@ -1741,3 +1741,81 @@ func TestSeqSliceScan(t *testing.T) {
 		t.Errorf("Scan with single element failed: got %v, want %v", singleResult, expectedSingle)
 	}
 }
+
+func TestSeqSliceNext(t *testing.T) {
+	t.Run("Next with non-empty iterator", func(t *testing.T) {
+		iter := SliceOf(1, 2, 3, 4, 5).Iter()
+
+		// First element
+		first := iter.Next()
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected Some(1), got %v", first)
+		}
+
+		// Second element
+		second := iter.Next()
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected Some(2), got %v", second)
+		}
+
+		// Remaining elements
+		remaining := iter.Collect()
+		expected := SliceOf(3, 4, 5)
+		if !remaining.Eq(expected) {
+			t.Errorf("Expected remaining %v, got %v", expected, remaining)
+		}
+	})
+
+	t.Run("Next with empty iterator", func(t *testing.T) {
+		iter := Slice[int]{}.Iter()
+
+		result := iter.Next()
+		if result.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", result.Some())
+		}
+	})
+
+	t.Run("Next until exhausted", func(t *testing.T) {
+		iter := SliceOf(1, 2).Iter()
+
+		// Extract all elements
+		first := iter.Next()
+		second := iter.Next()
+		third := iter.Next()
+
+		if !first.IsSome() || first.Some() != 1 {
+			t.Errorf("Expected first to be Some(1), got %v", first)
+		}
+		if !second.IsSome() || second.Some() != 2 {
+			t.Errorf("Expected second to be Some(2), got %v", second)
+		}
+		if third.IsSome() {
+			t.Errorf("Expected third to be None, got Some(%v)", third.Some())
+		}
+
+		// Iterator should be empty now
+		remaining := iter.Collect()
+		if len(remaining) != 0 {
+			t.Errorf("Expected empty slice, got %v", remaining)
+		}
+	})
+
+	t.Run("Next with strings", func(t *testing.T) {
+		iter := SliceOf("hello", "world").Iter()
+
+		first := iter.Next()
+		if !first.IsSome() || first.Some() != "hello" {
+			t.Errorf("Expected Some(hello), got %v", first)
+		}
+
+		second := iter.Next()
+		if !second.IsSome() || second.Some() != "world" {
+			t.Errorf("Expected Some(world), got %v", second)
+		}
+
+		third := iter.Next()
+		if third.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", third.Some())
+		}
+	})
+}

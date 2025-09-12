@@ -348,3 +348,35 @@ func (seq SeqMap[K, V]) Range(fn func(k K, v V) bool) { iter.Range2(iter.Seq2[K,
 func (seq SeqMap[K, V]) Context(ctx context.Context) SeqMap[K, V] {
 	return SeqMap[K, V](iter.Context2(iter.Seq2[K, V](seq), ctx))
 }
+
+// Next extracts the next key-value pair from the iterator and advances it.
+//
+// This method consumes the next key-value pair from the iterator and returns them wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+//
+// Returns:
+// - Option[Pair[K, V]]: Some(Pair{Key, Value}) if a pair exists, None if the iterator is exhausted.
+func (seq *SeqMap[K, V]) Next() Option[Pair[K, V]] {
+	var pairs []Pair[K, V]
+
+	(*seq)(func(k K, v V) bool {
+		pairs = append(pairs, Pair[K, V]{Key: k, Value: v})
+		return true
+	})
+
+	if len(pairs) == 0 {
+		return None[Pair[K, V]]()
+	}
+
+	first := Some(pairs[0])
+
+	*seq = func(yield func(K, V) bool) {
+		for _, pair := range pairs[1:] {
+			if !yield(pair.Key, pair.Value) {
+				return
+			}
+		}
+	}
+
+	return first
+}

@@ -271,6 +271,22 @@ func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	}
 }
 
+// Next extracts the next element from the iterator and advances it.
+//
+// This method consumes the next element from the iterator and returns it wrapped in an Option.
+// The iterator itself is modified to point to the remaining elements.
+//
+// Returns:
+// - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
+func (seq *SeqSet[V]) Next() Option[V] {
+	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
+		*seq = SeqSet[V](remaining)
+		return Some(value)
+	}
+
+	return None[V]()
+}
+
 func intersection[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 	return func(yield func(V) bool) {
 		seq(func(v V) bool {
