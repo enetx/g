@@ -86,19 +86,8 @@ func TestSeqHeap_Collect(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5)
 
-	collected := heap.Iter().Collect()
-
-	if collected.Len() != 5 {
-		t.Errorf("Expected collected heap length 5, got %d", collected.Len())
-	}
-}
-
-func TestSeqHeap_CollectWith(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
-	heap.Push(3, 1, 4, 1, 5)
-
 	// Collect with reverse comparison (max heap)
-	collected := heap.Iter().CollectWith(func(a, b int) cmp.Ordering {
+	collected := heap.Iter().Collect(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // reverse comparison
 	})
 
@@ -529,22 +518,7 @@ func TestSeqHeap_Partition(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5, 6)
 
-	evens, odds := heap.Iter().Partition(func(v int) bool { return v%2 == 0 })
-
-	if evens.Len() != 3 {
-		t.Errorf("Expected 3 even numbers, got %d", evens.Len())
-	}
-
-	if odds.Len() != 3 {
-		t.Errorf("Expected 3 odd numbers, got %d", odds.Len())
-	}
-}
-
-func TestSeqHeap_PartitionWith(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
-	heap.Push(1, 2, 3, 4, 5, 6)
-
-	evens, odds := heap.Iter().PartitionWith(
+	evens, odds := heap.Iter().Partition(
 		func(v int) bool { return v%2 == 0 },
 		cmp.Cmp[int], // min heap for evens
 		func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }, // max heap for odds
@@ -684,16 +658,6 @@ func TestSeqHeap_Permutations(t *testing.T) {
 
 // Additional tests to improve coverage
 
-func TestSeqHeap_CollectEdgeCases(t *testing.T) {
-	// Test Collect on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
-	collected := empty.Iter().Collect()
-
-	if !collected.Empty() {
-		t.Errorf("Expected empty collected heap from empty heap, got length %d", collected.Len())
-	}
-}
-
 func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 	// Test Counter on empty heap
 	empty := g.NewHeap(cmp.Cmp[int])
@@ -794,33 +758,6 @@ func TestSeqHeap_Flatten(t *testing.T) {
 	}
 }
 
-func TestSeqHeap_PartitionEdgeCases(t *testing.T) {
-	// Test Partition on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
-	evens, odds := empty.Iter().Partition(func(v int) bool { return v%2 == 0 })
-
-	if !evens.Empty() {
-		t.Errorf("Expected empty evens heap from empty input, got length %d", evens.Len())
-	}
-
-	if !odds.Empty() {
-		t.Errorf("Expected empty odds heap from empty input, got length %d", odds.Len())
-	}
-
-	// Test Partition on single element
-	single := g.NewHeap(cmp.Cmp[int])
-	single.Push(2) // even
-	evens, odds = single.Iter().Partition(func(v int) bool { return v%2 == 0 })
-
-	if evens.Len() != 1 {
-		t.Errorf("Expected 1 even from single even element, got %d", evens.Len())
-	}
-
-	if !odds.Empty() {
-		t.Errorf("Expected empty odds from single even element, got %d", odds.Len())
-	}
-}
-
 func TestSeqHeap_Range(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
@@ -883,7 +820,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 		subHeap := g.NewHeap(cmp.Cmp[int])
 		subHeap.Push(n, n*10)
 		return subHeap.Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	// Count elements - should have 6 total (2 per original element)
 	count := 0
@@ -907,7 +844,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 	// Test FlatMap with empty results
 	emptyResult := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
 		return g.NewHeap(cmp.Cmp[int]).Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if !emptyResult.Empty() {
 		t.Errorf("FlatMap empty: expected empty heap, got %d elements", emptyResult.Len())
@@ -919,7 +856,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 		subHeap := g.NewHeap(cmp.Cmp[int])
 		subHeap.Push(n)
 		return subHeap.Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if !emptyFlatMapped.Empty() {
 		t.Errorf("FlatMap empty input: expected empty heap, got %d elements", emptyFlatMapped.Len())
@@ -930,7 +867,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 		subHeap := g.NewHeap(cmp.Cmp[int])
 		subHeap.Push(n * 2)
 		return subHeap.Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	singleCount := 0
 	singleResult.Iter().ForEach(func(v int) { singleCount++ })
@@ -950,7 +887,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 			return g.Some(n * 10)
 		}
 		return g.None[int]()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	// Should have 2 even numbers (2, 4) transformed to (20, 40)
 	expected := []int{20, 40}
@@ -976,7 +913,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 	// Test FilterMap that filters all elements
 	allFiltered := heap.Iter().FilterMap(func(n int) g.Option[int] {
 		return g.None[int]()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if !allFiltered.Empty() {
 		t.Errorf("FilterMap all filtered: expected empty heap, got %d elements", allFiltered.Len())
@@ -985,7 +922,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 	// Test FilterMap that keeps all elements with transformation
 	allKept := heap.Iter().FilterMap(func(n int) g.Option[int] {
 		return g.Some(n * 2)
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	keptCount := 0
 	allKept.Iter().ForEach(func(v int) { keptCount++ })
@@ -998,7 +935,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 	empty := g.NewHeap(cmp.Cmp[int])
 	emptyFiltered := empty.Iter().FilterMap(func(n int) g.Option[int] {
 		return g.Some(n * 2)
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if !emptyFiltered.Empty() {
 		t.Errorf("FilterMap empty input: expected empty heap, got %d elements", emptyFiltered.Len())
@@ -1014,7 +951,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 			return g.Some(string(trimmed.Upper()))
 		}
 		return g.None[string]()
-	}).CollectWith(cmp.Cmp[string])
+	}).Collect(cmp.Cmp[string])
 
 	// Should have 3 valid words: "HELLO", "WORLD", "GO"
 	wordCount := 0
@@ -1043,7 +980,7 @@ func TestSeqHeapScan(t *testing.T) {
 
 	result := heap.Iter().Scan(0, func(acc, val int) int {
 		return acc + val
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	// Should have 6 elements: initial value + 5 accumulated values
 	count := 0
@@ -1071,7 +1008,7 @@ func TestSeqHeapScan(t *testing.T) {
 
 	product := small.Iter().Scan(1, func(acc, val int) int {
 		return acc * val
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	productCount := 0
 	product.Iter().ForEach(func(v int) { productCount++ })
@@ -1096,7 +1033,7 @@ func TestSeqHeapScan(t *testing.T) {
 	empty := g.NewHeap(cmp.Cmp[int])
 	emptyScanned := empty.Iter().Scan(42, func(acc, val int) int {
 		return acc + val
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if emptyScanned.Len() != 1 {
 		t.Errorf("Scan empty length: expected 1, got %d", emptyScanned.Len())
@@ -1120,7 +1057,7 @@ func TestSeqHeapScan(t *testing.T) {
 
 	singleScanned := single.Iter().Scan(5, func(acc, val int) int {
 		return acc + val
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp[int])
 
 	if singleScanned.Len() != 2 { // initial + 1 element
 		t.Errorf("Scan single length: expected 2, got %d", singleScanned.Len())
@@ -1140,7 +1077,7 @@ func TestSeqHeapScan(t *testing.T) {
 
 	concatenated := stringHeap.Iter().Scan("", func(acc, val string) string {
 		return acc + val
-	}).CollectWith(cmp.Cmp[string])
+	}).Collect(cmp.Cmp[string])
 
 	concatCount := 0
 	concatenated.Iter().ForEach(func(s string) { concatCount++ })
@@ -1181,7 +1118,7 @@ func TestSeqHeapNext(t *testing.T) {
 		}
 
 		// Check that remaining elements can be collected
-		remaining := iter.CollectWith(cmp.Cmp[int])
+		remaining := iter.Collect(cmp.Cmp[int])
 		if remaining.Len() != 3 {
 			t.Errorf("Expected 3 remaining elements, got %d", remaining.Len())
 		}
@@ -1218,7 +1155,7 @@ func TestSeqHeapNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.CollectWith(cmp.Cmp[int])
+		remaining := iter.Collect(cmp.Cmp[int])
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty heap, got length %d", remaining.Len())
 		}

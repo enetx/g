@@ -148,37 +148,8 @@ func (seq SeqHeap[V]) Chunks(n Int) SeqSlices[V] {
 	return SeqSlices[V](iter.Chunks(iter.Seq[V](seq), int(n)))
 }
 
-// Collect gathers all elements from the iterator into a new Heap.
-// The heap will be created with a default comparison function that works for comparable types.
-// For custom comparison, use CollectWith.
-func (seq SeqHeap[V]) Collect() *Heap[V] {
-	result := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-
-	seq(func(v V) bool {
-		result.Push(v)
-		return true
-	})
-
-	return result
-}
-
-// CollectWith gathers all elements from the iterator into a new Heap with a custom comparison function.
-func (seq SeqHeap[V]) CollectWith(compareFn func(V, V) cmp.Ordering) *Heap[V] {
+// Collect gathers all elements from the iterator into a new Heap with a custom comparison function.
+func (seq SeqHeap[V]) Collect(compareFn func(V, V) cmp.Ordering) *Heap[V] {
 	result := NewHeap(compareFn)
 	seq(func(v V) bool {
 		result.Push(v)
@@ -571,83 +542,8 @@ func (seq SeqHeap[V]) Map(transform func(V) V) SeqHeap[V] {
 	return SeqHeap[V](iter.Map(iter.Seq[V](seq), transform))
 }
 
-// Partition divides the elements of the iterator into two separate heaps based on a given predicate function.
-//
-// The function takes a predicate function 'fn', which should return true or false for each element in the iterator.
-// Elements for which 'fn' returns true are collected into the left heap, while those for which 'fn' returns false
-// are collected into the right heap.
-//
-// Params:
-//
-// - fn (func(V) bool): The predicate function used to determine the placement of elements.
-//
-// Returns:
-//
-// - (*Heap[V], *Heap[V]): Two heaps representing elements that satisfy and don't satisfy the predicate, respectively.
-//
-// Example usage:
-//
-//	heap := g.NewHeap(cmp.Cmp[int])
-//	heap.Push(1, 2, 3, 4, 5)
-//	evens, odds := heap.Iter().
-//		Partition(
-//			func(v int) bool {
-//				return v%2 == 0
-//			})
-//
-//	fmt.Println("Even numbers:", evens.Iter().Fold([]int{}, func(acc []int, v int) []int { return append(acc, v) }))
-//	fmt.Println("Odd numbers:", odds.Iter().Fold([]int{}, func(acc []int, v int) []int { return append(acc, v) }))
-//
-// The resulting two heaps will contain elements separated based on whether they satisfy the predicate or not.
-func (seq SeqHeap[V]) Partition(fn func(v V) bool) (*Heap[V], *Heap[V]) {
-	left := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-
-	right := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-
-	seq(func(v V) bool {
-		if fn(v) {
-			left.Push(v)
-		} else {
-			right.Push(v)
-		}
-		return true
-	})
-
-	return left, right
-}
-
-// PartitionWith divides the elements of the iterator into two separate heaps with custom comparison functions.
-func (seq SeqHeap[V]) PartitionWith(fn func(v V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
+// Partition divides the elements of the iterator into two separate heaps with custom comparison functions.
+func (seq SeqHeap[V]) Partition(fn func(v V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
 	left := NewHeap(leftCmp)
 	right := NewHeap(rightCmp)
 

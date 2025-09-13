@@ -182,15 +182,15 @@ func TestFile_Chunks_Success(t *testing.T) {
 	result := file.Chunks(chunkSize)
 
 	// Check if the result is successful
-	if result.Collect().IsErr() {
+	if result.FirstErr().IsSome() {
 		t.Fatalf(
 			"TestFile_Chunks_Success: Expected Chunks to return a successful result, but got an error: %v",
-			result.Collect().Err(),
+			result.FirstErr().Some(),
 		)
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Collect().Unwrap()
+	iterator := result.Ok().Collect()
 
 	// Read chunks from the iterator and verify their content
 	expectedChunks := Slice[String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
@@ -220,20 +220,20 @@ func TestFile_Lines_Success(t *testing.T) {
 	result := file.Lines()
 
 	// Check if the result is successful
-	if result.Collect().IsErr() {
+	if result.FirstErr().IsSome() {
 		t.Fatalf(
 			"TestFile_Lines_Success: Expected Lines to return a successful result, but got an error: %v",
-			result.Collect().Err(),
+			result.FirstErr().Some(),
 		)
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Collect()
+	iterator := result.Ok().Collect()
 
 	// Read lines from the iterator and verify their content
 	expectedLines := Slice[String]{"line1", "line2", "line3", "line4", "line5"}
 
-	if iterator.Unwrap().Ne(expectedLines) {
+	if iterator.Ne(expectedLines) {
 		t.Fatalf(
 			"TestFile_Lines_Success: Expected lines %v, got %v",
 			expectedLines,
@@ -250,10 +250,10 @@ func TestFile_Lines_Failure(t *testing.T) {
 	result := file.Lines()
 
 	// Check if the result is an error
-	if !result.Collect().IsErr() {
+	if result.FirstErr().IsNone() {
 		t.Fatalf(
 			"TestFile_Lines_Failure: Expected Lines to return an error, but got a successful result: %v",
-			result.Collect().Ok(),
+			result.Ok().Collect(),
 		)
 	}
 }
@@ -426,7 +426,7 @@ func TestFile_OpenFile_ReadLock(t *testing.T) {
 	defer file.Close()
 
 	// Open the file with read-lock
-	result := file.OpenFile(os.O_RDONLY, 0644)
+	result := file.OpenFile(os.O_RDONLY, 0o644)
 
 	// Check if the result is successful
 	if result.IsErr() {
@@ -449,7 +449,7 @@ func TestFile_OpenFile_WriteLock(t *testing.T) {
 	defer file.Close()
 
 	// Open the file with write-lock
-	result := file.OpenFile(os.O_WRONLY, 0644)
+	result := file.OpenFile(os.O_WRONLY, 0o644)
 
 	// Check if the result is successful
 	if result.IsErr() {
@@ -472,7 +472,7 @@ func TestFile_OpenFile_Truncate(t *testing.T) {
 	defer file.Close()
 
 	// Open the file with truncation flag
-	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0o644)
 
 	// Check if the result is successful
 	if result.IsErr() {
@@ -496,7 +496,7 @@ func TestFile_OpenFile_NonExistentFile(t *testing.T) {
 	// Test OpenFile with a non-existent file (should error)
 	file := NewFile(String("/nonexistent/file/path.txt"))
 
-	result := file.OpenFile(os.O_RDONLY, 0644)
+	result := file.OpenFile(os.O_RDONLY, 0o644)
 	if result.IsOk() {
 		t.Errorf("TestFile_OpenFile_NonExistentFile: Expected error for non-existent file, but operation succeeded")
 	}
@@ -511,7 +511,7 @@ func TestFile_OpenFile_NoGuard(t *testing.T) {
 	defer file.Close()
 
 	// Open without calling Guard() - no file locking
-	result := file.OpenFile(os.O_RDONLY, 0644)
+	result := file.OpenFile(os.O_RDONLY, 0o644)
 	if result.IsErr() {
 		t.Errorf("TestFile_OpenFile_NoGuard: Expected success without guard, got error: %v", result.Err())
 	}
@@ -526,7 +526,7 @@ func TestFile_OpenFile_ReadWriteMode(t *testing.T) {
 	file.Guard()
 	defer file.Close()
 
-	result := file.OpenFile(os.O_RDWR, 0644)
+	result := file.OpenFile(os.O_RDWR, 0o644)
 	if result.IsErr() {
 		t.Errorf("TestFile_OpenFile_ReadWriteMode: Expected success with O_RDWR, got error: %v", result.Err())
 	}
@@ -542,7 +542,7 @@ func TestFile_OpenFile_CreateFlag(t *testing.T) {
 	file.Guard()
 	defer file.Close()
 
-	result := file.OpenFile(os.O_WRONLY|os.O_CREATE, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_CREATE, 0o644)
 	if result.IsErr() {
 		t.Errorf("TestFile_OpenFile_CreateFlag: Expected success with O_CREATE, got error: %v", result.Err())
 	}
@@ -562,7 +562,7 @@ func TestFile_OpenFile_TruncateNoGuard(t *testing.T) {
 	defer file.Close()
 
 	// Test truncate without guard
-	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0o644)
 	if result.IsErr() {
 		t.Errorf("TestFile_OpenFile_TruncateNoGuard: Expected success, got error: %v", result.Err())
 	}
@@ -666,7 +666,7 @@ func TestFile_Remove_Directory(t *testing.T) {
 	defer os.RemoveAll(tempDir) // Fallback cleanup
 
 	// Create a file inside the directory
-	if err := os.WriteFile(tempDir+"/test.txt", []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(tempDir+"/test.txt", []byte("content"), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -674,7 +674,9 @@ func TestFile_Remove_Directory(t *testing.T) {
 
 	result := file.Remove()
 	if result.IsOk() {
-		t.Error("TestFile_Remove_Directory: Expected error when trying to remove non-empty directory, but operation succeeded")
+		t.Error(
+			"TestFile_Remove_Directory: Expected error when trying to remove non-empty directory, but operation succeeded",
+		)
 	}
 }
 
@@ -748,7 +750,7 @@ func TestFile_Chmod(t *testing.T) {
 	file := NewFile(String(tempFile))
 
 	// Change the mode of the file
-	result := file.Chmod(0644)
+	result := file.Chmod(0o644)
 
 	// Check if the result is successful
 	if result.IsErr() {
@@ -760,7 +762,7 @@ func TestFile_Chmod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TestFile_Chmod: Failed to get file stat: %v", err)
 	}
-	expectedMode := os.FileMode(0644)
+	expectedMode := os.FileMode(0o644)
 	if fileStat.Mode() != expectedMode {
 		t.Fatalf("TestFile_Chmod: Expected file mode to be %v, but got %v", expectedMode, fileStat.Mode())
 	}
@@ -974,7 +976,7 @@ func TestFile_Move(t *testing.T) {
 
 // writeToFile writes content to the specified file.
 func writeToFile(t *testing.T, filename, content string) {
-	file, err := os.OpenFile(filename, os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filename, os.O_WRONLY, 0o644)
 	if err != nil {
 		t.Fatalf("Failed to open file %s for writing: %s", filename, err)
 	}
@@ -1120,14 +1122,14 @@ func TestFile_Lines_EmptyFile(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	file := NewFile(String(tempFile))
-	linesResult := file.Lines().Collect()
+	linesResult := file.Lines()
 
-	if linesResult.IsErr() {
-		t.Errorf("Lines should succeed, got error: %v", linesResult.Err())
+	if linesResult.FirstErr().IsSome() {
+		t.Errorf("Lines should succeed, got error: %v", linesResult.FirstErr().Some())
 		return
 	}
 
-	lines := linesResult.Ok()
+	lines := linesResult.Ok().Collect()
 	if lines.Len() != 0 {
 		t.Errorf("Empty file should have 0 lines, got %d", lines.Len())
 	}
@@ -1139,14 +1141,14 @@ func TestFile_Lines_SingleLine(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	file := NewFile(String(tempFile))
-	linesResult := file.Lines().Collect()
+	linesResult := file.Lines()
 
-	if linesResult.IsErr() {
-		t.Errorf("Lines should succeed, got error: %v", linesResult.Err())
+	if linesResult.FirstErr().IsSome() {
+		t.Errorf("Lines should succeed, got error: %v", linesResult.FirstErr().Some())
 		return
 	}
 
-	lines := linesResult.Ok()
+	lines := linesResult.Ok().Collect()
 	if lines.Len() != 1 {
 		t.Errorf("Single line file should have 1 line, got %d", lines.Len())
 	}
@@ -1161,7 +1163,7 @@ func TestFile_Chunks_SmallFile(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	file := NewFile(String(tempFile))
-	chunks := file.Chunks(10).Collect().Unwrap() // chunk size larger than file
+	chunks := file.Chunks(10).Ok().Collect() // chunk size larger than file
 
 	if chunks.Len() != 1 {
 		t.Errorf("Small file should produce 1 chunk, got %d", chunks.Len())
@@ -1179,17 +1181,18 @@ func TestFile_Chunks_InvalidSize(t *testing.T) {
 	file := NewFile(String(tempFile))
 
 	// Test with chunk size 0
-	result := file.Chunks(0).Collect()
-	if result.IsOk() {
+	result := file.Chunks(0)
+	if result.FirstErr().IsNone() {
 		t.Errorf("TestFile_Chunks_InvalidSize: Expected error for chunk size 0, but operation succeeded")
 	}
-	if result.IsErr() && result.Err().Error() != "chunk size must be > 0" {
-		t.Errorf("TestFile_Chunks_InvalidSize: Expected specific error message, got: %s", result.Err().Error())
+
+	if result.FirstErr().IsSome() && result.FirstErr().Some().Error() != "chunk size must be > 0" {
+		t.Errorf("TestFile_Chunks_InvalidSize: Expected specific error message, got: %s", result.FirstErr().Some())
 	}
 
 	// Test with negative chunk size
-	result = file.Chunks(-5).Collect()
-	if result.IsOk() {
+	result = file.Chunks(-5)
+	if result.FirstErr().IsNone() {
 		t.Errorf("TestFile_Chunks_InvalidSize: Expected error for negative chunk size, but operation succeeded")
 	}
 }
@@ -1198,8 +1201,8 @@ func TestFile_Chunks_NonExistentFile(t *testing.T) {
 	// Test Chunks with a non-existent file (should error during Open)
 	file := NewFile(String("/nonexistent/file/path.txt"))
 
-	result := file.Chunks(5).Collect()
-	if result.IsOk() {
+	result := file.Chunks(5)
+	if result.FirstErr().IsNone() {
 		t.Errorf("TestFile_Chunks_NonExistentFile: Expected error for non-existent file, but operation succeeded")
 	}
 }
@@ -1270,7 +1273,7 @@ func TestFile_OpenFile_TruncateErrorHandling(t *testing.T) {
 	defer file.Close()
 
 	// Test truncate behavior with O_TRUNC flag
-	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_TRUNC, 0o644)
 	if result.IsErr() {
 		t.Errorf("Expected success with O_TRUNC, got: %v", result.Err())
 	}
@@ -1285,7 +1288,7 @@ func TestFile_OpenFile_ExclusiveFlag(t *testing.T) {
 	defer file.Close()
 
 	// Create file with O_CREATE|O_EXCL
-	result := file.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if result.IsErr() {
 		t.Errorf("Expected success creating file with O_CREATE|O_EXCL, got: %v", result.Err())
 	}
@@ -1294,7 +1297,7 @@ func TestFile_OpenFile_ExclusiveFlag(t *testing.T) {
 	defer file2.Close()
 
 	// Try to create again with O_EXCL - should fail
-	result2 := file2.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+	result2 := file2.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if result2.IsOk() {
 		t.Error("Expected error when creating existing file with O_EXCL")
 	}
@@ -1309,7 +1312,7 @@ func TestFile_OpenFile_AppendFlag(t *testing.T) {
 	file.Guard()
 	defer file.Close()
 
-	result := file.OpenFile(os.O_WRONLY|os.O_APPEND, 0644)
+	result := file.OpenFile(os.O_WRONLY|os.O_APPEND, 0o644)
 	if result.IsErr() {
 		t.Errorf("Expected success with O_APPEND, got: %v", result.Err())
 	}
@@ -1325,7 +1328,7 @@ func TestFile_OpenFile_DefaultMode(t *testing.T) {
 	defer file.Close()
 
 	// Test with 0 flag (default readonly)
-	result := file.OpenFile(0, 0644)
+	result := file.OpenFile(0, 0o644)
 	if result.IsErr() {
 		t.Errorf("Expected success with default flag, got: %v", result.Err())
 	}
@@ -1344,7 +1347,7 @@ func TestFile_OpenFile_TruncateStatError(t *testing.T) {
 	defer file.Close()
 
 	// Try to open directory with O_TRUNC - should hit the stat/IsRegular path
-	result := file.OpenFile(os.O_RDWR|os.O_TRUNC, 0644)
+	result := file.OpenFile(os.O_RDWR|os.O_TRUNC, 0o644)
 	if result.IsOk() {
 		t.Log("Opening directory with O_TRUNC succeeded (platform-dependent behavior)")
 	} else {
@@ -1446,7 +1449,7 @@ func TestFile_OpenFile_NoGuardMode(t *testing.T) {
 	}
 
 	for _, flag := range flags {
-		result := file.OpenFile(flag, 0644)
+		result := file.OpenFile(flag, 0o644)
 		if result.IsErr() {
 			t.Errorf("OpenFile with flag %d should succeed without guard, got error: %v", flag, result.Err())
 		}
@@ -1469,7 +1472,7 @@ func TestFile_OpenFile_InvalidFileForLocking(t *testing.T) {
 	defer file.Close()
 
 	// Try to open directory with write mode - might fail during locking
-	result := file.OpenFile(os.O_RDWR, 0644)
+	result := file.OpenFile(os.O_RDWR, 0o644)
 	if result.IsOk() {
 		t.Log("Opening directory with write mode succeeded (platform-dependent)")
 	} else {
@@ -1496,7 +1499,7 @@ func TestFile_Read_ReadAllError(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Write some content to file
-	if err := os.WriteFile(tempFile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(tempFile, []byte("test content"), 0o644); err != nil {
 		t.Fatalf("Failed to write test content: %v", err)
 	}
 
@@ -1570,7 +1573,7 @@ func TestFile_Chmod_WithOpenFile(t *testing.T) {
 	defer file.Close()
 
 	// Test chmod on open file
-	newMode := os.FileMode(0755)
+	newMode := os.FileMode(0o755)
 	result := file.Chmod(newMode)
 
 	if result.IsErr() {
@@ -1763,7 +1766,7 @@ func TestFile_Append_WithOpenFile(t *testing.T) {
 	file := NewFile(String(tempFile))
 
 	// Open the file for writing first
-	if openResult := file.OpenFile(os.O_RDWR, 0644); openResult.IsErr() {
+	if openResult := file.OpenFile(os.O_RDWR, 0o644); openResult.IsErr() {
 		t.Fatalf("Failed to open file for writing: %v", openResult.Err())
 	}
 	defer file.Close()

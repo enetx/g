@@ -45,8 +45,8 @@ func main() {
 			// This keeps track of the current position in the file.
 			offset += int64(s.Bytes().Len())
 		}).
+		Ok().
 		Collect(). // Collects all chunks into a single collection (Slice).
-		Unwrap().  // Unwraps the result, extracting the successful value or panicking on error.
 		Join().    // Joins all collected chunks into a single string.
 		Println()  // Prints the joined string.
 

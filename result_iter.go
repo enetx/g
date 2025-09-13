@@ -72,25 +72,7 @@ func (seq SeqResult[V]) Any(fn func(v V) bool) Result[bool] {
 
 // Collect gathers all Ok values from the iterator into a Slice.
 // If any value is Err, the first such Err is returned immediately.
-func (seq SeqResult[V]) Collect() Result[Slice[V]] {
-	collected := NewSlice[V](0)
-	var err error
-
-	seq(func(v Result[V]) bool {
-		if v.IsErr() {
-			err = v.err
-			return false
-		}
-		collected = append(collected, v.v)
-		return true
-	})
-
-	if err != nil {
-		return Err[Slice[V]](err)
-	}
-
-	return Ok(collected)
-}
+func (seq SeqResult[V]) Collect() Slice[Result[V]] { return iter.ToSlice(iter.Seq[Result[V]](seq)) }
 
 // Count consumes the entire sequence, counting how many times the yield function is invoked.
 // Err elements do not stop the count but are still passed to the yield function (which returns false immediately, stopping iteration).

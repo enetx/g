@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/f"
 )
 
 // All returns true only if fn returns true for every element.
@@ -101,46 +100,8 @@ func (p SeqHeapPar[V]) Chain(others ...SeqHeapPar[V]) SeqHeapPar[V] {
 	}
 }
 
-// Collect gathers all processed elements into a Heap.
-// The heap will be created with a default comparison function that works for comparable types.
-// For custom comparison, use CollectWith.
-func (p SeqHeapPar[V]) Collect() *Heap[V] {
-	ch := make(chan V)
-
-	go func() {
-		defer close(ch)
-		p.Range(func(v V) bool {
-			ch <- v
-			return true
-		})
-	}()
-
-	result := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-
-	for v := range ch {
-		result.Push(v)
-	}
-
-	return result
-}
-
-// CollectWith gathers all processed elements into a Heap with a custom comparison function.
-func (p SeqHeapPar[V]) CollectWith(compareFn func(V, V) cmp.Ordering) *Heap[V] {
+// Collect gathers all processed elements into a Heap with a custom comparison function.
+func (p SeqHeapPar[V]) Collect(compareFn func(V, V) cmp.Ordering) *Heap[V] {
 	ch := make(chan V)
 
 	go func() {
@@ -576,71 +537,8 @@ func (p SeqHeapPar[V]) Map(fn func(V) V) SeqHeapPar[V] {
 	}
 }
 
-func (p SeqHeapPar[V]) Partition(fn func(V) bool) (*Heap[V], *Heap[V]) {
-	type item struct {
-		value  V
-		isLeft bool
-	}
-
-	ch := make(chan item)
-
-	go func() {
-		defer close(ch)
-		p.Range(func(v V) bool {
-			ch <- item{
-				value:  v,
-				isLeft: fn(v),
-			}
-			return true
-		})
-	}()
-
-	left := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-	right := &Heap[V]{
-		data: make(Slice[V], 0),
-		cmp: func(a, b V) cmp.Ordering {
-			if f.IsComparable(a) {
-				if f.Eq[any](a)(b) {
-					return cmp.Equal
-				}
-				return cmp.Equal
-			}
-
-			if f.Eqd(a)(b) {
-				return cmp.Equal
-			}
-			return cmp.Equal
-		},
-	}
-
-	for it := range ch {
-		if it.isLeft {
-			left.Push(it.value)
-		} else {
-			right.Push(it.value)
-		}
-	}
-
-	return left, right
-}
-
-// PartitionWith partitions elements using custom comparison functions for each heap.
-func (p SeqHeapPar[V]) PartitionWith(fn func(V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
+// Partition partitions elements using custom comparison functions for each heap.
+func (p SeqHeapPar[V]) Partition(fn func(V) bool, leftCmp, rightCmp func(V, V) cmp.Ordering) (*Heap[V], *Heap[V]) {
 	type item struct {
 		value  V
 		isLeft bool

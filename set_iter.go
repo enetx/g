@@ -279,12 +279,28 @@ func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 // Returns:
 // - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
 func (seq *SeqSet[V]) Next() Option[V] {
-	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
-		*seq = SeqSet[V](remaining)
-		return Some(value)
+	var values []V
+
+	(*seq)(func(v V) bool {
+		values = append(values, v)
+		return true
+	})
+
+	if len(values) == 0 {
+		return None[V]()
 	}
 
-	return None[V]()
+	first := Some(values[0])
+
+	*seq = func(yield func(V) bool) {
+		for _, value := range values[1:] {
+			if !yield(value) {
+				return
+			}
+		}
+	}
+
+	return first
 }
 
 func intersection[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {

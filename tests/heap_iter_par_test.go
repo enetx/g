@@ -47,7 +47,7 @@ func TestHeapParallelCollect(t *testing.T) {
 	got := heap.Iter().
 		Parallel(workers).
 		Inspect(cc.Fn).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	if got.Len() != Int(len(nums)) {
 		t.Fatalf("Collect returned %d items, want %d", got.Len(), len(nums))
@@ -91,7 +91,7 @@ func TestHeapCollectWithParallel(t *testing.T) {
 	got := heap.Iter().
 		Parallel(workers).
 		Inspect(cc.Fn).
-		CollectWith(cmp.Reverse[int])
+		Collect(cmp.Reverse[int])
 
 	if got.Len() != Int(len(nums)) {
 		t.Fatalf("CollectWith returned %d items, want %d", got.Len(), len(nums))
@@ -124,7 +124,7 @@ func TestHeapMapFilterParallel(t *testing.T) {
 		Inspect(cc.Fn).
 		Map(func(v int) int { return v * 2 }).
 		Filter(func(v int) bool { return v%4 == 0 }).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	// Expect doubled values divisible by 4: [4, 8]
 	result := make([]int, 0)
@@ -160,7 +160,7 @@ func TestHeapChainParallel(t *testing.T) {
 		Chain(
 			heapB.Iter().Parallel(workers).Inspect(cc.Fn),
 		).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	result := make([]int, 0)
 	for !res.Empty() {
@@ -221,64 +221,8 @@ func TestHeapAllAnyCountParallel(t *testing.T) {
 	}
 }
 
-// TestHeapFindPartitionParallel verifies Find and Partition correctness and parallelism.
-func TestHeapFindPartitionParallel(t *testing.T) {
-	nums := []int{1, 2, 3, 4, 5}
-	heap := NewHeap(cmp.Cmp[int])
-	for _, n := range nums {
-		heap.Push(n)
-	}
-
-	workers := Int(3)
-
-	ccFind := &concurrentCounterHeap{sleep: 15 * time.Millisecond}
-	opt := heap.Iter().
-		Parallel(workers).
-		Inspect(ccFind.Fn).
-		Find(func(v int) bool { return v > 3 })
-
-	if !opt.IsSome() || opt.Some() < 4 {
-		t.Errorf("Find got %v, want Some(4) or Some(5)", opt)
-	}
-
-	if ccFind.Max() < 2 {
-		t.Errorf("expected parallel Find, got max %d", ccFind.Max())
-	}
-
-	ccPart := &concurrentCounterHeap{sleep: 15 * time.Millisecond}
-	left, right := heap.Iter().
-		Parallel(workers).
-		Inspect(ccPart.Fn).
-		Partition(func(v int) bool { return v%2 == 0 })
-
-	leftResult := make([]int, 0)
-	for !left.Empty() {
-		leftResult = append(leftResult, left.Pop().Some())
-	}
-
-	rightResult := make([]int, 0)
-	for !right.Empty() {
-		rightResult = append(rightResult, right.Pop().Some())
-	}
-
-	SliceOf(leftResult...).SortBy(cmp.Cmp)
-	SliceOf(rightResult...).SortBy(cmp.Cmp)
-
-	if !SliceOf(leftResult...).Eq(Slice[int]{2, 4}) {
-		t.Errorf("Partition left got %v, want %v", leftResult, []int{2, 4})
-	}
-
-	if !SliceOf(rightResult...).Eq(Slice[int]{1, 3, 5}) {
-		t.Errorf("Partition right got %v, want %v", rightResult, []int{1, 3, 5})
-	}
-
-	if ccPart.Max() < 2 {
-		t.Errorf("expected parallel Partition, got max %d", ccPart.Max())
-	}
-}
-
-// TestHeapPartitionWithParallel verifies PartitionWith with custom comparisons.
-func TestHeapPartitionWithParallel(t *testing.T) {
+// TestHeapPartitionParallel verifies PartitionWith with custom comparisons.
+func TestHeapPartitionParallel(t *testing.T) {
 	nums := []int{1, 2, 3, 4, 5, 6}
 	heap := NewHeap(cmp.Cmp[int])
 	for _, n := range nums {
@@ -292,7 +236,7 @@ func TestHeapPartitionWithParallel(t *testing.T) {
 	left, right := heap.Iter().
 		Parallel(workers).
 		Inspect(cc.Fn).
-		PartitionWith(
+		Partition(
 			func(v int) bool { return v%2 == 0 },
 			cmp.Cmp[int],     // min-heap
 			cmp.Reverse[int], // max-heap
@@ -328,7 +272,7 @@ func TestHeapSkipTakeParallel(t *testing.T) {
 		Parallel(workers).
 		Inspect(ccSkip.Fn).
 		Skip(3).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	skipResult := make([]int, 0)
 	for !skipRes.Empty() {
@@ -347,7 +291,7 @@ func TestHeapSkipTakeParallel(t *testing.T) {
 		Parallel(workers).
 		Inspect(ccTake.Fn).
 		Take(3).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	takeResult := make([]int, 0)
 	for !takeRes.Empty() {
@@ -411,7 +355,7 @@ func TestHeapUniqueParallel(t *testing.T) {
 		Parallel(workers).
 		Inspect(cc.Fn).
 		Unique().
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	result := make([]int, 0)
 	for !res.Empty() {
@@ -441,13 +385,15 @@ func TestHeapFlattenParallel(t *testing.T) {
 		SliceOf(12, 13, 14, 15),
 	}
 
-	// Create heap with nested data
-	heap := NewHeap[any](func(a, b any) cmp.Ordering {
+	cmpFn := func(a, b any) cmp.Ordering {
 		// Simple comparison for any type using string representation
 		aStr := fmt.Sprintf("%v", a)
 		bStr := fmt.Sprintf("%v", b)
 		return cmp.Cmp(aStr, bStr)
-	})
+	}
+
+	// Create heap with nested data
+	heap := NewHeap[any](cmpFn)
 
 	for _, item := range nestedData {
 		heap.Push(item)
@@ -460,9 +406,9 @@ func TestHeapFlattenParallel(t *testing.T) {
 	result := heap.
 		Iter().
 		Parallel(workers).
-		Inspect(func(v any) { cc.Fn(0) }). // Use generic counter
+		Inspect(func(any) { cc.Fn(0) }). // Use generic counter
 		Flatten().
-		Collect()
+		Collect(cmpFn)
 	duration := time.Since(start)
 
 	// Expected flattened elements: 3+3+3+2+4 = 15
@@ -486,7 +432,9 @@ func TestHeapFlattenParallel(t *testing.T) {
 	expectedElements := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	for _, expected := range expectedElements {
 		found := false
-		resultSlice := result.Iter().Collect().ToSlice()
+		resultSlice := result.Iter().
+			Collect(func(a1, a2 any) cmp.Ordering { return cmp.Cmp(a1.(int), a2.(int)) }).
+			ToSlice()
 		for _, actual := range resultSlice {
 			if actual == expected {
 				found = true
@@ -522,7 +470,7 @@ func TestHeapParFlatMap(t *testing.T) {
 			h.Push(v*10, v*10+1)
 			return h.Iter()
 		}).
-		Collect()
+		Collect(cmp.Cmp[int])
 	duration := time.Since(start)
 
 	// Expected: [10,11, 20,21, 30,31] = 6 elements
@@ -557,10 +505,10 @@ func TestHeapParFlatMap(t *testing.T) {
 	// Test with empty result
 	emptyResult := heap.Iter().
 		Parallel(workers).
-		FlatMap(func(v int) SeqHeap[int] {
+		FlatMap(func(int) SeqHeap[int] {
 			return NewHeap(cmp.Cmp[int]).Iter()
 		}).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	if emptyResult.Len() != 0 {
 		t.Errorf("FlatMap empty result: got %d, want 0", emptyResult.Len())
@@ -588,7 +536,7 @@ func TestHeapParFilterMap(t *testing.T) {
 			}
 			return None[int]()
 		}).
-		Collect()
+		Collect(cmp.Cmp[int])
 	duration := time.Since(start)
 
 	// Expected: even numbers * 2 = [4, 8, 12]
@@ -621,7 +569,7 @@ func TestHeapParFilterMap(t *testing.T) {
 		FilterMap(func(v int) Option[int] {
 			return None[int]()
 		}).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	if emptyResult.Len() != 0 {
 		t.Errorf("FilterMap all filtered: got %d, want 0", emptyResult.Len())
@@ -648,7 +596,7 @@ func TestHeapParStepBy(t *testing.T) {
 		Parallel(workers).
 		Inspect(cc.Fn).
 		StepBy(3).
-		Collect()
+		Collect(cmp.Cmp[int])
 	duration := time.Since(start)
 
 	// StepBy(3) should return approximately 1/3 of elements (3-4 elements from 10 total)
@@ -687,7 +635,7 @@ func TestHeapParStepBy(t *testing.T) {
 	allResult := heap.Iter().
 		Parallel(workers).
 		StepBy(0).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	if allResult.Len() != Int(len(nums)) {
 		t.Errorf("StepBy(0) result length: got %d, want %d", allResult.Len(), len(nums))
@@ -779,7 +727,7 @@ func TestHeapParExclude(t *testing.T) {
 			Exclude(func(n int) bool {
 				return n%2 == 0
 			}).
-			Collect()
+			Collect(cmp.Cmp[int])
 
 		// Should have odd numbers: 1, 3, 5, 7, 9
 		expected := []int{1, 3, 5, 7, 9}
@@ -808,7 +756,7 @@ func TestHeapParExclude(t *testing.T) {
 			Exclude(func(n int) bool {
 				return false
 			}).
-			Collect()
+			Collect(cmp.Cmp[int])
 
 		if result.Len() != Int(5) {
 			t.Errorf("Expected all 5 elements, got %d", result.Len())
@@ -827,7 +775,7 @@ func TestHeapParExclude(t *testing.T) {
 			Exclude(func(n int) bool {
 				return true
 			}).
-			Collect()
+			Collect(cmp.Cmp[int])
 
 		if result.Len() != Int(0) {
 			t.Errorf("Expected 0 elements, got %d", result.Len())
@@ -848,7 +796,7 @@ func TestHeapParExclude(t *testing.T) {
 			Exclude(func(n int) bool {
 				return n > 10 // Exclude numbers > 10
 			}).
-			Collect()
+			Collect(cmp.Cmp[int])
 
 		// Should have numbers 1-10
 		if result.Len() != Int(10) {
@@ -945,7 +893,7 @@ func TestHeapParFlattenComprehensive(t *testing.T) {
 		resultSlice := heap.Iter().
 			Parallel(2).
 			Flatten().
-			Collect()
+			Collect(func(a1, a2 any) cmp.Ordering { return cmp.Cmp(a1.(int), a2.(int)) })
 
 		// Should get elements from the nested slices
 		if resultSlice.Len() < Int(1) {
@@ -970,7 +918,7 @@ func TestHeapParFlattenComprehensive(t *testing.T) {
 			Parallel(4).
 			Inspect(func(v any) { cc.Fn(1) }).
 			Flatten().
-			Collect()
+			Collect(func(a1, a2 any) cmp.Ordering { return cmp.Cmp(a1.(int), a2.(int)) })
 
 		// Should have elements from the nested slices
 		if resultSlice.Len() < Int(5) {
@@ -996,7 +944,7 @@ func TestHeapParFlattenComprehensive(t *testing.T) {
 			Parallel(2).
 			Flatten().
 			Take(3). // Force early termination
-			Collect()
+			Collect(func(a1, a2 any) cmp.Ordering { return cmp.Cmp(a1.(int), a2.(int)) })
 
 		if resultSlice.Len() != Int(3) {
 			t.Errorf("Expected exactly 3 elements due to Take(3), got %d", resultSlice.Len())

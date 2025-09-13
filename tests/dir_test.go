@@ -378,15 +378,15 @@ func TestDir_Remove_WithSubdirectories(t *testing.T) {
 	// Create nested directory structure
 	subDir1 := tempDir + "/subdir1"
 	subDir2 := tempDir + "/subdir1/subdir2"
-	if err := os.MkdirAll(subDir2, 0755); err != nil {
+	if err := os.MkdirAll(subDir2, 0o755); err != nil {
 		t.Fatalf("Failed to create subdirectories: %v", err)
 	}
 
 	// Create files in different levels
-	if err := os.WriteFile(tempDir+"/file1.txt", []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(tempDir+"/file1.txt", []byte("content"), 0o644); err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
-	if err := os.WriteFile(subDir1+"/file2.txt", []byte("content"), 0644); err != nil {
+	if err := os.WriteFile(subDir1+"/file2.txt", []byte("content"), 0o644); err != nil {
 		t.Fatalf("Failed to create file in subdir: %v", err)
 	}
 
@@ -529,7 +529,7 @@ func TestDir_CreateAll_Mode_Success(t *testing.T) {
 	dir := NewDir(String(tempDir))
 
 	// Create all directories along the path with custom mode
-	result := dir.CreateAll(0700)
+	result := dir.CreateAll(0o700)
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -541,7 +541,7 @@ func TestDir_CreateAll_Mode_Success(t *testing.T) {
 	if os.IsNotExist(err) {
 		t.Errorf("TestDir_CreateAll_Mode_Success: Directory does not exist: %s", tempDir)
 	} else {
-		if fileInfo.Mode() != os.FileMode(0700)|os.ModeDir {
+		if fileInfo.Mode() != os.FileMode(0o700)|os.ModeDir {
 			t.Errorf("TestDir_CreateAll_Mode_Success: Expected mode 0700, got %o", fileInfo.Mode())
 		}
 	}
@@ -559,15 +559,15 @@ func TestDir_Read_Success(t *testing.T) {
 	dir := NewDir(String(tempDir))
 
 	// Read the content of the directory
-	result := dir.Read().Collect()
+	result := dir.Read()
 
 	// Check if the operation succeeded
-	if result.IsErr() {
-		t.Errorf("TestDir_Read_Success: Unexpected error: %s", result.Err().Error())
+	if result.FirstErr().IsSome() {
+		t.Errorf("TestDir_Read_Success: Unexpected error %s", result.FirstErr().Some())
 	}
 
 	// Check if the returned slice of File instances is accurate
-	files := result.Ok()
+	files := result.Ok().Collect()
 	expectedFileNames := []string{"file1.txt", "file2.txt", "subdir1", "subdir2"}
 
 	for i, file := range files {
@@ -582,11 +582,13 @@ func TestDir_Read_NonExistentDirectory(t *testing.T) {
 	dir := NewDir(String("/nonexistent/directory/path"))
 
 	// Try to read the content of the non-existent directory
-	result := dir.Read().Collect()
+	result := dir.Read()
 
 	// Check if the operation failed as expected
-	if result.IsOk() {
-		t.Errorf("TestDir_Read_NonExistentDirectory: Expected error for non-existent directory, but operation succeeded")
+	if result.FirstErr().IsNone() {
+		t.Errorf(
+			"TestDir_Read_NonExistentDirectory: Expected error for non-existent directory, but operation succeeded",
+		)
 	}
 }
 
@@ -599,15 +601,15 @@ func TestDir_Read_EmptyDirectory(t *testing.T) {
 	dir := NewDir(String(tempDir))
 
 	// Read the content of the empty directory
-	result := dir.Read().Collect()
+	result := dir.Read()
 
 	// Check if the operation succeeded
-	if result.IsErr() {
-		t.Errorf("TestDir_Read_EmptyDirectory: Unexpected error: %s", result.Err().Error())
+	if result.FirstErr().IsSome() {
+		t.Errorf("TestDir_Read_EmptyDirectory: Unexpected error: %s", result.FirstErr().Some())
 	}
 
 	// Check if the returned slice is empty
-	files := result.Ok()
+	files := result.Ok().Collect()
 	if len(files) != 0 {
 		t.Errorf("TestDir_Read_EmptyDirectory: Expected empty directory, got %d files", len(files))
 	}
@@ -625,15 +627,15 @@ func TestDir_Glob_Success(t *testing.T) {
 	dir := NewDir(String(filepath.Join(tempDir, "*.txt")))
 
 	// Retrieve files matching the glob pattern
-	result := dir.Glob().Collect()
+	result := dir.Glob()
 
 	// Check if the operation succeeded
-	if result.IsErr() {
-		t.Errorf("TestDir_Glob_Success: Unexpected error: %s", result.Err().Error())
+	if result.FirstErr().IsSome() {
+		t.Errorf("TestDir_Glob_Success: Unexpected error: %s", result.FirstErr().Some())
 	}
 
 	// Check if the returned slice of File instances is accurate
-	files := result.Ok()
+	files := result.Ok().Collect()
 	expectedFileNames := []string{"file1.txt", "file2.txt"}
 	for i, file := range files {
 		if file.Name().Std() != expectedFileNames[i] {
@@ -647,10 +649,10 @@ func TestDir_Glob_InvalidPattern(t *testing.T) {
 	dir := NewDir(String("["))
 
 	// Retrieve files matching the invalid glob pattern
-	result := dir.Glob().Collect()
+	result := dir.Glob()
 
 	// Check if the operation failed as expected
-	if result.IsOk() {
+	if result.FirstErr().IsNone() {
 		t.Errorf("TestDir_Glob_InvalidPattern: Expected error for invalid pattern, but operation succeeded")
 	}
 }
@@ -664,15 +666,15 @@ func TestDir_Glob_EmptyResult(t *testing.T) {
 	dir := NewDir(String(filepath.Join(tempDir, "*.nonexistent")))
 
 	// Retrieve files matching the glob pattern
-	result := dir.Glob().Collect()
+	result := dir.Glob()
 
 	// Check if the operation succeeded with empty result
-	if result.IsErr() {
-		t.Errorf("TestDir_Glob_EmptyResult: Unexpected error: %s", result.Err().Error())
+	if result.FirstErr().IsSome() {
+		t.Errorf("TestDir_Glob_EmptyResult: Unexpected error: %s", result.FirstErr().Some())
 	}
 
 	// Check if the returned slice is empty
-	files := result.Ok()
+	files := result.Ok().Collect()
 	if len(files) != 0 {
 		t.Errorf("TestDir_Glob_EmptyResult: Expected empty result, got %d files", len(files))
 	}
@@ -714,10 +716,10 @@ func TestDir_Copy(t *testing.T) {
 	defer os.RemoveAll(sourceDir)
 
 	// Create some test files in the source directory
-	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1 content"), 0644); err != nil {
+	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1 content"), 0o644); err != nil {
 		t.Fatalf("TestDir_Copy: Failed to create test file 1 in source directory: %v", err)
 	}
-	if err := os.WriteFile(sourceDir+"/file2.txt", []byte("File 2 content"), 0644); err != nil {
+	if err := os.WriteFile(sourceDir+"/file2.txt", []byte("File 2 content"), 0o644); err != nil {
 		t.Fatalf("TestDir_Copy: Failed to create test file 2 in source directory: %v", err)
 	}
 
@@ -761,14 +763,14 @@ func TestDir_Copy_WithFollowLinks(t *testing.T) {
 	defer os.RemoveAll(sourceDir)
 
 	// Create source files and subdirectory
-	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1"), 0644); err != nil {
+	if err := os.WriteFile(sourceDir+"/file1.txt", []byte("File 1"), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 	subDir := sourceDir + "/subdir"
-	if err := os.Mkdir(subDir, 0755); err != nil {
+	if err := os.Mkdir(subDir, 0o755); err != nil {
 		t.Fatalf("Failed to create subdirectory: %v", err)
 	}
-	if err := os.WriteFile(subDir+"/file2.txt", []byte("File 2"), 0644); err != nil {
+	if err := os.WriteFile(subDir+"/file2.txt", []byte("File 2"), 0o644); err != nil {
 		t.Fatalf("Failed to create test file in subdir: %v", err)
 	}
 
@@ -811,7 +813,7 @@ func TestDir_Copy_InvalidDestination(t *testing.T) {
 	defer os.RemoveAll(sourceDir)
 
 	// Create a test file in source
-	if err := os.WriteFile(sourceDir+"/test.txt", []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(sourceDir+"/test.txt", []byte("test"), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -830,13 +832,13 @@ func TestDir_Copy_WithSymlinks(t *testing.T) {
 	defer os.RemoveAll(sourceDir)
 
 	// Create a file and a symlink to it
-	if err := os.WriteFile(sourceDir+"/original.txt", []byte("original content"), 0644); err != nil {
+	if err := os.WriteFile(sourceDir+"/original.txt", []byte("original content"), 0o644); err != nil {
 		t.Fatalf("Failed to create original file: %v", err)
 	}
 
 	// Create a directory and symlink to it
 	subDir := sourceDir + "/subdir"
-	if err := os.Mkdir(subDir, 0755); err != nil {
+	if err := os.Mkdir(subDir, 0o755); err != nil {
 		t.Fatalf("Failed to create subdirectory: %v", err)
 	}
 
@@ -897,8 +899,8 @@ func TestDir_Walk(t *testing.T) {
 }
 
 func createTestFiles(dir string) {
-	os.Mkdir(filepath.Join(dir, "subdir1"), 0755)
-	os.Mkdir(filepath.Join(dir, "subdir2"), 0755)
+	os.Mkdir(filepath.Join(dir, "subdir1"), 0o755)
+	os.Mkdir(filepath.Join(dir, "subdir2"), 0o755)
 	os.Create(filepath.Join(dir, "file1.txt"))
 	os.Create(filepath.Join(dir, "file2.txt"))
 }
@@ -1048,7 +1050,7 @@ func TestDir_Read_EarlyReturn(t *testing.T) {
 	// Create some test files
 	for i := 0; i < 5; i++ {
 		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
-		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte("content"), 0o644); err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
 	}
@@ -1155,7 +1157,7 @@ func TestDir_Glob_EarlyReturn(t *testing.T) {
 	// Create some test files
 	for i := 0; i < 5; i++ {
 		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
-		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte("content"), 0o644); err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
 	}
@@ -1205,20 +1207,20 @@ func TestDir_Walk_EarlyReturn(t *testing.T) {
 	// Create some test files and subdirectories
 	for i := 0; i < 3; i++ {
 		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
-		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte("content"), 0o644); err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
 	}
 
 	// Create a subdirectory with files
 	subDir := filepath.Join(tempDir, "subdir")
-	if err := os.MkdirAll(subDir, 0755); err != nil {
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
 		t.Fatalf("Failed to create subdirectory: %v", err)
 	}
 
 	for i := 0; i < 2; i++ {
 		filename := filepath.Join(subDir, "subfile"+string(rune('0'+i))+".txt")
-		if err := os.WriteFile(filename, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte("content"), 0o644); err != nil {
 			t.Fatalf("Failed to create test file in subdir: %v", err)
 		}
 	}
