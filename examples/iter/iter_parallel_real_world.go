@@ -276,43 +276,40 @@ func main() {
 	=== Real-World Parallel Iterator Use Cases ===
 
 	1. Log Processing Pipeline:
-	   Found 2 alerts in 13ms
+	   Found 2 alerts in 22.504042ms
 	   ALERT[2024-01-15 10:30:16]: Database connection failed: timeout
-	   ALERT[2024-01-15 10:30:20]: API rate limit exceeded
+	   ALERT[2024-01-15 10:30:18]: High memory usage: 85%
 
 	2. E-commerce Order Processing:
-	   Processed 6 high-value items in 28ms
-	   Sample items:
-	     Order_1001_User_501_Item_laptop_case_Value_149.99
-	     Order_1001_User_501_Item_mouse_Value_149.99
-	     Order_1003_User_501_Item_laptop_Value_899
+	   Processed 3 high-value orders in 18.209667ms
+	   Sample orders:
+	     Order 1001: $149.99 - Items: laptop_case, mouse
+	     Order 1003: $899 - Items: laptop, warranty
+	     Order 1005: $299.99 - Items: monitor, cables
 	   Most expensive pending: Order 1003 - $899
 
 	3. Website Performance Analytics:
-	   Found 4 performance issues in 8ms
-	     SLOW_/products_800ms_200
-	     ERROR_/checkout_1200ms_500
-	     ERROR_/api/data_2000ms_503
-	     SLOW_/products_450ms_200
+	   Found 4 slow/error metrics in 6.934625ms
+	     ERROR: /checkout - 1200ms (500)
+	     SLOW: /products - 800ms (200)
+	     ERROR: /api/data - 2000ms (503)
+	     SLOW: /checkout - 600ms (200)
 	   Slowest page: /api/data (2000ms)
-	   Sample metrics: Slice[/home_250ms, /checkout_1200ms, /profile_150ms, /checkout_600ms]
+	   Sample metrics: 4 entries
 
 	4. Financial Transaction Analysis:
-	   Generated 11 risk assessment items in 13ms
-	   Sample risk items:
-	     TX_1_50
-	     HIGH_VALUE_2
-	     LARGE_DEPOSIT_2
-	     TX_3_25.99
-	     TX_4_75.5
+	   Identified 2 risky transactions in 10.351125ms
+	   Risk transactions:
+	     VERY_HIGH_VALUE: Transaction 2 - $1200 credit from Salary Deposit
+	     VERY_HIGH_VALUE: Transaction 7 - $2000 credit from Investment Return
 	   Largest credit: $5000 from Bonus Payment
 
 	=== Performance Summary ===
-	Log processing:      13ms
-	Order processing:    28ms
-	Analytics:           8ms
-	Financial analysis:  13ms
-	Total execution:     62ms
+	Log processing:      22.504042ms
+	Order processing:    18.209667ms
+	Analytics:           6.934625ms
+	Financial analysis:  10.351125ms
+	Total execution:     68.370292ms
 
 	All use cases demonstrate the power of parallel iterators for
 	real-world data processing pipelines! 🚀

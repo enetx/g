@@ -18,14 +18,14 @@ func main() {
 		SliceOf(4.5, 6.7),            // slice of floats
 		map[string]string{"a": "ss"}, // map with string keys and values
 		SliceOf(
-			MapOrd[int, int]{{1, 1}}, // slice of ordered maps
-			MapOrd[int, int]{{2, 2}}),
+			Map[int, int]{1: 1}, // slice of maps
+			Map[int, int]{2: 2}),
 	}.
 		Iter().    // creates an iterator for subsequent operations
 		Flatten(). // flattens nested slices, transforming them into a flat slice
 		Collect(). // gathers the elements of the iterator into a new slice.
 		Println()
-		// outputs the elements of the slice to the console. Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], {1 1}, {2 2}]
+		// outputs the elements of the slice to the console. Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], Map{1:1}, Map{2:2}]
 
 	// Example 2: Flatten a slice of strings by individual characters
 	words := SliceOf[String]("alpha", "beta", "gamma", "💛💚💙💜", "世界")

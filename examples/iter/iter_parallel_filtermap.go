@@ -95,7 +95,7 @@ func main() {
 			// Failing grades filtered out
 			return None[int]()
 		}).
-		Collect()
+		Collect(cmp.Cmp[int])
 
 	duration3 := time.Since(start)
 	Println("Passing grades: {} elements", result3.Len())
@@ -133,7 +133,7 @@ func main() {
 			time.Sleep(15 * time.Millisecond)
 			// Only process adult users, increment age
 			if user.Age >= 18 {
-				user.Age += 1 // Age them by 1 year
+				user.Age++ // Age them by 1 year
 				return Some(user)
 			}
 			return None[User]()

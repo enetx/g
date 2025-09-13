@@ -74,18 +74,12 @@ func main() {
 			}
 			return h.Iter()
 		}).
-		Collect()
+		Collect(cmp.Cmp)
 
 	duration3 := time.Since(start)
 	Println("Result: {} elements", result3.Len())
-	allElements := make([]int, 0)
-	for !result3.Empty() {
-		allElements = append(allElements, result3.Pop().Some())
-	}
-	sortedElements := SliceOf(allElements...)
-	sortedElements.SortBy(cmp.Cmp)
-	sortedElements.Println()
-	Println("Duration: {} (should be ~40ms with parallelism)\n", duration3)
+	result3.Iter().ForEach(func(v int) { Print("{} ", v) })
+	Println("\nDuration: {} (should be ~40ms with parallelism)\n", duration3)
 
 	// Example 4: Complex nested data processing
 	Println("4. Complex nested data processing:")
@@ -145,25 +139,25 @@ func main() {
 
 	1. Parallel FlatMap with Slices:
 	Result: Slice[10, 11, 12, 20, 21, 22, 30, 31, 32, 40, 41, 42, 50, 51, 52]
-	Duration: 52ms (should be ~50ms with parallelism)
+	Duration: 50.824583ms (should be ~50ms with parallelism)
 
 	2. Parallel FlatMap with Deques:
-	Result: Deque[HELLO, WORLD, GO, PROGRAMMING, PARALLEL, COMPUTING]
-	Duration: 62ms (should be ~60ms with parallelism)
+	Result: Deque[COMPUTING, HELLO, WORLD, PARALLEL, PROGRAMMING, GO]
+	Duration: 31.07025ms (should be ~60ms with parallelism)
 
 	3. Parallel FlatMap with Heaps:
 	Result: 9 elements
-	Slice[2, 3, 4, 6, 8, 9, 12, 16]
-	Duration: 41ms (should be ~40ms with parallelism)
+	2 3 4 4 6 8 9 12 16
+	Duration: 40.724209ms (should be ~40ms with parallelism)
 
 	4. Complex nested data processing:
-	Result: Slice[user1_processed, user2_processed, admin1_processed, admin2_processed, admin3_processed, guest1_processed]
-	Duration: 26ms (should be ~25ms with parallelism)
+	Result: Slice[admin3_processed, admin1_processed, admin2_processed, guest1_processed, user1_processed, user2_processed]
+	Duration: 26.279916ms (should be ~25ms with parallelism)
 
 	5. Performance Comparison:
-	Sequential duration: 201ms (should be ~200ms)
-	Parallel duration: 23ms (should be ~20-30ms)
-	Speedup: 8.7x
+	Sequential duration: 216.465875ms (should be ~200ms)
+	Parallel duration: 11.218166ms (should be ~20-30ms)
+	Speedup: 19.636363636363637x
 	Results equal: true
 	*/
 }

@@ -61,7 +61,7 @@ func main() {
 
 	stepResult := numbers.Iter().
 		Parallel(3).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			time.Sleep(5 * time.Millisecond)
 		}).
 		StepBy(3).
@@ -78,7 +78,7 @@ func main() {
 
 	maxVal := numbers.Iter().
 		Parallel(3).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			time.Sleep(3 * time.Millisecond)
 		}).
 		MaxBy(func(a, b int) cmp.Ordering {
@@ -87,7 +87,7 @@ func main() {
 
 	minVal := numbers.Iter().
 		Parallel(3).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			time.Sleep(3 * time.Millisecond)
 		}).
 		MinBy(func(a, b int) cmp.Ordering {
@@ -180,7 +180,7 @@ func main() {
 			}
 			return None[int]()
 		}).
-		Collect()
+		Collect(cmp.Cmp)
 	heapDuration := time.Since(start)
 
 	Println("   Slice result: {} items in {}", sliceResult.Len(), sliceDuration)

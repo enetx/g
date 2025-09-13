@@ -50,11 +50,7 @@ func main() {
 	// ints
 	n := NewInt(52452356235) // declaration and assignation
 
-	fmt.Printf("%v\n", n.Bytes())
-
-	n.Hash().MD5().Println()
-	n.Hash().SHA1().Println()
-	n.Hash().SHA256().Println()
+	fmt.Printf("%v\n", n.BytesBE())
 
 	n.Binary().Println()
 	n.String().Println()

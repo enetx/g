@@ -17,7 +17,7 @@ func main() {
 	data := Range(1, 21).Collect() // 1 to 20
 	result1 := data.Iter().
 		Parallel(4).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			// Simulate processing time
 			time.Sleep(10 * time.Millisecond)
 		}).
@@ -52,7 +52,7 @@ func main() {
 	start = time.Now()
 	result2 := deque.Iter().
 		Parallel(3).
-		Inspect(func(entry String) {
+		Inspect(func(String) {
 			// Simulate log parsing
 			time.Sleep(15 * time.Millisecond)
 		}).
@@ -77,12 +77,12 @@ func main() {
 	start = time.Now()
 	result3 := heap.Iter().
 		Parallel(3).
-		Inspect(func(priority int) {
+		Inspect(func(int) {
 			// Simulate task evaluation
 			time.Sleep(12 * time.Millisecond)
 		}).
 		StepBy(3). // Sample every 3rd priority
-		Collect()
+		Collect(cmp.Cmp)
 
 	duration3 := time.Since(start)
 	Println("High-priority tasks (every 3rd): {} elements", result3.Len())
@@ -106,7 +106,7 @@ func main() {
 	result4 := SliceOf(largeData...).
 		Iter().
 		Parallel(10).
-		Inspect(func(value int) {
+		Inspect(func(int) {
 			// Simulate data analysis
 			time.Sleep(3 * time.Millisecond)
 		}).

@@ -19,7 +19,7 @@ func TestGoPanic(t *testing.T) {
 			panic("test panic")
 		})
 
-		results := p.Wait()
+		results := p.Wait().Collect()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -55,7 +55,7 @@ func TestGoPanic(t *testing.T) {
 			return Ok(42)
 		})
 
-		results := p.Wait()
+		results := p.Wait().Collect()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -93,7 +93,7 @@ func TestPool(t *testing.T) {
 		})
 	}
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 	if p.ActiveTasks() != 0 {
 		t.Errorf("expected no active tasks after Wait, got %d", p.ActiveTasks())
 	}
@@ -173,7 +173,7 @@ func TestPoolReset(t *testing.T) {
 		return Ok(2)
 	})
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 	if len(results) != 1 {
 		t.Errorf("expected 1 result after new task, got %d", len(results))
 	}
@@ -196,7 +196,7 @@ func TestPoolCancel(t *testing.T) {
 		})
 	}
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 
 	if len(results) != 4 {
 		t.Errorf("expected 4 results, got %d", len(results))
@@ -233,7 +233,7 @@ func TestPoolCancelOnError(t *testing.T) {
 		return Ok(42)
 	})
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 
 	if len(results) != 1 {
 		t.Errorf("Expected 1 results, got %d", len(results))
@@ -303,7 +303,7 @@ func TestPoolGoWithNilFunction(t *testing.T) {
 
 	p.Go(nil) // Pass nil function
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 
 	if len(results) != 1 {
 		t.Fatalf("Expected 1 result, got %d", len(results))
@@ -354,7 +354,7 @@ func TestPoolEpanicTypes(t *testing.T) {
 				panic(tc.panicVal)
 			})
 
-			results := p.Wait()
+			results := p.Wait().Collect()
 
 			if len(results) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(results))
@@ -380,7 +380,7 @@ func TestPoolLimitEdgeCases(t *testing.T) {
 			return Ok(1)
 		})
 
-		results := p.Wait()
+		results := p.Wait().Collect()
 		if len(results) != 1 {
 			t.Errorf("Expected 1 result with negative limit, got %d", len(results))
 		}
@@ -394,7 +394,7 @@ func TestPoolLimitEdgeCases(t *testing.T) {
 			return Ok(1)
 		})
 
-		results := p.Wait()
+		results := p.Wait().Collect()
 		if len(results) != 1 {
 			t.Errorf("Expected 1 result with zero limit, got %d", len(results))
 		}
@@ -413,7 +413,7 @@ func TestPoolContextCancellation(t *testing.T) {
 		return Ok(1)
 	})
 
-	results := p.Wait()
+	results := p.Wait().Collect()
 
 	// Should get no results since context was cancelled
 	if len(results) != 0 {

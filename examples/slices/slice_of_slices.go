@@ -75,9 +75,9 @@ func main() {
 		SliceOf("co", "ol"),
 		SliceOf(4.5, 6.7),
 		map[string]string{"a": "ss"},
-		SliceOf(MapOrd[int, int]{{1, 1}}, MapOrd[int, int]{{2, 2}}),
+		SliceOf(Map[int, int]{1: 1}, Map[int, int]{2: 2}),
 	}
 
-	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], MapOrd{1:1}, MapOrd{2:2}]
+	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], Map{1:1}, Map{2:2}]
 	nestedSlice2.Iter().Flatten().Collect().Println()
 }

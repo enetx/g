@@ -56,7 +56,7 @@ func main() {
 		})
 	}
 
-	results := TransformSlice(p.Wait(), Result[time.Duration].Ok).Iter()
+	results := p.Wait().Ok()
 
 	taskSum := results.Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
 

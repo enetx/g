@@ -56,28 +56,19 @@ func main() {
 			return v * 2
 		}).
 		Filter(f.Ne(4)).
-		Collect()
+		Collect(cmp.Cmp)
 
 	Println("Elapsed Map+Filter: {}", time.Since(start))
 
 	start = time.Now()
 	_, _ = heap.Iter().Parallel(1000).
-		Partition(func(i int) bool {
-			time.Sleep(100 * time.Millisecond)
-			return i%2 == 0
-		})
-
-	Println("Elapsed Partition: {}", time.Since(start))
-
-	start = time.Now()
-	_, _ = heap.Iter().Parallel(1000).
-		PartitionWith(
+		Partition(
 			func(i int) bool {
 				time.Sleep(100 * time.Millisecond)
 				return i > 500
 			},
-			cmp.Cmp[int],     // min-heap for left partition
-			cmp.Reverse[int], // max-heap for right partition
+			cmp.Cmp,     // min-heap for left partition
+			cmp.Reverse, // max-heap for right partition
 		)
 
 	Println("Elapsed PartitionWith: {}", time.Since(start))
@@ -88,7 +79,7 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 			return i > 100
 		}).
-		CollectWith(cmp.Reverse[int]) // collect into max-heap
+		Collect(cmp.Reverse) // collect into max-heap
 
 	Println("Elapsed Filter+CollectWith: {}", time.Since(start))
 
@@ -125,7 +116,7 @@ func main() {
 			heap2.Iter().Parallel(4),
 			heap3.Iter().Parallel(4),
 		).
-		Collect()
+		Collect(cmp.Cmp)
 
 	Println("Elapsed Chain: {}", time.Since(start))
 
@@ -146,7 +137,9 @@ func main() {
 			time.Sleep(100 * time.Millisecond)
 		}).
 		Flatten().
-		Collect()
+		Collect(func(a, b any) cmp.Ordering {
+			return cmp.Cmp(a.(Slice[int])[0], b.(Slice[int])[0])
+		})
 
 	Println("Elapsed Flatten: {}", time.Since(start))
 

@@ -112,7 +112,7 @@ func main() {
 
 	auditSample := transactions.Iter().
 		Parallel(3).
-		Inspect(func(t Transaction) {
+		Inspect(func(Transaction) {
 			// Simulate audit preparation
 			time.Sleep(10 * time.Millisecond)
 		}).
@@ -133,7 +133,7 @@ func main() {
 	// Find highest value transaction
 	maxTransaction := transactions.Iter().
 		Parallel(3).
-		Inspect(func(t Transaction) {
+		Inspect(func(Transaction) {
 			// Simulate complex valuation
 			time.Sleep(12 * time.Millisecond)
 		}).
@@ -144,7 +144,7 @@ func main() {
 	// Find lowest value transaction
 	minTransaction := transactions.Iter().
 		Parallel(3).
-		Inspect(func(t Transaction) {
+		Inspect(func(Transaction) {
 			time.Sleep(12 * time.Millisecond)
 		}).
 		MinBy(func(a, b Transaction) cmp.Ordering {
@@ -154,7 +154,7 @@ func main() {
 	// Find most recent transaction
 	latestTransaction := transactions.Iter().
 		Parallel(3).
-		Inspect(func(t Transaction) {
+		Inspect(func(Transaction) {
 			time.Sleep(12 * time.Millisecond)
 		}).
 		MaxBy(func(a, b Transaction) cmp.Ordering {

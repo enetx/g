@@ -18,7 +18,7 @@ func main() {
 
 	maxResult := numbers.Iter().
 		Parallel(3).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			// Simulate processing time
 			time.Sleep(10 * time.Millisecond)
 		}).
@@ -28,7 +28,7 @@ func main() {
 
 	minResult := numbers.Iter().
 		Parallel(3).
-		Inspect(func(n int) {
+		Inspect(func(int) {
 			time.Sleep(10 * time.Millisecond)
 		}).
 		MinBy(func(a, b int) cmp.Ordering {
@@ -52,7 +52,7 @@ func main() {
 	start = time.Now()
 	longestWord := deque.Iter().
 		Parallel(3).
-		Inspect(func(word String) {
+		Inspect(func(String) {
 			// Simulate string analysis
 			time.Sleep(15 * time.Millisecond)
 		}).
@@ -62,7 +62,7 @@ func main() {
 
 	shortestWord := deque.Iter().
 		Parallel(3).
-		Inspect(func(word String) {
+		Inspect(func(String) {
 			time.Sleep(15 * time.Millisecond)
 		}).
 		MinBy(func(a, b String) cmp.Ordering {
@@ -105,7 +105,7 @@ func main() {
 	start = time.Now()
 	farthestPoint := heap.Iter().
 		Parallel(3).
-		Inspect(func(p Point) {
+		Inspect(func(Point) {
 			// Simulate complex calculation
 			time.Sleep(20 * time.Millisecond)
 		}).
@@ -117,7 +117,7 @@ func main() {
 
 	nearestPoint := heap.Iter().
 		Parallel(3).
-		Inspect(func(p Point) {
+		Inspect(func(Point) {
 			time.Sleep(20 * time.Millisecond)
 		}).
 		MinBy(func(a, b Point) cmp.Ordering {
@@ -166,7 +166,7 @@ func main() {
 	start = time.Now()
 	topPerformer := employees.Iter().
 		Parallel(3).
-		Inspect(func(e Employee) {
+		Inspect(func(Employee) {
 			// Simulate performance analysis
 			time.Sleep(25 * time.Millisecond)
 		}).
@@ -176,7 +176,7 @@ func main() {
 
 	lowestPerformer := employees.Iter().
 		Parallel(3).
-		Inspect(func(e Employee) {
+		Inspect(func(Employee) {
 			time.Sleep(25 * time.Millisecond)
 		}).
 		MinBy(func(a, b Employee) cmp.Ordering {
@@ -236,9 +236,7 @@ func main() {
 		Inspect(func(int) {
 			time.Sleep(1 * time.Millisecond)
 		}).
-		MaxBy(func(a, b int) cmp.Ordering {
-			return cmp.Cmp(a, b)
-		})
+		MaxBy(cmp.Cmp)
 	seqDuration := time.Since(start)
 
 	// Parallel processing
@@ -248,9 +246,7 @@ func main() {
 		Inspect(func(int) {
 			time.Sleep(1 * time.Millisecond)
 		}).
-		MaxBy(func(a, b int) cmp.Ordering {
-			return cmp.Cmp(a, b)
-		})
+		MaxBy(cmp.Cmp)
 	parDuration := time.Since(start)
 
 	Println("Sequential duration: {} (should be ~1000ms)", seqDuration)

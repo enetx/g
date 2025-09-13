@@ -105,7 +105,7 @@ func HeapFromSlice() {
 	heap := numbers.ToHeap(cmp.Cmp[int])
 
 	// Get all elements in sorted order
-	sorted := heap.Iter().Collect()
+	sorted := heap.Iter().Collect(cmp.Cmp)
 	fmt.Printf("Sorted: %v\n", sorted)
 	// Output: [5, 11, 12, 22, 25, 30, 34, 64, 77, 90]
 }
@@ -169,13 +169,13 @@ func TopKElements() {
 		}
 	}
 
-	topK := minHeap.Iter().Collect()
+	topK := minHeap.Iter().Collect(cmp.Cmp)
 	fmt.Printf("Top %d elements: %v\n", k, topK)
 
 	// Method 2: Using full heap (simpler but uses more memory)
 	allSorted := data.ToHeap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // Max heap
-	}).Iter().Take(uint(k)).Collect()
+	}).Iter().Take(uint(k)).Collect(cmp.Cmp)
 
 	fmt.Printf("Top %d (method 2): %v\n", k, allSorted)
 }
@@ -222,13 +222,13 @@ func HeapSort() {
 	fmt.Printf("Unsorted: %v\n", unsorted)
 
 	// Heap sort in ascending order
-	ascending := unsorted.ToHeap(cmp.Cmp).Iter().Collect()
+	ascending := unsorted.ToHeap(cmp.Cmp).Iter().Collect(cmp.Cmp)
 	fmt.Printf("Ascending: %v\n", ascending)
 
 	// Heap sort in descending order
 	descending := unsorted.ToHeap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a)
-	}).Iter().Collect()
+	}).Iter().Collect(cmp.Reverse)
 	fmt.Printf("Descending: %v\n", descending)
 }
 
@@ -250,11 +250,11 @@ func HeapIterators() {
 	// Functional operations on heap iterator
 	evenNumbers := heap.Iter().
 		Filter(func(x int) bool { return x%2 == 0 }).
-		Collect()
+		Collect(cmp.Cmp)
 	fmt.Printf("Even numbers: %v\n", evenNumbers)
 
 	// Take first N elements
-	firstThree := heap.Iter().Take(3).Collect()
+	firstThree := heap.Iter().Take(3).Collect(cmp.Cmp)
 	fmt.Printf("First 3 smallest: %v\n", firstThree)
 
 	// Consuming iteration (empties the heap)
@@ -332,7 +332,7 @@ func PerformanceComparison() {
 	result1 := heap1.Iter().Take(10)
 	result2 := heap2.Iter().Take(10)
 	fmt.Printf("Results identical: %v\n", result1.Eq(result2))
-	fmt.Printf("First 10 elements: %v\n", result1.Collect())
+	fmt.Printf("First 10 elements: %v\n", result1.Collect(cmp.Cmp))
 }
 
 // Example 11: Error Handling and Edge Cases
@@ -363,6 +363,6 @@ func ErrorHandling() {
 	// Duplicate elements
 	duplicates := SliceOf[Int](5, 3, 5, 1, 3, 5, 1, 1)
 	dupHeap := duplicates.ToHeap(Int.Cmp)
-	sorted := dupHeap.Iter().Collect()
+	sorted := dupHeap.Iter().Collect(Int.Cmp)
 	fmt.Printf("✓ Handles duplicates: %v\n", sorted)
 }

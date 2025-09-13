@@ -9,30 +9,7 @@ import (
 )
 
 func main() {
-	// Example 1: Sort an ordered map by key and print the result
-	MapOrd[int, string]{
-		{6, "bb"},
-		{0, "dd"},
-		{1, "aa"},
-		{5, "xx"},
-		{2, "cc"},
-		{3, "ff"},
-		{4, "zz"},
-	}.
-		Iter().
-		// SortBy(
-		// 	func(a, b Pair[int, string]) cmp.Ordering {
-		// 		return cmp.Cmp(a.Key, b.Key)
-		// 		// By value
-		// 		// return cmp.Cmp(a.Value, b.Value)
-		// 	}).
-		// or
-		SortByKey(cmp.Cmp). // By key
-		// SortByValue(cmp.Cmp). // By value
-		Collect().
-		Println() // MapOrd{0:dd, 1:aa, 2:cc, 3:ff, 4:zz, 5:xx, 6:bb}
-
-	// Example 2: Sort a slice of custom structs and print the result
+	// Example 1: Sort a slice of custom structs and print the result
 	type status struct {
 		date   time.Time
 		name   String

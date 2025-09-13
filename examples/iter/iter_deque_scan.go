@@ -51,7 +51,7 @@ func main() {
 
 	// Example 6: Scan for simple counting
 	items := DequeOf(1, 2, 3, 4, 5)
-	indexCounts := items.Iter().Scan(0, func(count, item int) int {
+	indexCounts := items.Iter().Scan(0, func(count, _ int) int {
 		return count + 1 // Just count items
 	}).Collect()
 

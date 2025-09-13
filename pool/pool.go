@@ -108,12 +108,12 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 }
 
 // Wait waits for all submitted tasks in the pool to finish.
-func (p *Pool[T]) Wait() Slice[Result[T]] {
+func (p *Pool[T]) Wait() SeqResult[T] {
 	p.wg.Wait()
 	p.Cancel()
 	p.tokens = nil
 
-	return p.results.Iter().Values().Collect()
+	return SeqResult[T](p.results.Iter().Values())
 }
 
 // Limit sets the maximum number of concurrently running tasks.

@@ -15,7 +15,7 @@ func main() {
 		subHeap := NewHeap(cmp.Cmp[int])
 		subHeap.Push(priority, priority*10, priority*100)
 		return subHeap.Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp)
 
 	Print("Expanded priorities: ")
 	expanded.Println() // Output will be sorted by heap order
@@ -28,7 +28,7 @@ func main() {
 		tasks := NewHeap(cmp.Cmp[string])
 		tasks.Push(level+"-task1", level+"-task2")
 		return tasks.Iter()
-	}).CollectWith(cmp.Cmp[string])
+	}).Collect(cmp.Cmp)
 
 	Print("Task hierarchy: ")
 	taskHierarchy.Println()
@@ -42,7 +42,7 @@ func main() {
 		// Apply different multipliers
 		weights.Push(base*1.0, base*1.5, base*2.0)
 		return weights.Iter()
-	}).CollectWith(cmp.Cmp[float64])
+	}).Collect(cmp.Cmp)
 
 	Print("Weighted scores: ")
 	weightedScores.Println()
@@ -62,7 +62,7 @@ func main() {
 		}
 		// Return empty heap for non-positive numbers
 		return NewHeap(cmp.Cmp[int]).Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp)
 
 	Print("Positive expanded: ")
 	positiveExpanded.Println()
@@ -80,7 +80,7 @@ func main() {
 			subCats.Push("physics", "chemistry", "biology")
 		}
 		return subCats.Iter()
-	}).CollectWith(cmp.Cmp[string])
+	}).Collect(cmp.Cmp)
 
 	Print("All subcategories: ")
 	subcategories.Println()
@@ -93,7 +93,7 @@ func main() {
 		multiples := NewHeap(cmp.Cmp[int])
 		multiples.Push(base*1, base*2, base*3)
 		return multiples.Iter()
-	}).CollectWith(cmp.Cmp[int])
+	}).Collect(cmp.Cmp)
 
 	Print("Multiplied values: ")
 	multiplied.Println()
