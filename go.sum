@@ -1,7 +1,7 @@
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/enetx/iter v0.0.0-20250912101218-d23c373ca166 h1:pNmbq6Yxv4u0t3lydm/bO6zSjFZIL2J1A1o/XBBCQfE=
-github.com/enetx/iter v0.0.0-20250912101218-d23c373ca166/go.mod h1:oMZN8hGLUpi7QBlMEUqailocNy0NFAO/7Lu+Nwh9HMM=
+github.com/enetx/iter v0.0.0-20250912135656-f1583323588f h1:GUW+4AWfECIEJ9oAxgEAVGCpaozMCjRiUYnuR6Q0bCQ=
+github.com/enetx/iter v0.0.0-20250912135656-f1583323588f/go.mod h1:oMZN8hGLUpi7QBlMEUqailocNy0NFAO/7Lu+Nwh9HMM=
 github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=

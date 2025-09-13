@@ -2146,6 +2146,128 @@ func TestSeqResultContext(t *testing.T) {
 	})
 }
 
+func TestSeqResultFirst(t *testing.T) {
+	t.Run("first Ok element exists", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Ok(20))
+			yield(Ok(30))
+		})
+
+		first := seq.First()
+
+		if first.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", first.Err())
+		} else if first.Ok().IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Ok().Some() != 10 {
+			t.Errorf("Expected 10, got %d", first.Ok().Some())
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {})
+
+		first := seq.First()
+
+		if first.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", first.Err())
+		} else if first.Ok().IsSome() {
+			t.Errorf("Expected None for empty sequence, got Some(%v)", first.Ok().Some())
+		}
+	})
+
+	t.Run("sequence with only Err", func(t *testing.T) {
+		testErr := errors.New("test error")
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](testErr))
+		})
+
+		first := seq.First()
+
+		if first.IsOk() {
+			t.Errorf("Expected Err, got Ok: %v", first.Ok())
+		}
+	})
+
+	t.Run("single Ok element", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(42))
+		})
+
+		first := seq.First()
+
+		if first.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", first.Err())
+		} else if first.Ok().IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Ok().Some() != 42 {
+			t.Errorf("Expected 42, got %d", first.Ok().Some())
+		}
+	})
+}
+
+func TestSeqResultLast(t *testing.T) {
+	t.Run("last Ok element exists", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			yield(Ok(20))
+			yield(Ok(30))
+		})
+
+		last := seq.Last()
+
+		if last.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", last.Err())
+		} else if last.Ok().IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if last.Ok().Some() != 30 {
+			t.Errorf("Expected 30, got %d", last.Ok().Some())
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {})
+
+		last := seq.Last()
+
+		if last.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", last.Err())
+		} else if last.Ok().IsSome() {
+			t.Errorf("Expected None for empty sequence, got Some(%v)", last.Ok().Some())
+		}
+	})
+
+	t.Run("sequence with only Err", func(t *testing.T) {
+		testErr := errors.New("test error")
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](testErr))
+		})
+
+		last := seq.Last()
+
+		if last.IsOk() {
+			t.Errorf("Expected Err, got Ok: %v", last.Ok())
+		}
+	})
+
+	t.Run("single Ok element", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(42))
+		})
+
+		last := seq.Last()
+
+		if last.IsErr() {
+			t.Errorf("Expected Ok, got Err: %v", last.Err())
+		} else if last.Ok().IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if last.Ok().Some() != 42 {
+			t.Errorf("Expected 42, got %d", last.Ok().Some())
+		}
+	})
+}
+
 func TestSeqResultNth(t *testing.T) {
 	t.Run("nth Ok element exists", func(t *testing.T) {
 		seq := SeqResult[int](func(yield func(Result[int]) bool) {
@@ -2325,6 +2447,329 @@ func TestSeqResultNext(t *testing.T) {
 		remainingSlice := remaining.UnwrapOr(Slice[int]{})
 		if len(remainingSlice) != 0 {
 			t.Errorf("Expected empty results, got %d", len(remainingSlice))
+		}
+	})
+}
+
+func TestSeqResultPartition(t *testing.T) {
+	t.Run("mixed Ok and Err values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Err[int](errors.New("error1")))
+			yield(Ok(2))
+			yield(Err[int](errors.New("error2")))
+			yield(Ok(3))
+		})
+
+		okValues, errValues := seq.Partition()
+
+		expectedOk := Slice[int]{1, 2, 3}
+		if len(okValues) != len(expectedOk) {
+			t.Errorf("Expected %d Ok values, got %d", len(expectedOk), len(okValues))
+		}
+		for i, v := range expectedOk {
+			if i >= len(okValues) || okValues[i] != v {
+				t.Errorf("Expected Ok value %d at index %d, got %v", v, i, okValues[i])
+			}
+		}
+
+		if len(errValues) != 2 {
+			t.Errorf("Expected 2 error values, got %d", len(errValues))
+		}
+		if len(errValues) > 0 && errValues[0].Error() != "error1" {
+			t.Errorf("Expected first error 'error1', got '%s'", errValues[0].Error())
+		}
+		if len(errValues) > 1 && errValues[1].Error() != "error2" {
+			t.Errorf("Expected second error 'error2', got '%s'", errValues[1].Error())
+		}
+	})
+
+	t.Run("only Ok values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		okValues, errValues := seq.Partition()
+
+		expectedOk := Slice[int]{1, 2, 3}
+		if len(okValues) != len(expectedOk) {
+			t.Errorf("Expected %d Ok values, got %d", len(expectedOk), len(okValues))
+		}
+		for i, v := range expectedOk {
+			if i >= len(okValues) || okValues[i] != v {
+				t.Errorf("Expected Ok value %d at index %d, got %v", v, i, okValues[i])
+			}
+		}
+
+		if len(errValues) != 0 {
+			t.Errorf("Expected 0 error values, got %d", len(errValues))
+		}
+	})
+
+	t.Run("only Err values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](errors.New("error1")))
+			yield(Err[int](errors.New("error2")))
+		})
+
+		okValues, errValues := seq.Partition()
+
+		if len(okValues) != 0 {
+			t.Errorf("Expected 0 Ok values, got %d", len(okValues))
+		}
+
+		if len(errValues) != 2 {
+			t.Errorf("Expected 2 error values, got %d", len(errValues))
+		}
+		if len(errValues) > 0 && errValues[0].Error() != "error1" {
+			t.Errorf("Expected first error 'error1', got '%s'", errValues[0].Error())
+		}
+		if len(errValues) > 1 && errValues[1].Error() != "error2" {
+			t.Errorf("Expected second error 'error2', got '%s'", errValues[1].Error())
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// empty
+		})
+
+		okValues, errValues := seq.Partition()
+
+		if len(okValues) != 0 {
+			t.Errorf("Expected 0 Ok values, got %d", len(okValues))
+		}
+		if len(errValues) != 0 {
+			t.Errorf("Expected 0 error values, got %d", len(errValues))
+		}
+	})
+}
+
+func TestSeqResultOk(t *testing.T) {
+	t.Run("filter Ok values from mixed sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Err[int](errors.New("error1")))
+			yield(Ok(2))
+			yield(Err[int](errors.New("error2")))
+			yield(Ok(3))
+		})
+
+		okSeq := seq.Ok()
+		collected := okSeq.Collect()
+
+		expected := Slice[int]{1, 2, 3}
+		if len(collected) != len(expected) {
+			t.Errorf("Expected %d Ok values, got %d", len(expected), len(collected))
+		}
+		for i, v := range expected {
+			if i >= len(collected) || collected[i] != v {
+				t.Errorf("Expected Ok value %d at index %d, got %v", v, i, collected[i])
+			}
+		}
+	})
+
+	t.Run("only Ok values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		okSeq := seq.Ok()
+		collected := okSeq.Collect()
+
+		expected := Slice[int]{1, 2, 3}
+		if len(collected) != len(expected) {
+			t.Errorf("Expected %d Ok values, got %d", len(expected), len(collected))
+		}
+		for i, v := range expected {
+			if i >= len(collected) || collected[i] != v {
+				t.Errorf("Expected Ok value %d at index %d, got %v", v, i, collected[i])
+			}
+		}
+	})
+
+	t.Run("only Err values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](errors.New("error1")))
+			yield(Err[int](errors.New("error2")))
+		})
+
+		okSeq := seq.Ok()
+		collected := okSeq.Collect()
+
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 Ok values, got %d", len(collected))
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// empty
+		})
+
+		okSeq := seq.Ok()
+		collected := okSeq.Collect()
+
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 Ok values, got %d", len(collected))
+		}
+	})
+}
+
+func TestSeqResultErr(t *testing.T) {
+	t.Run("filter Err values from mixed sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Err[int](errors.New("error1")))
+			yield(Ok(2))
+			yield(Err[int](errors.New("error2")))
+			yield(Ok(3))
+		})
+
+		errSeq := seq.Err()
+		collected := errSeq.Collect()
+
+		if len(collected) != 2 {
+			t.Errorf("Expected 2 error values, got %d", len(collected))
+		}
+		if len(collected) > 0 && collected[0].Error() != "error1" {
+			t.Errorf("Expected first error 'error1', got '%s'", collected[0].Error())
+		}
+		if len(collected) > 1 && collected[1].Error() != "error2" {
+			t.Errorf("Expected second error 'error2', got '%s'", collected[1].Error())
+		}
+	})
+
+	t.Run("only Err values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](errors.New("error1")))
+			yield(Err[int](errors.New("error2")))
+		})
+
+		errSeq := seq.Err()
+		collected := errSeq.Collect()
+
+		if len(collected) != 2 {
+			t.Errorf("Expected 2 error values, got %d", len(collected))
+		}
+		if len(collected) > 0 && collected[0].Error() != "error1" {
+			t.Errorf("Expected first error 'error1', got '%s'", collected[0].Error())
+		}
+		if len(collected) > 1 && collected[1].Error() != "error2" {
+			t.Errorf("Expected second error 'error2', got '%s'", collected[1].Error())
+		}
+	})
+
+	t.Run("only Ok values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		errSeq := seq.Err()
+		collected := errSeq.Collect()
+
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 error values, got %d", len(collected))
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// empty
+		})
+
+		errSeq := seq.Err()
+		collected := errSeq.Collect()
+
+		if len(collected) != 0 {
+			t.Errorf("Expected 0 error values, got %d", len(collected))
+		}
+	})
+}
+
+func TestSeqResultFirstErr(t *testing.T) {
+	t.Run("first error in mixed sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Err[int](errors.New("first error")))
+			yield(Ok(3))
+			yield(Err[int](errors.New("second error")))
+		})
+
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsNone() {
+			t.Errorf("Expected Some(error), got None")
+		}
+		if firstErr.IsSome() && firstErr.Some().Error() != "first error" {
+			t.Errorf("Expected 'first error', got '%s'", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("error at beginning", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](errors.New("immediate error")))
+			yield(Ok(1))
+			yield(Ok(2))
+		})
+
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsNone() {
+			t.Errorf("Expected Some(error), got None")
+		}
+		if firstErr.IsSome() && firstErr.Some().Error() != "immediate error" {
+			t.Errorf("Expected 'immediate error', got '%s'", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("no errors in sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", firstErr.Some())
+		}
+	})
+
+	t.Run("only errors in sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Err[int](errors.New("error1")))
+			yield(Err[int](errors.New("error2")))
+			yield(Err[int](errors.New("error3")))
+		})
+
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsNone() {
+			t.Errorf("Expected Some(error), got None")
+		}
+		if firstErr.IsSome() && firstErr.Some().Error() != "error1" {
+			t.Errorf("Expected 'error1', got '%s'", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// empty
+		})
+
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsSome() {
+			t.Errorf("Expected None, got Some(%v)", firstErr.Some())
 		}
 	})
 }

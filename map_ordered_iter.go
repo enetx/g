@@ -462,6 +462,24 @@ func (seq SeqMapOrd[K, V]) Take(n uint) SeqMapOrd[K, V] {
 	return SeqMapOrd[K, V](iter.Take2(iter.Seq2[K, V](seq), int(n)))
 }
 
+// First returns the first key-value pair from the sequence.
+func (seq SeqMapOrd[K, V]) First() Option[Pair[K, V]] {
+	if key, value, ok := iter.First2(iter.Seq2[K, V](seq)); ok {
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
+
+	return None[Pair[K, V]]()
+}
+
+// Last returns the last key-value pair from the sequence.
+func (seq SeqMapOrd[K, V]) Last() Option[Pair[K, V]] {
+	if key, value, ok := iter.Last2(iter.Seq2[K, V](seq)); ok {
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
+
+	return None[Pair[K, V]]()
+}
+
 // Nth returns the nth key-value pair (0-indexed) in the sequence.
 func (seq SeqMapOrd[K, V]) Nth(n Int) Option[Pair[K, V]] {
 	key, value, found := iter.Nth2(iter.Seq2[K, V](seq), int(n))

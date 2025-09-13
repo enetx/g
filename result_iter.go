@@ -421,6 +421,48 @@ func (seq SeqResult[V]) Context(ctx context.Context) SeqResult[V] {
 	}
 }
 
+// First returns the first Ok element from the sequence.
+// If the sequence is empty or contains only Err values, None is returned.
+// If an Err is encountered, that Err is returned.
+func (seq SeqResult[V]) First() Result[Option[V]] {
+	result := Ok(None[V]())
+	found := false
+
+	seq(func(v Result[V]) bool {
+		if found {
+			return false
+		}
+		if v.IsErr() {
+			result = Err[Option[V]](v.err)
+			found = true
+			return false
+		}
+		result = Ok(Some(v.v))
+		found = true
+		return false
+	})
+
+	return result
+}
+
+// Last returns the last Ok element from the sequence.
+// If the sequence is empty or contains only Err values, None is returned.
+// If an Err is encountered, that Err is returned.
+func (seq SeqResult[V]) Last() Result[Option[V]] {
+	result := Ok(None[V]())
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			result = Err[Option[V]](v.err)
+			return false
+		}
+		result = Ok(Some(v.v))
+		return true
+	})
+
+	return result
+}
+
 // Next extracts the next element from the iterator and advances it.
 //
 // This method consumes the next element from the iterator and returns it wrapped in an Option.
@@ -435,4 +477,69 @@ func (seq *SeqResult[V]) Next() Option[Result[V]] {
 	}
 
 	return None[Result[V]]()
+}
+
+// Partition separates the sequence into two slices: one containing all Ok values and one containing all errors.
+// The iteration continues through all elements, collecting each into the appropriate slice.
+func (seq SeqResult[V]) Partition() (Slice[V], Slice[error]) {
+	ok := NewSlice[V]()
+	err := NewSlice[error]()
+
+	seq(func(v Result[V]) bool {
+		if v.IsOk() {
+			ok = append(ok, v.v)
+		} else {
+			err = append(err, v.err)
+		}
+		return true
+	})
+
+	return ok, err
+}
+
+// Ok returns a new sequence containing only the Ok values from the original sequence.
+// All Err values are filtered out.
+func (seq SeqResult[V]) Ok() SeqSlice[V] {
+	return SeqSlice[V](func(yield func(V) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsOk() {
+				return yield(v.v)
+			}
+			return true
+		})
+	})
+}
+
+// Err returns a new sequence containing only the error values from the original sequence.
+// All Ok values are filtered out.
+func (seq SeqResult[V]) Err() SeqSlice[error] {
+	return SeqSlice[error](func(yield func(error) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				return yield(v.err)
+			}
+			return true
+		})
+	})
+}
+
+// FirstErr returns the first error encountered in the sequence.
+// If no error is found, it returns None. The iteration stops at the first error.
+func (seq SeqResult[V]) FirstErr() Option[error] {
+	result := None[error]()
+	found := false
+
+	seq(func(v Result[V]) bool {
+		if found {
+			return false
+		}
+		if v.IsErr() {
+			result = Some(v.err)
+			found = true
+			return false
+		}
+		return true
+	})
+
+	return result
 }

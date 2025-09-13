@@ -271,6 +271,98 @@ func TestMapOrderedIterContext(t *testing.T) {
 	})
 }
 
+func TestMapOrderedIterFirst(t *testing.T) {
+	t.Run("first element exists with order preservation", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+
+		first := m.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := first.Some()
+			if pair.Key != "first" || pair.Value != 1 {
+				t.Errorf("Expected first:1, got %s:%d", pair.Key, pair.Value)
+			}
+		}
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+
+		first := m.Iter().First()
+
+		if first.IsSome() {
+			t.Errorf("Expected None for empty map, got Some(%v)", first.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("only", 42)
+
+		first := m.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := first.Some()
+			if pair.Key != "only" || pair.Value != 42 {
+				t.Errorf("Expected only:42, got %s:%d", pair.Key, pair.Value)
+			}
+		}
+	})
+}
+
+func TestMapOrderedIterLast(t *testing.T) {
+	t.Run("last element exists with order preservation", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("first", 1)
+		m.Set("second", 2)
+		m.Set("third", 3)
+
+		last := m.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := last.Some()
+			if pair.Key != "third" || pair.Value != 3 {
+				t.Errorf("Expected third:3, got %s:%d", pair.Key, pair.Value)
+			}
+		}
+	})
+
+	t.Run("empty map", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+
+		last := m.Iter().Last()
+
+		if last.IsSome() {
+			t.Errorf("Expected None for empty map, got Some(%v)", last.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		m := g.NewMapOrd[string, int]()
+		m.Set("only", 42)
+
+		last := m.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else {
+			pair := last.Some()
+			if pair.Key != "only" || pair.Value != 42 {
+				t.Errorf("Expected only:42, got %s:%d", pair.Key, pair.Value)
+			}
+		}
+	})
+}
+
 func TestMapOrderedIterNth(t *testing.T) {
 	t.Run("nth element exists with order preservation", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()

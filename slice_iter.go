@@ -817,6 +817,16 @@ func (seq SeqSlice[V]) Take(n uint) SeqSlice[V] {
 	return SeqSlice[V](iter.Take(iter.Seq[V](seq), int(n)))
 }
 
+// First returns the first element from the sequence.
+func (seq SeqSlice[V]) First() Option[V] {
+	return OptionOf(iter.First(iter.Seq[V](seq)))
+}
+
+// Last returns the last element from the sequence.
+func (seq SeqSlice[V]) Last() Option[V] {
+	return OptionOf(iter.Last(iter.Seq[V](seq)))
+}
+
 // Nth returns the nth element (0-indexed) in the sequence.
 func (seq SeqSlice[V]) Nth(n Int) Option[V] {
 	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))

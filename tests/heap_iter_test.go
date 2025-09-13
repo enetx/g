@@ -436,6 +436,80 @@ func TestSeqHeap_Intersperse(t *testing.T) {
 	}
 }
 
+func TestSeqHeap_First(t *testing.T) {
+	t.Run("first element exists", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(50, 20, 30, 40, 10)
+
+		first := heap.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Some() != 10 {
+			t.Errorf("Expected 10 (min element), got %d", first.Some())
+		}
+	})
+
+	t.Run("empty heap", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+
+		first := heap.Iter().First()
+
+		if first.IsSome() {
+			t.Errorf("Expected None for empty heap, got Some(%v)", first.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(42)
+
+		first := heap.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Some() != 42 {
+			t.Errorf("Expected 42, got %d", first.Some())
+		}
+	})
+}
+
+func TestSeqHeap_Last(t *testing.T) {
+	t.Run("last element exists", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(50, 20, 30, 40, 10)
+
+		last := heap.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		}
+	})
+
+	t.Run("empty heap", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+
+		last := heap.Iter().Last()
+
+		if last.IsSome() {
+			t.Errorf("Expected None for empty heap, got Some(%v)", last.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		heap := g.NewHeap(cmp.Cmp[int])
+		heap.Push(42)
+
+		last := heap.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if last.Some() != 42 {
+			t.Errorf("Expected 42, got %d", last.Some())
+		}
+	})
+}
+
 func TestSeqHeap_Nth(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(50, 20, 30, 40, 10)

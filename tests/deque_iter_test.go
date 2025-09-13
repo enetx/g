@@ -347,6 +347,78 @@ func TestSeqDeque_Intersperse(t *testing.T) {
 	}
 }
 
+func TestSeqDeque_First(t *testing.T) {
+	t.Run("first element exists", func(t *testing.T) {
+		deque := g.DequeOf(10, 20, 30, 40, 50)
+
+		first := deque.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Some() != 10 {
+			t.Errorf("Expected 10, got %d", first.Some())
+		}
+	})
+
+	t.Run("empty deque", func(t *testing.T) {
+		deque := g.DequeOf[int]()
+
+		first := deque.Iter().First()
+
+		if first.IsSome() {
+			t.Errorf("Expected None for empty deque, got Some(%v)", first.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		deque := g.DequeOf(42)
+
+		first := deque.Iter().First()
+
+		if first.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if first.Some() != 42 {
+			t.Errorf("Expected 42, got %d", first.Some())
+		}
+	})
+}
+
+func TestSeqDeque_Last(t *testing.T) {
+	t.Run("last element exists", func(t *testing.T) {
+		deque := g.DequeOf(10, 20, 30, 40, 50)
+
+		last := deque.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if last.Some() != 50 {
+			t.Errorf("Expected 50, got %d", last.Some())
+		}
+	})
+
+	t.Run("empty deque", func(t *testing.T) {
+		deque := g.DequeOf[int]()
+
+		last := deque.Iter().Last()
+
+		if last.IsSome() {
+			t.Errorf("Expected None for empty deque, got Some(%v)", last.Some())
+		}
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		deque := g.DequeOf(42)
+
+		last := deque.Iter().Last()
+
+		if last.IsNone() {
+			t.Error("Expected Some value, got None")
+		} else if last.Some() != 42 {
+			t.Errorf("Expected 42, got %d", last.Some())
+		}
+	})
+}
+
 func TestSeqDeque_Nth(t *testing.T) {
 	deque := g.DequeOf(10, 20, 30, 40, 50)
 	second := deque.Iter().Nth(1)
