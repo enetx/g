@@ -407,59 +407,59 @@ func TestSliceSortBy(t *testing.T) {
 func TestSliceIsSorted(t *testing.T) {
 	// Test empty slice
 	empty := NewSlice[int]()
-	if !empty.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if !empty.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Empty slice should be considered sorted")
 	}
 
 	// Test single element slice
 	single := NewSlice[int]()
 	single.Push(5)
-	if !single.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if !single.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Single element slice should be considered sorted")
 	}
 
 	// Test sorted slice (ascending)
 	sorted := NewSlice[int]()
 	sorted.Push(1, 2, 3, 4, 5)
-	if !sorted.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if !sorted.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Sorted slice should return true")
 	}
 
 	// Test unsorted slice
 	unsorted := NewSlice[int]()
 	unsorted.Push(3, 1, 4, 1, 5)
-	if unsorted.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if unsorted.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Unsorted slice should return false")
 	}
 
 	// Test sorted slice (descending)
 	descending := NewSlice[int]()
 	descending.Push(5, 4, 3, 2, 1)
-	if !descending.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }) {
+	if !descending.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }) {
 		t.Error("Descending sorted slice should return true with reverse comparison")
 	}
 
 	// Test slice that becomes sorted after SortBy
 	toSort := NewSlice[int]()
 	toSort.Push(3, 1, 4, 1, 5)
-	if toSort.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if toSort.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Unsorted slice should return false before sorting")
 	}
 	toSort.SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) })
-	if !toSort.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if !toSort.IsSortedBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Slice should be sorted after SortBy")
 	}
 
 	// Test with strings
 	strSlice := NewSlice[string]()
 	strSlice.Push("apple", "banana", "cherry")
-	if !strSlice.IsSorted(func(a, b string) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if !strSlice.IsSortedBy(func(a, b string) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Sorted string slice should return true")
 	}
 
 	unsortedStrSlice := NewSlice[string]()
 	unsortedStrSlice.Push("cherry", "apple", "banana")
-	if unsortedStrSlice.IsSorted(func(a, b string) cmp.Ordering { return cmp.Cmp(a, b) }) {
+	if unsortedStrSlice.IsSortedBy(func(a, b string) cmp.Ordering { return cmp.Cmp(a, b) }) {
 		t.Error("Unsorted string slice should return false")
 	}
 }
