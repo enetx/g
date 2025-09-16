@@ -482,6 +482,37 @@ func (sl Slice[T]) SortBy(fn func(a, b T) cmp.Ordering) {
 	slices.SortFunc(sl, func(a, b T) int { return int(fn(a, b)) })
 }
 
+// IsSorted checks if the slice is sorted according to the provided comparison function.
+//
+// The function takes a custom comparison function as an argument and checks if the elements
+// are sorted according to the provided logic.
+//
+// Parameters:
+//
+// - fn func(a, b T) cmp.Ordering: A comparison function that defines the sort order.
+//
+// Returns:
+//
+// - bool: true if the slice is sorted according to the comparison function, false otherwise.
+//
+// Example usage:
+//
+//	sl := g.SliceOf(1, 2, 3, 4, 5)
+//	sorted := sl.IsSorted(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }) // returns true
+func (sl Slice[T]) IsSorted(fn func(a, b T) cmp.Ordering) bool {
+	if len(sl) <= 1 {
+		return true
+	}
+
+	for i := 1; i < len(sl); i++ {
+		if fn(sl[i-1], sl[i]).IsGt() {
+			return false
+		}
+	}
+
+	return true
+}
+
 // ToStringSlice converts the Slice into a slice of strings.
 func (sl Slice[T]) ToStringSlice() []string {
 	if len(sl) == 0 {

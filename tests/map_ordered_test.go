@@ -1140,6 +1140,131 @@ func TestSortByValueIterator(t *testing.T) {
 	}
 }
 
+func TestIsSortedBy(t *testing.T) {
+	// Test empty map
+	empty := NewMapOrd[string, int]()
+	if !empty.IsSortedBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }) {
+		t.Error("Empty map should be considered sorted")
+	}
+
+	// Test single element
+	single := NewMapOrd[string, int]()
+	single.Set("a", 1)
+	if !single.IsSortedBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }) {
+		t.Error("Single element map should be considered sorted")
+	}
+
+	// Test sorted map
+	sorted := NewMapOrd[string, int]()
+	sorted.Set("a", 1)
+	sorted.Set("b", 2)
+	sorted.Set("c", 3)
+	if !sorted.IsSortedBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }) {
+		t.Error("Sorted map should return true")
+	}
+
+	// Test unsorted map
+	unsorted := NewMapOrd[string, int]()
+	unsorted.Set("c", 3)
+	unsorted.Set("a", 1)
+	unsorted.Set("b", 2)
+	if unsorted.IsSortedBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }) {
+		t.Error("Unsorted map should return false")
+	}
+}
+
+func TestIsSortedByKey(t *testing.T) {
+	// Test empty map
+	empty := NewMapOrd[string, int]()
+	if !empty.IsSortedByKey(cmp.Cmp) {
+		t.Error("Empty map should be considered sorted by key")
+	}
+
+	// Test single element
+	single := NewMapOrd[string, int]()
+	single.Set("a", 1)
+	if !single.IsSortedByKey(cmp.Cmp) {
+		t.Error("Single element map should be considered sorted by key")
+	}
+
+	// Test sorted by key map
+	sorted := NewMapOrd[string, int]()
+	sorted.Set("a", 3)
+	sorted.Set("b", 1)
+	sorted.Set("c", 2)
+	if !sorted.IsSortedByKey(cmp.Cmp) {
+		t.Error("Map sorted by key should return true")
+	}
+
+	// Test unsorted by key map
+	unsorted := NewMapOrd[string, int]()
+	unsorted.Set("c", 1)
+	unsorted.Set("a", 2)
+	unsorted.Set("b", 3)
+	if unsorted.IsSortedByKey(cmp.Cmp) {
+		t.Error("Map unsorted by key should return false")
+	}
+
+	// Test with a map that becomes sorted after SortByKey
+	mo := NewMapOrd[string, int]()
+	mo.Set("z", 1)
+	mo.Set("a", 2)
+	mo.Set("m", 3)
+	if mo.IsSortedByKey(cmp.Cmp) {
+		t.Error("Unsorted map should return false before sorting")
+	}
+	mo.SortByKey(cmp.Cmp)
+	if !mo.IsSortedByKey(cmp.Cmp) {
+		t.Error("Map should be sorted by key after SortByKey")
+	}
+}
+
+func TestIsSortedByValue(t *testing.T) {
+	// Test empty map
+	empty := NewMapOrd[string, int]()
+	if !empty.IsSortedByValue(cmp.Cmp) {
+		t.Error("Empty map should be considered sorted by value")
+	}
+
+	// Test single element
+	single := NewMapOrd[string, int]()
+	single.Set("a", 1)
+	if !single.IsSortedByValue(cmp.Cmp) {
+		t.Error("Single element map should be considered sorted by value")
+	}
+
+	// Test sorted by value map
+	sorted := NewMapOrd[string, int]()
+	sorted.Set("c", 1)
+	sorted.Set("a", 2)
+	sorted.Set("b", 3)
+	if !sorted.IsSortedByValue(cmp.Cmp) {
+		t.Error("Map sorted by value should return true")
+	}
+
+	// Test unsorted by value map
+	unsorted := NewMapOrd[string, int]()
+	unsorted.Set("a", 3)
+	unsorted.Set("b", 1)
+	unsorted.Set("c", 2)
+	if unsorted.IsSortedByValue(cmp.Cmp) {
+		t.Error("Map unsorted by value should return false")
+	}
+
+	// Test with a map that becomes sorted after SortByValue
+	mo := NewMapOrd[string, int]()
+	mo.Set("a", 99)
+	mo.Set("b", 1)
+	mo.Set("c", 50)
+	if mo.IsSortedByValue(cmp.Cmp) {
+		t.Error("Unsorted map should return false before sorting")
+	}
+	mo.SortByValue(cmp.Cmp)
+	if !mo.IsSortedByValue(cmp.Cmp) {
+		t.Error("Map should be sorted by value after SortByValue")
+	}
+}
+
 func TestMapOrdEntryDeleteEdgeCases(t *testing.T) {
 	// Test Delete on non-existent key
 	mo := NewMapOrd[string, int]()

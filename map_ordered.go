@@ -217,6 +217,87 @@ func (mo *MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
 	mo.rebuild()
 }
 
+// IsSortedBy checks if the ordered Map is sorted according to a custom comparison function.
+//
+// Parameters:
+//
+// - fn func(a, b Pair[K, V]) cmp.Ordering: The custom comparison function used for checking sort order.
+//
+// Returns:
+//
+// - bool: true if the map is sorted according to the comparison function, false otherwise.
+//
+// Example usage:
+//
+//	sorted := hmapo.IsSortedBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Key.Cmp(b.Key) })
+func (mo MapOrd[K, V]) IsSortedBy(fn func(a, b Pair[K, V]) cmp.Ordering) bool {
+	if len(mo.pairs) <= 1 {
+		return true
+	}
+
+	for i := 1; i < len(mo.pairs); i++ {
+		if fn(mo.pairs[i-1], mo.pairs[i]).IsGt() {
+			return false
+		}
+	}
+
+	return true
+}
+
+// IsSortedByKey checks if the ordered MapOrd[K, V] is sorted by the keys using a custom comparison function.
+//
+// Parameters:
+//
+// - fn func(a, b K) cmp.Ordering: The custom comparison function used for checking key sort order.
+//
+// Returns:
+//
+// - bool: true if the map is sorted by keys according to the comparison function, false otherwise.
+//
+// Example usage:
+//
+//	sorted := hmapo.IsSortedByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
+func (mo MapOrd[K, V]) IsSortedByKey(fn func(a, b K) cmp.Ordering) bool {
+	if len(mo.pairs) <= 1 {
+		return true
+	}
+
+	for i := 1; i < len(mo.pairs); i++ {
+		if fn(mo.pairs[i-1].Key, mo.pairs[i].Key).IsGt() {
+			return false
+		}
+	}
+
+	return true
+}
+
+// IsSortedByValue checks if the ordered MapOrd[K, V] is sorted by the values using a custom comparison function.
+//
+// Parameters:
+//
+// - fn func(a, b V) cmp.Ordering: The custom comparison function used for checking value sort order.
+//
+// Returns:
+//
+// - bool: true if the map is sorted by values according to the comparison function, false otherwise.
+//
+// Example usage:
+//
+//	sorted := hmapo.IsSortedByValue(func(a, b g.Int) cmp.Ordering { return a.Cmp(b) })
+func (mo MapOrd[K, V]) IsSortedByValue(fn func(a, b V) cmp.Ordering) bool {
+	if len(mo.pairs) <= 1 {
+		return true
+	}
+
+	for i := 1; i < len(mo.pairs); i++ {
+		if fn(mo.pairs[i-1].Value, mo.pairs[i].Value).IsGt() {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
 	if mo.Empty() {

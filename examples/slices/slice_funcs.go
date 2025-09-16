@@ -36,7 +36,9 @@ func main() {
 	////////////////////////////////////////////////////////////////////////////
 
 	ss1 := SliceOf[String]("1", "22", "3a", "44")
-	is1 := TransformSlice(ss1, String.ToInt).Iter().Filter(Result[Int].IsOk).Collect()
 
-	TransformSlice(is1, Result[Int].Ok).Println() // Slice[1, 22, 44]
+	// is1 := TransformSlice(ss1, String.ToInt).Iter().Filter(Result[Int].IsOk).Collect()
+	// TransformSlice(is1, Result[Int].Ok).Println() // Slice[1, 22, 44]
+
+	SeqResult[Int](TransformSlice(ss1, String.ToInt).Iter()).Ok().Collect() // Slice[1, 22, 44]
 }
