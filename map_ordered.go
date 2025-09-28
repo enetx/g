@@ -2,7 +2,6 @@ package g
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	"github.com/enetx/g/cmp"
@@ -29,49 +28,12 @@ import (
 //	mapOrd := g.NewMapOrd[string, int](10)
 //
 // Creates a new ordered Map with an initial size of 10.
-func NewMapOrd[K, V any](size ...Int) MapOrd[K, V] {
-	capacity := Slice[Int](size).Get(0).UnwrapOrDefault()
-
-	return MapOrd[K, V]{
-		pairs:  make([]Pair[K, V], 0, capacity),
-		lookup: make(map[any]int, capacity),
-	}
+func NewMapOrd[K comparable, V any](size ...Int) MapOrd[K, V] {
+	return make(MapOrd[K, V], 0, Slice[Int](size).Get(0).UnwrapOrDefault())
 }
 
 // Transform applies a transformation function to the MapOrd and returns the result.
 func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
-
-// AsAny converts all key-value pairs in the MapOrd to type `any`.
-//
-// It returns a new MapOrd[any, any], where both keys and values are of type `any`.
-// This is useful when working with dynamic formatting tools like Println or Format,
-// which can access map elements dynamically when keys and values are of type `any`.
-//
-// Example:
-//
-//	mo := NewMapOrd[string, int]()
-//	mo.Set("a", 1)
-//	mo.Set("b", 2)
-//
-//	Println("{1.a} -> {1.b}", mo.AsAny())
-//	// Output: "a -> 1"
-func (mo MapOrd[K, V]) AsAny() MapOrd[any, any] {
-	if mo.Empty() {
-		return NewMapOrd[any, any]()
-	}
-
-	anymo := MapOrd[any, any]{
-		pairs:  make([]Pair[any, any], len(mo.pairs)),
-		lookup: make(map[any]int, len(mo.lookup)),
-	}
-
-	for i, v := range mo.pairs {
-		anymo.pairs[i] = Pair[any, any]{Key: v.Key, Value: v.Value}
-		anymo.lookup[v.Key] = i
-	}
-
-	return anymo
-}
 
 // Entry returns a MapOrdEntry object for the given key, providing fine-grained
 // control over insertion, mutation, and deletion of its value in the ordered Map,
@@ -112,7 +74,7 @@ func (mo *MapOrd[K, V]) Entry(key K) MapOrdEntry[K, V] { return MapOrdEntry[K, V
 // in a functional style, enabling operations like mapping or filtering.
 func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] {
 	return func(yield func(K, V) bool) {
-		for _, v := range mo.pairs {
+		for _, v := range mo {
 			if !yield(v.Key, v.Value) {
 				return
 			}
@@ -144,8 +106,8 @@ func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] {
 // in a reverse sequence, offering additional flexibility in data processing scenarios.
 func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] {
 	return func(yield func(K, V) bool) {
-		for i := len(mo.pairs) - 1; i >= 0; i-- {
-			v := mo.pairs[i]
+		for i := len(mo) - 1; i >= 0; i-- {
+			v := mo[i]
 			if !yield(v.Key, v.Value) {
 				return
 			}
@@ -184,9 +146,8 @@ func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, 
 //
 //	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Key.Cmp(b.Key) })
 //	hmapo.SortBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Value.Cmp(b.Value) })
-func (mo *MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) {
-	slices.SortFunc(mo.pairs, func(a, b Pair[K, V]) int { return int(fn(a, b)) })
-	mo.rebuild()
+func (mo MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a, b)) })
 }
 
 // SortByKey sorts the ordered MapOrd[K, V] by the keys using a custom comparison function.
@@ -198,9 +159,8 @@ func (mo *MapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) {
 // Example usage:
 //
 //	hmapo.SortByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
-func (mo *MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) {
-	slices.SortFunc(mo.pairs, func(a, b Pair[K, V]) int { return int(fn(a.Key, b.Key)) })
-	mo.rebuild()
+func (mo MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Key, b.Key)) })
 }
 
 // SortByValue sorts the ordered MapOrd[K, V] by the values using a custom comparison function.
@@ -212,9 +172,8 @@ func (mo *MapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) {
 // Example usage:
 //
 //	hmapo.SortByValue(func(a, b g.Int) cmp.Ordering { return a.Cmp(b) })
-func (mo *MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
-	slices.SortFunc(mo.pairs, func(a, b Pair[K, V]) int { return int(fn(a.Value, b.Value)) })
-	mo.rebuild()
+func (mo MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
+	slices.SortFunc(mo, func(a, b Pair[K, V]) int { return int(fn(a.Value, b.Value)) })
 }
 
 // IsSortedBy checks if the ordered Map is sorted according to a custom comparison function.
@@ -231,12 +190,12 @@ func (mo *MapOrd[K, V]) SortByValue(fn func(a, b V) cmp.Ordering) {
 //
 //	sorted := hmapo.IsSortedBy(func(a, b g.Pair[g.String, g.Int]) cmp.Ordering { return a.Key.Cmp(b.Key) })
 func (mo MapOrd[K, V]) IsSortedBy(fn func(a, b Pair[K, V]) cmp.Ordering) bool {
-	if len(mo.pairs) <= 1 {
+	if len(mo) <= 1 {
 		return true
 	}
 
-	for i := 1; i < len(mo.pairs); i++ {
-		if fn(mo.pairs[i-1], mo.pairs[i]).IsGt() {
+	for i := 1; i < len(mo); i++ {
+		if fn(mo[i-1], mo[i]).IsGt() {
 			return false
 		}
 	}
@@ -258,12 +217,12 @@ func (mo MapOrd[K, V]) IsSortedBy(fn func(a, b Pair[K, V]) cmp.Ordering) bool {
 //
 //	sorted := hmapo.IsSortedByKey(func(a, b g.String) cmp.Ordering { return a.Cmp(b) })
 func (mo MapOrd[K, V]) IsSortedByKey(fn func(a, b K) cmp.Ordering) bool {
-	if len(mo.pairs) <= 1 {
+	if len(mo) <= 1 {
 		return true
 	}
 
-	for i := 1; i < len(mo.pairs); i++ {
-		if fn(mo.pairs[i-1].Key, mo.pairs[i].Key).IsGt() {
+	for i := 1; i < len(mo); i++ {
+		if fn(mo[i-1].Key, mo[i].Key).IsGt() {
 			return false
 		}
 	}
@@ -285,12 +244,12 @@ func (mo MapOrd[K, V]) IsSortedByKey(fn func(a, b K) cmp.Ordering) bool {
 //
 //	sorted := hmapo.IsSortedByValue(func(a, b g.Int) cmp.Ordering { return a.Cmp(b) })
 func (mo MapOrd[K, V]) IsSortedByValue(fn func(a, b V) cmp.Ordering) bool {
-	if len(mo.pairs) <= 1 {
+	if len(mo) <= 1 {
 		return true
 	}
 
-	for i := 1; i < len(mo.pairs); i++ {
-		if fn(mo.pairs[i-1].Value, mo.pairs[i].Value).IsGt() {
+	for i := 1; i < len(mo); i++ {
+		if fn(mo[i-1].Value, mo[i].Value).IsGt() {
 			return false
 		}
 	}
@@ -300,45 +259,54 @@ func (mo MapOrd[K, V]) IsSortedByValue(fn func(a, b V) cmp.Ordering) bool {
 
 // Clone creates a new ordered Map with the same key-value pairs.
 func (mo MapOrd[K, V]) Clone() MapOrd[K, V] {
-	if mo.Empty() {
-		return NewMapOrd[K, V]()
-	}
+	nmo := NewMapOrd[K, V](mo.Len())
+	nmo.Copy(mo)
 
-	result := MapOrd[K, V]{
-		pairs:  make([]Pair[K, V], len(mo.pairs)),
-		lookup: make(map[any]int, len(mo.lookup)),
-	}
-
-	copy(result.pairs, mo.pairs)
-	maps.Copy(result.lookup, mo.lookup)
-
-	return result
+	return nmo
 }
 
 // Copy copies key-value pairs from the source ordered Map to the current ordered Map.
 func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) {
-	if src.Empty() {
-		return
-	}
+	idx := mo.indexMap()
 
-	for _, srcPair := range src.pairs {
-		mo.Set(srcPair.Key, srcPair.Value)
+	for _, p := range src {
+		if i, ok := idx[p.Key]; ok {
+			(*mo)[i].Value = p.Value
+		} else {
+			*mo = append(*mo, p)
+			idx[p.Key] = len(*mo) - 1
+		}
 	}
+}
+
+// ToMap converts the ordered Map to a standard Map.
+func (mo MapOrd[K, V]) ToMap() Map[K, V] {
+	m := NewMap[K, V](mo.Len())
+	mo.Iter().ForEach(func(k K, v V) { m[k] = v })
+
+	return m
+}
+
+// ToMapSafe converts a ordered Map to a thread-safe Map.
+func (mo MapOrd[K, V]) ToMapSafe() *MapSafe[K, V] {
+	ms := NewMapSafe[K, V]()
+	mo.Iter().ForEach(func(k K, v V) { ms.Set(k, v) })
+
+	return ms
 }
 
 // Set sets the value for the specified key in the ordered Map,
 // and returns the previous value if it existed.
 func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
 	if i := mo.index(key); i != -1 {
-		prev := mo.pairs[i].Value
-		mo.pairs[i].Value = value
+		prev := (*mo)[i].Value
+		(*mo)[i].Value = value
 
 		return Some(prev)
 	}
 
 	mp := Pair[K, V]{Key: key, Value: value}
-	mo.pairs = append(mo.pairs, mp)
-	mo.set(key, len(mo.pairs)-1)
+	*mo = append(*mo, mp)
 
 	return None[V]()
 }
@@ -348,7 +316,7 @@ func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
 // It returns Some(value) if the key exists, or None if it does not.
 func (mo MapOrd[K, V]) Get(key K) Option[V] {
 	if i := mo.index(key); i != -1 {
-		return Some(mo.pairs[i].Value)
+		return Some(mo[i].Value)
 	}
 
 	return None[V]()
@@ -358,51 +326,31 @@ func (mo MapOrd[K, V]) Get(key K) Option[V] {
 // It operates in place and affects the original order of the map's entries.
 //
 // The function uses the crypto/rand package to generate random indices.
-func (mo *MapOrd[K, V]) Shuffle() {
+func (mo MapOrd[K, V]) Shuffle() {
 	for i := mo.Len() - 1; i > 0; i-- {
 		j := rand.N(i + 1)
-		mo.pairs[i], mo.pairs[j] = mo.pairs[j], mo.pairs[i]
+		mo[i], mo[j] = mo[j], mo[i]
 	}
-
-	mo.rebuild()
 }
 
 // Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
 // values as keys and the original keys as values.
-func (mo MapOrd[K, V]) Invert() MapOrd[V, K] {
+func (mo MapOrd[K, V]) Invert() MapOrd[any, K] {
 	if mo.Empty() {
-		return NewMapOrd[V, K]()
+		return NewMapOrd[any, K]()
 	}
 
-	result := MapOrd[V, K]{
-		pairs:  make([]Pair[V, K], 0, len(mo.pairs)),
-		lookup: make(map[any]int, len(mo.pairs)),
-	}
-
-	for i, pair := range mo.pairs {
-		result.pairs = append(result.pairs, Pair[V, K]{Key: pair.Value, Value: pair.Key})
-		result.lookup[pair.Value] = i
+	result := make(MapOrd[any, K], 0, len(mo))
+	for _, pair := range mo {
+		result = append(result, Pair[any, K]{Key: pair.Value, Value: pair.Key})
 	}
 
 	return result
 }
 
-// index finds the index of a key in the pairs slice.
-// For comparable keys, it uses O(1) lookup via the lookup map.
-// For non-comparable keys, it performs O(n) linear search.
-// Returns -1 if the key is not found.
-func (mo *MapOrd[K, V]) index(key K) int {
-	var zero K
-	if f.IsComparable(zero) {
-		if i, ok := mo.lookup[key]; ok {
-			return i
-		}
-
-		return -1
-	}
-
-	for i, pair := range mo.pairs {
-		if f.Eqi(pair.Key)(key) {
+func (mo MapOrd[K, V]) index(key K) int {
+	for i, mp := range mo {
+		if mp.Key == key {
 			return i
 		}
 	}
@@ -410,134 +358,67 @@ func (mo *MapOrd[K, V]) index(key K) int {
 	return -1
 }
 
-// set safely adds a key to the lookup map if it's comparable
-func (mo *MapOrd[K, V]) set(key K, index int) {
-	var zero K
-	if f.IsComparable(zero) {
-		mo.lookup[key] = index
-	}
-}
-
-// delete safely removes a key from the lookup map if it's comparable
-func (mo *MapOrd[K, V]) delete(key K) {
-	var zero K
-	if f.IsComparable(zero) {
-		delete(mo.lookup, key)
-	}
-}
-
-// rebuild rebuilds the lookup map after the pairs slice has been modified
-func (mo *MapOrd[K, V]) rebuild() {
-	mo.lookup = make(map[any]int, len(mo.pairs))
-	for i, pair := range mo.pairs {
-		mo.set(pair.Key, i)
-	}
-}
-
 // Keys returns an Slice containing all the keys in the ordered Map.
-func (mo MapOrd[K, V]) Keys() Slice[K] {
-	if mo.Empty() {
-		return NewSlice[K]()
-	}
-
-	keys := make(Slice[K], len(mo.pairs))
-	for i, pair := range mo.pairs {
-		keys[i] = pair.Key
-	}
-
-	return keys
-}
+func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
 
 // Values returns an Slice containing all the values in the ordered Map.
-func (mo MapOrd[K, V]) Values() Slice[V] {
-	if mo.Empty() {
-		return NewSlice[V]()
-	}
-
-	values := make(Slice[V], len(mo.pairs))
-	for i, pair := range mo.pairs {
-		values[i] = pair.Value
-	}
-
-	return values
-}
+func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
 
 // Delete removes the specified keys from the ordered Map.
+//
+// It preserves the original insertion order of the remaining elements
+// and performs the deletion in a single pass with O(n) complexity.
+//
+// Internally, it builds a set of keys to delete and reconstructs the map
+// without the removed entries. Key lookup is optimized via a map[K]int index.
+//
+// Example:
+//
+//	mo.Delete("a", "b", "c")
 func (mo *MapOrd[K, V]) Delete(keys ...K) {
 	if len(keys) == 0 || mo.Empty() {
 		return
 	}
 
-	toDelete := make(map[int]bool)
-	for _, key := range keys {
-		if i := mo.index(key); i != -1 {
-			toDelete[i] = true
-			mo.delete(key)
+	idx := mo.indexMap()
+	seen := SetOf(keys...)
+	nmo := make(MapOrd[K, V], 0, len(*mo)-len(keys))
+
+	for _, p := range *mo {
+		if !seen.Contains(p.Key) {
+			nmo = append(nmo, p)
+		} else {
+			delete(idx, p.Key)
 		}
 	}
 
-	if len(toDelete) == 0 {
-		return
-	}
-
-	writePos := 0
-	for readPos := 0; readPos < len(mo.pairs); readPos++ {
-		if !toDelete[readPos] {
-			if writePos != readPos {
-				mo.pairs[writePos] = mo.pairs[readPos]
-				mo.set(mo.pairs[writePos].Key, writePos)
-			}
-
-			writePos++
-		}
-	}
-
-	mo.pairs = mo.pairs[:writePos]
-	mo.rebuild()
+	*mo = nmo
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
 func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
-	n := len(mo.pairs)
-	if n != len(other.pairs) {
+	if len(mo) != len(other) {
 		return false
 	}
-
-	if n == 0 {
+	if len(mo) == 0 {
 		return true
 	}
 
-	var (
-		zerok K
-		zerov V
-	)
+	idx := other.indexMap()
 
-	keyComparable := f.IsComparable(zerok)
-	valueComparable := f.IsComparable(zerov)
+	var zero V
+	comparable := f.IsComparable(zero)
 
-	opairs := other.pairs
-
-	for i, mp := range mo.pairs {
-		opair := opairs[i]
-
-		if keyComparable {
-			if io, ok := other.lookup[mp.Key]; !ok || io != i {
-				return false
-			}
-		} else {
-			if !f.Eqi(mp.Key)(opair.Key) {
-				return false
-			}
+	for i, mp := range mo {
+		j, ok := idx[mp.Key]
+		if !ok || j != i {
+			return false
 		}
 
-		if valueComparable {
-			if !f.Eq[any](mp.Value)(opair.Value) {
-				return false
-			}
-		} else {
-			if !f.Eqd(mp.Value)(opair.Value) {
-				return false
-			}
+		value := other[j].Value
+
+		if comparable && !f.Eq[any](value)(mp.Value) || !comparable && !f.Eqd(value)(mp.Value) {
+			return false
 		}
 	}
 
@@ -546,7 +427,7 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 // String returns a string representation of the ordered Map.
 func (mo MapOrd[K, V]) String() string {
-	if len(mo.pairs) == 0 {
+	if len(mo) == 0 {
 		return "MapOrd{}"
 	}
 
@@ -554,7 +435,7 @@ func (mo MapOrd[K, V]) String() string {
 	b.WriteString("MapOrd{")
 
 	first := true
-	for _, pair := range mo.pairs {
+	for _, pair := range mo {
 		if !first {
 			b.WriteString(", ")
 		}
@@ -569,22 +450,18 @@ func (mo MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() {
-	mo.pairs = mo.pairs[:0]
-	mo.lookup = make(map[any]int)
-}
+func (mo *MapOrd[K, V]) Clear() { *mo = (*mo)[:0] }
 
 // Contains checks if the ordered Map contains the specified key.
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) != -1 }
 
 // Empty checks if the ordered Map is empty.
-func (mo MapOrd[K, V]) Empty() bool { return len(mo.pairs) == 0 }
+func (mo MapOrd[K, V]) Empty() bool { return len(mo) == 0 }
 
 // Len returns the number of key-value pairs in the ordered Map.
-func (mo MapOrd[K, V]) Len() Int { return Int(len(mo.pairs)) }
+func (mo MapOrd[K, V]) Len() Int { return Int(len(mo)) }
 
-// Ne compares the current ordered Map to another ordered Map and returns true if they are not
-// equal.
+// Ne compares the current ordered Map to another ordered Map and returns true if they are not equal.
 func (mo MapOrd[K, V]) Ne(other MapOrd[K, V]) bool { return !mo.Eq(other) }
 
 // NotEmpty checks if the ordered Map is not empty.
@@ -597,3 +474,20 @@ func (mo MapOrd[K, V]) Print() MapOrd[K, V] { fmt.Print(mo); return mo }
 // Println writes the key-value pairs of the MapOrd to the standard output (console) with a newline
 // and returns the MapOrd unchanged.
 func (mo MapOrd[K, V]) Println() MapOrd[K, V] { fmt.Println(mo); return mo }
+
+// indexMap builds a map from keys to their corresponding indices in the MapOrd.
+//
+// This function is used to create a temporary indexMap that maps each key in the
+// ordered map to its position (insertion order) within the slice. It is useful
+// for optimizing lookup operations such as Set, Delete, Copy, or Eq.
+//
+// Time complexity: O(n), where n is the number of key-value pairs in the MapOrd.
+func (mo MapOrd[K, V]) indexMap() map[K]int {
+	idx := make(map[K]int, len(mo))
+
+	for i, p := range mo {
+		idx[p.Key] = i
+	}
+
+	return idx
+}

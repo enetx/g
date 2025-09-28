@@ -43,6 +43,45 @@ func (f Float) Min(b ...Float) Float { return cmp.Min(append(b, f)...) }
 // Max returns the maximum of two Floats.
 func (f Float) Max(b ...Float) Float { return cmp.Max(append(b, f)...) }
 
+// Sqrt returns the square root of the Float.
+//
+// Returns:
+//   - Float: The square root of the Float. If the Float is negative, the result is NaN.
+//
+// Example usage:
+//
+//	f := g.NewFloat(9)
+//	result := f.Sqrt() // result = 3
+func (f Float) Sqrt() Float { return Float(math.Sqrt(f.Std())) }
+
+// Pow raises the Float to the power of the given exponent.
+//
+// Parameters:
+//   - exp (Float): The exponent to raise the Float to.
+//
+// Returns:
+//   - Float: The result of raising the Float to the specified power.
+//
+// Example usage:
+//
+//	f := g.NewFloat(2)
+//	result := f.Pow(3) // result = 8
+func (f Float) Pow(exp Float) Float { return Float(math.Pow(f.Std(), exp.Std())) }
+
+// Mod returns the floating-point remainder of f / b as defined by IEEE 754.
+//
+// Parameters:
+//   - b (Float): The divisor.
+//
+// Returns:
+//   - Float: The remainder of f / b.
+//
+// Example usage:
+//
+//	f := g.NewFloat(5.5)
+//	result := f.Mod(2) // result = 1.5
+func (f Float) Mod(b Float) Float { return Float(math.Mod(f.Std(), b.Std())) }
+
 // Abs returns the absolute value of the Float.
 func (f Float) Abs() Float { return Float(math.Abs(f.Std())) }
 
@@ -86,37 +125,94 @@ func (f Float) Mul(b Float) Float { return f * b }
 func (f Float) Ne(b Float) bool { return !f.Eq(b) }
 
 // Round rounds the Float to the nearest integer and returns the result as an Int.
-func (f Float) Round() Int {
-	return Int(math.Round(f.Std()))
-}
+func (f Float) Round() Int { return Int(math.Round(f.Std())) }
 
 // RoundDecimal rounds the Float value to the specified number of decimal places.
 //
-// The function takes the number of decimal places (precision) as an argument and returns a new
-// Float value rounded to that number of decimals. This is achieved by multiplying the Float
-// value by a power of 10 equal to the desired precision, rounding the result, and then dividing
-// the rounded result by the same power of 10.
-//
 // Parameters:
-//
-// - precision (Int): The number of decimal places to round the Float value to.
+//   - precision (Int): The number of decimal places to round to. If negative, the Float is returned unchanged.
+//     Values greater than 308 are capped at 308 to prevent overflow.
 //
 // Returns:
-//
-// - Float: A new Float value rounded to the specified number of decimal places.
-//
-// Example usage:
-//
-//	f := g.Float(3.14159)
-//	rounded := f.RoundDecimal(2) // rounded will be 3.14
+//   - Float: A new Float value rounded to the specified number of decimal places.
 func (f Float) RoundDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
 	}
 
-	pow := math.Pow10(precision.Std())
+	if precision > 308 { // 10^309 == +Inf
+		precision = 308
+	}
+
+	pow := math.Pow(10, float64(precision))
 
 	return Float(math.Round(f.Std()*pow) / pow)
+}
+
+// TruncDecimal truncates the Float value to the specified number of decimal places.
+//
+// Parameters:
+//   - precision (Int): The number of decimal places to truncate to. If negative, the Float is returned unchanged.
+//     Values greater than 308 are capped at 308.
+//
+// Returns:
+//   - Float: A new Float value truncated to the specified number of decimal places.
+func (f Float) TruncDecimal(precision Int) Float {
+	if precision < 0 {
+		return f
+	}
+
+	if precision > 308 {
+		precision = 308
+	}
+
+	pow := math.Pow(10, float64(precision))
+
+	return Float(math.Trunc(f.Std()*pow) / pow)
+}
+
+// CeilDecimal rounds the Float value up (towards +Inf) to the specified number of decimal places.
+//
+// Parameters:
+//   - precision (Int): The number of decimal places to round up to. If negative, the Float is returned unchanged.
+//     Values greater than 308 are capped at 308.
+//
+// Returns:
+//   - Float: A new Float value rounded up to the specified number of decimal places.
+func (f Float) CeilDecimal(precision Int) Float {
+	if precision < 0 {
+		return f
+	}
+
+	if precision > 308 {
+		precision = 308
+	}
+
+	pow := math.Pow(10, float64(precision))
+
+	return Float(math.Ceil(f.Std()*pow) / pow)
+}
+
+// FloorDecimal rounds the Float value down (towards -Inf) to the specified number of decimal places.
+//
+// Parameters:
+//   - precision (Int): The number of decimal places to round down to. If negative, the Float is returned unchanged.
+//     Values greater than 308 are capped at 308.
+//
+// Returns:
+//   - Float: A new Float value rounded down to the specified number of decimal places.
+func (f Float) FloorDecimal(precision Int) Float {
+	if precision < 0 {
+		return f
+	}
+
+	if precision > 308 {
+		precision = 308
+	}
+
+	pow := math.Pow(10, float64(precision))
+
+	return Float(math.Floor(f.Std()*pow) / pow)
 }
 
 // Sub subtracts two Floats and returns the result.

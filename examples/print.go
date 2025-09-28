@@ -43,7 +43,7 @@ func main() {
 	mo.Set("db", Map[String, Map[String, int]]{"user": {"age": 35}})
 
 	Print("user {1.Get(db).Some.Get(user).Some.Get(age).Some} years old\n", mo)
-	Print("user {.db.user.age} years old\n", mo.AsAny())
+	Print("user {.db.user.age} years old\n", mo)
 
 	// Basic named placeholders
 	foo := String("foo")

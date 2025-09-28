@@ -123,8 +123,8 @@ func TestSeqHeap_Counter(t *testing.T) {
 	heap.Push(1, 2, 1, 3, 2, 1)
 
 	counts := make(map[int]g.Int)
-	heap.Iter().Counter().ForEach(func(k int, v g.Int) {
-		counts[k] = v
+	heap.Iter().Counter().ForEach(func(k any, v g.Int) {
+		counts[k.(int)] = v
 	})
 
 	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
@@ -399,9 +399,9 @@ func TestSeqHeap_Zip(t *testing.T) {
 	heap2 := g.NewHeap(cmp.Cmp[int])
 	heap2.Push(4, 5, 6)
 
-	pairs := make([][2]int, 0)
-	heap1.Iter().Zip(heap2.Iter()).ForEach(func(a, b int) {
-		pairs = append(pairs, [2]int{a, b})
+	pairs := make([][2]any, 0)
+	heap1.Iter().Zip(heap2.Iter()).ForEach(func(a, b any) {
+		pairs = append(pairs, [2]any{a, b})
 	})
 
 	expected := [][2]int{{1, 4}, {2, 5}, {3, 6}}
@@ -663,8 +663,8 @@ func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 	empty := g.NewHeap(cmp.Cmp[int])
 	counts := make(map[int]g.Int)
 
-	empty.Iter().Counter().ForEach(func(k int, v g.Int) {
-		counts[k] = v
+	empty.Iter().Counter().ForEach(func(k any, v g.Int) {
+		counts[k.(int)] = v
 	})
 
 	if len(counts) != 0 {

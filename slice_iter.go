@@ -213,10 +213,10 @@ func (seq SeqSlice[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 //	// 1 -> 3 (since 1 appears three times)
 //	// 2 -> 2 (since 2 appears two times)
 //	// 3 -> 1 (since 3 appears once)
-func (seq SeqSlice[V]) Counter() SeqMapOrd[V, Int] {
-	return func(yield func(V, Int) bool) {
+func (seq SeqSlice[V]) Counter() SeqMapOrd[any, Int] {
+	return func(yield func(any, Int) bool) {
 		for k, v := range iter.Counter(iter.Seq[V](seq)) {
-			if !yield(k.(V), Int(v)) {
+			if !yield(k, Int(v)) {
 				return
 			}
 		}
@@ -888,8 +888,8 @@ func (seq SeqSlice[V]) Unique() SeqSlice[V] {
 
 // Zip combines elements from the current sequence and another sequence into pairs,
 // creating an ordered map with identical keys and values of type V.
-func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[V, V] {
-	return func(yield func(V, V) bool) {
+func (seq SeqSlice[V]) Zip(two SeqSlice[V]) SeqMapOrd[any, any] {
+	return func(yield func(any, any) bool) {
 		zipSeq := iter.Zip(iter.Seq[V](seq), iter.Seq[V](two))
 		zipSeq(func(a, b V) bool {
 			return yield(a, b)

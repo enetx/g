@@ -9,7 +9,7 @@ import (
 	. "github.com/enetx/g"
 )
 
-func TestSprinfAutoIndexAndNumeric(t *testing.T) {
+func TestFormatAutoIndexAndNumeric(t *testing.T) {
 	tests := []struct {
 		name     string
 		format   string
@@ -52,7 +52,7 @@ func TestSprinfAutoIndexAndNumeric(t *testing.T) {
 	}
 }
 
-func TestSprintf(t *testing.T) {
+func TestFormat(t *testing.T) {
 	tests := []struct {
 		name     string
 		format   string
@@ -273,7 +273,7 @@ func TestSprintf(t *testing.T) {
 	}
 }
 
-func TestSprintfFormatWithErrors(t *testing.T) {
+func TestFormatFormatWithErrors(t *testing.T) {
 	errorTests := []struct {
 		name     string
 		format   string
@@ -327,7 +327,7 @@ func TestSprintfFormatWithErrors(t *testing.T) {
 	}
 }
 
-func TestSprintfTrimSetModifier(t *testing.T) {
+func TestFormatTrimSetModifier(t *testing.T) {
 	tests := []struct {
 		name     string
 		format   string
@@ -452,7 +452,7 @@ func BenchmarkSprintfFormatSpecifiers(b *testing.B) {
 	})
 }
 
-func TestSprintfGet(t *testing.T) {
+func TestFormatGet(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
@@ -553,7 +553,7 @@ func TestSprintfGet(t *testing.T) {
 	}
 }
 
-func TestSprintfGetNamed(t *testing.T) {
+func TestFormatGetNamed(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
@@ -577,7 +577,7 @@ func TestSprintfGetNamed(t *testing.T) {
 	}
 }
 
-func TestSprintfMapSliceStruct(t *testing.T) {
+func TestFormatMapSliceStruct(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
@@ -702,7 +702,7 @@ func TestSprintfMapSliceStruct(t *testing.T) {
 	}
 }
 
-func TestSprintfComplex(t *testing.T) {
+func TestFormatComplex(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
@@ -804,7 +804,7 @@ func TestEprintln(t *testing.T) {
 	Eprintln("test eprintln")
 }
 
-func TestSprintfMapOrdAccess(t *testing.T) {
+func TestFormatMapOrdAccess(t *testing.T) {
 	tests := []struct {
 		name     string
 		template string
@@ -815,7 +815,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any String Key Access",
 			template: "Value: {1.stringkey}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[string, string]()
 				m.Set("stringkey", "stringvalue")
 				return []any{m}
 			}(),
@@ -825,7 +825,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any String Type Key Access",
 			template: "Value: {1.stringkey}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[String, string]()
 				m.Set(String("stringkey"), "stringvalue")
 				return []any{m}
 			}(),
@@ -835,7 +835,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any Int Key Access",
 			template: "Value: {1.42}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[int, string]()
 				m.Set(42, "intvalue")
 				return []any{m}
 			}(),
@@ -845,7 +845,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any Int Type Key Access",
 			template: "Value: {1.42}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[Int, string]()
 				m.Set(Int(42), "intvalue")
 				return []any{m}
 			}(),
@@ -855,7 +855,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any Float Key Access",
 			template: "Value: {1.3}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[float64, string]()
 				m.Set(3.0, "floatvalue")
 				return []any{m}
 			}(),
@@ -865,7 +865,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any Float Type Key Access",
 			template: "Value: {1.3}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[Float, string]()
 				m.Set(Float(3.0), "floatvalue")
 				return []any{m}
 			}(),
@@ -875,7 +875,7 @@ func TestSprintfMapOrdAccess(t *testing.T) {
 			name:     "MapOrd Any Missing Key (returns whole map)",
 			template: "Value: {1.missing}",
 			args: func() []any {
-				m := NewMapOrd[any, any]()
+				m := NewMapOrd[string, string]()
 				m.Set("existing", "value")
 				return []any{m}
 			}(),

@@ -80,14 +80,11 @@ type (
 
 	// MapOrd is an ordered map that maintains insertion order using a slice for pairs
 	// and a map for fast index lookups.
-	MapOrd[K, V any] struct {
-		pairs  []Pair[K, V] // ordered key-value pairs
-		lookup map[any]int  // maps keys to indices in pairs slice
-	}
+	MapOrd[K comparable, V any] []Pair[K, V] // ordered key-value pairs
 
 	// MapOrdEntry provides a view into a single key of an ordered Map (MapOrd),
 	// enabling fluent insertion, mutation, and deletion while preserving entry order.
-	MapOrdEntry[K, V any] struct {
+	MapOrdEntry[K comparable, V any] struct {
 		mo  *MapOrd[K, V]
 		key K
 	}
@@ -135,7 +132,7 @@ type (
 	SeqSlices[V any] iter.Seq[[]V]
 
 	// SeqMapOrd is an iterator over sequences of ordered pairs of values, most commonly ordered key-value pairs.
-	SeqMapOrd[K, V any] iter.Seq2[K, V]
+	SeqMapOrd[K comparable, V any] iter.Seq2[K, V]
 
 	// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
 	SeqMap[K comparable, V any] iter.Seq2[K, V]

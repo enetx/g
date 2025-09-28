@@ -372,7 +372,12 @@ func (f *File) Copy(dest String, mode ...os.FileMode) Result[*File] {
 
 	defer f.Close()
 
-	return NewFile(dest).WriteFromReader(f.file, mode...)
+	nf := NewFile(dest)
+	if f.guard {
+		nf.guard = true
+	}
+
+	return nf.WriteFromReader(f.file, mode...)
 }
 
 // Create is similar to os.Create, but it returns a write-locked file.
@@ -537,13 +542,20 @@ func (f *File) Rename(newpath String) Result[*File] {
 		return Err[*File](&ErrFileNotExist{f.name.Std()})
 	}
 
-	nf := NewFile(newpath).createAll()
+	nf := NewFile(newpath)
+	if f.guard {
+		nf.guard = true
+	}
+
+	if r := nf.createAll(); r.IsErr() {
+		return r
+	}
 
 	if err := os.Rename(f.name.Std(), newpath.Std()); err != nil {
 		return Err[*File](err)
 	}
 
-	return nf
+	return Ok(nf)
 }
 
 // Split splits the file path into its directory and file components.
@@ -612,7 +624,7 @@ func (f *File) Std() *os.File { return f.file }
 //	tmpfile := f.CreateTemp()                     // Creates a temporary file with default settings
 //	tmpfileWithDir := f.CreateTemp("mydir")       // Creates a temporary file in "mydir" directory
 //	tmpfileWithPattern := f.CreateTemp("", "tmp") // Creates a temporary file with "tmp" pattern
-func (*File) CreateTemp(args ...String) Result[*File] {
+func (f *File) CreateTemp(args ...String) Result[*File] {
 	dir := ""
 	pattern := "*"
 
@@ -631,6 +643,9 @@ func (*File) CreateTemp(args ...String) Result[*File] {
 
 	ntmpfile := NewFile(String(tmpfile.Name()))
 	ntmpfile.file = tmpfile
+	if f.guard {
+		ntmpfile.guard = true
+	}
 
 	defer ntmpfile.Close()
 
@@ -656,8 +671,6 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 	if filePath.IsErr() {
 		return Err[*File](filePath.err)
 	}
-
-	f = NewFile(filePath.v)
 
 	fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
 

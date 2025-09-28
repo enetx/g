@@ -10,7 +10,8 @@ func main() {
 
 	slice.Iter().
 		Counter().
-		SortBy(func(a, b Pair[int, Int]) cmp.Ordering { return b.Value.Cmp(a.Value) }).
+		// SortBy(func(a, b Pair[any, Int]) cmp.Ordering { return b.Value.Cmp(a.Value) }).
+		SortBy(func(a, b Pair[any, Int]) cmp.Ordering { return cmp.Cmp(b.Key.(int), a.Key.(int)) }).
 		Collect().
 		Println() // MapOrd{1:3, 2:2, 3:1}
 }

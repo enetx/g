@@ -783,7 +783,7 @@ func TestSliceIterForEach(t *testing.T) {
 func TestSliceIterZip(t *testing.T) {
 	s1 := SliceOf(1, 2, 3, 4)
 	s2 := SliceOf(5, 6, 7, 8)
-	expected := NewMapOrd[int, int]()
+	expected := NewMapOrd[any, any]()
 	expected.Set(1, 5)
 	expected.Set(2, 6)
 	expected.Set(3, 7)
@@ -796,7 +796,7 @@ func TestSliceIterZip(t *testing.T) {
 
 	s3 := SliceOf(1, 2, 3)
 	s4 := SliceOf(4, 5)
-	expected = NewMapOrd[int, int]()
+	expected = NewMapOrd[any, any]()
 	expected.Set(1, 4)
 	expected.Set(2, 5)
 	result = s3.Iter().Zip(s4.Iter()).Collect()
@@ -1099,30 +1099,30 @@ func TestSliceIterCounter(t *testing.T) {
 	sl1 := Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
 	sl2 := Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
-	expected1 := NewMapOrd[int, Int]()
+	expected1 := NewMapOrd[any, Int]()
 	expected1.Set(3, 1)
 	expected1.Set(5, 1)
 	expected1.Set(1, 2)
 	expected1.Set(2, 2)
 	expected1.Set(4, 3)
-	expected1.SortByKey(cmp.Cmp)
+	expected1.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(int), b.(int)) })
 
 	result1 := sl1.Iter().Counter().Collect()
-	result1.SortByKey(cmp.Cmp)
+	result1.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(int), b.(int)) })
 	if !result1.Eq(expected1) {
 		t.Errorf("Counter() returned %v, expected %v", result1, expected1)
 	}
 
 	// Test with string values
-	expected2 := NewMapOrd[string, Int]()
+	expected2 := NewMapOrd[any, Int]()
 	expected2.Set("banana", 1)
 	expected2.Set("grape", 1)
 	expected2.Set("orange", 2)
 	expected2.Set("apple", 3)
-	expected2.SortByKey(cmp.Cmp)
+	expected2.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(string), b.(string)) })
 
 	result2 := sl2.Iter().Counter().Collect()
-	result2.SortByKey(cmp.Cmp)
+	result2.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(string), b.(string)) })
 	if !result2.Eq(expected2) {
 		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
 	}

@@ -317,30 +317,90 @@ func toType(param String, targetType reflect.Type) Result[reflect.Value] {
 	}
 }
 
-func extractFromMapOrd(param String, targetType reflect.Value) Option[any] {
-	mo := targetType.Interface().(MapOrd[any, any])
-	if mo.Empty() {
+func extractFromMapOrd(param String, slice reflect.Value) Option[any] {
+	for slice.Kind() == reflect.Interface || slice.Kind() == reflect.Pointer {
+		if slice.IsNil() {
+			return None[any]()
+		}
+		slice = slice.Elem()
+	}
+
+	if !slice.IsValid() || slice.Kind() != reflect.Slice {
 		return None[any]()
 	}
 
-	mapKeyType := reflect.ValueOf(mo.pairs[0].Key).Type()
-
-	switch mapKeyType {
-	case reflect.TypeOf(""):
-		return mo.Get(param.Std())
-	case reflect.TypeOf(String("")):
-		return mo.Get(param)
-	case reflect.TypeOf(0):
-		return mo.Get(param.ToInt().v.Std())
-	case reflect.TypeOf(Int(0)):
-		return mo.Get(param.ToInt().v)
-	case reflect.TypeOf(0.0):
-		return mo.Get(param.ToFloat().v.Std())
-	case reflect.TypeOf(Float(0.0)):
-		return mo.Get(param.ToFloat().v)
-	default:
+	elemT := slice.Type().Elem()
+	if elemT.Kind() != reflect.Struct {
 		return None[any]()
 	}
+
+	if _, ok := elemT.FieldByName("Key"); !ok {
+		return None[any]()
+	}
+
+	if _, ok := elemT.FieldByName("Value"); !ok {
+		return None[any]()
+	}
+
+	ps := param.Std()
+
+	var (
+		pi    int
+		pierr error
+		pf    float64
+		pferr error
+	)
+
+	for i := 0; i < slice.Len(); i++ {
+		el := slice.Index(i)
+		k := el.FieldByName("Key").Interface()
+		v := el.FieldByName("Value").Interface()
+
+		switch kk := k.(type) {
+		case string:
+			if kk == ps {
+				return Some(v)
+			}
+		case String:
+			if string(kk) == ps {
+				return Some(v)
+			}
+		case int:
+			if pi == 0 && pierr == nil {
+				pi, pierr = strconv.Atoi(ps)
+			}
+			if pierr == nil && kk == pi {
+				return Some(v)
+			}
+		case Int:
+			if pi == 0 && pierr == nil {
+				pi, pierr = strconv.Atoi(ps)
+			}
+			if pierr == nil && int(kk) == pi {
+				return Some(v)
+			}
+		case float64:
+			if pf == 0 && pferr == nil {
+				pf, pferr = strconv.ParseFloat(param.ReplaceAll("_", ".").Std(), 64)
+			}
+			if pferr == nil && kk == pf {
+				return Some(v)
+			}
+		case Float:
+			if pf == 0 && pferr == nil {
+				pf, pferr = strconv.ParseFloat(param.ReplaceAll("_", ".").Std(), 64)
+			}
+			if pferr == nil && float64(kk) == pf {
+				return Some(v)
+			}
+		default:
+			if s, ok := k.(fmt.Stringer); ok && s.String() == ps {
+				return Some(v)
+			}
+		}
+	}
+
+	return None[any]()
 }
 
 func resolveIndirect(targetType reflect.Value) reflect.Value {
@@ -436,23 +496,18 @@ func applyMod(value any, name String, params Slice[String]) any {
 
 		current = resolveIndirect(current.MapIndex(key.v))
 	case reflect.Slice, reflect.Array:
-		index := name.ToInt()
-		if index.IsErr() || index.v.Gte(Int(current.Len())) {
+		if pair := extractFromMapOrd(name, current); pair.IsSome() {
+			return pair.v
+		}
+
+		idx := name.ToInt()
+		if idx.IsErr() || idx.v.Gte(Int(current.Len())) {
 			return value
 		}
 
-		current = current.Index(index.v.Std())
+		current = current.Index(idx.v.Std())
 	case reflect.Struct:
-		if current.Type() == reflect.TypeOf(MapOrd[any, any]{}) {
-			pair := extractFromMapOrd(name, current)
-			if pair.IsNone() {
-				return value
-			}
-
-			current = reflect.ValueOf(pair.v)
-		} else {
-			current = current.FieldByName(name.Std())
-		}
+		current = current.FieldByName(name.Std())
 	}
 
 	if current.IsValid() && current.CanInterface() {
