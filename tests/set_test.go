@@ -636,7 +636,7 @@ func TestSetTransform(t *testing.T) {
 	original := Set[int]{1: {}, 2: {}, 3: {}}
 
 	addElement := func(s Set[int]) Set[int] {
-		s[4] = struct{}{}
+		s[4] = Unit{}
 		return s
 	}
 

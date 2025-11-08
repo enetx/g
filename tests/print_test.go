@@ -312,7 +312,7 @@ func TestFormatFormatWithErrors(t *testing.T) {
 		{
 			name:     "Unsupported type for modifier",
 			format:   "Value: {obj.Upper}",
-			args:     Named{"obj": struct{}{}},
+			args:     Named{"obj": Unit{}},
 			expected: "Value: {}",
 		},
 	}

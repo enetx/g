@@ -38,7 +38,7 @@ func (seq SeqSet[V]) Collect() Set[V] {
 	collection := make(Set[V])
 
 	seq(func(v V) bool {
-		collection[v] = struct{}{}
+		collection[v] = Unit{}
 		return true
 	})
 

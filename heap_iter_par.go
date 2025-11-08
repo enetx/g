@@ -46,7 +46,7 @@ func (p SeqHeapPar[V]) Any(fn func(V) bool) bool {
 func (p SeqHeapPar[V]) Chain(others ...SeqHeapPar[V]) SeqHeapPar[V] {
 	return SeqHeapPar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, int(p.workers)*4)
 
 			var (
@@ -157,7 +157,7 @@ func (p SeqHeapPar[V]) Filter(fn func(V) bool) SeqHeapPar[V] {
 func (p SeqHeapPar[V]) FlatMap(fn func(V) SeqHeap[V]) SeqHeapPar[V] {
 	return SeqHeapPar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, 100)
 
 			var (
@@ -406,7 +406,7 @@ func (p SeqHeapPar[V]) Flatten() SeqHeapPar[V] {
 		}
 
 		resultsChan := make(chan V, 100)
-		doneChan := make(chan struct{})
+		doneChan := make(chan Unit)
 		var once sync.Once
 
 		go func() {
@@ -574,7 +574,7 @@ func (p SeqHeapPar[V]) Partition(fn func(V) bool, leftCmp, rightCmp func(V, V) c
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqHeapPar[V]) Range(fn func(V) bool) {
 	in := make(chan V)
-	done := make(chan struct{})
+	done := make(chan Unit)
 
 	var (
 		wg   sync.WaitGroup
@@ -650,14 +650,14 @@ func (p SeqHeapPar[V]) Take(n uint) SeqHeapPar[V] {
 // Unique removes duplicate elements, preserving the first occurrence.
 func (p SeqHeapPar[V]) Unique() SeqHeapPar[V] {
 	prev := p.process
-	seen := NewMapSafe[any, struct{}]()
+	seen := NewMapSafe[any, Unit]()
 
 	return SeqHeapPar[V]{
 		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if loaded := seen.Entry(mid).OrSet(struct{}{}); loaded.IsSome() {
+				if loaded := seen.Entry(mid).OrSet(Unit{}); loaded.IsSome() {
 					var zero V
 					return zero, false
 				}

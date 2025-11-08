@@ -46,7 +46,7 @@ func (p SeqSlicePar[V]) Any(fn func(V) bool) bool {
 func (p SeqSlicePar[V]) Chain(others ...SeqSlicePar[V]) SeqSlicePar[V] {
 	return SeqSlicePar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, 100)
 
 			var (
@@ -308,7 +308,7 @@ func (p SeqSlicePar[V]) Partition(fn func(V) bool) (Slice[V], Slice[V]) {
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqSlicePar[V]) Range(fn func(V) bool) {
 	in := make(chan V)
-	done := make(chan struct{})
+	done := make(chan Unit)
 
 	var (
 		wg   sync.WaitGroup
@@ -384,14 +384,14 @@ func (p SeqSlicePar[V]) Take(n Int) SeqSlicePar[V] {
 // Unique removes duplicate elements, preserving the first occurrence.
 func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 	prev := p.process
-	seen := NewMapSafe[any, struct{}]()
+	seen := NewMapSafe[any, Unit]()
 
 	return SeqSlicePar[V]{
 		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if loaded := seen.Entry(mid).OrSet(struct{}{}); loaded.IsSome() {
+				if loaded := seen.Entry(mid).OrSet(Unit{}); loaded.IsSome() {
 					var zero V
 					return zero, false
 				}
@@ -449,7 +449,7 @@ func (p SeqSlicePar[V]) Flatten() SeqSlicePar[V] {
 		}
 
 		resultsChan := make(chan V, 100)
-		doneChan := make(chan struct{})
+		doneChan := make(chan Unit)
 		var once sync.Once
 
 		go func() {
@@ -549,7 +549,7 @@ func flattenToSlice(item any) []any {
 func (p SeqSlicePar[V]) FlatMap(fn func(V) SeqSlice[V]) SeqSlicePar[V] {
 	return SeqSlicePar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, 100)
 
 			var (

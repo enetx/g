@@ -73,7 +73,7 @@ type (
 	}
 
 	// Set is a generic alias for a set implemented using a map.
-	Set[T comparable] map[T]struct{}
+	Set[T comparable] map[T]Unit
 
 	// Pair is a struct representing a key-value Pair for MapOrd.
 	Pair[K, V any] = iter.Pair[K, V]

@@ -9,7 +9,7 @@ import (
 
 func main() {
 	// Create a channel to signal the main goroutine when the other goroutine completes
-	exit := make(chan struct{})
+	exit := make(chan Unit)
 
 	// Specify the file name
 	fname := String("test_file.txt")
@@ -26,7 +26,7 @@ func main() {
 		// Create a new file and guard it for reading
 		NewFile(fname).Guard().Read().Unwrap().Println()
 		// Signal the main goroutine that the reading is complete
-		exit <- struct{}{}
+		exit <- Unit{}
 	}()
 
 	// Goroutine to release the guard after 2 seconds

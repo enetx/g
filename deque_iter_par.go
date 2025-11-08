@@ -45,7 +45,7 @@ func (p SeqDequePar[V]) Any(fn func(V) bool) bool {
 func (p SeqDequePar[V]) Chain(others ...SeqDequePar[V]) SeqDequePar[V] {
 	return SeqDequePar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, int(p.workers)*4)
 
 			var (
@@ -198,7 +198,7 @@ func (p SeqDequePar[V]) Fold(init V, fn func(acc, v V) V) V {
 func (p SeqDequePar[V]) Flatten() SeqDequePar[V] {
 	seq := func(yield func(V) bool) {
 		resultsChan := make(chan V, 100)
-		doneChan := make(chan struct{})
+		doneChan := make(chan Unit)
 		var once sync.Once
 
 		go func() {
@@ -252,7 +252,7 @@ func (p SeqDequePar[V]) Flatten() SeqDequePar[V] {
 func (p SeqDequePar[V]) FlatMap(fn func(V) SeqDeque[V]) SeqDequePar[V] {
 	return SeqDequePar[V]{
 		seq: func(yield func(V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan V, 100)
 
 			var (
@@ -526,7 +526,7 @@ func (p SeqDequePar[V]) Partition(fn func(V) bool) (*Deque[V], *Deque[V]) {
 // Range applies fn to each processed element in parallel, stopping on false.
 func (p SeqDequePar[V]) Range(fn func(V) bool) {
 	in := make(chan V)
-	done := make(chan struct{})
+	done := make(chan Unit)
 
 	var (
 		wg   sync.WaitGroup
@@ -602,14 +602,14 @@ func (p SeqDequePar[V]) Take(n uint) SeqDequePar[V] {
 // Unique removes duplicate elements, preserving the first occurrence.
 func (p SeqDequePar[V]) Unique() SeqDequePar[V] {
 	prev := p.process
-	seen := NewMapSafe[any, struct{}]()
+	seen := NewMapSafe[any, Unit]()
 
 	return SeqDequePar[V]{
 		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if loaded := seen.Entry(mid).OrSet(struct{}{}); loaded.IsSome() {
+				if loaded := seen.Entry(mid).OrSet(Unit{}); loaded.IsSome() {
 					var zero V
 					return zero, false
 				}

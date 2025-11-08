@@ -27,7 +27,7 @@ func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 
 	result := make(Set[U], len(s))
 	for v := range s {
-		result[fn(v)] = struct{}{}
+		result[fn(v)] = Unit{}
 	}
 
 	return result
@@ -37,7 +37,7 @@ func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
 func SetOf[T comparable](values ...T) Set[T] {
 	set := make(Set[T], len(values))
 	for _, v := range values {
-		set[v] = struct{}{}
+		set[v] = Unit{}
 	}
 
 	return set
@@ -79,7 +79,7 @@ func (s Set[T]) Iter() SeqSet[T] {
 // Insert adds the provided elements to the set.
 func (s Set[T]) Insert(values ...T) {
 	for _, v := range values {
-		s[v] = struct{}{}
+		s[v] = Unit{}
 	}
 }
 
@@ -145,7 +145,7 @@ func (s Set[T]) Clone() Set[T] {
 
 	clone := make(Set[T], len(s))
 	for k := range s {
-		clone[k] = struct{}{}
+		clone[k] = Unit{}
 	}
 
 	return clone

@@ -402,6 +402,100 @@ func (bs Bytes) Upper() Bytes {
 	return out
 }
 
+// IsLower reports whether bs contains at least one letter
+// and no uppercase letters. Non-letters are ignored.
+func (bs Bytes) IsLower() bool {
+	letter := false
+	ascii := true
+
+	for _, b := range bs {
+		if b >= utf8.RuneSelf {
+			ascii = false
+			break
+		}
+	}
+
+	if ascii {
+		for _, b := range bs {
+			if 'A' <= b && b <= 'Z' {
+				return false
+			}
+
+			if 'a' <= b && b <= 'z' {
+				letter = true
+			}
+		}
+
+		return letter
+	}
+
+	for len(bs) > 0 {
+		r, size := utf8.DecodeRune(bs)
+		if r == utf8.RuneError && size == 1 {
+			bs = bs[1:]
+			continue
+		}
+
+		if unicode.IsLetter(r) {
+			letter = true
+			if unicode.IsUpper(r) {
+				return false
+			}
+		}
+
+		bs = bs[size:]
+	}
+
+	return letter
+}
+
+// IsUpper reports whether bs contains at least one letter
+// and no lowercase letters. Non-letters are ignored.
+func (bs Bytes) IsUpper() bool {
+	letter := false
+	ascii := true
+
+	for _, b := range bs {
+		if b >= utf8.RuneSelf {
+			ascii = false
+			break
+		}
+	}
+
+	if ascii {
+		for _, b := range bs {
+			if 'a' <= b && b <= 'z' {
+				return false
+			}
+
+			if 'A' <= b && b <= 'Z' {
+				letter = true
+			}
+		}
+
+		return letter
+	}
+
+	for len(bs) > 0 {
+		r, size := utf8.DecodeRune(bs)
+		if r == utf8.RuneError && size == 1 {
+			bs = bs[1:]
+			continue
+		}
+
+		if unicode.IsLetter(r) {
+			letter = true
+			if unicode.IsLower(r) {
+				return false
+			}
+		}
+
+		bs = bs[size:]
+	}
+
+	return letter
+}
+
 // Print writes the content of the Bytes to the standard output (console)
 // and returns the Bytes unchanged.
 func (bs Bytes) Print() Bytes { fmt.Print(bs); return bs }

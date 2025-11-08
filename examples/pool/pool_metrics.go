@@ -14,7 +14,7 @@ func main() {
 	p := pool.New[int]().
 		Limit(1) // Set the concurrency limit to 1, ensuring that only one task runs at a time
 
-	metricsDone := make(chan struct{}) // Channel to synchronize the completion of the metrics goroutine
+	metricsDone := make(chan Unit) // Channel to synchronize the completion of the metrics goroutine
 
 	// Goroutine to print live metrics about the pool's state
 	go func() {

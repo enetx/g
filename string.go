@@ -58,7 +58,13 @@ func (String) Random(length Int, letters ...String) String {
 	var chars Slice[rune]
 
 	if len(letters) != 0 {
-		chars = letters[0].Runes()
+		var b Builder
+
+		for _, set := range letters {
+			_, _ = b.WriteString(set)
+		}
+
+		chars = b.String().Runes()
 	} else {
 		chars = (ASCII_LETTERS + DIGITS).Runes()
 	}
@@ -75,8 +81,8 @@ func (String) Random(length Int, letters ...String) String {
 
 // IsASCII checks if all characters in the String are ASCII bytes.
 func (s String) IsASCII() bool {
-	for _, r := range s {
-		if r > unicode.MaxASCII {
+	for i := range s {
+		if s[i] >= 0x80 {
 			return false
 		}
 	}
@@ -149,6 +155,12 @@ func (s String) Lower() String { return s.Bytes().Lower().String() }
 
 // Upper returns the String in uppercase.
 func (s String) Upper() String { return s.Bytes().Upper().String() }
+
+// IsLower checks if the String consists only of lowercase letters.
+func (s String) IsLower() bool { return s.Bytes().IsLower() }
+
+// IsUpper checks if the String consists only of uppercase letters.
+func (s String) IsUpper() bool { return s.Bytes().IsUpper() }
 
 // Trim removes leading and trailing white space from the String.
 func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
@@ -724,14 +736,15 @@ func (s String) Truncate(max Int) String {
 //	result := s.LeftJustify(10, "...")
 //	// result: "Hello....."
 func (s String) LeftJustify(length Int, pad String) String {
-	if s.LenRunes() >= length || pad.Eq("") {
+	rlen := s.LenRunes()
+	if rlen >= length || pad.Empty() {
 		return s
 	}
 
 	var b Builder
 
 	_, _ = b.WriteString(s)
-	writePadding(&b, pad, pad.LenRunes(), length-s.LenRunes())
+	writePadding(&b, pad, pad.LenRunes(), length-rlen)
 
 	return b.String()
 }
@@ -753,13 +766,14 @@ func (s String) LeftJustify(length Int, pad String) String {
 //	result := s.RightJustify(10, "...")
 //	// result: ".....Hello"
 func (s String) RightJustify(length Int, pad String) String {
-	if s.LenRunes() >= length || pad.Empty() {
+	rlen := s.LenRunes()
+	if rlen >= length || pad.Empty() {
 		return s
 	}
 
 	var b Builder
 
-	writePadding(&b, pad, pad.LenRunes(), length-s.LenRunes())
+	writePadding(&b, pad, pad.LenRunes(), length-rlen)
 	_, _ = b.WriteString(s)
 
 	return b.String()

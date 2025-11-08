@@ -1719,3 +1719,81 @@ func TestBytesFloat_Orders(t *testing.T) {
 		})
 	}
 }
+
+func TestBytesIsLower(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Bytes
+		want bool
+	}{
+		{"Empty", Bytes(""), false},
+		{"OnlyDigits", Bytes("12345"), false},
+		{"OnlyPunct", Bytes("!?-+"), false},
+		{"ASCII_lower", Bytes("hello"), true},
+		{"ASCII_upper", Bytes("HELLO"), false},
+		{"ASCII_mixed", Bytes("Hello"), false},
+		{"LowerWithDigits", Bytes("abc123!"), true},
+		{"UpperWithDigits", Bytes("ABC123!"), false},
+		{"MixedWithPunct", Bytes("abc-DEF"), false},
+		{"Cyrillic_lower", Bytes("привет мир"), true},
+		{"Cyrillic_upper", Bytes("ПРИВЕТ"), false},
+		{"Cyrillic_mixed", Bytes("Привет"), false},
+		{"Greek_lower", Bytes("γειασου"), true},
+		{"Greek_upper", Bytes("ΚΑΛΗΜΕΡΑ"), false},
+		{"Greek_mixed", Bytes("Γεια"), false},
+		{"Latin_German_eszett", Bytes("straße"), true},
+		{"Latin_Turkish_lower", Bytes("ıi"), true},
+		{"Latin_Turkish_upper", Bytes("İI"), false},
+		{"CombiningLower", Bytes("e\u0301gal"), true},
+		{"CombiningMixed", Bytes("E\u0301gal"), false},
+		{"InvalidUTF8", Bytes([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsLower()
+			if got != tc.want {
+				t.Errorf("IsLower(%q) = %v; want %v", []byte(tc.in), got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBytesIsUpper(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Bytes
+		want bool
+	}{
+		{"Empty", Bytes(""), false},
+		{"OnlyDigits", Bytes("12345"), false},
+		{"OnlyPunct", Bytes("!?-+"), false},
+		{"ASCII_upper", Bytes("HELLO"), true},
+		{"ASCII_lower", Bytes("hello"), false},
+		{"ASCII_mixed", Bytes("Hello"), false},
+		{"UpperWithDigits", Bytes("ABC123!"), true},
+		{"LowerWithDigits", Bytes("abc123!"), false},
+		{"MixedWithPunct", Bytes("ABC-def"), false},
+		{"Cyrillic_upper", Bytes("ПРИВЕТ"), true},
+		{"Cyrillic_lower", Bytes("привет"), false},
+		{"Cyrillic_mixed", Bytes("Привет"), false},
+		{"Greek_upper", Bytes("ΚΑΛΗΜΕΡΑ"), true},
+		{"Greek_lower", Bytes("γειασου"), false},
+		{"Greek_mixed", Bytes("Γεια"), false},
+		{"Latin_German_eszett", Bytes("STRAẞE"), true},
+		{"Latin_Turkish_upper", Bytes("İI"), true},
+		{"Latin_Turkish_lower", Bytes("ıi"), false},
+		{"CombiningUpper", Bytes("E\u0301GAL"), true},
+		{"CombiningMixed", Bytes("e\u0301GAL"), false},
+		{"InvalidUTF8", Bytes([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsUpper()
+			if got != tc.want {
+				t.Errorf("IsUpper(%q) = %v; want %v", []byte(tc.in), got, tc.want)
+			}
+		})
+	}
+}

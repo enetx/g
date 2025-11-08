@@ -647,8 +647,8 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 
 	_step := Slice[Int](step).Get(0).UnwrapOr(1)
 
-	ii := sl.bound(start, struct{}{})
-	jj := sl.bound(end, struct{}{})
+	ii := sl.bound(start, Unit{})
+	jj := sl.bound(end, Unit{})
 
 	if ii.IsErr() {
 		panic(ii.err)
@@ -1063,7 +1063,7 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 //	fmt.Println(minInt) // Output: 1
 func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
-func (sl Slice[T]) bound(i Int, subslice ...struct{}) Result[Int] {
+func (sl Slice[T]) bound(i Int, subslice ...Unit) Result[Int] {
 	if sl.Empty() {
 		return Err[Int](errors.New("runtime error: slice is empty"))
 	}

@@ -41,7 +41,7 @@ func (p SeqMapPar[K, V]) Any(fn func(K, V) bool) bool {
 func (p SeqMapPar[K, V]) Chain(others ...SeqMapPar[K, V]) SeqMapPar[K, V] {
 	return SeqMapPar[K, V]{
 		seq: func(yield func(K, V) bool) {
-			done := make(chan struct{})
+			done := make(chan Unit)
 			result := make(chan Pair[K, V], 100)
 
 			var (
@@ -217,7 +217,7 @@ func (p SeqMapPar[K, V]) Map(transform func(K, V) (K, V)) SeqMapPar[K, V] {
 // Range applies fn to each processed pair in parallel, stopping early if fn returns false.
 func (p SeqMapPar[K, V]) Range(fn func(K, V) bool) {
 	in := make(chan Pair[K, V])
-	done := make(chan struct{})
+	done := make(chan Unit)
 
 	var (
 		wg   sync.WaitGroup

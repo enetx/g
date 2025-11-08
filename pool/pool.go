@@ -17,7 +17,7 @@ import (
 type Pool[T any] struct {
 	ctx           context.Context          // Context for controlling cancellation and timeouts
 	cancel        context.CancelCauseFunc  // Function to cancel the context
-	tokens        chan struct{}            // Tokens for limiting concurrency
+	tokens        chan Unit                // Tokens for limiting concurrency
 	results       *MapSafe[int, Result[T]] // Stores task results
 	wg            sync.WaitGroup           // Waits for all tasks to complete
 	totalTasks    int32                    // Total number of tasks submitted
@@ -44,7 +44,7 @@ func (p *Pool[T]) acquire() bool {
 	}
 
 	select {
-	case p.tokens <- struct{}{}:
+	case p.tokens <- Unit{}:
 		return true
 	case <-p.ctx.Done():
 		return false
@@ -136,7 +136,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 		workers = 1
 	}
 
-	p.tokens = make(chan struct{}, workers)
+	p.tokens = make(chan Unit, workers)
 
 	return p
 }

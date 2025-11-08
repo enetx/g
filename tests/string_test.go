@@ -1052,47 +1052,37 @@ func TestStringReplaceNth(t *testing.T) {
 			0,
 			"The quick brown dog jumped over the lazy dog.",
 		},
-		{
-			"Longer replacement",
-			"Hello, world!",
-			"world",
-			"beautiful world",
-			1,
-			"Hello, beautiful world!",
-		},
-		{
-			"Shorter replacement",
-			"A wonderful day, isn't it?",
-			"wonderful",
-			"nice",
-			1,
-			"A nice day, isn't it?",
-		},
-		{
-			"Replace entire string",
-			"Hello, world!",
-			"Hello, world!",
-			"Greetings, world!",
-			1,
-			"Greetings, world!",
-		},
+		{"Longer replacement", "Hello, world!", "world", "beautiful world", 1, "Hello, beautiful world!"},
+		{"Shorter replacement", "A wonderful day, isn't it?", "wonderful", "nice", 1, "A nice day, isn't it?"},
+		{"Replace entire string", "Hello, world!", "Hello, world!", "Greetings, world!", 1, "Greetings, world!"},
 		{"No replacement", "Hello, world!", "x", "y", 1, "Hello, world!"},
 		{"Nonexistent substring", "Hello, world!", "foobar", "test", 1, "Hello, world!"},
 		{"Replace empty string", "Hello, world!", "", "x", 1, "Hello, world!"},
+		{"Empty input string", "", "world", "test", 1, ""},
+		{"Empty input, empty oldS, empty newS", "", "", "", 1, ""},
 		{"Multiple identical substrings", "banana", "na", "xy", 1, "baxyna"},
 		{"Multiple identical substrings, last", "banana", "na", "xy", -1, "banaxy"},
 		{"Replace with empty string", "Hello, world!", "world", "", 1, "Hello, !"},
-		{"Empty input string", "", "world", "test", 1, ""},
-		{"Empty input, empty oldS, empty newS", "", "", "", 1, ""},
 		{"Replace multiple spaces", "Hello    world!", "    ", " ", 1, "Hello world!"},
+		{"First occurrence at start boundary", "hello world, hello!", "hello", "hi", 1, "hi world, hello!"},
+		{"Last occurrence at end boundary", "— привет — мир —", "—", "-", -1, "— привет — мир -"},
 		{"Unicode characters", "こんにちは世界！", "世界", "World", 1, "こんにちはWorld！"},
+		{"Last occurrence with multibyte replacement", "xxhelloxxhello", "hello", "привет", -1, "xxhelloxxпривет"},
+		{"Multi-rune oldS shorter newS (unicode)", "добрый мир добрый", "добрый", "ok", 2, "добрый мир ok"},
+		{"Multi-rune oldS longer newS (unicode)", "猫と犬と猫", "猫", "にゃんこ", -1, "猫と犬とにゃんこ"},
+		{"n greater than occurrences -> no change", "foo bar baz", "bar", "XXX", 2, "foo bar baz"},
+		{"Combining marks: replace 2nd 'é' (e+◌́) with 'É'", "e\u0301e\u0301", "e\u0301", "É", 2, "e\u0301É"},
+		{"ZWJ family emoji: replace 👧 inside sequence with 🧒", "A👨‍👩‍👧‍👦B", "👧", "🧒", 1, "A👨‍👩‍🧒‍👦B"},
+		{"Overlapping occurrences #1: aaaa replace first 'aa' with 'b'", "aaaa", "aa", "b", 1, "baa"},
+		{"Overlapping occurrences #2: aaaa replace second 'aa' with 'b'", "aaaa", "aa", "b", 2, "aab"},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := test.str.ReplaceNth(test.oldS, test.newS, test.n)
-			if result != test.expected {
-				t.Errorf("ReplaceNth() got %q, want %q", result, test.expected)
+			got := test.str.ReplaceNth(test.oldS, test.newS, test.n)
+			if got != test.expected {
+				t.Errorf("ReplaceNth(%q, %q, %q, %d) = %q, want %q",
+					test.str, test.oldS, test.newS, test.n, got, test.expected)
 			}
 		})
 	}
@@ -1104,6 +1094,7 @@ func TestStringIsASCII(t *testing.T) {
 		expected bool
 	}{
 		{"Hello, world!", true},
+		{"😊", false},
 		{"こんにちは", false},
 		{"", true},
 		{"1234567890", true},
@@ -1111,13 +1102,16 @@ func TestStringIsASCII(t *testing.T) {
 		{"~`!@#$%^&*()-_+={[}]|\\:;\"'<,>.?/", true},
 		{"áéíóú", false},
 		{"Привет", false},
+		{"\x7F", true},
+		{"\x80", false},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.IsASCII()
-		if result != tc.expected {
-			t.Errorf("IsASCII(%q) returned %v, expected %v", tc.input, result, tc.expected)
-		}
+		t.Run(string(tc.input), func(t *testing.T) {
+			if got := tc.input.IsASCII(); got != tc.expected {
+				t.Errorf("IsASCII(%q) = %v, want %v (bytes: % x)", tc.input, got, tc.expected, []byte(tc.input))
+			}
+		})
 	}
 }
 
@@ -2121,5 +2115,98 @@ func TestStringFormat(t *testing.T) {
 
 	if result4 != expected4 {
 		t.Errorf("Format() with empty string expected '%s', got '%s'", expected4, result4)
+	}
+}
+
+func TestStringIsLower(t *testing.T) {
+	tests := []struct {
+		name string
+		in   String
+		want bool
+	}{
+		{"Empty", "", false},
+		{"OnlyDigits", "12345", false},
+		{"OnlyPunct", "!?-+", false},
+		{"ASCII_lower", "hello", true},
+		{"ASCII_upper", "HELLO", false},
+		{"ASCII_mixed", "Hello", false},
+		{"LowerWithDigits", "abc123!", true},
+		{"UpperWithDigits", "ABC123!", false},
+		{"MixedWithPunct", "abc-DEF", false},
+
+		{"Cyrillic_lower", "привет мир", true},
+		{"Cyrillic_upper", "ПРИВЕТ", false},
+		{"Cyrillic_mixed", "Привет", false},
+
+		{"Greek_lower", "γειασου", true},
+		{"Greek_upper", "ΚΑΛΗΜΕΡΑ", false},
+		{"Greek_mixed", "Γεια", false},
+
+		{"Latin_German_eszett_lower", "straße", true},
+		{"Latin_German_eszett_upper_makes_false", "Straße", false},
+		{"Latin_German_eszett_capital", "ẞ", false},
+
+		{"Turkish_lower", "ıi", true},
+		{"Turkish_upper_in_string", "İi", false},
+
+		{"CombiningLower", "e\u0301gal", true},
+		{"CombiningMixed", "E\u0301gal", false},
+
+		{"InvalidUTF8", String([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsLower()
+			if got != tc.want {
+				t.Errorf("IsLower(%q) = %v; want %v", string(tc.in), got, tc.want)
+			}
+		})
+	}
+}
+
+func TestStringIsUpper(t *testing.T) {
+	tests := []struct {
+		name string
+		in   String
+		want bool
+	}{
+		{"Empty", "", false},
+		{"OnlyDigits", "12345", false},
+		{"OnlyPunct", "!?-+", false},
+		{"ASCII_upper", "HELLO", true},
+		{"ASCII_lower", "hello", false},
+		{"ASCII_mixed", "Hello", false},
+		{"UpperWithDigits", "ABC123!", true},
+		{"LowerWithDigits", "abc123!", false},
+		{"MixedWithPunct", "ABC-def", false},
+
+		{"Cyrillic_upper", "ПРИВЕТ", true},
+		{"Cyrillic_lower", "привет", false},
+		{"Cyrillic_mixed", "Привет", false},
+
+		{"Greek_upper", "ΚΑΛΗΜΕΡΑ", true},
+		{"Greek_lower", "γειασου", false},
+		{"Greek_mixed", "Γεια", false},
+
+		{"Latin_German_eszett_capital", "STRAẞE", true},
+		{"Latin_German_eszett_lower_in_string", "Strasseß", false},
+
+		{"Turkish_upper", "İI", true},
+		{"Turkish_lower_in_string", "ıi", false},
+
+		{"CombiningUpper", "E\u0301GAL", true},
+		{"CombiningMixed", "e\u0301GAL", false},
+
+		{"InvalidUTF8", String([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsUpper()
+			if got != tc.want {
+				t.Errorf("IsUpper(%q) = %v; want %v", string(tc.in), got, tc.want)
+			}
+		})
 	}
 }

@@ -382,7 +382,7 @@ func (mo *MapOrd[K, V]) Delete(keys ...K) {
 
 	idx := mo.indexMap()
 	seen := SetOf(keys...)
-	nmo := make(MapOrd[K, V], 0, len(*mo)-len(keys))
+	nmo := make(MapOrd[K, V], 0, len(*mo)-min(len(keys), len(*mo)))
 
 	for _, p := range *mo {
 		if !seen.Contains(p.Key) {

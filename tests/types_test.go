@@ -178,10 +178,10 @@ func TestMapSafeEntry_Type(t *testing.T) {
 func TestSet_Type(t *testing.T) {
 	// Test Set type alias
 	var stringSet g.Set[string] = make(g.Set[string])
-	stringSet["test"] = struct{}{}
+	stringSet["test"] = g.Unit{}
 
 	// Test conversion to standard map
-	stdMap := map[string]struct{}(stringSet)
+	stdMap := map[string]g.Unit(stringSet)
 	if _, ok := stdMap["test"]; !ok {
 		t.Error("Set[string] conversion failed")
 	}
