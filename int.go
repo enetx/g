@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"math/rand/v2"
 	"strconv"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/constraints"
-	"github.com/enetx/g/rand"
 )
 
 // NewInt creates a new Int with the provided int value.
@@ -45,7 +45,7 @@ func (i Int) RandomRange(to Int) Int {
 	w := uhi - ulo + 1
 
 	if w == 0 {
-		return Int(int64(rand.U64()))
+		return Int(rand.Uint64())
 	}
 
 	randv := rand.N(w)

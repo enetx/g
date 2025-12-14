@@ -1,8 +1,6 @@
 package g
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {

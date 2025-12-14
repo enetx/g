@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"github.com/enetx/g/rand"
 	"github.com/enetx/iter"
 )
 
@@ -248,21 +248,21 @@ func (sl Slice[T]) IndexBy(fn func(t T) bool) Int { return Int(slices.IndexFunc(
 //
 // The resulting sample will contain 3 unique elements randomly selected from the original slice.
 func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
-	if sequence >= sl.Len() {
+	if sequence.Gte(sl.Len()) {
 		return sl.Clone()
 	}
 
-	if sequence <= 0 {
+	if sequence.Lte(0) {
 		return Slice[T]{}
 	}
 
-	n := sl.Len()
+	n := len(sl)
 
-	if Float(sequence) < Float(n)*0.25 {
+	if Float(sequence).Lt(Float(n) * 0.25) {
 		result := make(Slice[T], sequence)
-		swapped := make(map[Int]Int, sequence)
+		swapped := make(map[int]int, sequence)
 
-		for i := range sequence {
+		for i := range int(sequence) {
 			j := i + rand.N(n-i)
 
 			vi, foundI := swapped[i]
@@ -282,6 +282,7 @@ func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
 
 			result[i] = sl[vj]
 		}
+
 		return result
 	}
 
@@ -430,8 +431,6 @@ func (sl Slice[T]) Get(index Int) Option[T] {
 // Shuffle shuffles the elements in the slice randomly.
 // This method modifies the original slice in place.
 //
-// The function uses the crypto/rand package to generate random indices.
-//
 // Example usage:
 //
 // slice := g.Slice[int]{1, 2, 3, 4, 5}
@@ -442,7 +441,7 @@ func (sl Slice[T]) Get(index Int) Option[T] {
 func (sl Slice[T]) Shuffle() {
 	for i := sl.Len() - 1; i > 0; i-- {
 		j := rand.N(i + 1)
-		sl.swap(i, j)
+		sl[i], sl[j] = sl[j], sl[i]
 	}
 }
 
@@ -696,9 +695,7 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 }
 
 // Random returns a random element from the slice.
-//
-// The function uses the crypto/rand package to generate a random index within the bounds of the
-// slice. If the slice is empty, the zero value of type T is returned.
+// If the slice is empty, the zero value of type T is returned.
 //
 // Returns:
 //
@@ -717,7 +714,7 @@ func (sl Slice[T]) Random() T {
 		return zero
 	}
 
-	return sl[rand.N(sl.Len())]
+	return sl[rand.IntN(len(sl))]
 }
 
 // Clone returns a copy of the slice.
@@ -992,10 +989,8 @@ func (sl Slice[T]) Swap(i, j Int) {
 		panic(jj.err)
 	}
 
-	sl.swap(ii.v, jj.v)
+	sl[ii.v], sl[jj.v] = sl[jj.v], sl[ii.v]
 }
-
-func (sl Slice[T]) swap(i, j Int) { sl[i], sl[j] = sl[j], sl[i] }
 
 // Grow increases the slice's capacity, if necessary, to guarantee space for
 // another n elements. After Grow(n), at least n elements can be appended
