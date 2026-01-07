@@ -17,6 +17,8 @@ func main() {
 	Print("Priority heap running totals: ")
 	runningTotal.Println()
 
+	priorities.Println()
+
 	// Example 2: Scan for maximum tracking in score heap
 	scores := NewHeap(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }) // Max heap
 	scores.Push(85, 92, 78, 95, 88, 91)

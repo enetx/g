@@ -714,7 +714,7 @@ func (sl Slice[T]) Random() T {
 		return zero
 	}
 
-	return sl[rand.IntN(len(sl))]
+	return sl[rand.N(len(sl))]
 }
 
 // Clone returns a copy of the slice.

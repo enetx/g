@@ -88,14 +88,13 @@ func main() {
 	slc.Push("ddd")
 
 	counter := slc.Iter().Counter().Collect()
-
-	counter.SortBy(func(a, b Pair[String, Int]) cmp.Ordering {
-		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
+	counter.SortBy(func(a, b Pair[any, Int]) cmp.Ordering {
+		return b.Value.Cmp(a.Value).Then(a.Key.(String).Cmp(b.Key.(String)))
 	})
 
 	counter.Println() // Output: MapOrd{ddd:3, abc:2, bbb:2, ccc:2, eee:2}
 
-	counter.Iter().ForEach(func(k String, v Int) { fmt.Println(k.Title(), ":", v) })
+	counter.Iter().ForEach(func(k any, v Int) { fmt.Println(k.(String).Title(), ":", v) })
 
 	sl.Iter().ForEach(func(v String) { v.Println() })
 

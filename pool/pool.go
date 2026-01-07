@@ -77,17 +77,17 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 	}
 
 	index := atomic.AddInt32(&p.totalTasks, 1) - 1
-
-	if fn == nil {
-		p.error(index, errors.New("nil function provided"))
-		return
-	}
-
 	atomic.AddInt32(&p.activeTasks, 1)
 	p.wg.Add(1)
 
 	go func(index int32) {
 		defer p.done()
+
+		if fn == nil {
+			p.error(index, errors.New("nil function provided"))
+			return
+		}
+
 		defer func() {
 			if r := recover(); r != nil {
 				p.error(index, epanic(r))
