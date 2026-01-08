@@ -4,10 +4,28 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"math"
 	"time"
 )
 
 // Scan implements the database/sql.Scanner interface.
+//
+// Behavior:
+//   - If src is nil, the Option is set to None (SQL NULL).
+//   - If T implements sql.Scanner, its Scan method is used.
+//   - If src can be directly assigned to T, it is used as-is.
+//   - Otherwise, common database type conversions are attempted
+//     (e.g. int64 -> int, []byte -> string).
+//
+// Supported conversions (driver-dependent):
+//   - INTEGER    -> int, g.Int
+//   - REAL       -> float32, float64, g.Float
+//   - TEXT       -> string, g.String
+//   - BLOB       -> []byte, g.Bytes
+//   - BOOLEAN    -> bool
+//   - TIMESTAMP  -> time.Time
+//
+// This method does not use reflection.
 func (o *Option[T]) Scan(src any) error {
 	if src == nil {
 		*o = None[T]()
@@ -38,6 +56,12 @@ func (o *Option[T]) Scan(src any) error {
 }
 
 // Value implements the database/sql/driver.Valuer interface.
+//
+// Behavior:
+//   - If the Option is None, it returns nil (SQL NULL).
+//   - If T implements driver.Valuer, its Value method is used.
+//   - If the value is a valid driver.Value, it is returned directly.
+//   - Otherwise, common conversions are applied (e.g. int -> int64).
 func (o Option[T]) Value() (driver.Value, error) {
 	if o.IsNone() {
 		return nil, nil
@@ -48,8 +72,9 @@ func (o Option[T]) Value() (driver.Value, error) {
 	}
 
 	val := any(o.v)
+
 	switch val.(type) {
-	case int64, float64, bool, []byte, string, time.Time, nil:
+	case int64, float64, bool, []byte, string, time.Time:
 		return val, nil
 	}
 
@@ -60,7 +85,7 @@ func (o Option[T]) Value() (driver.Value, error) {
 	return nil, fmt.Errorf("Option.Value: unsupported type %T", o.v)
 }
 
-// convertToT converts src to type T for common database type conversions
+// convertToT converts src to type T for common database driver conversions.
 func convertToT[T any](src any) (T, bool) {
 	var zero T
 
@@ -69,39 +94,50 @@ func convertToT[T any](src any) (T, bool) {
 		if i64, ok := src.(int64); ok {
 			return any(int(i64)).(T), true
 		}
-	case string:
-		if b, ok := src.([]byte); ok {
-			return any(string(b)).(T), true
-		}
 	case float32:
-		if f64, ok := src.(float64); ok {
-			return any(float32(f64)).(T), true
+		if v, ok := src.(float64); ok {
+			return any(float32(v)).(T), true
+		}
+	case string:
+		switch v := src.(type) {
+		case string:
+			return any(v).(T), true
+		case []byte:
+			return any(string(v)).(T), true
+		}
+	case bool:
+		if v, ok := src.(bool); ok {
+			return any(v).(T), true
+		}
+	case time.Time:
+		if v, ok := src.(time.Time); ok {
+			return any(v).(T), true
 		}
 	case String:
-		if s, ok := src.(string); ok {
-			return any(String(s)).(T), true
-		}
-		if b, ok := src.([]byte); ok {
-			return any(String(b)).(T), true
+		switch v := src.(type) {
+		case string:
+			return any(String(v)).(T), true
+		case []byte:
+			return any(String(v)).(T), true
 		}
 	case Int:
-		if i64, ok := src.(int64); ok {
-			return any(Int(i64)).(T), true
+		if v, ok := src.(int64); ok {
+			return any(Int(v)).(T), true
 		}
 	case Float:
-		if f64, ok := src.(float64); ok {
-			return any(Float(f64)).(T), true
+		if v, ok := src.(float64); ok {
+			return any(Float(v)).(T), true
 		}
 	case Bytes:
-		if b, ok := src.([]byte); ok {
-			return any(Bytes(b)).(T), true
+		if v, ok := src.([]byte); ok {
+			return any(Bytes(v)).(T), true
 		}
 	}
 
 	return zero, false
 }
 
-// convertToDriverValue converts val to a valid driver.Value type
+// convertToDriverValue converts Go values into valid driver.Value types.
 func convertToDriverValue(val any) (driver.Value, bool) {
 	switch v := val.(type) {
 	case int:
@@ -121,7 +157,10 @@ func convertToDriverValue(val any) (driver.Value, bool) {
 	case uint32:
 		return int64(v), true
 	case uint64:
-		return int64(v), true
+		if v <= math.MaxInt64 {
+			return int64(v), true
+		}
+		return nil, false
 	case float32:
 		return float64(v), true
 	case Int:
