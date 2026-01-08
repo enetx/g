@@ -1797,3 +1797,47 @@ func TestBytesIsUpper(t *testing.T) {
 		})
 	}
 }
+
+func TestBytesScan(t *testing.T) {
+	var b Bytes
+
+	if err := b.Scan(nil); err != nil {
+		t.Fatalf("Scan(nil) error: %v", err)
+	}
+	if b != nil {
+		t.Fatalf("Expected nil, got %v", b)
+	}
+
+	input := []byte{1, 2, 3}
+	if err := b.Scan(input); err != nil {
+		t.Fatalf("Scan([]byte) error: %v", err)
+	}
+	if string(b) != string(input) {
+		t.Fatalf("Expected %v, got %v", input, b)
+	}
+
+	err := b.Scan("not bytes")
+	if err == nil {
+		t.Fatal("Expected error for unsupported type")
+	}
+}
+
+func TestBytesValue(t *testing.T) {
+	b := Bytes{1, 2, 3}
+	val, err := b.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if bv, ok := val.([]byte); !ok || string(bv) != string(b) {
+		t.Fatalf("Expected %v, got %v", b, val)
+	}
+
+	var empty Bytes
+	val2, err := empty.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if val2 != nil && len(val2.([]byte)) != 0 {
+		t.Fatalf("Expected nil or empty slice, got %v", val2)
+	}
+}

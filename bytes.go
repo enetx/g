@@ -2,6 +2,7 @@ package g
 
 import (
 	"bytes"
+	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -503,3 +504,36 @@ func (bs Bytes) Print() Bytes { fmt.Print(bs); return bs }
 // Println writes the content of the Bytes to the standard output (console) with a newline
 // and returns the Bytes unchanged.
 func (bs Bytes) Println() Bytes { fmt.Println(bs); return bs }
+
+// Scan implements the database/sql.Scanner interface for g.Bytes.
+//
+// Behavior:
+//   - If src is nil, the Bytes slice is set to nil (SQL NULL).
+//   - If src is a []byte, it is assigned directly.
+//   - Otherwise, an error is returned.
+//
+// Supported SQL types (common):
+//   - BLOB / BYTEA → []byte
+//
+// Notes:
+//   - This allows g.Bytes to be used directly with database/sql and compatible drivers.
+func (bs *Bytes) Scan(src any) error {
+	if src == nil {
+		*bs = nil
+		return nil
+	}
+
+	if b, ok := src.([]byte); ok {
+		*bs = Bytes(b)
+		return nil
+	}
+
+	return fmt.Errorf("g.Bytes.Scan: cannot scan %T into g.Bytes", src)
+}
+
+// Value implements the database/sql/driver.Valuer interface for g.Bytes.
+//
+// Behavior:
+//   - Returns the underlying byte slice, ready for database insertion.
+//   - Always returns a value compatible with SQL BLOB / BYTEA types.
+func (bs Bytes) Value() (driver.Value, error) { return []byte(bs), nil }

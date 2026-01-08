@@ -1,6 +1,7 @@
 package g
 
 import (
+	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -227,3 +228,36 @@ func (i Int) Print() Int { fmt.Print(i); return i }
 // Println writes the value of the Int to the standard output (console) with a newline
 // and returns the Int unchanged.
 func (i Int) Println() Int { fmt.Println(i); return i }
+
+// Scan implements the database/sql.Scanner interface for g.Int.
+//
+// Behavior:
+//   - If src is nil, the value is set to 0 (SQL NULL).
+//   - If src is an int64 (common SQL INTEGER type), it is assigned.
+//   - Otherwise, an error is returned.
+//
+// Supported SQL types (common):
+//   - INTEGER → int64
+//
+// Notes:
+//   - This allows g.Int to be used directly with database/sql and compatible drivers.
+func (i *Int) Scan(src any) error {
+	if src == nil {
+		*i = 0
+		return nil
+	}
+
+	if i64, ok := src.(int64); ok {
+		*i = Int(i64)
+		return nil
+	}
+
+	return fmt.Errorf("g.Int.Scan: cannot scan %T into g.Int", src)
+}
+
+// Value implements the database/sql/driver.Valuer interface for g.Int.
+//
+// Behavior:
+//   - Returns the underlying int64 value, ready for database insertion.
+//   - Always returns a value compatible with SQL INTEGER type.
+func (i Int) Value() (driver.Value, error) { return int64(i), nil }

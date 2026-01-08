@@ -1,6 +1,7 @@
 package g
 
 import (
+	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -231,3 +232,36 @@ func (f Float) Print() Float { fmt.Print(f); return f }
 // Println writes the value of the Float to the standard output (console) with a newline
 // and returns the Float unchanged.
 func (f Float) Println() Float { fmt.Println(f); return f }
+
+// Scan implements the database/sql.Scanner interface for g.Float.
+//
+// Behavior:
+//   - If src is nil, the value is set to 0 (SQL NULL).
+//   - If src is a float64 (common SQL REAL/DOUBLE type), it is assigned.
+//   - Otherwise, an error is returned.
+//
+// Supported SQL types (common):
+//   - REAL / DOUBLE → float64
+//
+// Notes:
+//   - This allows g.Float to be used directly with database/sql and compatible drivers.
+func (f *Float) Scan(src any) error {
+	if src == nil {
+		*f = 0
+		return nil
+	}
+
+	if f64, ok := src.(float64); ok {
+		*f = Float(f64)
+		return nil
+	}
+
+	return fmt.Errorf("g.Float.Scan: cannot scan %T into g.Float", src)
+}
+
+// Value implements the database/sql/driver.Valuer interface for g.Float.
+//
+// Behavior:
+//   - Returns the underlying float64 value, ready for database insertion.
+//   - Always returns a value compatible with SQL REAL / DOUBLE types.
+func (f Float) Value() (driver.Value, error) { return float64(f), nil }

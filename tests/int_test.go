@@ -717,3 +717,46 @@ func TestIntUInt64(t *testing.T) {
 		}
 	}
 }
+
+func TestIntScan(t *testing.T) {
+	var i Int
+
+	if err := i.Scan(nil); err != nil {
+		t.Fatalf("Scan(nil) error: %v", err)
+	}
+	if i != 0 {
+		t.Fatalf("Expected 0, got %v", i)
+	}
+
+	if err := i.Scan(int64(42)); err != nil {
+		t.Fatalf("Scan(42) error: %v", err)
+	}
+	if i != 42 {
+		t.Fatalf("Expected 42, got %v", i)
+	}
+
+	err := i.Scan("not an int")
+	if err == nil {
+		t.Fatal("Expected error for unsupported type")
+	}
+}
+
+func TestIntValue(t *testing.T) {
+	i := Int(99)
+	val, err := i.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if iv, ok := val.(int64); !ok || iv != int64(i) {
+		t.Fatalf("Expected %v, got %v", i, val)
+	}
+
+	var zero Int
+	val2, err := zero.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if val2 != int64(0) {
+		t.Fatalf("Expected 0, got %v", val2)
+	}
+}

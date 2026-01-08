@@ -2210,3 +2210,53 @@ func TestStringIsUpper(t *testing.T) {
 		})
 	}
 }
+
+func TestStringScan(t *testing.T) {
+	var s String
+
+	if err := s.Scan(nil); err != nil {
+		t.Fatalf("Scan(nil) error: %v", err)
+	}
+	if s != "" {
+		t.Fatalf("Expected empty string, got %q", s)
+	}
+
+	if err := s.Scan("hello"); err != nil {
+		t.Fatalf("Scan(\"hello\") error: %v", err)
+	}
+	if s != "hello" {
+		t.Fatalf("Expected 'hello', got %q", s)
+	}
+
+	if err := s.Scan([]byte("bytes")); err != nil {
+		t.Fatalf("Scan([]byte) error: %v", err)
+	}
+	if s != "bytes" {
+		t.Fatalf("Expected 'bytes', got %q", s)
+	}
+
+	err := s.Scan(42)
+	if err == nil {
+		t.Fatal("Expected error for unsupported type")
+	}
+}
+
+func TestStringValue(t *testing.T) {
+	s := String("world")
+	val, err := s.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if v, ok := val.(string); !ok || v != "world" {
+		t.Fatalf("Expected 'world', got %v", val)
+	}
+
+	var empty String
+	val2, err := empty.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if v2, ok := val2.(string); !ok || v2 != "" {
+		t.Fatalf("Expected empty string, got %v", val2)
+	}
+}

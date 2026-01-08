@@ -203,7 +203,7 @@ func TestOptionValueNativeTypes(t *testing.T) {
 	now := time.Now()
 	o4 := Some(now)
 	v4, _ := o4.Value()
-	if v4.(time.Time) != now {
+	if !v4.(time.Time).Equal(now) {
 		t.Fatalf("expected %v, got %v", now, v4)
 	}
 }
@@ -241,9 +241,11 @@ func TestOptionValueUintVariants(t *testing.T) {
 
 func TestOptionValueUintOverflow(t *testing.T) {
 	o := Some(uint64(math.MaxInt64 + 1))
-	_, err := o.Value()
-	if err == nil {
-		t.Fatal("expected overflow error")
+	v, err := o.Value()
+	if err != nil {
+		t.Logf("expected overflow handling, got err=%v, v=%v", err, v)
+	} else {
+		t.Fatalf("expected overflow error, got value %v", v)
 	}
 }
 

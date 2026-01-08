@@ -627,3 +627,46 @@ func TestFloatBits(t *testing.T) {
 		}
 	}
 }
+
+func TestFloatScan(t *testing.T) {
+	var f Float
+
+	if err := f.Scan(nil); err != nil {
+		t.Fatalf("Scan(nil) error: %v", err)
+	}
+	if f != 0 {
+		t.Fatalf("Expected 0, got %v", f)
+	}
+
+	if err := f.Scan(3.14); err != nil {
+		t.Fatalf("Scan(3.14) error: %v", err)
+	}
+	if f != 3.14 {
+		t.Fatalf("Expected 3.14, got %v", f)
+	}
+
+	err := f.Scan("not a float")
+	if err == nil {
+		t.Fatal("Expected error for unsupported type")
+	}
+}
+
+func TestFloatValue(t *testing.T) {
+	f := Float(2.71)
+	val, err := f.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if fv, ok := val.(float64); !ok || fv != float64(f) {
+		t.Fatalf("Expected %v, got %v", f, val)
+	}
+
+	var zero Float
+	val2, err := zero.Value()
+	if err != nil {
+		t.Fatalf("Value() error: %v", err)
+	}
+	if val2 != float64(0) {
+		t.Fatalf("Expected 0, got %v", val2)
+	}
+}

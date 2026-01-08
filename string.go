@@ -1,6 +1,7 @@
 package g
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"math/big"
 	"slices"
@@ -833,3 +834,42 @@ func (s String) Print() String { fmt.Print(s); return s }
 // Println writes the content of the String to the standard output (console) with a newline
 // and returns the String unchanged.
 func (s String) Println() String { fmt.Println(s); return s }
+
+// Scan implements the database/sql.Scanner interface for g.String.
+//
+// Behavior:
+//   - If src is nil, the String is set to an empty string.
+//   - If src is a string, it is directly assigned.
+//   - If src is a []byte, it is converted to a string.
+//   - Otherwise, an error is returned.
+//
+// Supported SQL types (common):
+//   - TEXT / VARCHAR → string
+//   - BLOB / BYTEA  → []byte (converted to string)
+//
+// Notes:
+//   - This method allows g.String to be used directly with database/sql and compatible drivers.
+func (s *String) Scan(src any) error {
+	if src == nil {
+		*s = ""
+		return nil
+	}
+
+	switch v := src.(type) {
+	case string:
+		*s = String(v)
+		return nil
+	case []byte:
+		*s = String(v)
+		return nil
+	default:
+		return fmt.Errorf("g.String.Scan: cannot scan %T into g.String", src)
+	}
+}
+
+// Value implements the database/sql/driver.Valuer interface for g.String.
+//
+// Behavior:
+//   - Returns the underlying string value, ready for database insertion.
+//   - Always returns a value compatible with SQL TEXT / VARCHAR types.
+func (s String) Value() (driver.Value, error) { return string(s), nil }
