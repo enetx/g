@@ -13,6 +13,8 @@ import (
 	"github.com/enetx/g/internal/rlimit"
 )
 
+var ErrAllTasksDone = errors.New("all tasks completed")
+
 // Pool[T any] is a goroutine pool that allows parallel task execution.
 type Pool[T any] struct {
 	ctx           context.Context          // Context for controlling cancellation and timeouts
@@ -110,9 +112,19 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 
 // Wait waits for all submitted tasks in the pool to finish.
 func (p *Pool[T]) Wait() SeqResult[T] {
-	p.wg.Wait()
-	p.Cancel()
-	p.tokens = nil
+	defer p.Cancel(ErrAllTasksDone)
+
+	done := make(chan Unit)
+
+	go func() {
+		p.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-p.ctx.Done():
+	}
 
 	return SeqResult[T](p.results.Iter().Values())
 }
