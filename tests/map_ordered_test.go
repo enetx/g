@@ -1265,42 +1265,6 @@ func TestIsSortedByValue(t *testing.T) {
 	}
 }
 
-func TestMapOrdEntryDeleteEdgeCases(t *testing.T) {
-	// Test Delete on non-existent key
-	mo := NewMapOrd[string, int]()
-	mo.Set("a", 1)
-	mo.Set("b", 2)
-
-	entry := mo.Entry("nonexistent")
-	result := entry.Delete()
-
-	if result.IsSome() {
-		t.Errorf("Delete on non-existent key should return None")
-	}
-
-	// Verify map unchanged
-	if mo.Len() != 2 {
-		t.Errorf("Map should be unchanged after deleting non-existent key")
-	}
-
-	// Test Delete on existing key
-	entry2 := mo.Entry("a")
-	result2 := entry2.Delete()
-
-	if !result2.IsSome() || result2.Some() != 1 {
-		t.Errorf("Delete on existing key should return Some(1), got %v", result2)
-	}
-
-	if mo.Len() != 1 {
-		t.Errorf("Map should have 1 element after deletion, got %d", mo.Len())
-	}
-
-	// Verify remaining element
-	if !mo.Contains("b") || mo.Get("b").Some() != 2 {
-		t.Errorf("Remaining element should be 'b': 2")
-	}
-}
-
 func TestSeqMapOrdFindEdgeCases(t *testing.T) {
 	// Test Find with no matching elements
 	mo := NewMapOrd[string, int]()

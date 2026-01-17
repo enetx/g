@@ -18,9 +18,13 @@ func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
 	}
 }
 
-// Entry returns a MapSafeEntry for a given key, allowing for more complex atomic operations.
-func (ms *MapSafe[K, V]) Entry(key K) MapSafeEntry[K, V] {
-	return MapSafeEntry[K, V]{m: ms, key: key}
+// Entry returns a SafeEntry for the given key.
+func (ms *MapSafe[K, V]) Entry(key K) SafeEntry[K, V] {
+	if _, ok := ms.data.Load(key); ok {
+		return OccupiedSafeEntry[K, V]{m: ms, key: key}
+	}
+
+	return VacantSafeEntry[K, V]{m: ms, key: key}
 }
 
 // Keys returns a slice of the MapSafe's keys.
@@ -141,10 +145,35 @@ func (ms *MapSafe[K, V]) Get(key K) Option[V] {
 	return None[V]()
 }
 
-// Set stores the value for the given key, returning the previous value if it existed.
+// Set stores the value for the given key.
+// Returns Some(previous_value) if the key existed, None if it was newly inserted.
+//
+// Example:
+//
+//	ms := NewMapSafe[string, int]()
+//	ms.Set("a", 1)        // None (new key)
+//	ms.Set("a", 2)        // Some(1) (replaced)
+//	ms.Get("a").Some()    // 2
 func (ms *MapSafe[K, V]) Set(key K, value V) Option[V] {
 	if previous, loaded := ms.data.Swap(key, &value); loaded {
 		return Some(*(previous.(*V)))
+	}
+
+	return None[V]()
+}
+
+// TrySet inserts value only if the key is absent.
+// Returns Some(existing_value) if key already existed (no insert), None if inserted.
+//
+// Example:
+//
+//	ms := NewMapSafe[string, int]()
+//	ms.TrySet("a", 1)     // None (inserted)
+//	ms.TrySet("a", 2)     // Some(1) (already existed, not replaced)
+//	ms.Get("a").Some()    // 1
+func (ms *MapSafe[K, V]) TrySet(key K, value V) Option[V] {
+	if actual, loaded := ms.data.LoadOrStore(key, &value); loaded {
+		return Some(*(actual.(*V)))
 	}
 
 	return None[V]()

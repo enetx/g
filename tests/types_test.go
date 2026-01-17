@@ -5,14 +5,14 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestResult_Type(t *testing.T) {
 	// Test that Result can hold different types
-	var intResult g.Result[int]
-	var stringResult g.Result[string]
-	var boolResult g.Result[bool]
+	var intResult Result[int]
+	var stringResult Result[string]
+	var boolResult Result[bool]
 
 	// These should compile without issues
 	_ = intResult
@@ -22,9 +22,9 @@ func TestResult_Type(t *testing.T) {
 
 func TestOption_Type(t *testing.T) {
 	// Test that Option can hold different types
-	var intOption g.Option[int]
-	var stringOption g.Option[string]
-	var boolOption g.Option[bool]
+	var intOption Option[int]
+	var stringOption Option[string]
+	var boolOption Option[bool]
 
 	// These should compile without issues
 	_ = intOption
@@ -34,7 +34,7 @@ func TestOption_Type(t *testing.T) {
 
 func TestUnit_Type(t *testing.T) {
 	// Test Unit type
-	var unit g.Unit
+	var unit Unit
 
 	// Unit should be zero-sized
 	if unsafe.Sizeof(unit) != 0 {
@@ -42,7 +42,7 @@ func TestUnit_Type(t *testing.T) {
 	}
 
 	// Multiple Unit values should be equal
-	var unit2 g.Unit
+	var unit2 Unit
 	if unit != unit2 {
 		t.Error("Unit values should be equal")
 	}
@@ -50,7 +50,7 @@ func TestUnit_Type(t *testing.T) {
 
 func TestFile_Type(t *testing.T) {
 	// Test File struct has expected fields
-	var file g.File
+	var file File
 
 	// Should be able to access fields (compile-time test)
 	_ = file
@@ -61,13 +61,13 @@ func TestFile_Type(t *testing.T) {
 
 func TestDir_Type(t *testing.T) {
 	// Test Dir struct
-	var dir g.Dir
+	var dir Dir
 	_ = dir
 }
 
 func TestString_Type(t *testing.T) {
 	// Test String type alias
-	var gStr g.String = "test"
+	var gStr String = "test"
 	var stdStr string = string(gStr)
 
 	if stdStr != "test" {
@@ -75,7 +75,7 @@ func TestString_Type(t *testing.T) {
 	}
 
 	// Test that String can be converted back
-	gStr2 := g.String(stdStr)
+	gStr2 := String(stdStr)
 	if gStr != gStr2 {
 		t.Errorf("String round-trip failed: got %q, want %q", gStr2, gStr)
 	}
@@ -83,7 +83,7 @@ func TestString_Type(t *testing.T) {
 
 func TestInt_Type(t *testing.T) {
 	// Test Int type alias
-	var gInt g.Int = 42
+	var gInt Int = 42
 	var stdInt int = int(gInt)
 
 	if stdInt != 42 {
@@ -91,7 +91,7 @@ func TestInt_Type(t *testing.T) {
 	}
 
 	// Test that Int can be converted back
-	gInt2 := g.Int(stdInt)
+	gInt2 := Int(stdInt)
 	if gInt != gInt2 {
 		t.Errorf("Int round-trip failed: got %d, want %d", gInt2, gInt)
 	}
@@ -99,7 +99,7 @@ func TestInt_Type(t *testing.T) {
 
 func TestFloat_Type(t *testing.T) {
 	// Test Float type alias
-	var gFloat g.Float = 3.14
+	var gFloat Float = 3.14
 	var stdFloat float64 = float64(gFloat)
 
 	if stdFloat != 3.14 {
@@ -107,7 +107,7 @@ func TestFloat_Type(t *testing.T) {
 	}
 
 	// Test that Float can be converted back
-	gFloat2 := g.Float(stdFloat)
+	gFloat2 := Float(stdFloat)
 	if gFloat != gFloat2 {
 		t.Errorf("Float round-trip failed: got %f, want %f", gFloat2, gFloat)
 	}
@@ -115,7 +115,7 @@ func TestFloat_Type(t *testing.T) {
 
 func TestBytes_Type(t *testing.T) {
 	// Test Bytes type alias
-	var gBytes g.Bytes = []byte("test")
+	var gBytes Bytes = []byte("test")
 	var stdBytes []byte = []byte(gBytes)
 
 	if string(stdBytes) != "test" {
@@ -123,7 +123,7 @@ func TestBytes_Type(t *testing.T) {
 	}
 
 	// Test that Bytes can be converted back
-	gBytes2 := g.Bytes(stdBytes)
+	gBytes2 := Bytes(stdBytes)
 	if string(gBytes) != string(gBytes2) {
 		t.Errorf("Bytes round-trip failed: got %q, want %q", string(gBytes2), string(gBytes))
 	}
@@ -131,8 +131,8 @@ func TestBytes_Type(t *testing.T) {
 
 func TestSlice_Type(t *testing.T) {
 	// Test Slice generic type alias
-	var intSlice g.Slice[int] = []int{1, 2, 3}
-	var stringSlice g.Slice[string] = []string{"a", "b", "c"}
+	var intSlice Slice[int] = []int{1, 2, 3}
+	var stringSlice Slice[string] = []string{"a", "b", "c"}
 
 	// Test conversion to standard slices
 	stdIntSlice := []int(intSlice)
@@ -148,8 +148,8 @@ func TestSlice_Type(t *testing.T) {
 
 func TestMap_Type(t *testing.T) {
 	// Test Map generic type alias
-	var intMap g.Map[string, int] = map[string]int{"one": 1, "two": 2}
-	var stringMap g.Map[int, string] = map[int]string{1: "one", 2: "two"}
+	var intMap Map[string, int] = map[string]int{"one": 1, "two": 2}
+	var stringMap Map[int, string] = map[int]string{1: "one", 2: "two"}
 
 	// Test conversion to standard maps
 	stdIntMap := map[string]int(intMap)
@@ -163,25 +163,25 @@ func TestMap_Type(t *testing.T) {
 	}
 }
 
-func TestMapEntry_Type(t *testing.T) {
+func TestEntry_Type(t *testing.T) {
 	// Test MapEntry struct
-	var entry g.MapEntry[string, int]
+	var entry Entry[string, int]
 	_ = entry
 }
 
-func TestMapSafeEntry_Type(t *testing.T) {
+func TestSafeEntry_Type(t *testing.T) {
 	// Test MapSafeEntry struct
-	var safeEntry g.MapSafeEntry[string, int]
+	var safeEntry SafeEntry[string, int]
 	_ = safeEntry
 }
 
 func TestSet_Type(t *testing.T) {
 	// Test Set type alias
-	var stringSet g.Set[string] = make(g.Set[string])
-	stringSet["test"] = g.Unit{}
+	var stringSet Set[string] = make(Set[string])
+	stringSet["test"] = Unit{}
 
 	// Test conversion to standard map
-	stdMap := map[string]g.Unit(stringSet)
+	stdMap := map[string]Unit(stringSet)
 	if _, ok := stdMap["test"]; !ok {
 		t.Error("Set[string] conversion failed")
 	}
@@ -189,7 +189,7 @@ func TestSet_Type(t *testing.T) {
 
 func TestPair_Type(t *testing.T) {
 	// Test Pair struct
-	pair := g.Pair[string, int]{Key: "test", Value: 42}
+	pair := Pair[string, int]{Key: "test", Value: 42}
 
 	if pair.Key != "test" || pair.Value != 42 {
 		t.Errorf("Pair creation failed: got Key=%q, Value=%d", pair.Key, pair.Value)
@@ -198,7 +198,7 @@ func TestPair_Type(t *testing.T) {
 
 func TestMapOrd_Type(t *testing.T) {
 	// Test MapOrd type alias
-	orderedMap := g.NewMapOrd[string, int]()
+	orderedMap := NewMapOrd[string, int]()
 	orderedMap.Set("first", 1)
 	orderedMap.Set("second", 2)
 
@@ -211,15 +211,15 @@ func TestMapOrd_Type(t *testing.T) {
 	}
 }
 
-func TestMapOrdEntry_Type(t *testing.T) {
+func TestOrdEntry_Type(t *testing.T) {
 	// Test MapOrdEntry struct
-	var ordEntry g.MapOrdEntry[string, int]
+	var ordEntry OrdEntry[string, int]
 	_ = ordEntry
 }
 
 func TestMapSafe_Type(t *testing.T) {
 	// Test MapSafe struct
-	var safeMap g.MapSafe[string, int]
+	var safeMap MapSafe[string, int]
 	_ = safeMap
 
 	// Test that it contains sync.Map
@@ -230,7 +230,7 @@ func TestMapSafe_Type(t *testing.T) {
 
 func TestNamed_Type(t *testing.T) {
 	// Test Named type alias
-	var named g.Named = g.Named{
+	var named Named = Named{
 		"name": "test",
 		"age":  42,
 	}

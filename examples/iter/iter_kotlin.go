@@ -13,7 +13,7 @@ import (
 func main() {
 	fruits := SliceOf("banana", "avocado", "apple", "kiwifruit").Iter()
 	fruits.
-		// Filter(f.RxMatch[string](regexp.MustCompile("a"))).
+		// Filter(f.Match[string](regexp.MustCompile("a"))).
 		Filter(f.StartsWith("a")).
 		SortBy(cmp.Cmp).
 		Map(strings.ToUpper).

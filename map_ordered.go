@@ -35,21 +35,14 @@ func NewMapOrd[K comparable, V any](size ...Int) MapOrd[K, V] {
 // Transform applies a transformation function to the MapOrd and returns the result.
 func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
 
-// Entry returns a MapOrdEntry object for the given key, providing fine-grained
-// control over insertion, mutation, and deletion of its value in the ordered Map,
-// while preserving the insertion order.
-//
-// Example:
-//
-//	mo := g.NewMapOrd[string, int]()
-//	// Insert 1 if "foo" is absent, then increment it
-//	e := mo.Entry("foo")
-//	e.OrSet(1).
-//	e.Transform(func(v int) int { return v + 1 })
-//
-// The entire operation requires only a single key lookup and works without
-// additional allocations.
-func (mo *MapOrd[K, V]) Entry(key K) MapOrdEntry[K, V] { return MapOrdEntry[K, V]{mo, key} }
+// Entry returns an OrdEntry for the given key.
+func (mo *MapOrd[K, V]) Entry(key K) OrdEntry[K, V] {
+	if i := mo.index(key); i != -1 {
+		return OccupiedOrdEntry[K, V]{mo: mo, key: key, index: i}
+	}
+
+	return VacantOrdEntry[K, V]{mo: mo, key: key}
+}
 
 // Iter returns an iterator (SeqMapOrd[K, V]) for the ordered Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,

@@ -381,24 +381,21 @@ func (p SeqSlicePar[V]) Take(n Int) SeqSlicePar[V] {
 	}
 }
 
-// Unique removes duplicate elements, preserving the first occurrence.
+// // Unique removes duplicate elements, preserving the first occurrence.
 func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 	prev := p.process
 	seen := NewMapSafe[any, Unit]()
-
 	return SeqSlicePar[V]{
 		seq:     p.seq,
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if loaded := seen.Entry(mid).OrSet(Unit{}); loaded.IsSome() {
-					var zero V
-					return zero, false
+				if seen.TrySet(mid, Unit{}).IsNone() {
+					return mid, true
 				}
-
-				return mid, true
+				var zero V
+				return zero, false
 			}
-
 			var zero V
 			return zero, false
 		},

@@ -16,20 +16,14 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 // Transform applies a transformation function to the Map and returns the result.
 func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
 
-// Entry returns an MapEntry object for the given key, providing fine‑grained
-// control over insertion and modification of its value.
-//
-// Example:
-//
-//	m := g.NewMap[string, int]()
-//	// Insert 1 if "foo" is absent, then increment it
-//	e := m.Entry("foo")
-//	e.OrSet(1)
-//	e.Transform(func(v int) int { return v + 1 })
-//
-// The entire operation requires only a single key lookup and works without
-// additional allocations.
-func (m Map[K, V]) Entry(key K) MapEntry[K, V] { return MapEntry[K, V]{m, key} }
+// Entry returns an Entry for the given key.
+func (m Map[K, V]) Entry(key K) Entry[K, V] {
+	if _, ok := m[key]; ok {
+		return OccupiedEntry[K, V]{m: m, key: key}
+	}
+
+	return VacantEntry[K, V]{m: m, key: key}
+}
 
 // Iter returns an iterator (SeqMap[K, V]) for the Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,

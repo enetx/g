@@ -25,7 +25,7 @@ func (r regexpb) Find(pattern *regexp.Regexp) Option[Bytes] {
 }
 
 // Match checks if the Bytes contains a match for the specified regular expression pattern.
-func (r regexpb) Match(pattern *regexp.Regexp) bool { return f.Match[Bytes](pattern)(r.bytes) }
+func (r regexpb) Match(pattern *regexp.Regexp) bool { return f.Match[[]byte](pattern)(r.bytes) }
 
 // MatchAny checks if the Bytes contains a match for any of the specified regular
 // expression patterns.

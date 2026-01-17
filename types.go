@@ -56,22 +56,6 @@ type (
 	// Map is a generic alias for a map.
 	Map[K comparable, V any] map[K]V
 
-	// MapEntry provides a view into a single key of a Map.
-	// It exposes a fluent, chain-friendly interface for inspecting, inserting,
-	// mutating, or deleting a value with a single key lookup.
-	MapEntry[K comparable, V any] struct {
-		m   Map[K, V]
-		key K
-	}
-
-	// MapSafeEntry provides a view into a single key of a concurrent-safe Map.
-	// It exposes a fluent, chain-friendly interface for inspecting, inserting,
-	// mutating, or deleting a value with a single key lookup.
-	MapSafeEntry[K comparable, V any] struct {
-		m   *MapSafe[K, V]
-		key K
-	}
-
 	// Set is a generic alias for a set implemented using a map.
 	Set[T comparable] map[T]Unit
 
@@ -81,13 +65,6 @@ type (
 	// MapOrd is an ordered map that maintains insertion order using a slice for pairs
 	// and a map for fast index lookups.
 	MapOrd[K comparable, V any] []Pair[K, V] // ordered key-value pairs
-
-	// MapOrdEntry provides a view into a single key of an ordered Map (MapOrd),
-	// enabling fluent insertion, mutation, and deletion while preserving entry order.
-	MapOrdEntry[K comparable, V any] struct {
-		mo  *MapOrd[K, V]
-		key K
-	}
 
 	// MapSafe is a concurrent-safe generic map built on sync.Map.
 	MapSafe[K comparable, V any] struct {
@@ -107,6 +84,121 @@ type (
 		data  Slice[T]
 		front Int
 		len   Int
+	}
+
+	// Entry is a sealed interface representing a view into a single Map entry.
+	//
+	// Entry provides an API for in-place manipulation of map entries, enabling
+	// efficient "get or insert" patterns without redundant lookups.
+	//
+	// The interface is sealed to ensure type safety; implementations are limited
+	// to [OccupiedEntry] (when the key exists) and [VacantEntry] (when the key
+	// is absent). Use a type switch to access type-specific methods like Get,
+	// Insert, or Remove.
+	//
+	// Common usage patterns:
+	//
+	//	// Increment existing value or insert default
+	//	m.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+	//
+	//	// Insert only if absent
+	//	m.Entry("key").OrInsert(defaultValue)
+	//
+	//	// Insert with lazy initialization
+	//	m.Entry("key").OrInsertWith(func() V { return expensiveComputation() })
+	//
+	//	// Type switch for fine-grained control
+	//	switch e := m.Entry("key").(type) {
+	//	case OccupiedEntry[string, int]:
+	//	    fmt.Println("exists:", e.Get())
+	//	case VacantEntry[string, int]:
+	//	    e.Insert(42)
+	//	}
+	Entry[K comparable, V any] interface {
+		sealed()
+		Key() K
+		OrInsert(value V) V
+		OrInsertWith(fn func() V) V
+		OrInsertWithKey(fn func(K) V) V
+		OrDefault() V
+		AndModify(fn func(*V)) Entry[K, V]
+	}
+
+	// OrdEntry is a sealed interface representing a view into a single MapOrd entry.
+	//
+	// OrdEntry provides an API for in-place manipulation of ordered map entries,
+	// enabling efficient "get or insert" patterns without redundant lookups while
+	// preserving insertion order.
+	//
+	// The interface is sealed to ensure type safety; implementations are limited
+	// to [OccupiedOrdEntry] (when the key exists) and [VacantOrdEntry] (when the
+	// key is absent). Use a type switch to access type-specific methods like Get,
+	// Insert, or Remove.
+	//
+	// Common usage patterns:
+	//
+	//	// Increment existing value or insert default
+	//	mo.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+	//
+	//	// Insert only if absent (appends to end)
+	//	mo.Entry("key").OrInsert(defaultValue)
+	//
+	//	// Type switch for fine-grained control
+	//	switch e := mo.Entry("key").(type) {
+	//	case OccupiedOrdEntry[string, int]:
+	//	    fmt.Println("exists:", e.Get())
+	//	case VacantOrdEntry[string, int]:
+	//	    e.Insert(42)
+	//	}
+	OrdEntry[K comparable, V any] interface {
+		sealed()
+		Key() K
+		OrInsert(value V) V
+		OrInsertWith(fn func() V) V
+		OrInsertWithKey(fn func(K) V) V
+		OrDefault() V
+		AndModify(fn func(*V)) OrdEntry[K, V]
+	}
+
+	// SafeEntry is a sealed interface representing a view into a single MapSafe entry.
+	//
+	// SafeEntry provides an API for in-place manipulation of concurrent map entries,
+	// enabling efficient "get or insert" patterns that are safe for concurrent use
+	// by multiple goroutines.
+	//
+	// The interface is sealed to ensure type safety; implementations are limited
+	// to [OccupiedSafeEntry] (when the key exists) and [VacantSafeEntry] (when the
+	// key is absent). Use a type switch to access type-specific methods like Get,
+	// Insert, or Remove.
+	//
+	// Concurrency notes:
+	//   - AndModify uses a compare-and-swap (CAS) loop for atomic updates
+	//   - VacantSafeEntry stores pending modifications to handle insertion races
+	//   - All operations are safe for concurrent use without external locking
+	//
+	// Common usage patterns:
+	//
+	//	// Thread-safe increment or insert (safe for concurrent goroutines)
+	//	ms.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+	//
+	//	// Thread-safe insert only if absent
+	//	ms.Entry("key").OrInsert(defaultValue)
+	//
+	//	// Type switch for fine-grained control
+	//	switch e := ms.Entry("key").(type) {
+	//	case OccupiedSafeEntry[string, int]:
+	//	    fmt.Println("exists:", e.Get())
+	//	case VacantSafeEntry[string, int]:
+	//	    e.Insert(42)
+	//	}
+	SafeEntry[K comparable, V any] interface {
+		sealed()
+		Key() K
+		OrInsert(value V) V
+		OrInsertWith(fn func() V) V
+		OrInsertWithKey(fn func(K) V) V
+		OrDefault() V
+		AndModify(fn func(*V)) SafeEntry[K, V]
 	}
 
 	// Named is a map-like type that stores key-value pairs for resolving named

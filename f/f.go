@@ -24,7 +24,14 @@ func IsOdd[T constraints.Integer](i T) bool { return i%2 != 0 }
 // Match returns a function that checks whether a string or []byte matches a given regular expression.
 func Match[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
 	return func(s T) bool {
-		return t.MatchString(string(s))
+		switch v := any(s).(type) {
+		case string:
+			return t.MatchString(v)
+		case []byte:
+			return t.Match(v)
+		default:
+			return false
+		}
 	}
 }
 

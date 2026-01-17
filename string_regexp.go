@@ -38,7 +38,7 @@ func (r regexps) ReplaceBy(pattern *regexp.Regexp, fn func(match String) String)
 }
 
 // Match checks if the String contains a match for the specified regular expression pattern.
-func (r regexps) Match(pattern *regexp.Regexp) bool { return f.Match[String](pattern)(r.str) }
+func (r regexps) Match(pattern *regexp.Regexp) bool { return f.Match[string](pattern)(r.str.Std()) }
 
 // MatchAny checks if the String contains a match for any of the specified regular
 // expression patterns.
