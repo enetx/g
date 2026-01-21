@@ -558,8 +558,8 @@ g.String("42").ToInt()          // Result[Int]
 
 // Encoding
 s.Hash().MD5()                  // hash
-s.Enc().Base64()                // encode
-s.Comp().Gzip()                 // compress
+s.Encode().Base64()             // encode
+s.Compress().Gzip()             // compress
 ```
 
 ---
@@ -624,12 +624,26 @@ content := g.NewFile("config.json").Read()      // Result[String]
 g.NewFile("output.txt").Write("Hello")
 g.NewFile("log.txt").Append("line\n")
 
-// Lazy line reading (memory efficient)
-for line := range g.NewFile("large.txt").Lines() {
-    if line.IsOk() {
-        fmt.Println(line.Unwrap())
-    }
-}
+// Open a new file with the specified name "text.txt" and process it line by line.
+NewFile("text.txt").
+	Lines().                            // Reads the file line by line.
+	Skip(2).                            // Skips the first 2 lines in the iterator.
+	Exclude(f.IsZero).                  // Excludes lines that are empty or contain only whitespaces.
+	Dedup().                            // Removes consecutive duplicate lines.
+	Map(String.Upper).                  // Converts each line to uppercase.
+	Range(func(s Result[String]) bool { // Iterates over the lines while a condition is true.
+		if s.IsErr() { // Handles any errors encountered while reading lines.
+			fmt.Println("Error:", s.Err())
+			return false // Stops the iteration if an error occurs.
+		}
+
+		if s.Ok().Contains("COULD") { // Checks if the line contains the substring "COULD".
+			return false // Stops the iteration if the condition is met.
+		}
+
+		fmt.Println(s.Ok()) // Prints the line.
+		return true         // Continues the iteration.
+	})
 
 // Properties
 f := g.NewFile("test.txt")
