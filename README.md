@@ -625,13 +625,13 @@ g.NewFile("output.txt").Write("Hello")
 g.NewFile("log.txt").Append("line\n")
 
 // Open a new file with the specified name "text.txt" and process it line by line.
-NewFile("text.txt").
+g.NewFile("text.txt").
 	Lines().                            // Reads the file line by line.
 	Skip(2).                            // Skips the first 2 lines in the iterator.
 	Exclude(f.IsZero).                  // Excludes lines that are empty or contain only whitespaces.
 	Dedup().                            // Removes consecutive duplicate lines.
-	Map(String.Upper).                  // Converts each line to uppercase.
-	Range(func(s Result[String]) bool { // Iterates over the lines while a condition is true.
+	Map(g.String.Upper).                // Converts each line to uppercase.
+	Range(func(s g.Result[g.String]) bool { // Iterates over the lines while a condition is true.
 		if s.IsErr() { // Handles any errors encountered while reading lines.
 			fmt.Println("Error:", s.Err())
 			return false // Stops the iteration if an error occurs.
@@ -675,14 +675,25 @@ for file := range g.NewDir(".").Read() {
     }
 }
 
-// Recursive walk
-for file := range g.NewDir(".").Walk() { ... }
+// Recursively walk through the directory tree starting from the current directory
+g.NewDir(".").Walk().
+	// Exclude directories and symlinked directories
+	Exclude(func(f *g.File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
+	// Exclude all symbolic links (files or directories)
+	Exclude((*File).IsLink).
+	// Process each walk result
+	ForEach(func(v g.Result[*g.File]) {
+		if v.IsOk() {
+			// Print the path of the file if no error occurred
+			v.Ok().Path().Ok().Println()
+		}
+	})
 
-// Glob
-for file := range g.NewDir("*.txt").Glob() { ... }
+// Iterate over and print the names of files in the current directory with a *.go extension
+g.NewDir("*.go").Glob().ForEach(func(f g.Result[*g.File]) { f.Ok().Name().Println() })
 
-g.NewDir("src").Copy("dst")         // copy directory
-g.NewDir("mydir").Remove()          // remove (recursive)
+// Copy the contents of the current directory to a new directory named "copy".
+g.NewDir(".").Copy("copy").Unwrap()
 ```
 
 ---
