@@ -39,7 +39,7 @@ func main() {
 
     // Safe map access with Option
     m := g.NewMap[string, int]()
-    m.Set("key", 42)
+    m.Insert("key", 42)
 
     value := m.Get("key").UnwrapOr(0)
     fmt.Println(value) // 42
@@ -207,7 +207,7 @@ Extended map with Entry API.
 ```go
 m := g.NewMap[string, int]()
 
-m.Set("a", 1)                   // set value
+m.Insert("a", 1)                // insert value
 m.Get("a")                      // Some(1)
 m.Get("x")                      // None
 m.Contains("a")                 // true
@@ -706,9 +706,9 @@ Maintains insertion order.
 
 ```go
 m := g.NewMapOrd[string, int]()
-m.Set("c", 3)
-m.Set("a", 1)
-m.Set("b", 2)
+m.Insert("c", 3)
+m.Insert("a", 1)
+m.Insert("b", 2)
 
 for k, v := range m.Iter() {
     fmt.Println(k, v)  // c, a, b order
@@ -726,7 +726,7 @@ Thread-safe for concurrent access.
 m := g.NewMapSafe[string, int]()
 
 // Safe from multiple goroutines
-go func() { m.Set("a", 1) }()
+go func() { m.Insert("a", 1) }()
 go func() { m.Get("a") }()
 ```
 
