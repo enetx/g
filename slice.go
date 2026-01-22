@@ -14,6 +14,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// Slice is a generic alias for a slice.
+type Slice[T any] []T
+
 // NewSlice creates a new Slice of the given generic type T with the specified length and
 // capacity.
 // The size variadic parameter can have zero, one, or two integer values.
@@ -164,7 +167,7 @@ func (sl Slice[T]) IterReverse() SeqSlice[T] { return SeqSlice[T](iter.FromSlice
 // Note: AsAny is useful when you want to work with a slice of a specific type as a slice of 'any'.
 // It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
 func (sl Slice[T]) AsAny() Slice[any] {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		return NewSlice[any]()
 	}
 
@@ -326,7 +329,7 @@ func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
 //
 // The resulting slice will be: ["a", "b", "e", "f", "c", "d"].
 func (sl *Slice[T]) Insert(i Int, values ...T) {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		if i != 0 {
 			panic(Errorf("runtime error: slice bounds out of range [{}] with length 0", i))
 		}
@@ -572,7 +575,7 @@ func (sl Slice[T]) ToStringSlice() []string {
 
 // Join joins the elements in the slice into a single String, separated by the provided separator (if any).
 func (sl Slice[T]) Join(sep ...T) String {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		return ""
 	}
 
@@ -640,7 +643,7 @@ func (sl Slice[T]) Join(sep ...T) String {
 //
 // Output: [2 4 6].
 func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		return sl
 	}
 
@@ -709,7 +712,7 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 //
 // Output: <any random element from the slice>.
 func (sl Slice[T]) Random() T {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		var zero T
 		return zero
 	}
@@ -719,7 +722,7 @@ func (sl Slice[T]) Random() T {
 
 // Clone returns a copy of the slice.
 func (sl Slice[T]) Clone() Slice[T] {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		return NewSlice[T]()
 	}
 
@@ -728,7 +731,7 @@ func (sl Slice[T]) Clone() Slice[T] {
 
 // LastIndex returns the last index of the slice.
 func (sl Slice[T]) LastIndex() Int {
-	if sl.NotEmpty() {
+	if !sl.IsEmpty() {
 		return sl.Len() - 1
 	}
 
@@ -850,7 +853,7 @@ func (sl Slice[T]) ContainsBy(fn func(t T) bool) bool { return sl.IndexBy(fn) >=
 
 // ContainsAny checks if the Slice contains any element from another Slice.
 func (sl Slice[T]) ContainsAny(values ...T) bool {
-	if sl.Empty() || len(values) == 0 {
+	if sl.IsEmpty() || len(values) == 0 {
 		return false
 	}
 
@@ -859,7 +862,7 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 
 // ContainsAll checks if the Slice contains all elements from another Slice.
 func (sl Slice[T]) ContainsAll(values ...T) bool {
-	if sl.Empty() || len(values) == 0 {
+	if sl.IsEmpty() || len(values) == 0 {
 		return len(values) == 0
 	}
 
@@ -872,7 +875,7 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 	return true
 }
 
-// Delete removes an element or a range of elements from the Slice in-place.
+// Remove removes an element or a range of elements from the Slice in-place.
 // It modifies the original Slice by creating two slices: one from the
 // beginning of the Slice up to the specified `start` index (exclusive),
 // and another from the `end` index (inclusive) to the end of the Slice.
@@ -884,17 +887,35 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 //   - end (Int, optional): The end index of the range to be removed.
 //     If omitted, only the element at the `start` index is removed.
 //
-// Note:
-//
-// The function supports negative indices. Negative values are counted from
-// the end of the Slice: for example, -1 refers to the last element, -2 to
-// the second-to-last, and so on.
-func (sl *Slice[T]) Delete(start Int, end ...Int) {
-	sl.Replace(start, Slice[Int](end).Get(0).UnwrapOr(start+1))
+// Remove removes and returns the element at the specified index.
+// Returns None if index is out of bounds.
+// Negative indices are supported: -1 refers to the last element, etc.
+func (sl *Slice[T]) Remove(index Int) Option[T] {
+	if sl.IsEmpty() {
+		return None[T]()
+	}
+
+	length := sl.Len()
+
+	if index < 0 {
+		index += length
+	}
+
+	if index < 0 || index >= length {
+		return None[T]()
+	}
+
+	value := (*sl)[index]
+	*sl = append((*sl)[:index], (*sl)[index+1:]...)
+
+	return Some(value)
 }
 
-// Empty returns true if the slice is empty.
-func (sl Slice[T]) Empty() bool { return len(sl) == 0 }
+// IsEmpty returns true if the slice is empty.
+func (sl Slice[T]) IsEmpty() bool { return len(sl) == 0 }
+
+// First returns the first element of the slice.
+func (sl Slice[T]) First() Option[T] { return sl.Get(0) }
 
 // Last returns the last element of the slice.
 func (sl Slice[T]) Last() Option[T] { return sl.Get(-1) }
@@ -908,9 +929,6 @@ func (sl Slice[T]) Ne(other Slice[T]) bool { return !sl.Eq(other) }
 // increasing index order, and the comparison stops at the first index
 // for which fn returns true.
 func (sl Slice[T]) NeBy(other Slice[T], fn func(x, y T) bool) bool { return !sl.EqBy(other, fn) }
-
-// NotEmpty checks if the Slice is not empty.
-func (sl Slice[T]) NotEmpty() bool { return !sl.Empty() }
 
 // Pop removes and returns the last element of the slice.
 // It mutates the original slice by removing the last element.
@@ -1059,7 +1077,7 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
 func (sl Slice[T]) bound(i Int, subslice ...Unit) Result[Int] {
-	if sl.Empty() {
+	if sl.IsEmpty() {
 		return Err[Int](errors.New("runtime error: slice is empty"))
 	}
 

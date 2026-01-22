@@ -190,11 +190,11 @@ s.Shuffle()                     // random order
 | Category | Methods |
 |----------|---------|
 | **Access** | `Get`, `Last`, `First`, `Random`, `RandomSample` |
-| **Modify** | `Set`, `Push`, `Pop`, `Insert`, `Delete`, `Clear` |
+| **Modify** | `Set`, `Push`, `Pop`, `Insert`, `Remove`, `Clear` |
 | **Search** | `Contains`, `ContainsBy`, `Index`, `IndexBy` |
 | **Transform** | `Clone`, `Reverse`, `Shuffle`, `SortBy`, `SubSlice` |
 | **Convert** | `Iter`, `ToHeap`, `ToSet`, `Std` |
-| **Info** | `Len`, `Cap`, `Empty`, `NotEmpty` |
+| **Info** | `Len`, `Cap`, `IsEmpty` |
 
 </details>
 
@@ -211,7 +211,7 @@ m.Set("a", 1)                   // set value
 m.Get("a")                      // Some(1)
 m.Get("x")                      // None
 m.Contains("a")                 // true
-m.Delete("a")                   // delete
+m.Remove("a")                   // remove
 
 m.Keys()                        // Slice of keys
 m.Values()                      // Slice of values

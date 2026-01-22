@@ -9,9 +9,9 @@ import (
 
 func TestMap_Iter_Keys(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("one", 1)
-	m.Set("two", 2)
-	m.Set("three", 3)
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
 
 	keys := m.Iter().Keys().Collect()
 
@@ -31,9 +31,9 @@ func TestMap_Iter_Keys(t *testing.T) {
 
 func TestMap_Iter_Values(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("one", 1)
-	m.Set("two", 2)
-	m.Set("three", 3)
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
 
 	values := m.Iter().Values().Collect()
 
@@ -53,8 +53,8 @@ func TestMap_Iter_Values(t *testing.T) {
 
 func TestMap_Iter_Collect(t *testing.T) {
 	original := g.NewMap[string, int]()
-	original.Set("a", 1)
-	original.Set("b", 2)
+	original.Insert("a", 1)
+	original.Insert("b", 2)
 
 	collected := original.Iter().Collect()
 
@@ -73,10 +73,10 @@ func TestMap_Iter_Collect(t *testing.T) {
 
 func TestMap_Iter_Filter(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("one", 1)
-	m.Set("two", 2)
-	m.Set("three", 3)
-	m.Set("four", 4)
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+	m.Insert("four", 4)
 
 	filtered := m.Iter().
 		Filter(func(k string, v int) bool { return v%2 == 0 }).
@@ -93,9 +93,9 @@ func TestMap_Iter_Filter(t *testing.T) {
 
 func TestMap_Iter_Count(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("a", 1)
-	m.Set("b", 2)
-	m.Set("c", 3)
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
 
 	count := m.Iter().Count()
 
@@ -106,10 +106,10 @@ func TestMap_Iter_Count(t *testing.T) {
 
 func TestMap_Iter_Take(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("one", 1)
-	m.Set("two", 2)
-	m.Set("three", 3)
-	m.Set("four", 4)
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+	m.Insert("four", 4)
 
 	taken := m.Iter().Take(2).Collect()
 
@@ -139,9 +139,9 @@ func TestMap_Iter_EmptyMap(t *testing.T) {
 
 func TestMap_Iter_Pull(t *testing.T) {
 	m := g.NewMap[string, int]()
-	m.Set("a", 1)
-	m.Set("b", 2)
-	m.Set("c", 3)
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
 
 	iter := m.Iter()
 	next, stop := iter.Pull()
@@ -169,11 +169,11 @@ func TestMap_Iter_Pull(t *testing.T) {
 func TestMapIterContext(t *testing.T) {
 	t.Run("context cancellation stops iteration", func(t *testing.T) {
 		m := g.NewMap[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
-		m.Set("three", 3)
-		m.Set("four", 4)
-		m.Set("five", 5)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
+		m.Insert("three", 3)
+		m.Insert("four", 4)
+		m.Insert("five", 5)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -199,8 +199,8 @@ func TestMapIterContext(t *testing.T) {
 
 	t.Run("context timeout", func(t *testing.T) {
 		m := g.NewMap[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
@@ -221,11 +221,11 @@ func TestMapIterContext(t *testing.T) {
 func TestMapIterNth(t *testing.T) {
 	t.Run("nth element exists", func(t *testing.T) {
 		m := g.NewMap[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
-		m.Set("fourth", 4)
-		m.Set("fifth", 5)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
+		m.Insert("fourth", 4)
+		m.Insert("fifth", 5)
 
 		// Get the 2nd pair (0-indexed)
 		nth := m.Iter().Nth(2)
@@ -243,8 +243,8 @@ func TestMapIterNth(t *testing.T) {
 
 	t.Run("nth element out of bounds", func(t *testing.T) {
 		m := g.NewMap[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
 
 		nth := m.Iter().Nth(5)
 
@@ -255,8 +255,8 @@ func TestMapIterNth(t *testing.T) {
 
 	t.Run("negative index", func(t *testing.T) {
 		m := g.NewMap[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
 
 		nth := m.Iter().Nth(-1)
 
@@ -279,10 +279,10 @@ func TestMapIterNth(t *testing.T) {
 func TestSeqMapFilterMap(t *testing.T) {
 	// Test FilterMap with config validation
 	configs := g.NewMap[string, string]()
-	configs.Set("host", "localhost")
-	configs.Set("port", "8080")
-	configs.Set("debug", "invalid")
-	configs.Set("timeout", "30")
+	configs.Insert("host", "localhost")
+	configs.Insert("port", "8080")
+	configs.Insert("debug", "invalid")
+	configs.Insert("timeout", "30")
 
 	validConfigs := configs.Iter().FilterMap(func(k, v string) g.Option[g.Pair[string, string]] {
 		// Keep only port and host configs with validation suffix
@@ -313,10 +313,10 @@ func TestSeqMapFilterMap(t *testing.T) {
 
 	// Test FilterMap with age filtering
 	users := g.NewMap[string, int]()
-	users.Set("alice", 25)
-	users.Set("bob", 17)
-	users.Set("charlie", 30)
-	users.Set("diana", 16)
+	users.Insert("alice", 25)
+	users.Insert("bob", 17)
+	users.Insert("charlie", 30)
+	users.Insert("diana", 16)
 
 	adults := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
 		if age >= 18 {

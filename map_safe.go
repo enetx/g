@@ -2,9 +2,15 @@ package g
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/enetx/g/f"
 )
+
+// MapSafe is a concurrent-safe generic map built on sync.Map.
+type MapSafe[K comparable, V any] struct {
+	data sync.Map
+}
 
 // NewMapSafe creates a new instance of MapSafe.
 func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} }
@@ -51,19 +57,6 @@ func (ms *MapSafe[K, V]) Values() Slice[V] {
 	return values
 }
 
-// Invert inverts keys and values. The new map will also follow the pointer-storage rule.
-func (ms *MapSafe[K, V]) Invert() *MapSafe[any, K] {
-	res := NewMapSafe[any, K]()
-
-	ms.data.Range(func(key, value any) bool {
-		k := key.(K)
-		res.data.Store(*(value.(*V)), &k)
-		return true
-	})
-
-	return res
-}
-
 // Contains checks if the MapSafe contains the specified key.
 func (ms *MapSafe[K, V]) Contains(key K) bool {
 	_, ok := ms.data.Load(key)
@@ -92,11 +85,13 @@ func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 	})
 }
 
-// Delete removes the specified keys from the MapSafe.
-func (ms *MapSafe[K, V]) Delete(keys ...K) {
-	for _, k := range keys {
-		ms.data.Delete(k)
+// Remove removes the specified key from the MapSafe and returns the removed value.
+func (ms *MapSafe[K, V]) Remove(key K) Option[V] {
+	if v, loaded := ms.data.LoadAndDelete(key); loaded {
+		return Some(*(v.(*V)))
 	}
+
+	return None[V]()
 }
 
 // Eq checks if two MapSafes are equal by deep-comparing their values.
@@ -145,16 +140,16 @@ func (ms *MapSafe[K, V]) Get(key K) Option[V] {
 	return None[V]()
 }
 
-// Set stores the value for the given key.
+// Insert stores the value for the given key.
 // Returns Some(previous_value) if the key existed, None if it was newly inserted.
 //
 // Example:
 //
 //	ms := NewMapSafe[string, int]()
-//	ms.Set("a", 1)        // None (new key)
-//	ms.Set("a", 2)        // Some(1) (replaced)
+//	ms.Insert("a", 1)        // None (new key)
+//	ms.Insert("a", 2)        // Some(1) (replaced)
 //	ms.Get("a").Some()    // 2
-func (ms *MapSafe[K, V]) Set(key K, value V) Option[V] {
+func (ms *MapSafe[K, V]) Insert(key K, value V) Option[V] {
 	if previous, loaded := ms.data.Swap(key, &value); loaded {
 		return Some(*(previous.(*V)))
 	}
@@ -162,16 +157,16 @@ func (ms *MapSafe[K, V]) Set(key K, value V) Option[V] {
 	return None[V]()
 }
 
-// TrySet inserts value only if the key is absent.
+// TryInsert inserts value only if the key is absent.
 // Returns Some(existing_value) if key already existed (no insert), None if inserted.
 //
 // Example:
 //
 //	ms := NewMapSafe[string, int]()
-//	ms.TrySet("a", 1)     // None (inserted)
-//	ms.TrySet("a", 2)     // Some(1) (already existed, not replaced)
+//	ms.TryInsert("a", 1)     // None (inserted)
+//	ms.TryInsert("a", 2)     // Some(1) (already existed, not replaced)
 //	ms.Get("a").Some()    // 1
-func (ms *MapSafe[K, V]) TrySet(key K, value V) Option[V] {
+func (ms *MapSafe[K, V]) TryInsert(key K, value V) Option[V] {
 	if actual, loaded := ms.data.LoadOrStore(key, &value); loaded {
 		return Some(*(actual.(*V)))
 	}
@@ -194,14 +189,11 @@ func (ms *MapSafe[K, V]) Len() int {
 // Ne checks if two MapSafes are not equal.
 func (ms *MapSafe[K, V]) Ne(other *MapSafe[K, V]) bool { return !ms.Eq(other) }
 
-// NotEmpty checks if the MapSafe is not empty.
-func (ms *MapSafe[K, V]) NotEmpty() bool { return !ms.Empty() }
-
 // Clear removes all key-value pairs from the MapSafe.
 func (ms *MapSafe[K, V]) Clear() { ms.data.Clear() }
 
-// Empty checks if the MapSafe is empty.
-func (ms *MapSafe[K, V]) Empty() bool {
+// IsEmpty checks if the MapSafe is empty.
+func (ms *MapSafe[K, V]) IsEmpty() bool {
 	empty := true
 
 	ms.data.Range(func(_, _ any) bool {

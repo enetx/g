@@ -7,6 +7,14 @@ import (
 	"github.com/enetx/g/f"
 )
 
+// Deque is a double-ended queue implemented with a growable ring buffer.
+// It provides efficient insertion and removal of elements at both ends.
+type Deque[T any] struct {
+	data  Slice[T]
+	front Int
+	len   Int
+}
+
 // NewDeque creates a new Deque of the given generic type T with the specified capacity.
 // The capacity parameter specifies the initial capacity of the underlying slice.
 // If no capacity is provided, an empty Deque with a capacity of 0 is returned.

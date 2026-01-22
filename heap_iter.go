@@ -10,6 +10,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqHeap is an iterator over sequences of Heap values.
+type SeqHeap[V any] iter.Seq[V]
+
 // Pull converts the "push-style" iterator sequence seq
 // into a "pull-style" iterator accessed by the two functions
 // next and stop.

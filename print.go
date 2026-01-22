@@ -183,7 +183,7 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 			placeholder := tmpl[idx+1 : eidx]
 
 			trimmed := placeholder.Trim()
-			if trimmed.Empty() || trimmed[0] == '.' {
+			if trimmed.IsEmpty() || trimmed[0] == '.' {
 				autoidx++
 				if autoidx <= positional.Len() {
 					placeholder = autoidx.String() + trimmed
@@ -230,7 +230,7 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 		return "{" + placeholder + "}"
 	}
 
-	if mods.NotEmpty() {
+	if !mods.IsEmpty() {
 		mods.
 			Split(".").
 			Exclude(f.IsZero).
@@ -254,7 +254,7 @@ func resolveValue(key, fall String, named Named, positional Slice[any]) any {
 	}
 
 	value := Map[String, any](named).Get(key)
-	if value.IsNone() && fall.NotEmpty() {
+	if value.IsNone() && !fall.IsEmpty() {
 		value = Map[String, any](named).Get(fall)
 	}
 

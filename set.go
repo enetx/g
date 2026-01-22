@@ -2,6 +2,9 @@ package g
 
 import "fmt"
 
+// Set is a generic alias for a set implemented using a map.
+type Set[T comparable] map[T]Unit
+
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {
 	return make(Set[T], Slice[Int](size).Get(0).UnwrapOrDefault())
@@ -81,11 +84,14 @@ func (s Set[T]) Insert(values ...T) {
 	}
 }
 
-// Remove removes the specified values from the Set.
-func (s Set[T]) Remove(values ...T) {
-	for _, v := range values {
+// Remove removes the specified value from the Set and returns true if it was present.
+func (s Set[T]) Remove(v T) bool {
+	if _, ok := s[v]; ok {
 		delete(s, v)
+		return true
 	}
+
+	return false
 }
 
 // Len returns the number of values in the Set.
@@ -99,7 +105,7 @@ func (s Set[T]) Contains(v T) bool {
 
 // ContainsAny checks if the Set contains any element from another Set.
 func (s Set[T]) ContainsAny(other Set[T]) bool {
-	if s.Empty() || other.Empty() {
+	if s.IsEmpty() || other.IsEmpty() {
 		return false
 	}
 
@@ -137,7 +143,7 @@ func (s Set[T]) ContainsAll(other Set[T]) bool {
 
 // Clone creates a new Set that is a copy of the original Set.
 func (s Set[T]) Clone() Set[T] {
-	if s.Empty() {
+	if s.IsEmpty() {
 		return NewSet[T]()
 	}
 
@@ -151,7 +157,7 @@ func (s Set[T]) Clone() Set[T] {
 
 // ToSlice returns a new Slice with the same elements as the Set[T].
 func (s Set[T]) ToSlice() Slice[T] {
-	if s.Empty() {
+	if s.IsEmpty() {
 		return NewSlice[T]()
 	}
 
@@ -320,14 +326,11 @@ func (s Set[T]) Clear() {
 }
 
 // Empty checks if the Set is empty.
-func (s Set[T]) Empty() bool { return len(s) == 0 }
-
-// NotEmpty checks if the Set is not empty.
-func (s Set[T]) NotEmpty() bool { return !s.Empty() }
+func (s Set[T]) IsEmpty() bool { return len(s) == 0 }
 
 // String returns a string representation of the Set.
 func (s Set[T]) String() string {
-	if s.Empty() {
+	if s.IsEmpty() {
 		return "Set{}"
 	}
 

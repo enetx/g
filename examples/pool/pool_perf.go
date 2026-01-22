@@ -46,7 +46,7 @@ func main() {
 			for i := range ITEMS_NUM {
 				name := i.String()
 
-				dataMap.Set(name, data{name: name, age: i})
+				dataMap.Insert(name, data{name: name, age: i})
 				if val := dataMap.Get(name); val.IsSome() && val.Some().name.Eq(name) {
 					sum += uint64(val.Some().age)
 				}

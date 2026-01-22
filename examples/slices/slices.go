@@ -62,9 +62,9 @@ func main() {
 
 	result := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-	result.Delete(1)
+	result.Remove(1)
 	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
-	result.Delete(-9)
+	result.Remove(-9)
 	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 
 	result.SubSlice(1, -3).Println()            // Slice[2, 3, 4, 5, 6, 7]
@@ -86,18 +86,6 @@ func main() {
 
 	slice = Slice[int]{1, 2, 3, 4, 5}.Println()
 
-	sc := slice.Clone()
-	sc.Delete(1, 3)
-	sc.Println() // Slice[1, 4, 5]
-
-	sc = slice.Clone()
-	sc.Delete(-4, 3)
-	sc.Println() // Slice[1, 4, 5]
-
-	sc = slice.Clone()
-	sc.Delete(-3, 4)
-	sc.Println() // Slice[1, 2, 5]
-
 	// InPlace Methods
 	sipl := NewSlice[int]()
 
@@ -105,7 +93,7 @@ func main() {
 	sipl.Push(2)
 	sipl.Push(3)
 
-	sipl.Delete(1)
+	sipl.Remove(1)
 	sipl.Fill(999999)
 
 	sipl.Insert(0, 22, 33, 44)
@@ -120,7 +108,7 @@ func main() {
 	slice = Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
 	slice = slice.Iter().Exclude(f.IsZero).Collect()
 
-	slice.Delete(0)
+	slice.Remove(0)
 	slice.Println()
 
 	sll := NewSlice[int](0, 100000)

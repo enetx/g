@@ -9,9 +9,9 @@ import (
 
 func TestMapOrdered_Iter_Keys(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("first", 1)
-	m.Set("second", 2)
-	m.Set("third", 3)
+	m.Insert("first", 1)
+	m.Insert("second", 2)
+	m.Insert("third", 3)
 
 	keys := m.Iter().Keys().Collect()
 
@@ -30,9 +30,9 @@ func TestMapOrdered_Iter_Keys(t *testing.T) {
 
 func TestMapOrdered_Iter_Values(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("first", 1)
-	m.Set("second", 2)
-	m.Set("third", 3)
+	m.Insert("first", 1)
+	m.Insert("second", 2)
+	m.Insert("third", 3)
 
 	values := m.Iter().Values().Collect()
 
@@ -51,9 +51,9 @@ func TestMapOrdered_Iter_Values(t *testing.T) {
 
 func TestMapOrdered_Iter_Collect(t *testing.T) {
 	original := g.NewMapOrd[string, int]()
-	original.Set("a", 1)
-	original.Set("b", 2)
-	original.Set("c", 3)
+	original.Insert("a", 1)
+	original.Insert("b", 2)
+	original.Insert("c", 3)
 
 	collected := original.Iter().Collect()
 
@@ -73,10 +73,10 @@ func TestMapOrdered_Iter_Collect(t *testing.T) {
 
 func TestMapOrdered_Iter_Filter(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("one", 1)
-	m.Set("two", 2)
-	m.Set("three", 3)
-	m.Set("four", 4)
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+	m.Insert("four", 4)
 
 	filtered := m.Iter().
 		Filter(func(k string, v int) bool { return v%2 == 0 }).
@@ -95,9 +95,9 @@ func TestMapOrdered_Iter_Filter(t *testing.T) {
 
 func TestMapOrdered_Iter_Count(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("a", 1)
-	m.Set("b", 2)
-	m.Set("c", 3)
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
 
 	count := m.Iter().Count()
 
@@ -108,10 +108,10 @@ func TestMapOrdered_Iter_Count(t *testing.T) {
 
 func TestMapOrdered_Iter_Take(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("first", 1)
-	m.Set("second", 2)
-	m.Set("third", 3)
-	m.Set("fourth", 4)
+	m.Insert("first", 1)
+	m.Insert("second", 2)
+	m.Insert("third", 3)
+	m.Insert("fourth", 4)
 
 	taken := m.Iter().Take(2).Collect()
 
@@ -147,12 +147,12 @@ func TestMapOrdered_Iter_EmptyMap(t *testing.T) {
 
 func TestMapOrdered_Iter_Chain(t *testing.T) {
 	m1 := g.NewMapOrd[string, int]()
-	m1.Set("a", 1)
-	m1.Set("b", 2)
+	m1.Insert("a", 1)
+	m1.Insert("b", 2)
 
 	m2 := g.NewMapOrd[string, int]()
-	m2.Set("c", 3)
-	m2.Set("d", 4)
+	m2.Insert("c", 3)
+	m2.Insert("d", 4)
 
 	chained := m1.Iter().Chain(m2.Iter()).Collect()
 
@@ -172,9 +172,9 @@ func TestMapOrdered_Iter_Chain(t *testing.T) {
 
 func TestMapOrdered_Iter_Pull(t *testing.T) {
 	m := g.NewMapOrd[string, int]()
-	m.Set("first", 1)
-	m.Set("second", 2)
-	m.Set("third", 3)
+	m.Insert("first", 1)
+	m.Insert("second", 2)
+	m.Insert("third", 3)
 
 	iter := m.Iter()
 	next, stop := iter.Pull()
@@ -209,11 +209,11 @@ func TestMapOrdered_Iter_Pull(t *testing.T) {
 func TestMapOrderedIterContext(t *testing.T) {
 	t.Run("context cancellation stops iteration", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
-		m.Set("fourth", 4)
-		m.Set("fifth", 5)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
+		m.Insert("fourth", 4)
+		m.Insert("fifth", 5)
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -252,8 +252,8 @@ func TestMapOrderedIterContext(t *testing.T) {
 
 	t.Run("context timeout", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
@@ -274,9 +274,9 @@ func TestMapOrderedIterContext(t *testing.T) {
 func TestMapOrderedIterFirst(t *testing.T) {
 	t.Run("first element exists with order preservation", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
 
 		first := m.Iter().First()
 
@@ -302,7 +302,7 @@ func TestMapOrderedIterFirst(t *testing.T) {
 
 	t.Run("single element", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("only", 42)
+		m.Insert("only", 42)
 
 		first := m.Iter().First()
 
@@ -320,9 +320,9 @@ func TestMapOrderedIterFirst(t *testing.T) {
 func TestMapOrderedIterLast(t *testing.T) {
 	t.Run("last element exists with order preservation", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
 
 		last := m.Iter().Last()
 
@@ -348,7 +348,7 @@ func TestMapOrderedIterLast(t *testing.T) {
 
 	t.Run("single element", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("only", 42)
+		m.Insert("only", 42)
 
 		last := m.Iter().Last()
 
@@ -366,11 +366,11 @@ func TestMapOrderedIterLast(t *testing.T) {
 func TestMapOrderedIterNth(t *testing.T) {
 	t.Run("nth element exists with order preservation", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
-		m.Set("fourth", 4)
-		m.Set("fifth", 5)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
+		m.Insert("fourth", 4)
+		m.Insert("fifth", 5)
 
 		// Get the 2nd pair (0-indexed) - should be "third": 3
 		nth := m.Iter().Nth(2)
@@ -387,10 +387,10 @@ func TestMapOrderedIterNth(t *testing.T) {
 
 	t.Run("nth element maintains insertion order", func(t *testing.T) {
 		m := g.NewMapOrd[int, string]()
-		m.Set(10, "ten")
-		m.Set(20, "twenty")
-		m.Set(30, "thirty")
-		m.Set(40, "forty")
+		m.Insert(10, "ten")
+		m.Insert(20, "twenty")
+		m.Insert(30, "thirty")
+		m.Insert(40, "forty")
 
 		// Test each position
 		testCases := []struct {
@@ -419,8 +419,8 @@ func TestMapOrderedIterNth(t *testing.T) {
 
 	t.Run("nth element out of bounds", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
 
 		nth := m.Iter().Nth(5)
 
@@ -431,8 +431,8 @@ func TestMapOrderedIterNth(t *testing.T) {
 
 	t.Run("negative index", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("one", 1)
-		m.Set("two", 2)
+		m.Insert("one", 1)
+		m.Insert("two", 2)
 
 		nth := m.Iter().Nth(-1)
 
@@ -455,9 +455,9 @@ func TestMapOrderedIterNth(t *testing.T) {
 func TestSeqMapOrdNext(t *testing.T) {
 	t.Run("Next with non-empty iterator maintains insertion order", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("first", 1)
-		m.Set("second", 2)
-		m.Set("third", 3)
+		m.Insert("first", 1)
+		m.Insert("second", 2)
+		m.Insert("third", 3)
 		iter := m.Iter()
 
 		// First pair (should be "first" since it maintains insertion order)
@@ -507,8 +507,8 @@ func TestSeqMapOrdNext(t *testing.T) {
 
 	t.Run("Next until exhausted", func(t *testing.T) {
 		m := g.NewMapOrd[string, int]()
-		m.Set("a", 1)
-		m.Set("b", 2)
+		m.Insert("a", 1)
+		m.Insert("b", 2)
 		iter := m.Iter()
 
 		// Extract all pairs

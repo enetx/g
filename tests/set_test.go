@@ -73,7 +73,7 @@ func TestSetSymmetricDifference(t *testing.T) {
 	set2 := set1.Clone()
 	result := set1.SymmetricDifference(set2).Collect()
 
-	if !result.Empty() {
+	if !result.IsEmpty() {
 		t.Errorf("SymmetricDifference between equal sets should be empty, got %v", result)
 	}
 
@@ -228,7 +228,10 @@ func TestSetRemove(t *testing.T) {
 
 	// Test case 2: Remove multiple values
 	set2 := SetOf("a", "b", "c")
-	set2.Remove("a", "c")
+	if !set2.Remove("a") {
+		t.Errorf("Remove should return true for existing value")
+	}
+	set2.Remove("c")
 	if _, ok := set2["a"]; ok {
 		t.Errorf("Set should not contain value 'a' after removal")
 	}
@@ -705,21 +708,6 @@ func BenchmarkSymmetricDifference(b *testing.B) {
 	}
 }
 
-func TestSetNotEmpty(t *testing.T) {
-	// Test empty set
-	emptySet := NewSet[int]()
-	if emptySet.NotEmpty() {
-		t.Errorf("Empty set should not be NotEmpty()")
-	}
-
-	// Test non-empty set
-	set := NewSet[int]()
-	set.Insert(42)
-	if !set.NotEmpty() {
-		t.Errorf("Non-empty set should be NotEmpty()")
-	}
-}
-
 func TestSetPrint(t *testing.T) {
 	set := NewSet[int]()
 	set.Insert(1)
@@ -747,7 +735,7 @@ func TestSetClone(t *testing.T) {
 	emptySet := NewSet[int]()
 	emptyClone := emptySet.Clone()
 
-	if !emptyClone.Empty() {
+	if !emptyClone.IsEmpty() {
 		t.Errorf("Cloned empty set should be empty")
 	}
 

@@ -10,7 +10,7 @@ func TestBytes_Hash_MD5(t *testing.T) {
 	testBytes := g.Bytes("hello world")
 	hash := testBytes.Hash().MD5()
 
-	if hash.Empty() {
+	if hash.IsEmpty() {
 		t.Error("MD5 hash should not be empty")
 	}
 
@@ -23,7 +23,7 @@ func TestBytes_Hash_SHA1(t *testing.T) {
 	testBytes := g.Bytes("hello world")
 	hash := testBytes.Hash().SHA1()
 
-	if hash.Empty() {
+	if hash.IsEmpty() {
 		t.Error("SHA1 hash should not be empty")
 	}
 
@@ -36,7 +36,7 @@ func TestBytes_Hash_SHA256(t *testing.T) {
 	testBytes := g.Bytes("hello world")
 	hash := testBytes.Hash().SHA256()
 
-	if hash.Empty() {
+	if hash.IsEmpty() {
 		t.Error("SHA256 hash should not be empty")
 	}
 
@@ -49,7 +49,7 @@ func TestBytes_Hash_SHA512(t *testing.T) {
 	testBytes := g.Bytes("hello world")
 	hash := testBytes.Hash().SHA512()
 
-	if hash.Empty() {
+	if hash.IsEmpty() {
 		t.Error("SHA512 hash should not be empty")
 	}
 

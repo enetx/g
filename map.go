@@ -8,6 +8,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// Map is a generic alias for a map.
+type Map[K comparable, V any] map[K]V
+
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
 func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 	return make(Map[K, V], Slice[Int](size).Get(0).UnwrapOrDefault())
@@ -46,25 +49,9 @@ func (m Map[K, V]) Entry(key K) Entry[K, V] {
 // in a functional style, enabling operations like mapping or filtering.
 func (m Map[K, V]) Iter() SeqMap[K, V] { return SeqMap[K, V](iter.FromMap(m)) }
 
-// Invert inverts the keys and values of the Map, returning a new Map with values as keys and
-// keys as values. Note that the inverted Map will have 'any' as the key type, since not all value
-// types are guaranteed to be comparable.
-func (m Map[K, V]) Invert() Map[any, K] {
-	if m.Empty() {
-		return NewMap[any, K]()
-	}
-
-	result := make(Map[any, K], len(m))
-	for k, v := range m {
-		result[v] = k
-	}
-
-	return result
-}
-
 // Keys returns a slice of the Map's keys.
 func (m Map[K, V]) Keys() Slice[K] {
-	if m.Empty() {
+	if m.IsEmpty() {
 		return NewSlice[K]()
 	}
 
@@ -78,7 +65,7 @@ func (m Map[K, V]) Keys() Slice[K] {
 
 // Values returns a slice of the Map's values.
 func (m Map[K, V]) Values() Slice[V] {
-	if m.Empty() {
+	if m.IsEmpty() {
 		return NewSlice[V]()
 	}
 
@@ -102,11 +89,14 @@ func (m Map[K, V]) Clone() Map[K, V] { return maps.Clone(m) }
 // Copy copies the source Map's key-value pairs to the target Map.
 func (m Map[K, V]) Copy(src Map[K, V]) { maps.Copy(m, src) }
 
-// Delete removes the specified keys from the Map.
-func (m Map[K, V]) Delete(keys ...K) {
-	for _, key := range keys {
+// Remove removes the specified key from the Map and returns the removed value.
+func (m Map[K, V]) Remove(key K) Option[V] {
+	if v, ok := m[key]; ok {
 		delete(m, key)
+		return Some(v)
 	}
+
+	return None[V]()
 }
 
 // Std converts the Map to a regular Go map.
@@ -116,7 +106,7 @@ func (m Map[K, V]) Std() map[K]V { return m }
 func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
 	for k, v := range m {
-		mo.Set(k, v)
+		mo.Insert(k, v)
 	}
 
 	return mo
@@ -126,7 +116,7 @@ func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 func (m Map[K, V]) ToMapSafe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
 	for k, v := range m {
-		ms.Set(k, v)
+		ms.Insert(k, v)
 	}
 
 	return ms
@@ -183,8 +173,8 @@ func (m Map[K, V]) String() string {
 // Clear removes all key-value pairs from the Map.
 func (m Map[K, V]) Clear() { clear(m) }
 
-// Empty checks if the Map is empty.
-func (m Map[K, V]) Empty() bool { return len(m) == 0 }
+// IsEmpty checks if the Map is empty.
+func (m Map[K, V]) IsEmpty() bool { return len(m) == 0 }
 
 // Get retrieves the value associated with the given key.
 func (m Map[K, V]) Get(k K) Option[V] {
@@ -201,11 +191,8 @@ func (m Map[K, V]) Len() Int { return Int(len(m)) }
 // Ne checks if two Maps are not equal.
 func (m Map[K, V]) Ne(other Map[K, V]) bool { return !m.Eq(other) }
 
-// NotEmpty checks if the Map is not empty.
-func (m Map[K, V]) NotEmpty() bool { return !m.Empty() }
-
-// Set sets the value for the key and returns the previous value if it existed.
-func (m Map[K, V]) Set(key K, value V) Option[V] {
+// Insert sets the value for the key and returns the previous value if it existed.
+func (m Map[K, V]) Insert(key K, value V) Option[V] {
 	prev, ok := m[key]
 	m[key] = value
 	if ok {

@@ -36,9 +36,9 @@ func main() {
 	Println("hi.Next(): {}", hi.Next())
 
 	m := NewMap[string, string]()
-	m.Set("a", "aa")
-	m.Set("b", "bb")
-	m.Set("c", "cc")
+	m.Insert("a", "aa")
+	m.Insert("b", "bb")
+	m.Insert("c", "cc")
 
 	mi := m.Iter()
 	Println("mi.Next(): {}", mi.Next())
@@ -47,9 +47,9 @@ func main() {
 	Println("mi.Next(): {}", mi.Next())
 
 	mo := NewMapOrd[string, string]()
-	mo.Set("a", "aa")
-	mo.Set("b", "bb")
-	mo.Set("c", "cc")
+	mo.Insert("a", "aa")
+	mo.Insert("b", "bb")
+	mo.Insert("c", "cc")
 
 	moi := mo.Iter()
 	Println("moi.Next(): {}", moi.Next())

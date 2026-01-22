@@ -8,6 +8,14 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
+// SeqSlicePar is a parallel iterator over a slice of elements of type T.
+// It uses a fixed-size pool of worker goroutines to process elements concurrently.
+type SeqSlicePar[V any] struct {
+	seq     SeqSlice[V]
+	workers Int
+	process func(V) (V, bool)
+}
+
 // All returns true only if fn returns true for every element.
 // It stops early on the first false.
 func (p SeqSlicePar[V]) All(fn func(V) bool) bool {
@@ -390,7 +398,7 @@ func (p SeqSlicePar[V]) Unique() SeqSlicePar[V] {
 		workers: p.workers,
 		process: func(v V) (V, bool) {
 			if mid, ok := prev(v); ok {
-				if seen.TrySet(mid, Unit{}).IsNone() {
+				if seen.TryInsert(mid, Unit{}).IsNone() {
 					return mid, true
 				}
 				var zero V

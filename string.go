@@ -16,6 +16,13 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+// String is an alias for the string type.
+type String string
+
+// Named is a map-like type that stores key-value pairs for resolving named
+// placeholders in Sprintf.
+type Named Map[String, any]
+
 // NewString creates a new String from the provided string.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
@@ -93,7 +100,7 @@ func (s String) IsASCII() bool {
 
 // IsDigit checks if all characters in the String are digits.
 func (s String) IsDigit() bool {
-	if s.Empty() {
+	if s.IsEmpty() {
 		return false
 	}
 
@@ -433,7 +440,7 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 //
 // chunks contains {"Hell", "o, W", "orld", "!"}.
 func (s String) Chunks(size Int) SeqSlice[String] {
-	if size.Lte(0) || s.Empty() {
+	if size.Lte(0) || s.IsEmpty() {
 		return func(func(String) bool) {}
 	}
 
@@ -490,7 +497,7 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 //	// remainder: "Hello, ! How are you?"
 //	// cut: "world"
 func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
-	if start.Empty() || end.Empty() {
+	if start.IsEmpty() || end.IsEmpty() {
 		return s, ""
 	}
 
@@ -542,7 +549,7 @@ func (s String) Similarity(str String) Float {
 		return 100
 	}
 
-	if s.Empty() || str.Empty() {
+	if s.IsEmpty() || str.IsEmpty() {
 		return 0
 	}
 
@@ -593,7 +600,7 @@ func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(),
 func (s String) Count(substr String) Int { return Int(strings.Count(s.Std(), substr.Std())) }
 
 // Empty checks if the String is empty.
-func (s String) Empty() bool { return len(s) == 0 }
+func (s String) IsEmpty() bool { return len(s) == 0 }
 
 // Eq checks if two Strings are equal.
 func (s String) Eq(str String) bool { return s == str }
@@ -647,9 +654,6 @@ func (s String) NormalizeNFC() String { return String(norm.NFC.String(s.Std())) 
 
 // Ne checks if two Strings are not equal.
 func (s String) Ne(str String) bool { return !s.Eq(str) }
-
-// NotEmpty checks if the String is not empty.
-func (s String) NotEmpty() bool { return s.Len() != 0 }
 
 // Reader returns a *strings.Reader initialized with the content of String.
 func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
@@ -738,7 +742,7 @@ func (s String) Truncate(max Int) String {
 //	// result: "Hello....."
 func (s String) LeftJustify(length Int, pad String) String {
 	rlen := s.LenRunes()
-	if rlen >= length || pad.Empty() {
+	if rlen >= length || pad.IsEmpty() {
 		return s
 	}
 
@@ -768,7 +772,7 @@ func (s String) LeftJustify(length Int, pad String) String {
 //	// result: ".....Hello"
 func (s String) RightJustify(length Int, pad String) String {
 	rlen := s.LenRunes()
-	if rlen >= length || pad.Empty() {
+	if rlen >= length || pad.IsEmpty() {
 		return s
 	}
 
@@ -798,7 +802,7 @@ func (s String) RightJustify(length Int, pad String) String {
 //	result := s.Center(10, "...")
 //	// result: "..Hello..."
 func (s String) Center(length Int, pad String) String {
-	if s.LenRunes() >= length || pad.Empty() {
+	if s.LenRunes() >= length || pad.IsEmpty() {
 		return s
 	}
 

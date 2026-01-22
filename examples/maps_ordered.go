@@ -15,11 +15,11 @@ func main() {
 	god := NewMapOrd[int, Slice[int]]()
 
 	for i := range 5 {
-		god.Set(i, god.Get(i).UnwrapOrDefault().Append(i))
+		god.Insert(i, god.Get(i).UnwrapOrDefault().Append(i))
 	}
 
 	for i := range 10 {
-		god.Set(i, god.Get(i).UnwrapOrDefault().Append(i))
+		god.Insert(i, god.Get(i).UnwrapOrDefault().Append(i))
 	}
 
 	god.Println()
@@ -27,15 +27,15 @@ func main() {
 	//////////////////////////////////////////////////////////////////////////
 
 	ms := NewMapOrd[Int, Int]()
-	ms.Set(11, 99)
-	ms.Set(12, 2)
-	ms.Set(1, 22)
-	ms.Set(2, 32)
-	ms.Set(222, 2)
+	ms.Insert(11, 99)
+	ms.Insert(12, 2)
+	ms.Insert(1, 22)
+	ms.Insert(2, 32)
+	ms.Insert(222, 2)
 
 	ms1 := ms.Clone()
-	ms1.Set(888, 0o00)
-	ms1.Set(888, 300)
+	ms1.Insert(888, 0o00)
+	ms1.Insert(888, 300)
 
 	if r := ms1.Get(888); r.IsSome() {
 		r.Some().Println()
@@ -45,7 +45,7 @@ func main() {
 		r.Some().Println()
 	}
 
-	ms1.Set(1, 223)
+	ms1.Insert(1, 223)
 
 	ms.Println()
 	ms1.Println()
@@ -58,14 +58,14 @@ func main() {
 	ms = ms.Iter().Map(func(k, v Int) (Int, Int) { return k.Mul(2), v.Mul(2) }).Collect()
 	ms.Println()
 
-	ms.Delete(22)
+	ms.Remove(22)
 	fmt.Println(ms.Contains(22))
 
 	msstr := NewMapOrd[String, String]()
-	msstr.Set("aaa", "CCC")
-	msstr.Set("ccc", "AAA")
-	msstr.Set("bbb", "DDD")
-	msstr.Set("ddd", "BBB")
+	msstr.Insert("aaa", "CCC")
+	msstr.Insert("ccc", "AAA")
+	msstr.Insert("bbb", "DDD")
+	msstr.Insert("ddd", "BBB")
 
 	fmt.Println("before sort:", msstr)
 
@@ -78,8 +78,8 @@ func main() {
 	fmt.Println("after sort by value:", msstr)
 
 	mss := NewMapOrd[Int, Slice[int]]()
-	mss.Set(22, Slice[int]{4, 0, 9, 6, 7})
-	mss.Set(11, Slice[int]{1, 2, 3, 4})
+	mss.Insert(22, Slice[int]{4, 0, 9, 6, 7})
+	mss.Insert(11, Slice[int]{1, 2, 3, 4})
 
 	fmt.Println("before sort: ", mss)
 	// mss.SortBy(func(a, b Pair[Int, Slice[int]]) cmp.Ordering { return a.Key.Cmp(b.Key) })

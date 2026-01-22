@@ -13,6 +13,13 @@ import (
 	"github.com/enetx/g/internal/filelock"
 )
 
+// File is a struct that represents a file along with an iterator for reading lines.
+type File struct {
+	file  *os.File // Underlying os.File.
+	name  String   // File name.
+	guard bool     // Guard indicates whether the file is protected against concurrent access.
+}
+
 // NewFile returns a new File instance with the given name.
 func NewFile[T ~string](name T) *File { return &File{name: String(name)} }
 

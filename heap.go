@@ -6,6 +6,13 @@ import (
 	"github.com/enetx/g/cmp"
 )
 
+// Heap is a generic binary heap data structure that maintains elements in heap order.
+// It can be configured as either a min-heap or max-heap based on the comparison function.
+type Heap[T any] struct {
+	data Slice[T]
+	cmp  func(T, T) cmp.Ordering
+}
+
 // NewHeap creates a new heap with the given comparison function.
 // The comparison function should return:
 // - cmp.Less if the first argument should have higher priority
@@ -55,7 +62,7 @@ func (h *Heap[T]) Transform(fn func(*Heap[T]) *Heap[T]) *Heap[T] { return fn(h) 
 func (h *Heap[T]) Iter() SeqHeap[T] {
 	return func(yield func(T) bool) {
 		clone := h.Clone()
-		for !clone.Empty() {
+		for !clone.IsEmpty() {
 			if !yield(clone.Pop().Some()) {
 				return
 			}
@@ -100,7 +107,7 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //	fmt.Printf("Remaining: %d elements\n", heap2.Len()) // Output: 2
 func (h *Heap[T]) IntoIter() SeqHeap[T] {
 	return func(yield func(T) bool) {
-		for !h.Empty() {
+		for !h.IsEmpty() {
 			if !yield(h.Pop().Some()) {
 				return
 			}
@@ -151,7 +158,7 @@ func (h *Heap[T]) Len() Int {
 }
 
 // Empty returns true if the heap contains no elements.
-func (h *Heap[T]) Empty() bool {
+func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 0
 }
 

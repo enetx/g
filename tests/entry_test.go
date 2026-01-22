@@ -113,7 +113,7 @@ func TestMapEntryAndModify(t *testing.T) {
 	}
 
 	// AndModify on existing key
-	m.Set("counter", 10)
+	m.Insert("counter", 10)
 	m.Entry("counter").AndModify(func(v *int) { *v += 5 })
 
 	if v := m.Get("counter"); v.IsNone() || v.Some() != 15 {
@@ -241,7 +241,7 @@ func TestMapEntryPatternMatch(t *testing.T) {
 
 func TestMapEntryOccupiedInsert(t *testing.T) {
 	m := Map[string, int]{}
-	m.Set("key", 10)
+	m.Insert("key", 10)
 
 	if e, ok := m.Entry("key").(OccupiedEntry[string, int]); ok {
 		old := e.Insert(20)
@@ -258,7 +258,7 @@ func TestMapEntryOccupiedInsert(t *testing.T) {
 
 func TestMapEntryOccupiedRemove(t *testing.T) {
 	m := Map[string, int]{}
-	m.Set("key", 42)
+	m.Insert("key", 42)
 
 	if e, ok := m.Entry("key").(OccupiedEntry[string, int]); ok {
 		removed := e.Remove()

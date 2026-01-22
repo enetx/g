@@ -87,7 +87,7 @@ func main() {
 	duration3 := time.Since(start)
 	Println("High-priority tasks (every 3rd): {} elements", result3.Len())
 	sampled := make([]int, 0)
-	for !result3.Empty() {
+	for !result3.IsEmpty() {
 		sampled = append(sampled, result3.Pop().Some())
 	}
 	sorted := SliceOf(sampled...)

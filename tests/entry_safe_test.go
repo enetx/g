@@ -112,7 +112,7 @@ func TestMapSafeEntryAndModify(t *testing.T) {
 	}
 
 	// AndModify on existing key
-	ms.Set("counter", 10)
+	ms.Insert("counter", 10)
 	ms.Entry("counter").AndModify(func(v *int) { *v += 5 })
 
 	if v := ms.Get("counter"); v.IsNone() || v.Some() != 15 {
@@ -237,7 +237,7 @@ func TestMapSafeEntryPatternMatch(t *testing.T) {
 
 func TestMapSafeEntryOccupiedInsert(t *testing.T) {
 	ms := NewMapSafe[string, int]()
-	ms.Set("key", 10)
+	ms.Insert("key", 10)
 
 	if e, ok := ms.Entry("key").(OccupiedSafeEntry[string, int]); ok {
 		old := e.Insert(20)
@@ -254,7 +254,7 @@ func TestMapSafeEntryOccupiedInsert(t *testing.T) {
 
 func TestMapSafeEntryOccupiedRemove(t *testing.T) {
 	ms := NewMapSafe[string, int]()
-	ms.Set("key", 42)
+	ms.Insert("key", 42)
 
 	if e, ok := ms.Entry("key").(OccupiedSafeEntry[string, int]); ok {
 		removed := e.Remove()
@@ -309,7 +309,7 @@ func TestMapSafeEntryChained(t *testing.T) {
 
 func TestMapSafeEntryConcurrentAndModify(t *testing.T) {
 	ms := NewMapSafe[string, int]()
-	ms.Set("counter", 0)
+	ms.Insert("counter", 0)
 
 	var wg sync.WaitGroup
 
@@ -376,7 +376,7 @@ func TestMapSafeEntryConcurrentTrySet(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if ms.TrySet("key", 42).IsNone() {
+			if ms.TryInsert("key", 42).IsNone() {
 				mu.Lock()
 				insertCount++
 				mu.Unlock()
@@ -408,9 +408,9 @@ func TestMapSafeEntryConcurrentUnique(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for i := range 10 {
-				if seen.TrySet(i, Unit{}).IsNone() {
+				if seen.TryInsert(i, Unit{}).IsNone() {
 					// First time seeing this value
-					results.Set(i, 1)
+					results.Insert(i, 1)
 				}
 			}
 		}()

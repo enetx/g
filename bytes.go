@@ -16,6 +16,9 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
+// Bytes is an alias for the []byte type.
+type Bytes []byte
+
 var (
 	lower = cases.Lower(language.Und)
 	upper = cases.Upper(language.Und)
@@ -262,7 +265,7 @@ func (bs Bytes) ContainsRune(r rune) bool { return bytes.ContainsRune(bs, r) }
 func (bs Bytes) Count(obs Bytes) Int { return Int(bytes.Count(bs, obs)) }
 
 // Empty checks if the Bytes is empty.
-func (bs Bytes) Empty() bool { return len(bs) == 0 }
+func (bs Bytes) IsEmpty() bool { return len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
 func (bs Bytes) Eq(obs Bytes) bool { return bs.Cmp(obs).IsEq() }
@@ -316,9 +319,6 @@ func (bs Bytes) NormalizeNFC() Bytes { return norm.NFC.Bytes(bs) }
 
 // Ne checks if the Bytes is not equal to another Bytes.
 func (bs Bytes) Ne(obs Bytes) bool { return !bs.Eq(obs) }
-
-// NotEmpty checks if the Bytes is not empty.
-func (bs Bytes) NotEmpty() bool { return !bs.Empty() }
 
 // Reader returns a *bytes.Reader initialized with the content of Bytes.
 func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }

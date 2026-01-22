@@ -72,7 +72,7 @@ func main() {
 		FilterMap(func(s String) Option[String] {
 			// Trim and uppercase, filter out empty strings
 			trimmed := s.Trim()
-			if !trimmed.Empty() {
+			if !trimmed.IsEmpty() {
 				return Some(trimmed.Upper())
 			}
 			return None[String]()

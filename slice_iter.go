@@ -11,6 +11,12 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqSlice is an iterator over sequences of individual values.
+type SeqSlice[V any] iter.Seq[V]
+
+// SeqSlices is an iterator over slices of sequences of individual values.
+type SeqSlices[V any] iter.Seq[[]V]
+
 // Parallel runs this SeqSlice in parallel using the given number of workers.
 func (seq SeqSlice[V]) Parallel(workers ...Int) SeqSlicePar[V] {
 	numCPU := Int(runtime.NumCPU())

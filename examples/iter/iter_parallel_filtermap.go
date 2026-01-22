@@ -56,9 +56,9 @@ func main() {
 			// Simulate validation time
 			time.Sleep(25 * time.Millisecond)
 			// Extract domain from valid emails
-			if email.Contains("@") && !email.Empty() {
+			if email.Contains("@") && !email.IsEmpty() {
 				parts := email.Split("@").Collect()
-				if parts.Len() == 2 && !parts[1].Empty() {
+				if parts.Len() == 2 && !parts[1].IsEmpty() {
 					return Some(parts[1].Upper())
 				}
 			}
@@ -100,7 +100,7 @@ func main() {
 	duration3 := time.Since(start)
 	Println("Passing grades: {} elements", result3.Len())
 	passingGrades := make([]int, 0)
-	for !result3.Empty() {
+	for !result3.IsEmpty() {
 		passingGrades = append(passingGrades, result3.Pop().Some())
 	}
 	sorted := SliceOf(passingGrades...)

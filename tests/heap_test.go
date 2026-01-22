@@ -15,7 +15,7 @@ func TestNewHeap(t *testing.T) {
 		t.Errorf("Expected new heap to be empty, got length %d", heap.Len())
 	}
 
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Error("Expected new heap to be empty")
 	}
 }
@@ -125,7 +125,7 @@ func TestHeap_Len_Empty(t *testing.T) {
 		t.Errorf("Expected length 0, got %d", heap.Len())
 	}
 
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Error("Expected heap to be empty")
 	}
 
@@ -135,7 +135,7 @@ func TestHeap_Len_Empty(t *testing.T) {
 		t.Errorf("Expected length 3, got %d", heap.Len())
 	}
 
-	if heap.Empty() {
+	if heap.IsEmpty() {
 		t.Error("Expected heap to not be empty")
 	}
 
@@ -147,7 +147,7 @@ func TestHeap_Len_Empty(t *testing.T) {
 		t.Errorf("Expected length 0 after popping all, got %d", heap.Len())
 	}
 
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Error("Expected heap to be empty after popping all")
 	}
 }
@@ -190,7 +190,7 @@ func TestHeap_Clear(t *testing.T) {
 		t.Errorf("Expected length 0 after clear, got %d", heap.Len())
 	}
 
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Error("Expected heap to be empty after clear")
 	}
 
@@ -214,11 +214,11 @@ func TestHeap_Clone(t *testing.T) {
 	originalElements := make([]int, 0)
 	clonedElements := make([]int, 0)
 
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		originalElements = append(originalElements, heap.Pop().Some())
 	}
 
-	for !cloned.Empty() {
+	for !cloned.IsEmpty() {
 		clonedElements = append(clonedElements, cloned.Pop().Some())
 	}
 
@@ -266,7 +266,7 @@ func TestHeap_DuplicateElements(t *testing.T) {
 	expected := []int{1, 1, 2, 2, 2, 3, 3}
 	actual := make([]int, 0)
 
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		actual = append(actual, heap.Pop().Some())
 	}
 
@@ -305,7 +305,7 @@ func TestHeap_SingleElement(t *testing.T) {
 		t.Errorf("Expected pop to return 42, got %v", pop)
 	}
 
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Error("Expected heap to be empty after popping single element")
 	}
 }
@@ -321,7 +321,7 @@ func TestHeap_MaintainsProperty(t *testing.T) {
 
 	// Pop all elements and verify they come out sorted
 	var previous int = -1
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		current := heap.Pop().Some()
 		if previous >= 0 && current < previous {
 			t.Errorf("Heap property violated: %d came after %d", current, previous)
@@ -384,7 +384,7 @@ func TestHeap_IntoIter(t *testing.T) {
 	}
 
 	// Heap should now be empty
-	if !heap.Empty() {
+	if !heap.IsEmpty() {
 		t.Errorf("Expected heap to be empty after IntoIter, got length %d", heap.Len())
 	}
 }
@@ -407,7 +407,7 @@ func TestHeap_IntoIterEarlyTermination(t *testing.T) {
 	}
 
 	// Heap should still contain remaining elements
-	if heap.Empty() {
+	if heap.IsEmpty() {
 		t.Errorf("Expected heap to still have elements after early termination")
 	}
 }
@@ -428,7 +428,7 @@ func TestHeap_HeapifyIndirect(t *testing.T) {
 
 	// Verify heap property is maintained by popping all elements
 	var result []int
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		val := heap.Pop()
 		if val.IsSome() {
 			result = append(result, val.Some())
@@ -493,7 +493,7 @@ func TestHeapHeapify(t *testing.T) {
 
 	// Verify heap property is maintained
 	sorted := make([]int, 0, len(elements))
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		val := heap.Pop()
 		if val.IsSome() {
 			sorted = append(sorted, val.Unwrap())

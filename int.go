@@ -12,6 +12,9 @@ import (
 	"github.com/enetx/g/constraints"
 )
 
+// Int is an alias for the int type.
+type Int int
+
 // NewInt creates a new Int with the provided int value.
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 

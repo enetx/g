@@ -17,7 +17,7 @@ func (bs Bytes) Regexp() regexpb { return regexpb{bs} }
 // If no match is found, the Option[Bytes] will be None.
 func (r regexpb) Find(pattern *regexp.Regexp) Option[Bytes] {
 	result := Bytes(pattern.Find(r.bytes))
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Bytes]()
 	}
 
@@ -47,7 +47,7 @@ func (r regexpb) MatchAll(patterns ...*regexp.Regexp) bool {
 // If no match is found, it returns None.
 func (r regexpb) Index(pattern *regexp.Regexp) Option[Slice[Int]] {
 	result := TransformSlice(pattern.FindIndex(r.bytes), NewInt)
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Int]]()
 	}
 
@@ -67,7 +67,7 @@ func (r regexpb) FindAll(pattern *regexp.Regexp) Option[Slice[Bytes]] {
 // If n is negative, all occurrences will be returned.
 func (r regexpb) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
 	result := TransformSlice(pattern.FindAll(r.bytes, n.Std()), func(bs []byte) Bytes { return Bytes(bs) })
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Bytes]]()
 	}
 
@@ -81,7 +81,7 @@ func (r regexpb) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
 // If no match is found, the Option[Slice[Bytes]] will be None.
 func (r regexpb) FindSubmatch(pattern *regexp.Regexp) Option[Slice[Bytes]] {
 	result := TransformSlice(pattern.FindSubmatch(r.bytes), func(bs []byte) Bytes { return Bytes(bs) })
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Bytes]]()
 	}
 
@@ -111,7 +111,7 @@ func (r regexpb) FindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Sl
 		result = append(result, TransformSlice(v, func(bs []byte) Bytes { return Bytes(bs) }))
 	}
 
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Slice[Bytes]]]()
 	}
 

@@ -589,39 +589,12 @@ func TestSliceClone_EmptySlice(t *testing.T) {
 	emptySlice := NewSlice[int]()
 	clone := emptySlice.Clone()
 
-	if !clone.Empty() {
+	if !clone.IsEmpty() {
 		t.Errorf("Clone of empty slice should be empty, got %v", clone)
 	}
 
 	if clone.Len() != 0 {
 		t.Errorf("Clone of empty slice should have length 0, got %d", clone.Len())
-	}
-}
-
-func TestSliceDelete2(t *testing.T) {
-	slice := Slice[int]{1, 2, 3, 4, 5}
-
-	// Test normal range
-	slice.Delete(1, 3)
-	expected := Slice[int]{1, 4, 5}
-	if !slice.Eq(expected) {
-		t.Errorf("Delete(1, 3) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test range with negative indices
-	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
-	slice.Delete(-3, -2)
-	expected = Slice[int]{1, 2, 4, 5}
-	if !slice.Eq(expected) {
-		t.Errorf("Delete(-3, -2) failed. Expected %v, but got %v", expected, slice)
-	}
-
-	// Test empty range
-	slice = Slice[int]{1, 2, 3, 4, 5} // Restore the original slice
-	slice.Delete(0, 5)
-	expected = Slice[int]{}
-	if !slice.Eq(expected) {
-		t.Errorf("Delete(0, 5) failed. Expected %v, but got %v", expected, slice)
 	}
 }
 
@@ -685,19 +658,19 @@ func TestSliceMinInt(t *testing.T) {
 	}
 }
 
-func TestSliceDelete(t *testing.T) {
+func TestSliceRemove(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 4, 5}
-	sl.Delete(2)
+	sl.Remove(2)
 
 	if !reflect.DeepEqual(sl, Slice[int]{1, 2, 4, 5}) {
-		t.Errorf("Delete(2) = %v, want %v", sl, Slice[int]{1, 2, 4, 5})
+		t.Errorf("Remove(2) = %v, want %v", sl, Slice[int]{1, 2, 4, 5})
 	}
 
 	sl = Slice[int]{1, 2, 3, 4, 5}
-	sl.Delete(-2)
+	sl.Remove(-2)
 
 	if !reflect.DeepEqual(sl, Slice[int]{1, 2, 3, 5}) {
-		t.Errorf("Delete(2) = %v, want %v", sl, Slice[int]{1, 2, 3, 5})
+		t.Errorf("Remove(2) = %v, want %v", sl, Slice[int]{1, 2, 3, 5})
 	}
 }
 
@@ -869,7 +842,7 @@ func TestSliceSubSlice(t *testing.T) {
 	// Test with an empty slice
 	emptySlice := Slice[int]{}
 	emptySubSlice := emptySlice.SubSlice(0, 0)
-	if !emptySubSlice.Empty() {
+	if !emptySubSlice.IsEmpty() {
 		t.Errorf("Expected empty slice for empty source slice, but got: %v", emptySubSlice)
 	}
 
@@ -958,20 +931,6 @@ func TestGrowSlice(t *testing.T) {
 	// Check if the length of the grown slice is correct.
 	if grownSlice.Len() != newCapacity {
 		t.Errorf("Grow method failed: Expected length %d, got %d", newCapacity, grownSlice.Len())
-	}
-}
-
-func TestSliceNotEmpty(t *testing.T) {
-	// Test case 1: Slice with elements
-	sl1 := SliceOf(1, 2, 3)
-	if !sl1.NotEmpty() {
-		t.Errorf("Test case 1 failed: Expected slice to be not empty")
-	}
-
-	// Test case 2: Empty slice
-	sl2 := NewSlice[Int]()
-	if sl2.NotEmpty() {
-		t.Errorf("Test case 2 failed: Expected slice to be empty")
 	}
 }
 
@@ -1699,7 +1658,7 @@ func TestSliceToHeap(t *testing.T) {
 
 	// Test heap property by popping all elements
 	var sorted []int
-	for !heap.Empty() {
+	for !heap.IsEmpty() {
 		val := heap.Pop()
 		if val.IsSome() {
 			sorted = append(sorted, val.Unwrap())

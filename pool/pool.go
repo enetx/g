@@ -69,7 +69,7 @@ func (p *Pool[T]) error(index int32, err error) {
 		p.Cancel(err)
 	}
 
-	p.results.Set(int(index), Err[T](err))
+	p.results.Insert(int(index), Err[T](err))
 }
 
 // Go launches an asynchronous task fn() in its own goroutine.
@@ -106,7 +106,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 			return
 		}
 
-		p.results.Set(int(index), result)
+		p.results.Insert(int(index), result)
 	}(index)
 }
 

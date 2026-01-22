@@ -56,7 +56,7 @@ func TestHeapParallelCollect(t *testing.T) {
 	// Verify all elements are present (heap might reorder)
 	for _, v := range nums {
 		found := false
-		for !got.Empty() {
+		for !got.IsEmpty() {
 			if got.Pop().Some() == v {
 				found = true
 				break
@@ -128,7 +128,7 @@ func TestHeapMapFilterParallel(t *testing.T) {
 
 	// Expect doubled values divisible by 4: [4, 8]
 	result := make([]int, 0)
-	for !res.Empty() {
+	for !res.IsEmpty() {
 		result = append(result, res.Pop().Some())
 	}
 
@@ -163,7 +163,7 @@ func TestHeapChainParallel(t *testing.T) {
 		Collect(cmp.Cmp[int])
 
 	result := make([]int, 0)
-	for !res.Empty() {
+	for !res.IsEmpty() {
 		result = append(result, res.Pop().Some())
 	}
 
@@ -243,12 +243,12 @@ func TestHeapPartitionParallel(t *testing.T) {
 		)
 
 	// Left should be min-heap with even numbers
-	if left.Empty() || left.Peek().Some() != 2 {
+	if left.IsEmpty() || left.Peek().Some() != 2 {
 		t.Errorf("PartitionWith left min-heap peek got %v, want Some(2)", left.Peek())
 	}
 
 	// Right should be max-heap with odd numbers
-	if right.Empty() || right.Peek().Some() != 5 {
+	if right.IsEmpty() || right.Peek().Some() != 5 {
 		t.Errorf("PartitionWith right max-heap peek got %v, want Some(5)", right.Peek())
 	}
 
@@ -275,7 +275,7 @@ func TestHeapSkipTakeParallel(t *testing.T) {
 		Collect(cmp.Cmp[int])
 
 	skipResult := make([]int, 0)
-	for !skipRes.Empty() {
+	for !skipRes.IsEmpty() {
 		skipResult = append(skipResult, skipRes.Pop().Some())
 	}
 
@@ -294,7 +294,7 @@ func TestHeapSkipTakeParallel(t *testing.T) {
 		Collect(cmp.Cmp[int])
 
 	takeResult := make([]int, 0)
-	for !takeRes.Empty() {
+	for !takeRes.IsEmpty() {
 		takeResult = append(takeResult, takeRes.Pop().Some())
 	}
 	SliceOf(takeResult...).SortBy(cmp.Cmp)
@@ -358,7 +358,7 @@ func TestHeapUniqueParallel(t *testing.T) {
 		Collect(cmp.Cmp[int])
 
 	result := make([]int, 0)
-	for !res.Empty() {
+	for !res.IsEmpty() {
 		result = append(result, res.Pop().Some())
 	}
 
@@ -480,7 +480,7 @@ func TestHeapParFlatMap(t *testing.T) {
 
 	// Check that all expected values are present
 	resultSlice := make([]int, 0)
-	for !result.Empty() {
+	for !result.IsEmpty() {
 		resultSlice = append(resultSlice, result.Pop().Some())
 	}
 	SliceOf(resultSlice...).SortBy(cmp.Cmp)
@@ -541,7 +541,7 @@ func TestHeapParFilterMap(t *testing.T) {
 
 	// Expected: even numbers * 2 = [4, 8, 12]
 	resultSlice := make([]int, 0)
-	for !result.Empty() {
+	for !result.IsEmpty() {
 		resultSlice = append(resultSlice, result.Pop().Some())
 	}
 	SliceOf(resultSlice...).SortBy(cmp.Cmp)
@@ -601,7 +601,7 @@ func TestHeapParStepBy(t *testing.T) {
 
 	// StepBy(3) should return approximately 1/3 of elements (3-4 elements from 10 total)
 	resultSlice := make([]int, 0)
-	for !result.Empty() {
+	for !result.IsEmpty() {
 		resultSlice = append(resultSlice, result.Pop().Some())
 	}
 	SliceOf(resultSlice...).SortBy(cmp.Cmp)

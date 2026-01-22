@@ -784,10 +784,10 @@ func TestSliceIterZip(t *testing.T) {
 	s1 := SliceOf(1, 2, 3, 4)
 	s2 := SliceOf(5, 6, 7, 8)
 	expected := NewMapOrd[any, any]()
-	expected.Set(1, 5)
-	expected.Set(2, 6)
-	expected.Set(3, 7)
-	expected.Set(4, 8)
+	expected.Insert(1, 5)
+	expected.Insert(2, 6)
+	expected.Insert(3, 7)
+	expected.Insert(4, 8)
 	result := s1.Iter().Zip(s2.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -797,8 +797,8 @@ func TestSliceIterZip(t *testing.T) {
 	s3 := SliceOf(1, 2, 3)
 	s4 := SliceOf(4, 5)
 	expected = NewMapOrd[any, any]()
-	expected.Set(1, 4)
-	expected.Set(2, 5)
+	expected.Insert(1, 4)
+	expected.Insert(2, 5)
 	result = s3.Iter().Zip(s4.Iter()).Collect()
 
 	if !reflect.DeepEqual(result, expected) {
@@ -936,11 +936,11 @@ func TestSliceIterEnumerate(t *testing.T) {
 	enumerated := seq.Iter().Enumerate().Collect()
 
 	expected := NewMapOrd[Int, string]()
-	expected.Set(0, "bbb")
-	expected.Set(1, "ddd")
-	expected.Set(2, "xxx")
-	expected.Set(3, "aaa")
-	expected.Set(4, "ccc")
+	expected.Insert(0, "bbb")
+	expected.Insert(1, "ddd")
+	expected.Insert(2, "xxx")
+	expected.Insert(3, "aaa")
+	expected.Insert(4, "ccc")
 
 	i := 0
 	enumerated.Iter().ForEach(func(index Int, value string) {
@@ -1100,11 +1100,11 @@ func TestSliceIterCounter(t *testing.T) {
 	sl2 := Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
 	expected1 := NewMapOrd[any, Int]()
-	expected1.Set(3, 1)
-	expected1.Set(5, 1)
-	expected1.Set(1, 2)
-	expected1.Set(2, 2)
-	expected1.Set(4, 3)
+	expected1.Insert(3, 1)
+	expected1.Insert(5, 1)
+	expected1.Insert(1, 2)
+	expected1.Insert(2, 2)
+	expected1.Insert(4, 3)
 	expected1.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(int), b.(int)) })
 
 	result1 := sl1.Iter().Counter().Collect()
@@ -1115,10 +1115,10 @@ func TestSliceIterCounter(t *testing.T) {
 
 	// Test with string values
 	expected2 := NewMapOrd[any, Int]()
-	expected2.Set("banana", 1)
-	expected2.Set("grape", 1)
-	expected2.Set("orange", 2)
-	expected2.Set("apple", 3)
+	expected2.Insert("banana", 1)
+	expected2.Insert("grape", 1)
+	expected2.Insert("orange", 2)
+	expected2.Insert("apple", 3)
 	expected2.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(string), b.(string)) })
 
 	result2 := sl2.Iter().Counter().Collect()

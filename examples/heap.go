@@ -63,7 +63,7 @@ func BasicHeapOperations() {
 
 	// Extract elements in sorted order
 	fmt.Print("Elements in order: ")
-	for !minHeap.Empty() {
+	for !minHeap.IsEmpty() {
 		if elem := minHeap.Pop(); elem.IsSome() {
 			fmt.Printf("%d ", elem.Some())
 		}
@@ -85,7 +85,7 @@ func MaxHeap() {
 
 	// Extract largest elements first
 	fmt.Print("Largest to smallest: ")
-	for !maxHeap.Empty() {
+	for !maxHeap.IsEmpty() {
 		if elem := maxHeap.Pop(); elem.IsSome() {
 			fmt.Printf("%d ", elem.Some())
 		}
@@ -138,7 +138,7 @@ func TaskScheduler() {
 	})
 
 	fmt.Println("Tasks in execution order:")
-	for i := 1; !scheduler.Empty(); i++ {
+	for i := 1; !scheduler.IsEmpty(); i++ {
 		if task := scheduler.Pop(); task.IsSome() {
 			t := task.Some()
 			fmt.Printf("%d. %s (Priority: %d)\n", i, t.Name, t.Priority)
@@ -205,7 +205,7 @@ func EventScheduler() {
 	})
 
 	fmt.Println("Events in chronological order:")
-	for !scheduler.Empty() {
+	for !scheduler.IsEmpty() {
 		if event := scheduler.Pop(); event.IsSome() {
 			e := event.Some()
 			duration := e.Time.Sub(now).Round(time.Minute)
@@ -295,7 +295,7 @@ func CustomTypes() {
 	})
 
 	fmt.Println("Students by rank:")
-	for i := 1; !topStudents.Empty(); i++ {
+	for i := 1; !topStudents.IsEmpty(); i++ {
 		if student := topStudents.Pop(); student.IsSome() {
 			s := student.Some()
 			fmt.Printf("%d. %s (Grade: %.1f, Age: %d)\n", i, s.Name, s.Grade, s.Age)

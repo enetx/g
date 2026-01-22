@@ -7,7 +7,7 @@ func main() {
 	NewDir(".").Walk().
 		// Exclude directories and symlinked directories
 		Exclude(func(f *File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
-		// Exclude all symbolic links (files or directories)
+		// Exclude file symlinks
 		Exclude((*File).IsLink).
 		// Process each walk result
 		ForEach(func(v Result[*File]) {

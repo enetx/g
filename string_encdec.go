@@ -128,7 +128,7 @@ func (d decode) Rot13() String { return d.str.Encode().Rot13() }
 // XOR encodes the wrapped String using XOR cipher with the given key and returns the encoded
 // result as an String.
 func (e encode) XOR(key String) String {
-	if key.Empty() {
+	if key.IsEmpty() {
 		return e.str
 	}
 

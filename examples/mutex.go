@@ -143,7 +143,7 @@ func SharedCacheExample() {
 
 		e := entry.Unwrap()
 		if time.Now().After(e.ExpiresAt) {
-			guard.Deref().Delete(key)
+			guard.Deref().Remove(key)
 			return None[string]()
 		}
 

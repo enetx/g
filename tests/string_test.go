@@ -1513,24 +1513,6 @@ func TestStringIndexRune(t *testing.T) {
 	}
 }
 
-func TestStringNotEmpty(t *testing.T) {
-	// Test case 1: String is not empty.
-	str1 := String("hello")
-	expected1 := true
-	result1 := str1.NotEmpty()
-	if result1 != expected1 {
-		t.Errorf("Test case 1 failed: Expected %t, got %t", expected1, result1)
-	}
-
-	// Test case 2: String is empty.
-	str2 := String("")
-	expected2 := false
-	result2 := str2.NotEmpty()
-	if result2 != expected2 {
-		t.Errorf("Test case 2 failed: Expected %t, got %t", expected2, result2)
-	}
-}
-
 func TestRepeat(t *testing.T) {
 	// Test case 1: Repeat count is positive.
 	str := String("abc")

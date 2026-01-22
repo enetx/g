@@ -42,9 +42,9 @@ func assertMapContains(t *testing.T, m Map[int, int], expected map[int]int) {
 // TestCollectCountParallel tests Collect and Count with parallelism.
 func TestCollectCountParallel(t *testing.T) {
 	m := NewMap[int, int]()
-	m.Set(1, 10)
-	m.Set(2, 20)
-	m.Set(3, 30)
+	m.Insert(1, 10)
+	m.Insert(2, 20)
+	m.Insert(3, 30)
 
 	workers := Int(3)
 
@@ -76,9 +76,9 @@ func TestCollectCountParallel(t *testing.T) {
 // TestFilterMapParallel tests Filter and Map with parallelism.
 func TestFilterMapParallel(t *testing.T) {
 	m := NewMap[int, int]()
-	m.Set(1, 1)
-	m.Set(2, 2)
-	m.Set(3, 3)
+	m.Insert(1, 1)
+	m.Insert(2, 2)
+	m.Insert(3, 3)
 
 	workers := Int(2)
 	cc := &concurrentCounter{sleep: 15 * time.Millisecond}
@@ -98,9 +98,9 @@ func TestFilterMapParallel(t *testing.T) {
 // TestTakeSkipParallel tests Take and Skip with parallelism.
 func TestTakeSkipParallel(t *testing.T) {
 	m := NewMap[int, int]()
-	m.Set(1, 100)
-	m.Set(2, 200)
-	m.Set(3, 300)
+	m.Insert(1, 100)
+	m.Insert(2, 200)
+	m.Insert(3, 300)
 
 	workers := Int(2)
 
@@ -134,10 +134,10 @@ func TestTakeSkipParallel(t *testing.T) {
 // TestExcludeForEachParallel tests Exclude and ForEach with parallelism.
 func TestExcludeForEachParallel(t *testing.T) {
 	m := NewMap[int, int]()
-	m.Set(1, 1)
-	m.Set(2, 2)
-	m.Set(3, 3)
-	m.Set(4, 4)
+	m.Insert(1, 1)
+	m.Insert(2, 2)
+	m.Insert(3, 3)
+	m.Insert(4, 4)
 
 	workers := Int(2)
 
@@ -179,10 +179,10 @@ func TestExcludeForEachParallel(t *testing.T) {
 // TestChainAllAnyFindParallel tests Chain, All, Any, Find with parallelism.
 func TestChainAllAnyFindParallel(t *testing.T) {
 	m1 := NewMap[int, int]()
-	m1.Set(1, 1)
-	m1.Set(2, 2)
+	m1.Insert(1, 1)
+	m1.Insert(2, 2)
 	m2 := NewMap[int, int]()
-	m2.Set(3, 3)
+	m2.Insert(3, 3)
 
 	workers := Int(2)
 

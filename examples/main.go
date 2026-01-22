@@ -127,7 +127,7 @@ func main() {
 	sl3.Iter().Map(func(s String) String { return s + "MAPMAPMAP" }).Collect().Println()
 
 	empsl := NewSlice[String]()
-	fmt.Println(empsl.Empty())
+	fmt.Println(empsl.IsEmpty())
 
 	// maps
 	m1 := Map[int, string](map[int]string{1: "root", 22: "toor"}) // declaration and assignation
@@ -138,17 +138,14 @@ func main() {
 
 	m2[99] = "AAA"
 	m2[88] = "BBB"
-	m2.Set(77, "CCC")
+	m2.Insert(77, "CCC")
 
-	m2.Delete(99)
+	m2.Remove(99)
 	m2.Println()
 	m2.Iter().Keys().Collect().Println()
 
 	m2.Println()
 	fmt.Println(m2.Std())
-
-	fmt.Println(m2.Invert().Iter().Values().Collect().Get(0))               // return int type
-	fmt.Println(m2.Invert().Iter().Keys().Collect().Get(0).Some().(string)) // return any type, need assert to type
 
 	m3 := Map[string, string]{"test": "rest"} // declaration and assignation
 	fmt.Println(m3.Contains("test"))

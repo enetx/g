@@ -12,6 +12,9 @@ import (
 	"github.com/enetx/g/constraints"
 )
 
+// Float is an alias for the float64 type.
+type Float float64
+
 // NewFloat creates a new Float with the provided value.
 func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return Float(float) }
 

@@ -48,7 +48,7 @@ func main() {
 	// permutations.Println()
 
 	m := NewMap[string, Slice[Slice[String]]]()
-	m.Set("one", nx)
+	m.Insert("one", nx)
 
 	fmt.Println(m.Get("one").Some().Last().Some().Contains("aaa"))
 

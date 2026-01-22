@@ -1,5 +1,43 @@
 package g
 
+// Entry is a sealed interface representing a view into a single Map entry.
+//
+// Entry provides an API for in-place manipulation of map entries, enabling
+// efficient "get or insert" patterns without redundant lookups.
+//
+// The interface is sealed to ensure type safety; implementations are limited
+// to [OccupiedEntry] (when the key exists) and [VacantEntry] (when the key
+// is absent). Use a type switch to access type-specific methods like Get,
+// Insert, or Remove.
+//
+// Common usage patterns:
+//
+//	// Increment existing value or insert default
+//	m.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+//
+//	// Insert only if absent
+//	m.Entry("key").OrInsert(defaultValue)
+//
+//	// Insert with lazy initialization
+//	m.Entry("key").OrInsertWith(func() V { return expensiveComputation() })
+//
+//	// Type switch for fine-grained control
+//	switch e := m.Entry("key").(type) {
+//	case OccupiedEntry[string, int]:
+//	    fmt.Println("exists:", e.Get())
+//	case VacantEntry[string, int]:
+//	    e.Insert(42)
+//	}
+type Entry[K comparable, V any] interface {
+	sealed()
+	Key() K
+	OrInsert(value V) V
+	OrInsertWith(fn func() V) V
+	OrInsertWithKey(fn func(K) V) V
+	OrDefault() V
+	AndModify(fn func(*V)) Entry[K, V]
+}
+
 // OccupiedEntry represents a view into a map entry that is known to be present.
 //
 // It is typically obtained from Map.Entry(key) when the key already exists.

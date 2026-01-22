@@ -8,6 +8,12 @@ import (
 	"runtime"
 )
 
+// Result is a generic struct for representing a result value along with an error.
+type Result[T any] struct {
+	v   T     // Value.
+	err error // Associated error.
+}
+
 // Ok returns a new Result[T] containing the given value.
 func Ok[T any](value T) Result[T] { return Result[T]{v: value} }
 

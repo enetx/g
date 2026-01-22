@@ -2,6 +2,47 @@ package g
 
 import "github.com/enetx/g/ref"
 
+// SafeEntry is a sealed interface representing a view into a single MapSafe entry.
+//
+// SafeEntry provides an API for in-place manipulation of concurrent map entries,
+// enabling efficient "get or insert" patterns that are safe for concurrent use
+// by multiple goroutines.
+//
+// The interface is sealed to ensure type safety; implementations are limited
+// to [OccupiedSafeEntry] (when the key exists) and [VacantSafeEntry] (when the
+// key is absent). Use a type switch to access type-specific methods like Get,
+// Insert, or Remove.
+//
+// Concurrency notes:
+//   - AndModify uses a compare-and-swap (CAS) loop for atomic updates
+//   - VacantSafeEntry stores pending modifications to handle insertion races
+//   - All operations are safe for concurrent use without external locking
+//
+// Common usage patterns:
+//
+//	// Thread-safe increment or insert (safe for concurrent goroutines)
+//	ms.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+//
+//	// Thread-safe insert only if absent
+//	ms.Entry("key").OrInsert(defaultValue)
+//
+//	// Type switch for fine-grained control
+//	switch e := ms.Entry("key").(type) {
+//	case OccupiedSafeEntry[string, int]:
+//	    fmt.Println("exists:", e.Get())
+//	case VacantSafeEntry[string, int]:
+//	    e.Insert(42)
+//	}
+type SafeEntry[K comparable, V any] interface {
+	sealed()
+	Key() K
+	OrInsert(value V) V
+	OrInsertWith(fn func() V) V
+	OrInsertWithKey(fn func(K) V) V
+	OrDefault() V
+	AndModify(fn func(*V)) SafeEntry[K, V]
+}
+
 // OccupiedSafeEntry represents a view into a concurrent map entry that is known
 // to be present.
 //

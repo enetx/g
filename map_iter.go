@@ -7,6 +7,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqMap is an iterator over sequences of pairs of values, most commonly key-value pairs.
+type SeqMap[K comparable, V any] iter.Seq2[K, V]
+
 // IterPar parallelizes the SeqMap using the specified number of workers.
 func (seq SeqMap[K, V]) Parallel(workers ...Int) SeqMapPar[K, V] {
 	numCPU := Int(runtime.NumCPU())

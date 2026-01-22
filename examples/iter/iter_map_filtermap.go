@@ -7,10 +7,10 @@ import (
 func main() {
 	// Example 1: FilterMap for config validation
 	configs := NewMap[String, String]()
-	configs.Set("host", "localhost")
-	configs.Set("port", "8080")
-	configs.Set("debug", "invalid")
-	configs.Set("timeout", "30")
+	configs.Insert("host", "localhost")
+	configs.Insert("port", "8080")
+	configs.Insert("debug", "invalid")
+	configs.Insert("timeout", "30")
 
 	validConfigs := configs.Iter().
 		FilterMap(func(k, v String) Option[Pair[String, String]] {
@@ -27,10 +27,10 @@ func main() {
 
 	// Example 2: FilterMap for user age filtering
 	users := NewMap[String, Int]()
-	users.Set("alice", 25)
-	users.Set("bob", 17)
-	users.Set("charlie", 30)
-	users.Set("diana", 16)
+	users.Insert("alice", 25)
+	users.Insert("bob", 17)
+	users.Insert("charlie", 30)
+	users.Insert("diana", 16)
 
 	adults := users.Iter().
 		FilterMap(func(name String, age Int) Option[Pair[String, Int]] {
@@ -46,10 +46,10 @@ func main() {
 
 	// Example 3: FilterMap for URL validation
 	urls := NewMap[String, String]()
-	urls.Set("google", "https://google.com")
-	urls.Set("invalid", "not-a-url")
-	urls.Set("github", "https://github.com")
-	urls.Set("empty", "")
+	urls.Insert("google", "https://google.com")
+	urls.Insert("invalid", "not-a-url")
+	urls.Insert("github", "https://github.com")
+	urls.Insert("empty", "")
 
 	validUrls := urls.Iter().
 		FilterMap(func(name, url String) Option[Pair[String, String]] {

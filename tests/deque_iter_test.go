@@ -834,7 +834,7 @@ func TestSeqDequeFilterMap(t *testing.T) {
 	words := g.DequeOf("hello", "", "world", "   ", "go")
 	processedWords := words.Iter().FilterMap(func(s string) g.Option[string] {
 		trimmed := g.String(s).Trim()
-		if !trimmed.Empty() {
+		if !trimmed.IsEmpty() {
 			return g.Some(string(trimmed.Upper()))
 		}
 		return g.None[string]()

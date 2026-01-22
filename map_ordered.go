@@ -7,7 +7,15 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
+	"github.com/enetx/iter"
 )
+
+// Pair is a struct representing a key-value Pair for MapOrd.
+type Pair[K, V any] = iter.Pair[K, V]
+
+// MapOrd is an ordered map that maintains insertion order using a slice for pairs
+// and a map for fast index lookups.
+type MapOrd[K comparable, V any] []Pair[K, V] // ordered key-value pairs
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
 // An ordered Map is an Map that maintains the order of its key-value pairs based on the
@@ -283,14 +291,14 @@ func (mo MapOrd[K, V]) ToMap() Map[K, V] {
 // ToMapSafe converts a ordered Map to a thread-safe Map.
 func (mo MapOrd[K, V]) ToMapSafe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
-	mo.Iter().ForEach(func(k K, v V) { ms.Set(k, v) })
+	mo.Iter().ForEach(func(k K, v V) { ms.Insert(k, v) })
 
 	return ms
 }
 
-// Set sets the value for the specified key in the ordered Map,
+// Insert sets the value for the specified key in the ordered Map,
 // and returns the previous value if it existed.
-func (mo *MapOrd[K, V]) Set(key K, value V) Option[V] {
+func (mo *MapOrd[K, V]) Insert(key K, value V) Option[V] {
 	if i := mo.index(key); i != -1 {
 		prev := (*mo)[i].Value
 		(*mo)[i].Value = value
@@ -326,21 +334,6 @@ func (mo MapOrd[K, V]) Shuffle() {
 	}
 }
 
-// Invert inverts the key-value pairs in the ordered Map, creating a new ordered Map with the
-// values as keys and the original keys as values.
-func (mo MapOrd[K, V]) Invert() MapOrd[any, K] {
-	if mo.Empty() {
-		return NewMapOrd[any, K]()
-	}
-
-	result := make(MapOrd[any, K], 0, len(mo))
-	for _, pair := range mo {
-		result = append(result, Pair[any, K]{Key: pair.Value, Value: pair.Key})
-	}
-
-	return result
-}
-
 func (mo MapOrd[K, V]) index(key K) int {
 	for i, mp := range mo {
 		if mp.Key == key {
@@ -357,35 +350,20 @@ func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
 // Values returns an Slice containing all the values in the ordered Map.
 func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
 
-// Delete removes the specified keys from the ordered Map.
-//
-// It preserves the original insertion order of the remaining elements
-// and performs the deletion in a single pass with O(n) complexity.
-//
-// Internally, it builds a set of keys to delete and reconstructs the map
-// without the removed entries. Key lookup is optimized via a map[K]int index.
-//
-// Example:
-//
-//	mo.Delete("a", "b", "c")
-func (mo *MapOrd[K, V]) Delete(keys ...K) {
-	if len(keys) == 0 || mo.Empty() {
-		return
+// Remove removes the specified key from the ordered Map and returns the removed value.
+func (mo *MapOrd[K, V]) Remove(key K) Option[V] {
+	if mo.IsEmpty() {
+		return None[V]()
 	}
 
-	idx := mo.indexMap()
-	seen := SetOf(keys...)
-	nmo := make(MapOrd[K, V], 0, len(*mo)-min(len(keys), len(*mo)))
-
-	for _, p := range *mo {
-		if !seen.Contains(p.Key) {
-			nmo = append(nmo, p)
-		} else {
-			delete(idx, p.Key)
+	for i, p := range *mo {
+		if p.Key == key {
+			*mo = append((*mo)[:i], (*mo)[i+1:]...)
+			return Some(p.Value)
 		}
 	}
 
-	*mo = nmo
+	return None[V]()
 }
 
 // Eq compares the current ordered Map to another ordered Map and returns true if they are equal.
@@ -449,16 +427,13 @@ func (mo *MapOrd[K, V]) Clear() { *mo = (*mo)[:0] }
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) != -1 }
 
 // Empty checks if the ordered Map is empty.
-func (mo MapOrd[K, V]) Empty() bool { return len(mo) == 0 }
+func (mo MapOrd[K, V]) IsEmpty() bool { return len(mo) == 0 }
 
 // Len returns the number of key-value pairs in the ordered Map.
 func (mo MapOrd[K, V]) Len() Int { return Int(len(mo)) }
 
 // Ne compares the current ordered Map to another ordered Map and returns true if they are not equal.
 func (mo MapOrd[K, V]) Ne(other MapOrd[K, V]) bool { return !mo.Eq(other) }
-
-// NotEmpty checks if the ordered Map is not empty.
-func (mo MapOrd[K, V]) NotEmpty() bool { return !mo.Empty() }
 
 // Print writes the key-value pairs of the MapOrd to the standard output (console)
 // and returns the MapOrd unchanged.

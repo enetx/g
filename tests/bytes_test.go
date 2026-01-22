@@ -936,20 +936,6 @@ func TestBytesTitle(t *testing.T) {
 	}
 }
 
-func TestBytesNotEmpty(t *testing.T) {
-	// Test case where the Bytes is not empty
-	bs := Bytes("hello")
-	if !bs.NotEmpty() {
-		t.Errorf("NotEmpty failed. Expected: true, Got: false")
-	}
-
-	// Test case where the Bytes is empty
-	bs = Bytes("")
-	if bs.NotEmpty() {
-		t.Errorf("NotEmpty failed. Expected: false, Got: true")
-	}
-}
-
 func TestBytesMap(t *testing.T) {
 	// Test case where the function converts each rune to uppercase
 	bs := Bytes("hello")

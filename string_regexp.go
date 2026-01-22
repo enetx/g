@@ -17,7 +17,7 @@ func (s String) Regexp() regexps { return regexps{s} }
 // If no match is found, it returns None.
 func (r regexps) Find(pattern *regexp.Regexp) Option[String] {
 	result := String(pattern.FindString(r.str.Std()))
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[String]()
 	}
 
@@ -69,7 +69,7 @@ func (r regexps) Split(pattern *regexp.Regexp) Slice[String] {
 // - If n is positive, at most n substrings are returned.
 func (r regexps) SplitN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	result := TransformSlice(pattern.Split(r.str.Std(), n.Std()), NewString)
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
 
@@ -81,7 +81,7 @@ func (r regexps) SplitN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 // If no match is found, it returns None.
 func (r regexps) Index(pattern *regexp.Regexp) Option[Slice[Int]] {
 	result := TransformSlice(pattern.FindStringIndex(r.str.Std()), NewInt)
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Int]]()
 	}
 
@@ -101,7 +101,7 @@ func (r regexps) FindAll(pattern *regexp.Regexp) Option[Slice[String]] {
 // If n is negative, all occurrences will be returned.
 func (r regexps) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	result := TransformSlice(pattern.FindAllString(r.str.Std(), n.Std()), NewString)
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
 
@@ -114,7 +114,7 @@ func (r regexps) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 // If no match is found, it returns None.
 func (r regexps) FindSubmatch(pattern *regexp.Regexp) Option[Slice[String]] {
 	result := TransformSlice(pattern.FindStringSubmatch(r.str.Std()), NewString)
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
 
@@ -144,7 +144,7 @@ func (r regexps) FindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Sl
 		result = append(result, TransformSlice(v, NewString))
 	}
 
-	if result.Empty() {
+	if result.IsEmpty() {
 		return None[Slice[Slice[String]]]()
 	}
 

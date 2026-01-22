@@ -7,6 +7,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqResult is an iterator over sequences of Result[V] values.
+type SeqResult[V any] iter.Seq[Result[V]]
+
 // Pull converts the “push-style” sequence of Result[V] into a “pull-style” iterator accessed by two functions: next and stop.
 //
 // The next function returns the next Result[V] in the sequence and a boolean indicating whether the value is valid.

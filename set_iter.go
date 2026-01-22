@@ -6,6 +6,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqSet is an iterator over sequences of unique values.
+type SeqSet[V comparable] iter.Seq[V]
+
 // Pull converts the “push-style” iterator sequence seq
 // into a “pull-style” iterator accessed by the two functions
 // next and stop.

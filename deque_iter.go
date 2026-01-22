@@ -10,6 +10,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqDeque is an iterator over sequences of Deque values.
+type SeqDeque[V any] iter.Seq[V]
+
 // Pull converts the "push-style" iterator sequence seq
 // into a "pull-style" iterator accessed by the two functions
 // next and stop.

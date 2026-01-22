@@ -52,7 +52,7 @@ func main() {
 	}).Collect()
 
 	for _, group := range departmentGroups {
-		if group.NotEmpty() {
+		if !group.IsEmpty() {
 			Println("Department {}: {} employees", group[0].Department, group.Len())
 			for _, emp := range group {
 				Println("  - {} (age: {}, salary: ${})", emp.Name, emp.Age, emp.Salary)
@@ -74,7 +74,7 @@ func main() {
 	}).Collect()
 
 	for _, group := range ageGroups {
-		if group.NotEmpty() {
+		if !group.IsEmpty() {
 			category := "young"
 			if group[0].Age.Gte(30) {
 				category = "experienced"
@@ -105,7 +105,7 @@ func main() {
 	}).Collect()
 
 	for _, group := range transactionGroups {
-		if group.NotEmpty() {
+		if !group.IsEmpty() {
 			var total Float
 			// Calculate total amount for each group
 			for _, t := range group {
@@ -138,7 +138,7 @@ func main() {
 	}).Collect()
 
 	for _, group := range logGroups {
-		if group.NotEmpty() {
+		if !group.IsEmpty() {
 			Println("Level {}: {} entries", group[0].Level, group.Len())
 			for _, log := range group {
 				Println("  - [{}] {}: {}",
@@ -180,7 +180,7 @@ func main() {
 	}).Collect()
 
 	for _, group := range nameGroups {
-		if group.NotEmpty() {
+		if !group.IsEmpty() {
 			firstLetter := string(group[0].Name[0])
 			Println("Names starting with '{}': {}", firstLetter, group.Len())
 			// Extract names and join them with commas

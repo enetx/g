@@ -97,7 +97,7 @@ func TestSeqHeap_Collect(t *testing.T) {
 
 	// Should pop in reverse order (largest first)
 	result := make([]int, 0)
-	for !collected.Empty() {
+	for !collected.IsEmpty() {
 		val := collected.Pop().Some()
 		result = append(result, val)
 	}
@@ -530,7 +530,7 @@ func TestSeqHeap_Partition(t *testing.T) {
 
 	// Verify even numbers come out in min heap order
 	evenResult := make([]int, 0)
-	for !evens.Empty() {
+	for !evens.IsEmpty() {
 		evenResult = append(evenResult, evens.Pop().Some())
 	}
 	expectedEvens := []int{2, 4, 6}
@@ -540,7 +540,7 @@ func TestSeqHeap_Partition(t *testing.T) {
 
 	// Verify odd numbers come out in max heap order
 	oddResult := make([]int, 0)
-	for !odds.Empty() {
+	for !odds.IsEmpty() {
 		oddResult = append(oddResult, odds.Pop().Some())
 	}
 	expectedOdds := []int{5, 3, 1} // max heap order
@@ -846,7 +846,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 		return g.NewHeap(cmp.Cmp[int]).Iter()
 	}).Collect(cmp.Cmp[int])
 
-	if !emptyResult.Empty() {
+	if !emptyResult.IsEmpty() {
 		t.Errorf("FlatMap empty: expected empty heap, got %d elements", emptyResult.Len())
 	}
 
@@ -858,7 +858,7 @@ func TestSeqHeapFlatMap(t *testing.T) {
 		return subHeap.Iter()
 	}).Collect(cmp.Cmp[int])
 
-	if !emptyFlatMapped.Empty() {
+	if !emptyFlatMapped.IsEmpty() {
 		t.Errorf("FlatMap empty input: expected empty heap, got %d elements", emptyFlatMapped.Len())
 	}
 
@@ -915,7 +915,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 		return g.None[int]()
 	}).Collect(cmp.Cmp[int])
 
-	if !allFiltered.Empty() {
+	if !allFiltered.IsEmpty() {
 		t.Errorf("FilterMap all filtered: expected empty heap, got %d elements", allFiltered.Len())
 	}
 
@@ -937,7 +937,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 		return g.Some(n * 2)
 	}).Collect(cmp.Cmp[int])
 
-	if !emptyFiltered.Empty() {
+	if !emptyFiltered.IsEmpty() {
 		t.Errorf("FilterMap empty input: expected empty heap, got %d elements", emptyFiltered.Len())
 	}
 
@@ -947,7 +947,7 @@ func TestSeqHeapFilterMap(t *testing.T) {
 
 	processedWords := stringHeap.Iter().FilterMap(func(s string) g.Option[string] {
 		trimmed := g.String(s).Trim()
-		if !trimmed.Empty() {
+		if !trimmed.IsEmpty() {
 			return g.Some(string(trimmed.Upper()))
 		}
 		return g.None[string]()

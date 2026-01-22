@@ -2,6 +2,42 @@ package g
 
 import "slices"
 
+// OrdEntry is a sealed interface representing a view into a single MapOrd entry.
+//
+// OrdEntry provides an API for in-place manipulation of ordered map entries,
+// enabling efficient "get or insert" patterns without redundant lookups while
+// preserving insertion order.
+//
+// The interface is sealed to ensure type safety; implementations are limited
+// to [OccupiedOrdEntry] (when the key exists) and [VacantOrdEntry] (when the
+// key is absent). Use a type switch to access type-specific methods like Get,
+// Insert, or Remove.
+//
+// Common usage patterns:
+//
+//	// Increment existing value or insert default
+//	mo.Entry("counter").AndModify(func(v *int) { *v++ }).OrInsert(1)
+//
+//	// Insert only if absent (appends to end)
+//	mo.Entry("key").OrInsert(defaultValue)
+//
+//	// Type switch for fine-grained control
+//	switch e := mo.Entry("key").(type) {
+//	case OccupiedOrdEntry[string, int]:
+//	    fmt.Println("exists:", e.Get())
+//	case VacantOrdEntry[string, int]:
+//	    e.Insert(42)
+//	}
+type OrdEntry[K comparable, V any] interface {
+	sealed()
+	Key() K
+	OrInsert(value V) V
+	OrInsertWith(fn func() V) V
+	OrInsertWithKey(fn func(K) V) V
+	OrDefault() V
+	AndModify(fn func(*V)) OrdEntry[K, V]
+}
+
 // OccupiedOrdEntry represents a view into an ordered map entry that is known
 // to be present.
 //

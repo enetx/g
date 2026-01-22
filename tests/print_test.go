@@ -816,7 +816,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.stringkey}",
 			args: func() []any {
 				m := NewMapOrd[string, string]()
-				m.Set("stringkey", "stringvalue")
+				m.Insert("stringkey", "stringvalue")
 				return []any{m}
 			}(),
 			expected: "Value: stringvalue",
@@ -826,7 +826,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.stringkey}",
 			args: func() []any {
 				m := NewMapOrd[String, string]()
-				m.Set(String("stringkey"), "stringvalue")
+				m.Insert(String("stringkey"), "stringvalue")
 				return []any{m}
 			}(),
 			expected: "Value: stringvalue",
@@ -836,7 +836,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.42}",
 			args: func() []any {
 				m := NewMapOrd[int, string]()
-				m.Set(42, "intvalue")
+				m.Insert(42, "intvalue")
 				return []any{m}
 			}(),
 			expected: "Value: intvalue",
@@ -846,7 +846,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.42}",
 			args: func() []any {
 				m := NewMapOrd[Int, string]()
-				m.Set(Int(42), "intvalue")
+				m.Insert(Int(42), "intvalue")
 				return []any{m}
 			}(),
 			expected: "Value: intvalue",
@@ -856,7 +856,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.3}",
 			args: func() []any {
 				m := NewMapOrd[float64, string]()
-				m.Set(3.0, "floatvalue")
+				m.Insert(3.0, "floatvalue")
 				return []any{m}
 			}(),
 			expected: "Value: floatvalue",
@@ -866,7 +866,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.3}",
 			args: func() []any {
 				m := NewMapOrd[Float, string]()
-				m.Set(Float(3.0), "floatvalue")
+				m.Insert(Float(3.0), "floatvalue")
 				return []any{m}
 			}(),
 			expected: "Value: floatvalue",
@@ -876,7 +876,7 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			template: "Value: {1.missing}",
 			args: func() []any {
 				m := NewMapOrd[string, string]()
-				m.Set("existing", "value")
+				m.Insert("existing", "value")
 				return []any{m}
 			}(),
 			expected: "Value: MapOrd{existing:value}",

@@ -7,6 +7,17 @@ import (
 	"runtime"
 )
 
+// Option is a generic struct for representing an optional value.
+type Option[T any] struct {
+	v      T    // Value.
+	isSome bool // Indicator of value presence.
+}
+
+// Unit represents an empty value.
+// Used in contexts where a function needs to return "something" but
+// the actual value doesn't matter, only success/failure status.
+type Unit struct{}
+
 // Some creates an Option containing a value.
 func Some[T any](value T) Option[T] { return Option[T]{v: value, isSome: true} }
 

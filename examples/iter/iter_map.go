@@ -14,7 +14,7 @@ func main() {
 	SliceOf[String]("", "bbb", "ddd", "", "aaa", "ccc").
 		Iter().
 		Map(func(s String) String {
-			if s.Empty() {
+			if s.IsEmpty() {
 				s = "abc"
 			}
 			return s

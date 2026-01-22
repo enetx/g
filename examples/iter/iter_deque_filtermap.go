@@ -59,7 +59,7 @@ func main() {
 	validEmails := userInputs.Iter().FilterMap(func(input string) Option[string] {
 		cleaned := String(input).Trim()
 		// Simple email validation (contains @ and .)
-		if !cleaned.Empty() && cleaned.Contains("@") && cleaned.Contains(".") {
+		if !cleaned.IsEmpty() && cleaned.Contains("@") && cleaned.Contains(".") {
 			return Some(string(cleaned.Lower()))
 		}
 		return None[string]()
@@ -71,7 +71,7 @@ func main() {
 	words := DequeOf("hello", "", "world", "   ", "go", "rust")
 	validWords := words.Iter().FilterMap(func(s string) Option[string] {
 		trimmed := String(s).Trim()
-		if !trimmed.Empty() && len(trimmed) > 2 {
+		if !trimmed.IsEmpty() && len(trimmed) > 2 {
 			return Some(string(trimmed.Upper()))
 		}
 		return None[string]()

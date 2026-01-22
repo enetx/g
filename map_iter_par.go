@@ -5,6 +5,13 @@ import (
 	"sync/atomic"
 )
 
+// SeqMapPar is the parallel version of SeqMap[K,V].
+type SeqMapPar[K comparable, V any] struct {
+	seq     SeqMap[K, V]
+	workers Int
+	process func(Pair[K, V]) (Pair[K, V], bool)
+}
+
 // All returns true if fn returns true for every pair.
 func (p SeqMapPar[K, V]) All(fn func(K, V) bool) bool {
 	var ok atomic.Bool
@@ -109,7 +116,7 @@ func (p SeqMapPar[K, V]) Collect() Map[K, V] {
 
 	m := NewMap[K, V]()
 	for pair := range ch {
-		m.Set(pair.Key, pair.Value)
+		m.Insert(pair.Key, pair.Value)
 	}
 
 	return m

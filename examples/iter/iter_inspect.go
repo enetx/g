@@ -9,13 +9,13 @@ import (
 func main() {
 	// Create a new ordered map with integer keys and string values
 	mo := NewMapOrd[int, string]()
-	mo.Set(0, "aa")
-	mo.Set(1, "bb")
-	mo.Set(2, "cc")
-	mo.Set(3, "dd")
-	mo.Set(4, "ee")
-	mo.Set(5, "ff")
-	mo.Set(6, "gg")
+	mo.Insert(0, "aa")
+	mo.Insert(1, "bb")
+	mo.Insert(2, "cc")
+	mo.Insert(3, "dd")
+	mo.Insert(4, "ee")
+	mo.Insert(5, "ff")
+	mo.Insert(6, "gg")
 	mo.Iter().
 		StepBy(2).                                                        // Iterate with a step size of 2
 		Exclude(func(k int, _ string) bool { return k == 4 }).            // Exclude entry with key 4

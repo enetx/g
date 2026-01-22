@@ -9,7 +9,7 @@ import (
 func main() {
 	m := NewMap[int, int]()
 	for i := range 1000 {
-		m.Set(i, i)
+		m.Insert(i, i)
 	}
 
 	start := time.Now()

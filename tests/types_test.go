@@ -199,8 +199,8 @@ func TestPair_Type(t *testing.T) {
 func TestMapOrd_Type(t *testing.T) {
 	// Test MapOrd type alias
 	orderedMap := NewMapOrd[string, int]()
-	orderedMap.Set("first", 1)
-	orderedMap.Set("second", 2)
+	orderedMap.Insert("first", 1)
+	orderedMap.Insert("second", 2)
 
 	if orderedMap.Len() != 2 {
 		t.Errorf("MapOrd creation failed: got length %d, want 2", orderedMap.Len())

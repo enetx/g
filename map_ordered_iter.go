@@ -7,6 +7,9 @@ import (
 	"github.com/enetx/iter"
 )
 
+// SeqMapOrd is an iterator over sequences of ordered pairs of values, most commonly ordered key-value pairs.
+type SeqMapOrd[K comparable, V any] iter.Seq2[K, V]
+
 // Pull converts the “push-style” iterator sequence seq
 // into a “pull-style” iterator accessed by the two functions
 // next and stop.
@@ -206,7 +209,7 @@ func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
 	collection := NewMapOrd[K, V]()
 
 	seq(func(k K, v V) bool {
-		collection.Set(k, v)
+		collection.Insert(k, v)
 		return true
 	})
 

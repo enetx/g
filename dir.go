@@ -7,6 +7,11 @@ import (
 	"path/filepath"
 )
 
+// Dir is a struct representing a directory path.
+type Dir struct {
+	path String // Directory path.
+}
+
 // NewDir returns a new Dir instance with the given path.
 func NewDir(path String) *Dir { return &Dir{path: path} }
 
@@ -466,7 +471,7 @@ func (d *Dir) Walk() SeqResult[*File] {
 	return func(yield func(Result[*File]) bool) {
 		stack := SliceOf(d)
 
-		for stack.NotEmpty() {
+		for !stack.IsEmpty() {
 			current := stack.Pop()
 			if current.IsNone() {
 				break
