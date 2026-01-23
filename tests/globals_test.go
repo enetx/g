@@ -115,12 +115,12 @@ func TestConstants_FileModes(t *testing.T) {
 func TestConstants_PathSeparator(t *testing.T) {
 	expected := g.String(os.PathSeparator)
 
-	if g.PathSeperator != expected {
-		t.Errorf("PathSeperator = %q, want %q", g.PathSeperator, expected)
+	if g.PathSeparator != expected {
+		t.Errorf("PathSeperator = %q, want %q", g.PathSeparator, expected)
 	}
 
 	// Should not be empty
-	if len(g.PathSeperator) == 0 {
+	if len(g.PathSeparator) == 0 {
 		t.Error("PathSeperator should not be empty")
 	}
 }

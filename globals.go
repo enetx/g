@@ -18,5 +18,5 @@ const (
 	DirDefault  os.FileMode = 0o755
 	FullAccess  os.FileMode = 0o777
 
-	PathSeperator = String(os.PathSeparator)
+	PathSeparator = String(os.PathSeparator)
 )
