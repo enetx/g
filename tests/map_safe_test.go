@@ -7,6 +7,33 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestMapSafeCountConsistency(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+	ms.TryInsert("c", 3)
+
+	if ms.Len() != 3 {
+		t.Errorf("expected Len=3, got %d", ms.Len())
+	}
+
+	ms.Entry("d").OrInsert(4)
+	if ms.Len() != 4 {
+		t.Errorf("expected Len=4 after OrInsert, got %d", ms.Len())
+	}
+
+	ms.Remove("a")
+	if ms.Len() != 3 {
+		t.Errorf("expected Len=3 after Remove, got %d", ms.Len())
+	}
+
+	clone := ms.Clone()
+	if clone.Len() != 3 {
+		t.Errorf("expected Clone Len=3, got %d", clone.Len())
+	}
+}
+
 func TestMapSafeTrySetNewKey(t *testing.T) {
 	ms := NewMapSafe[string, int]()
 

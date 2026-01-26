@@ -7,6 +7,330 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestMapSafeRemoveNonExistent(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("a", 1)
+
+	// Remove non-existent
+	opt := ms.Remove("nonexistent")
+	if !opt.IsNone() {
+		t.Error("expected None for non-existent key")
+	}
+
+	// Len unchanged
+	if ms.Len() != 1 {
+		t.Errorf("expected Len=1, got %d", ms.Len())
+	}
+
+	// OccupiedEntry.Remove after already removed
+	e := ms.Entry("a").(OccupiedSafeEntry[string, int])
+	ms.Remove("a")
+	val := e.Remove()
+	if val != 0 {
+		t.Errorf("expected 0 for already removed, got %d", val)
+	}
+}
+
+func TestMapSafeEntryConcurrentStress(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping stress test in short mode")
+	}
+
+	var badResults int64
+	var wg sync.WaitGroup
+
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			for range 10_000 {
+				ms := NewMapSafe[string, Int]()
+				ready := make(chan struct{})
+				var result Int
+				var done sync.WaitGroup
+
+				done.Add(1)
+				go func() {
+					defer done.Done()
+					<-ready
+					result = ms.Entry("key").
+						AndModify(func(v *Int) { *v += 10 }).
+						OrInsert(1)
+				}()
+
+				done.Add(1)
+				go func() {
+					defer done.Done()
+					<-ready
+					ms.Insert("key", 100)
+				}()
+
+				for range 4 {
+					done.Add(1)
+					go func() {
+						defer done.Done()
+						<-ready
+						for range 50 {
+							ms.Remove("key")
+						}
+					}()
+				}
+
+				close(ready)
+				done.Wait()
+
+				if result == 0 {
+					badResults++
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if badResults > 0 {
+		t.Errorf("got %d bad results (expected 0)", badResults)
+	}
+}
+
+func TestMapSafeVacantInsertRace(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+
+	e, ok := ms.Entry("key").(VacantSafeEntry[string, int])
+	if !ok {
+		t.Fatal("expected VacantSafeEntry")
+	}
+
+	// Simulate concurrent insert
+	ms.Insert("key", 100)
+
+	// VacantEntry.Insert should return existing value
+	val := e.Insert(42)
+	if val != 100 {
+		t.Errorf("expected 100 (existing), got %d", val)
+	}
+
+	// Len should still be 1
+	if ms.Len() != 1 {
+		t.Errorf("expected Len=1, got %d", ms.Len())
+	}
+}
+
+func TestMapSafeOccupiedOrMethodsAfterRemove(t *testing.T) {
+	// OrInsert
+	t.Run("OrInsert", func(t *testing.T) {
+		ms := NewMapSafe[string, int]()
+		ms.Insert("key", 100)
+		e := ms.Entry("key").(OccupiedSafeEntry[string, int])
+		ms.Remove("key")
+
+		val := e.OrInsert(42)
+		if val != 42 {
+			t.Errorf("expected 42, got %d", val)
+		}
+		if ms.Len() != 1 {
+			t.Errorf("expected Len=1, got %d", ms.Len())
+		}
+	})
+
+	// OrInsertWith
+	t.Run("OrInsertWith", func(t *testing.T) {
+		ms := NewMapSafe[string, int]()
+		ms.Insert("key", 100)
+		e := ms.Entry("key").(OccupiedSafeEntry[string, int])
+		ms.Remove("key")
+
+		called := false
+		val := e.OrInsertWith(func() int {
+			called = true
+			return 42
+		})
+		if !called {
+			t.Error("expected fn to be called")
+		}
+		if val != 42 {
+			t.Errorf("expected 42, got %d", val)
+		}
+	})
+
+	// OrInsertWithKey
+	t.Run("OrInsertWithKey", func(t *testing.T) {
+		ms := NewMapSafe[string, int]()
+		ms.Insert("key", 100)
+		e := ms.Entry("key").(OccupiedSafeEntry[string, int])
+		ms.Remove("key")
+
+		val := e.OrInsertWithKey(func(k string) int { return len(k) })
+		if val != 3 {
+			t.Errorf("expected 3, got %d", val)
+		}
+	})
+
+	// OrDefault
+	t.Run("OrDefault", func(t *testing.T) {
+		ms := NewMapSafe[string, int]()
+		ms.Insert("key", 100)
+		e := ms.Entry("key").(OccupiedSafeEntry[string, int])
+		ms.Remove("key")
+
+		val := e.OrDefault()
+		if val != 0 {
+			t.Errorf("expected 0, got %d", val)
+		}
+		if !ms.Contains("key") {
+			t.Error("expected key to exist")
+		}
+	})
+}
+
+func TestMapSafeOccupiedInsertAfterRemove(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("key", 100)
+
+	e, ok := ms.Entry("key").(OccupiedSafeEntry[string, int])
+	if !ok {
+		t.Fatal("expected OccupiedSafeEntry")
+	}
+
+	// Simulate concurrent remove
+	ms.Remove("key")
+
+	// Insert on "occupied" entry after key was removed
+	old := e.Insert(200)
+
+	// Should return zero (key was gone)
+	if old != 0 {
+		t.Errorf("expected old=0, got %d", old)
+	}
+
+	// Key should now exist with new value
+	if v := ms.Get("key"); v.IsNone() || v.Some() != 200 {
+		t.Errorf("expected 200 in map, got %v", v)
+	}
+
+	// Len should be 1
+	if ms.Len() != 1 {
+		t.Errorf("expected Len=1, got %d", ms.Len())
+	}
+}
+
+func TestMapSafeCloneCopyLen(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+	ms.Insert("c", 3)
+
+	// Clone
+	cloned := ms.Clone()
+	if cloned.Len() != 3 {
+		t.Errorf("expected cloned Len=3, got %d", cloned.Len())
+	}
+
+	// Copy into empty
+	dest := NewMapSafe[string, int]()
+	dest.Copy(ms)
+	if dest.Len() != 3 {
+		t.Errorf("expected dest Len=3 after Copy, got %d", dest.Len())
+	}
+
+	// Copy into non-empty (overlapping keys)
+	dest2 := NewMapSafe[string, int]()
+	dest2.Insert("a", 100)
+	dest2.Insert("x", 200)
+	dest2.Copy(ms)
+	if dest2.Len() != 4 { // a, b, c, x
+		t.Errorf("expected dest2 Len=4 after Copy, got %d", dest2.Len())
+	}
+}
+
+func TestMapSafeLenConsistency(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+
+	// Insert
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+	if ms.Len() != 2 {
+		t.Errorf("expected Len=2 after Insert, got %d", ms.Len())
+	}
+
+	// Insert existing key - no change
+	ms.Insert("a", 10)
+	if ms.Len() != 2 {
+		t.Errorf("expected Len=2 after re-Insert, got %d", ms.Len())
+	}
+
+	// TryInsert new key
+	ms.TryInsert("c", 3)
+	if ms.Len() != 3 {
+		t.Errorf("expected Len=3 after TryInsert, got %d", ms.Len())
+	}
+
+	// TryInsert existing key - no change
+	ms.TryInsert("c", 30)
+	if ms.Len() != 3 {
+		t.Errorf("expected Len=3 after re-TryInsert, got %d", ms.Len())
+	}
+
+	// Entry.OrInsert new key
+	ms.Entry("d").OrInsert(4)
+	if ms.Len() != 4 {
+		t.Errorf("expected Len=4 after OrInsert, got %d", ms.Len())
+	}
+
+	// Entry.OrInsert existing key - no change
+	ms.Entry("d").OrInsert(40)
+	if ms.Len() != 4 {
+		t.Errorf("expected Len=4 after re-OrInsert, got %d", ms.Len())
+	}
+
+	// Entry.OrInsertWith
+	ms.Entry("e").OrInsertWith(func() int { return 5 })
+	if ms.Len() != 5 {
+		t.Errorf("expected Len=5 after OrInsertWith, got %d", ms.Len())
+	}
+
+	// Entry.OrInsertWithKey
+	ms.Entry("f").OrInsertWithKey(func(k string) int { return len(k) })
+	if ms.Len() != 6 {
+		t.Errorf("expected Len=6 after OrInsertWithKey, got %d", ms.Len())
+	}
+
+	// Entry.OrDefault
+	ms.Entry("g").OrDefault()
+	if ms.Len() != 7 {
+		t.Errorf("expected Len=7 after OrDefault, got %d", ms.Len())
+	}
+
+	// VacantEntry.Insert
+	if e, ok := ms.Entry("h").(VacantSafeEntry[string, int]); ok {
+		e.Insert(8)
+	}
+	if ms.Len() != 8 {
+		t.Errorf("expected Len=8 after VacantEntry.Insert, got %d", ms.Len())
+	}
+
+	// Remove
+	ms.Remove("a")
+	if ms.Len() != 7 {
+		t.Errorf("expected Len=7 after Remove, got %d", ms.Len())
+	}
+
+	// OccupiedEntry.Remove
+	if e, ok := ms.Entry("b").(OccupiedSafeEntry[string, int]); ok {
+		e.Remove()
+	}
+	if ms.Len() != 6 {
+		t.Errorf("expected Len=6 after OccupiedEntry.Remove, got %d", ms.Len())
+	}
+
+	// Clear
+	ms.Clear()
+	if ms.Len() != 0 {
+		t.Errorf("expected Len=0 after Clear, got %d", ms.Len())
+	}
+}
+
 func TestMapSafeEntryOrInsert(t *testing.T) {
 	ms := NewMapSafe[string, int]()
 

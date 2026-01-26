@@ -75,8 +75,6 @@ func (s Set[T]) Iter() SeqSet[T] {
 	}
 }
 
-// func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
-
 // Insert adds the provided elements to the set.
 func (s Set[T]) Insert(values ...T) {
 	for _, v := range values {

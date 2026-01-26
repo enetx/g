@@ -6,6 +6,21 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestVacantOrInsertWithModifyRace(t *testing.T) {
+	ms := NewMapSafe[string, Int]()
+
+	entry := ms.Entry("key").(VacantSafeEntry[string, Int])
+	entry = entry.AndModify(func(v *Int) { *v += 10 }).(VacantSafeEntry[string, Int])
+
+	ms.Insert("key", 100)
+
+	val := entry.OrInsertWith(func() Int { return 1 })
+
+	if val != 110 {
+		t.Errorf("expected 110, got %d", val)
+	}
+}
+
 func TestMapEntryOrInsert(t *testing.T) {
 	m := Map[string, int]{}
 

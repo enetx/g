@@ -74,8 +74,14 @@ func (e OccupiedSafeEntry[K, V]) Get() V {
 //
 // The replacement is performed atomically with respect to other map operations.
 func (e OccupiedSafeEntry[K, V]) Insert(value V) V {
-	old, _ := e.m.data.Swap(e.key, &value)
-	return *(old.(*V))
+	old, loaded := e.m.data.Swap(e.key, &value)
+	if loaded {
+		return *(old.(*V))
+	}
+
+	e.m.count.Add(1)
+	var zero V
+	return zero
 }
 
 // Remove removes the entry from the map and returns the previously stored value.
@@ -83,23 +89,60 @@ func (e OccupiedSafeEntry[K, V]) Insert(value V) V {
 // If the key is concurrently removed, the zero value of V is returned.
 func (e OccupiedSafeEntry[K, V]) Remove() V {
 	if actual, loaded := e.m.data.LoadAndDelete(e.key); loaded {
+		e.m.count.Add(-1)
 		return *(actual.(*V))
 	}
+
 	var zero V
 	return zero
 }
 
 // OrInsert returns the existing value without modifying the map.
-func (e OccupiedSafeEntry[K, V]) OrInsert(value V) V { return e.Get() }
+func (e OccupiedSafeEntry[K, V]) OrInsert(value V) V {
+	if actual, ok := e.m.data.Load(e.key); ok {
+		return *(actual.(*V))
+	}
 
-// OrInsertWith returns the existing value without invoking the function.
-func (e OccupiedSafeEntry[K, V]) OrInsertWith(fn func() V) V { return e.Get() }
+	actual, loaded := e.m.data.LoadOrStore(e.key, &value)
+	if !loaded {
+		e.m.count.Add(1)
+	}
+
+	return *(actual.(*V))
+}
+
+// OrInsertWith returns the existing value if present, or inserts the result
+// of fn() and returns it.
+//
+// Note: Due to concurrent access, fn() may be invoked even if another
+// goroutine inserts the key between the check and insertion. In this case,
+// the result of fn() is discarded and the existing value is returned.
+func (e OccupiedSafeEntry[K, V]) OrInsertWith(fn func() V) V {
+	if actual, ok := e.m.data.Load(e.key); ok {
+		return *(actual.(*V))
+	}
+
+	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsertWith(fn)
+}
 
 // OrInsertWithKey returns the existing value without invoking the function.
-func (e OccupiedSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V { return e.Get() }
+func (e OccupiedSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
+	if actual, ok := e.m.data.Load(e.key); ok {
+		return *(actual.(*V))
+	}
+
+	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsertWithKey(fn)
+}
 
 // OrDefault returns the existing value.
-func (e OccupiedSafeEntry[K, V]) OrDefault() V { return e.Get() }
+func (e OccupiedSafeEntry[K, V]) OrDefault() V {
+	if actual, ok := e.m.data.Load(e.key); ok {
+		return *(actual.(*V))
+	}
+
+	var zero V
+	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.Insert(zero)
+}
 
 // AndModify applies the provided function to the value associated with the key
 // and returns the entry.
@@ -149,11 +192,8 @@ func (e VacantSafeEntry[K, V]) Key() K { return e.key }
 // Insert inserts the provided value into the map and returns the stored value.
 //
 // If another goroutine inserts the same key concurrently, the existing value
-// is returned instead.
-func (e VacantSafeEntry[K, V]) Insert(value V) V {
-	actual, _ := e.m.data.LoadOrStore(e.key, &value)
-	return *(actual.(*V))
-}
+// is returned instead. Equivalent to OrInsert for VacantSafeEntry.
+func (e VacantSafeEntry[K, V]) Insert(value V) V { return e.OrInsert(value) }
 
 // OrInsert inserts the provided value and returns the stored value.
 //
@@ -166,9 +206,17 @@ func (e VacantSafeEntry[K, V]) Insert(value V) V {
 // behave correctly under concurrent access: the modification is never lost.
 func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
 	actual, loaded := e.m.data.LoadOrStore(e.key, &value)
+	if !loaded {
+		e.m.count.Add(1)
+	}
+
 	if loaded && e.modify != nil {
 		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-		return e.m.Get(e.key).Some()
+		if val, ok := e.m.data.Load(e.key); ok {
+			return *(val.(*V))
+		}
+
+		return *(actual.(*V))
 	}
 
 	return *(actual.(*V))
@@ -177,35 +225,81 @@ func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
 // OrInsertWith inserts the value returned by the function and returns the
 // stored value.
 //
-// If another goroutine inserts the key concurrently, the function may not be
-// invoked and the existing value is returned.
+// Note: Due to lock-free implementation, fn() is evaluated before the atomic
+// insertion. If another goroutine inserts the key concurrently, the result
+// of fn() may be discarded and the existing value is returned instead.
 func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
+		if e.modify != nil {
+			OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
+			if val, ok := e.m.data.Load(e.key); ok {
+				return *(val.(*V))
+			}
+		}
+
 		return *(actual.(*V))
 	}
 
-	actual, _ := e.m.data.LoadOrStore(e.key, ref.Of(fn()))
+	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn()))
+	if !loaded {
+		e.m.count.Add(1)
+	}
+
+	if loaded && e.modify != nil {
+		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
+		if val, ok := e.m.data.Load(e.key); ok {
+			return *(val.(*V))
+		}
+
+		return *(actual.(*V))
+	}
+
 	return *(actual.(*V))
 }
 
 // OrInsertWithKey inserts the value returned by the function and returns the
 // stored value.
 //
-// If another goroutine inserts the key concurrently, the function may not be
-// invoked and the existing value is returned.
+// Note: Due to lock-free implementation, fn() is evaluated before the atomic
+// insertion. If another goroutine inserts the key concurrently, the result
+// of fn() may be discarded and the existing value is returned instead.
 func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
+		if e.modify != nil {
+			OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
+			if val, ok := e.m.data.Load(e.key); ok {
+				return *(val.(*V))
+			}
+		}
+
 		return *(actual.(*V))
 	}
 
-	actual, _ := e.m.data.LoadOrStore(e.key, ref.Of(fn(e.key)))
+	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn(e.key)))
+	if !loaded {
+		e.m.count.Add(1)
+	}
+
+	if loaded && e.modify != nil {
+		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
+		if val, ok := e.m.data.Load(e.key); ok {
+			return *(val.(*V))
+		}
+
+		return *(actual.(*V))
+	}
+
 	return *(actual.(*V))
 }
 
 // OrDefault inserts the zero value of V into the map and returns the stored value.
+//
+// If another goroutine inserts the same key concurrently and a pending
+// modification was registered via AndModify, it is applied atomically
+// to the existing value before returning.
 func (e VacantSafeEntry[K, V]) OrDefault() V {
 	var zero V
-	return e.Insert(zero)
+	return e.OrInsert(zero)
 }
 
 // AndModify registers a modification function to be applied to the value.

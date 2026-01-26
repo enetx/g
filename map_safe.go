@@ -3,13 +3,15 @@ package g
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/enetx/g/f"
 )
 
 // MapSafe is a concurrent-safe generic map built on sync.Map.
 type MapSafe[K comparable, V any] struct {
-	data sync.Map
+	data  sync.Map
+	count atomic.Int64
 }
 
 // NewMapSafe creates a new instance of MapSafe.
@@ -35,7 +37,7 @@ func (ms *MapSafe[K, V]) Entry(key K) SafeEntry[K, V] {
 
 // Keys returns a slice of the MapSafe's keys.
 func (ms *MapSafe[K, V]) Keys() Slice[K] {
-	var keys Slice[K]
+	keys := NewSlice[K](0, ms.Len())
 
 	ms.data.Range(func(key, _ any) bool {
 		keys = append(keys, key.(K))
@@ -47,7 +49,7 @@ func (ms *MapSafe[K, V]) Keys() Slice[K] {
 
 // Values returns a slice of the MapSafe's values.
 func (ms *MapSafe[K, V]) Values() Slice[V] {
-	var values Slice[V]
+	values := NewSlice[V](0, ms.Len())
 
 	ms.data.Range(func(_, value any) bool {
 		values = append(values, *(value.(*V)))
@@ -70,6 +72,7 @@ func (ms *MapSafe[K, V]) Clone() *MapSafe[K, V] {
 	ms.data.Range(func(key, value any) bool {
 		v := *(value.(*V))
 		res.data.Store(key, &v)
+		res.count.Add(1)
 		return true
 	})
 
@@ -80,7 +83,11 @@ func (ms *MapSafe[K, V]) Clone() *MapSafe[K, V] {
 func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 	src.data.Range(func(key, value any) bool {
 		v := *(value.(*V))
-		ms.data.Store(key, &v)
+		_, loaded := ms.data.Swap(key, &v)
+		if !loaded {
+			ms.count.Add(1)
+		}
+
 		return true
 	})
 }
@@ -88,6 +95,7 @@ func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 // Remove removes the specified key from the MapSafe and returns the removed value.
 func (ms *MapSafe[K, V]) Remove(key K) Option[V] {
 	if v, loaded := ms.data.LoadAndDelete(key); loaded {
+		ms.count.Add(-1)
 		return Some(*(v.(*V)))
 	}
 
@@ -154,6 +162,7 @@ func (ms *MapSafe[K, V]) Insert(key K, value V) Option[V] {
 		return Some(*(previous.(*V)))
 	}
 
+	ms.count.Add(1)
 	return None[V]()
 }
 
@@ -171,26 +180,21 @@ func (ms *MapSafe[K, V]) TryInsert(key K, value V) Option[V] {
 		return Some(*(actual.(*V)))
 	}
 
+	ms.count.Add(1)
 	return None[V]()
 }
 
 // Len returns the number of key-value pairs in the MapSafe.
-func (ms *MapSafe[K, V]) Len() int {
-	count := 0
-
-	ms.data.Range(func(_, _ any) bool {
-		count++
-		return true
-	})
-
-	return count
-}
+func (ms *MapSafe[K, V]) Len() Int { return Int(ms.count.Load()) }
 
 // Ne checks if two MapSafes are not equal.
 func (ms *MapSafe[K, V]) Ne(other *MapSafe[K, V]) bool { return !ms.Eq(other) }
 
 // Clear removes all key-value pairs from the MapSafe.
-func (ms *MapSafe[K, V]) Clear() { ms.data.Clear() }
+func (ms *MapSafe[K, V]) Clear() {
+	ms.data.Clear()
+	ms.count.Store(0)
+}
 
 // IsEmpty checks if the MapSafe is empty.
 func (ms *MapSafe[K, V]) IsEmpty() bool {
