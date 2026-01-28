@@ -90,5 +90,5 @@ func main() {
 	mss.SortByValue(func(a, b Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
-	// MapOrdFromStd(mss.ToMap().Std()).Println()
+	// MapOrdFromStd(mss.Map().Std()).Println()
 }

@@ -493,7 +493,7 @@ func (seq SeqMapOrd[K, V]) Nth(n Int) Option[Pair[K, V]] {
 	return None[Pair[K, V]]()
 }
 
-// ToChan converts the iterator into a channel, optionally with context(s).
+// Chan converts the iterator into a channel, optionally with context(s).
 //
 // The function converts the key-value pairs from the iterator into a channel, allowing iterative processing
 // using channels. It can be used to stream key-value pairs for concurrent or asynchronous operations.
@@ -520,13 +520,13 @@ func (seq SeqMapOrd[K, V]) Nth(n Int) Option[Pair[K, V]] {
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
 //
-//	ch := iter.ToChan(ctx)
+//	ch := iter.Chan(ctx)
 //	for pair := range ch {
 //	    // Process key-value pair from the channel
 //	}
 //
 // The function converts the iterator into a channel to allow sequential or concurrent processing of key-value pairs.
-func (seq SeqMapOrd[K, V]) ToChan(ctxs ...context.Context) chan Pair[K, V] {
+func (seq SeqMapOrd[K, V]) Chan(ctxs ...context.Context) chan Pair[K, V] {
 	ctx := context.Background()
 	if len(ctxs) > 0 {
 		ctx = ctxs[0]

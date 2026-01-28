@@ -41,7 +41,7 @@ func TestSet_Iter_Filter(t *testing.T) {
 	}
 
 	// Check that only even numbers are present
-	slice := filtered.ToSlice()
+	slice := filtered.Slice()
 	for _, num := range slice {
 		if num%2 != 0 {
 			t.Errorf("Filtered result should only contain even numbers, found %d", num)
@@ -108,7 +108,7 @@ func TestSet_Iter_ToSlice(t *testing.T) {
 	set.Insert("d")
 	set.Insert("e")
 
-	slice := set.ToSlice()
+	slice := set.Slice()
 
 	if len(slice) != 5 {
 		t.Errorf("Expected 5 elements in slice, got %d", len(slice))

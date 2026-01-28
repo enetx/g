@@ -436,7 +436,7 @@ func TestDequeRetain(t *testing.T) {
 
 func TestDequeToSlice(t *testing.T) {
 	dq := g.DequeOf(1, 2, 3, 4, 5)
-	slice := dq.ToSlice()
+	slice := dq.Slice()
 
 	if len(slice) != int(dq.Len()) {
 		t.Errorf("Expected slice length %d, got %d", dq.Len(), len(slice))

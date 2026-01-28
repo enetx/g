@@ -482,99 +482,6 @@ func TestSliceJoinBytes(t *testing.T) {
 	}
 }
 
-func TestSliceToStringSlice(t *testing.T) {
-	sl := Slice[int]{1, 2, 3}
-	result := sl.ToStringSlice()
-	expected := []string{"1", "2", "3"}
-
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("Expected %v, got %v", expected, result)
-	}
-}
-
-func TestSliceToStringSlice_AllTypes(t *testing.T) {
-	// Test empty slice
-	empty := SliceOf[any]()
-	if result := empty.ToStringSlice(); result != nil {
-		t.Errorf("Expected nil for empty slice, got %v", result)
-	}
-
-	// Test String type
-	stringSlice := SliceOf[any](String("hello"))
-	stringResult := stringSlice.ToStringSlice()
-	expectedString := []string{"hello"}
-	if !reflect.DeepEqual(stringResult, expectedString) {
-		t.Errorf("String type: expected %v, got %v", expectedString, stringResult)
-	}
-
-	// Test Int type
-	intSlice := SliceOf[any](Int(42))
-	intResult := intSlice.ToStringSlice()
-	expectedInt := []string{"42"}
-	if !reflect.DeepEqual(intResult, expectedInt) {
-		t.Errorf("Int type: expected %v, got %v", expectedInt, intResult)
-	}
-
-	// Test Float type
-	floatSlice := SliceOf[any](Float(3.14))
-	floatResult := floatSlice.ToStringSlice()
-	expectedFloat := []string{"3.14"}
-	if !reflect.DeepEqual(floatResult, expectedFloat) {
-		t.Errorf("Float type: expected %v, got %v", expectedFloat, floatResult)
-	}
-
-	// Test Bytes type
-	bytesSlice := SliceOf[any](Bytes("test"))
-	bytesResult := bytesSlice.ToStringSlice()
-	expectedBytes := []string{"test"}
-	if !reflect.DeepEqual(bytesResult, expectedBytes) {
-		t.Errorf("Bytes type: expected %v, got %v", expectedBytes, bytesResult)
-	}
-
-	// Test primitive types
-	mixedTypes := SliceOf[any]("hello", int(10), int8(20), int16(30), int32(40), int64(50))
-	mixedResult := mixedTypes.ToStringSlice()
-	expectedMixed := []string{"hello", "10", "20", "30", "40", "50"}
-	if !reflect.DeepEqual(mixedResult, expectedMixed) {
-		t.Errorf("mixed types: expected %v, got %v", expectedMixed, mixedResult)
-	}
-
-	// Test unsigned types
-	uintTypes := SliceOf[any](uint(10), uint8(20), uint16(30), uint32(40), uint64(50))
-	uintResult := uintTypes.ToStringSlice()
-	expectedUint := []string{"10", "20", "30", "40", "50"}
-	if !reflect.DeepEqual(uintResult, expectedUint) {
-		t.Errorf("uint types: expected %v, got %v", expectedUint, uintResult)
-	}
-
-	// Test float types
-	floatTypes := SliceOf[any](float32(3.14), float64(2.71))
-	floatTypesResult := floatTypes.ToStringSlice()
-	expectedFloatTypes := []string{"3.14", "2.71"}
-	if !reflect.DeepEqual(floatTypesResult, expectedFloatTypes) {
-		t.Errorf("float types: expected %v, got %v", expectedFloatTypes, floatTypesResult)
-	}
-
-	// Test bool type
-	boolSlice := SliceOf[any](true, false)
-	boolResult := boolSlice.ToStringSlice()
-	expectedBool := []string{"true", "false"}
-	if !reflect.DeepEqual(boolResult, expectedBool) {
-		t.Errorf("bool type: expected %v, got %v", expectedBool, boolResult)
-	}
-
-	// Test default case (fmt.Sprint)
-	type CustomType struct {
-		value int
-	}
-	defaultSlice := SliceOf[any](CustomType{42})
-	defaultResult := defaultSlice.ToStringSlice()
-	expectedDefault := []string{"{42}"}
-	if !reflect.DeepEqual(defaultResult, expectedDefault) {
-		t.Errorf("default type: expected %v, got %v", expectedDefault, defaultResult)
-	}
-}
-
 func TestSliceClone(t *testing.T) {
 	sl := Slice[int]{1, 2, 3}
 	slClone := sl.Clone()
@@ -1644,7 +1551,7 @@ func TestSliceToHeap(t *testing.T) {
 	slice := Slice[int]{5, 2, 8, 1, 9, 3}
 
 	// Test ToHeap with a comparison function
-	heap := slice.ToHeap(cmp.Cmp[int])
+	heap := slice.Heap(cmp.Cmp[int])
 
 	// Verify heap is created
 	if heap == nil {

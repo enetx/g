@@ -138,7 +138,7 @@ func main() {
 		}).
 		Flatten().
 		Collect(func(a, b any) cmp.Ordering {
-			return cmp.Cmp(a.(Slice[int])[0], b.(Slice[int])[0])
+			return cmp.Cmp(a.(int), b.(int))
 		})
 
 	Println("Elapsed Flatten: {}", time.Since(start))

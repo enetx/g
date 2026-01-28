@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	String("12.3348992").ToFloat().Unwrap().RoundDecimal(5).Println()
+	String("12.3348992").TryFloat().Unwrap().RoundDecimal(5).Println()
 
 	NewFloat(1.3339).Println()
 	NewFloat(13339).Println()

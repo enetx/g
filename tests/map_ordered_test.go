@@ -631,7 +631,7 @@ func TestMapOrdFromMap(t *testing.T) {
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	mapOrd := m.ToMapOrd()
+	mapOrd := m.Ordered()
 	mapOrd.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []Pair[string, int]{
@@ -650,7 +650,7 @@ func TestMapOrdFromMap(t *testing.T) {
 
 	// Test case 2: Empty Map
 	m2 := NewMap[string, int]()
-	mapOrd2 := m2.ToMapOrd()
+	mapOrd2 := m2.Ordered()
 	if mapOrd2.Len() != 0 {
 		t.Errorf("Expected mapOrd2 to be empty")
 	}
@@ -951,7 +951,7 @@ func TestMapOrdIterToChannel(t *testing.T) {
 	// Convert the iterator to a channel
 	ctx := t.Context()
 
-	ch := mo.Iter().ToChan(ctx)
+	ch := mo.Iter().Chan(ctx)
 
 	// Collect elements from the channel
 	collected := NewMapOrd[int, int]()

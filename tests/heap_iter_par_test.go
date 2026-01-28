@@ -434,7 +434,7 @@ func TestHeapFlattenParallel(t *testing.T) {
 		found := false
 		resultSlice := result.Iter().
 			Collect(func(a1, a2 any) cmp.Ordering { return cmp.Cmp(a1.(int), a2.(int)) }).
-			ToSlice()
+			Slice()
 		for _, actual := range resultSlice {
 			if actual == expected {
 				found = true
@@ -735,7 +735,7 @@ func TestHeapParExclude(t *testing.T) {
 			t.Errorf("Expected %d elements, got %d", len(expected), result.Len())
 		}
 
-		resultSlice := result.ToSlice()
+		resultSlice := result.Slice()
 		resultSlice.SortBy(cmp.Cmp)
 		for i, exp := range expected {
 			if resultSlice[i] != exp {

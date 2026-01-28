@@ -708,7 +708,7 @@ func (seq SeqHeap[V]) Nth(n Int) Option[V] {
 	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
 }
 
-// ToChan converts the iterator into a channel, optionally with context(s).
+// Chan converts the iterator into a channel, optionally with context(s).
 //
 // The function converts the elements of the iterator into a channel for streaming purposes.
 // Optionally, it accepts context(s) to handle cancellation or timeout scenarios.
@@ -727,13 +727,13 @@ func (seq SeqHeap[V]) Nth(n Int) Option[V] {
 //	heap.Push(1, 2, 3)
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
-//	ch := heap.Iter().ToChan(ctx)
+//	ch := heap.Iter().Chan(ctx)
 //	for val := range ch {
 //	    fmt.Println(val)
 //	}
 //
 // The resulting channel allows streaming elements from the iterator with optional context handling.
-func (seq SeqHeap[V]) ToChan(ctxs ...context.Context) chan V {
+func (seq SeqHeap[V]) Chan(ctxs ...context.Context) chan V {
 	ctx := context.Background()
 	if len(ctxs) > 0 {
 		ctx = ctxs[0]

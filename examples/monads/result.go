@@ -48,7 +48,7 @@ func main() {
 	// Example 3: Converting a string to an integer and then doubling the result
 
 	// Convert the string "15" to an integer and then double it
-	result = String("15").ToInt().Then(double)
+	result = String("15").TryInt().Then(double)
 
 	// Check if the result is an Ok value or an error
 	if result.IsOk() {

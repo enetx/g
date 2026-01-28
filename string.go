@@ -113,8 +113,8 @@ func (s String) IsDigit() bool {
 	return true
 }
 
-// ToInt tries to parse the String as an int and returns an Int.
-func (s String) ToInt() Result[Int] {
+// TryInt tries to parse the String as an int and returns an Int.
+func (s String) TryInt() Result[Int] {
 	hint, err := strconv.ParseInt(s.Std(), 0, 64)
 	if err != nil {
 		return Err[Int](err)
@@ -123,21 +123,21 @@ func (s String) ToInt() Result[Int] {
 	return Ok(Int(hint))
 }
 
-// ToBigInt attempts to convert the String receiver into an Option containing a *big.Int.
+// TryBigInt attempts to convert the String receiver into an Option containing a *big.Int.
 // This function assumes the string represents a numerical value, which can be in decimal,
 // hexadecimal (prefixed with "0x"), or octal (prefixed with "0") format. The function
 // leverages the SetString method of the math/big package, automatically detecting the
 // numeric base when set to 0.
 //
-// If the string is correctly formatted and represents a valid number, ToBigInt returns
+// If the string is correctly formatted and represents a valid number, TryBigInt returns
 // a Some containing the *big.Int parsed from the string. If the string is empty, contains
-// invalid characters, or does not conform to a recognizable numeric format, ToBigInt
+// invalid characters, or does not conform to a recognizable numeric format, TryBigInt
 // returns a None, indicating that the conversion was unsuccessful.
 //
 // Returns:
 //   - An Option[*big.Int] encapsulating the conversion result. It returns Some[*big.Int]
 //     with the parsed value if successful, otherwise None[*big.Int] if the parsing fails.
-func (s String) ToBigInt() Option[*big.Int] {
+func (s String) TryBigInt() Option[*big.Int] {
 	if bigInt, ok := new(big.Int).SetString(s.Std(), 0); ok {
 		return Some(bigInt)
 	}
@@ -145,8 +145,8 @@ func (s String) ToBigInt() Option[*big.Int] {
 	return None[*big.Int]()
 }
 
-// ToFloat tries to parse the String as a float64 and returns an Float.
-func (s String) ToFloat() Result[Float] {
+// TryFloat tries to parse the String as a float64 and returns an Float.
+func (s String) TryFloat() Result[Float] {
 	float, err := strconv.ParseFloat(s.Std(), 64)
 	if err != nil {
 		return Err[Float](err)

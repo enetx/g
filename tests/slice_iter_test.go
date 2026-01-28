@@ -1043,7 +1043,7 @@ func TestSliceIterToChannel(t *testing.T) {
 	// Test case 1: Channel streaming without cancellation
 	seq := Slice[int]{1, 2, 3}
 
-	ch := seq.Iter().ToChan()
+	ch := seq.Iter().Chan()
 	var result []int
 	for val := range ch {
 		result = append(result, val)
@@ -1063,7 +1063,7 @@ func TestSliceIterToChannel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Ensure cancellation to avoid goroutine leaks.
 
-	ch = seq.Iter().ToChan(ctx)
+	ch = seq.Iter().Chan(ctx)
 	var result2 []int
 	for val := range ch {
 		result2 = append(result2, val)

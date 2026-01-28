@@ -244,7 +244,7 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 }
 
 func resolveValue(key, fall String, named Named, positional Slice[any]) any {
-	if num := key.ToInt(); num.IsOk() {
+	if num := key.TryInt(); num.IsOk() {
 		idx := num.v - 1
 		if idx.IsNegative() || idx.Gte(positional.Len()) {
 			return nil
@@ -500,7 +500,7 @@ func applyMod(value any, name String, params Slice[String]) any {
 			return pair.v
 		}
 
-		idx := name.ToInt()
+		idx := name.TryInt()
 		if idx.IsErr() || idx.v.Gte(Int(current.Len())) {
 			return value
 		}

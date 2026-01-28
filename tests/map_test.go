@@ -785,7 +785,7 @@ func TestMapToMapSafe(t *testing.T) {
 	m.Insert("key1", 1)
 	m.Insert("key2", 2)
 
-	safemap := m.ToMapSafe()
+	safemap := m.Safe()
 
 	if safemap.Len() != 2 {
 		t.Errorf("ToMapSafe() should preserve length, expected 2, got %d", safemap.Len())

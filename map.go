@@ -102,8 +102,8 @@ func (m Map[K, V]) Remove(key K) Option[V] {
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
 
-// ToMapOrd converts a standard Map to an ordered Map.
-func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
+// Ordered converts a standard Map to an ordered Map.
+func (m Map[K, V]) Ordered() MapOrd[K, V] {
 	mo := NewMapOrd[K, V](m.Len())
 	for k, v := range m {
 		mo.Insert(k, v)
@@ -112,8 +112,8 @@ func (m Map[K, V]) ToMapOrd() MapOrd[K, V] {
 	return mo
 }
 
-// ToMapSafe converts a standard Map to a thread-safe Map.
-func (m Map[K, V]) ToMapSafe() *MapSafe[K, V] {
+// Safe converts a standard Map to a thread-safe Map.
+func (m Map[K, V]) Safe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
 	for k, v := range m {
 		ms.Insert(k, v)

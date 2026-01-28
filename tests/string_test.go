@@ -343,8 +343,8 @@ func TestStringToInt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.str.ToInt().UnwrapOrDefault(); got != tt.want {
-				t.Errorf("String.ToInt() = %v, want %v", got, tt.want)
+			if got := tt.str.TryInt().UnwrapOrDefault(); got != tt.want {
+				t.Errorf("String.TryInt() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1159,7 +1159,7 @@ func TestStringToFloat(t *testing.T) {
 	}
 
 	for _, testCase := range validFloatCases {
-		result := testCase.input.ToFloat()
+		result := testCase.input.TryFloat()
 		if result.IsErr() {
 			t.Errorf("ToFloat test failed for %s. Unexpected error: %v", testCase.input, result.Err())
 		}
@@ -1177,7 +1177,7 @@ func TestStringToFloat(t *testing.T) {
 	invalidFloatCases := []String{"abc", "123abc", "12.34.56", "", " "}
 
 	for _, input := range invalidFloatCases {
-		result := input.ToFloat()
+		result := input.TryFloat()
 		if result.IsOk() {
 			t.Errorf("ToFloat test failed for %s. Expected error, got result: %v", input, result.Ok())
 		}
@@ -1957,7 +1957,7 @@ func TestStringToBigInt(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.input.ToBigInt()
+			result := tc.input.TryBigInt()
 			if result.UnwrapOrDefault().Cmp(tc.expected) != 0 {
 				t.Errorf("Failed %s: expected %v, got %v", tc.name, tc.expected, result)
 			}

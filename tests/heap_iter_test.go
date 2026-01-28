@@ -592,7 +592,7 @@ func TestSeqHeap_ToChan(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	ch := heap.Iter().ToChan(ctx)
+	ch := heap.Iter().Chan(ctx)
 	result := make([]int, 0)
 
 	for val := range ch {

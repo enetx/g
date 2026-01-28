@@ -19,7 +19,7 @@ func main() {
 	Println("Elapsed ForEach: {}", time.Since(start))
 
 	start = time.Now()
-	FromChan(nums.ToChan()).
+	FromChan(nums.Chan()).
 		Parallel(1000).
 		ForEach(func(_ int) {
 			time.Sleep(100 * time.Millisecond)

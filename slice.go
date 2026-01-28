@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/enetx/g/cmp"
@@ -82,7 +81,7 @@ func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
 // SliceOf creates a new generic slice containing the provided elements.
 func SliceOf[T any](slice ...T) Slice[T] { return slice }
 
-// ToHeap converts the slice to a min/max heap with the specified comparison function.
+// Heap converts the slice to a min/max heap with the specified comparison function.
 //
 // The comparison function should return:
 //   - cmp.Less if a < b (for min heap)
@@ -93,14 +92,14 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 //
 //	slice := g.SliceOf(5, 2, 8, 1, 9)
 //
-//	minHeap := slice.ToHeap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
-//	maxHeap := slice.ToHeap(func(a, b int) cmp.Ordering {
+//	minHeap := slice.Heap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
+//	maxHeap := slice.Heap(func(a, b int) cmp.Ordering {
 //		return cmp.Cmp(b, a)
 //	})	// Max heap: Pop() returns largest
 //
 // Time complexity: O(n)
 // Space complexity: O(n) - creates a copy of the slice
-func (sl Slice[T]) ToHeap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
+func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
 	if compareFn == nil {
 		panic("compareFn cannot be nil")
 	}
@@ -515,64 +514,6 @@ func (sl Slice[T]) IsSortedBy(fn func(a, b T) cmp.Ordering) bool {
 	return true
 }
 
-// ToStringSlice converts the Slice into a slice of strings.
-func (sl Slice[T]) ToStringSlice() []string {
-	if len(sl) == 0 {
-		return nil
-	}
-
-	result := make([]string, len(sl))
-
-	for i, v := range sl {
-		switch val := any(v).(type) {
-		case String:
-			result[i] = val.Std()
-		case Int:
-			result[i] = strconv.FormatInt(int64(val), 10)
-		case Float:
-			result[i] = strconv.FormatFloat(float64(val), 'g', -1, 64)
-		case Bytes:
-			result[i] = string(val)
-		case string:
-			result[i] = val
-		case int:
-			result[i] = strconv.Itoa(val)
-		case int8:
-			result[i] = strconv.FormatInt(int64(val), 10)
-		case int16:
-			result[i] = strconv.FormatInt(int64(val), 10)
-		case int32:
-			result[i] = strconv.FormatInt(int64(val), 10)
-		case int64:
-			result[i] = strconv.FormatInt(val, 10)
-		case uint:
-			result[i] = strconv.FormatUint(uint64(val), 10)
-		case uint8:
-			result[i] = strconv.FormatUint(uint64(val), 10)
-		case uint16:
-			result[i] = strconv.FormatUint(uint64(val), 10)
-		case uint32:
-			result[i] = strconv.FormatUint(uint64(val), 10)
-		case uint64:
-			result[i] = strconv.FormatUint(val, 10)
-		case float32:
-			result[i] = strconv.FormatFloat(float64(val), 'g', -1, 32)
-		case float64:
-			result[i] = strconv.FormatFloat(val, 'g', -1, 64)
-		case bool:
-			result[i] = strconv.FormatBool(val)
-		default:
-			if stringer, ok := any(v).(fmt.Stringer); ok {
-				result[i] = stringer.String()
-			} else {
-				result[i] = fmt.Sprint(v)
-			}
-		}
-	}
-
-	return result
-}
-
 // Join joins the elements in the slice into a single String, separated by the provided separator (if any).
 func (sl Slice[T]) Join(sep ...T) String {
 	if sl.IsEmpty() {
@@ -611,7 +552,7 @@ func (sl Slice[T]) Join(sep ...T) String {
 		separator = fmt.Sprint(sep[0])
 	}
 
-	return String(strings.Join(sl.ToStringSlice(), separator))
+	return String(strings.Join(TransformSlice(sl, func(v T) string { return fmt.Sprint(v) }), separator))
 }
 
 // SubSlice returns a new slice containing elements from the current slice between the specified start

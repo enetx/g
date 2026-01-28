@@ -156,7 +156,7 @@ func TestHeap_ToSlice(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(5, 3, 7, 1)
 
-	slice := heap.ToSlice()
+	slice := heap.Slice()
 
 	if len(slice) != 4 {
 		t.Errorf("Expected slice length 4, got %d", len(slice))

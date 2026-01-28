@@ -726,7 +726,7 @@ func (seq SeqDeque[V]) Nth(n Int) Option[V] {
 	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
 }
 
-// ToChan converts the iterator into a channel, optionally with context(s).
+// Chan converts the iterator into a channel, optionally with context(s).
 //
 // The function converts the elements of the iterator into a channel for streaming purposes.
 // Optionally, it accepts context(s) to handle cancellation or timeout scenarios.
@@ -744,13 +744,13 @@ func (seq SeqDeque[V]) Nth(n Int) Option[V] {
 //	iter := g.DequeOf(1, 2, 3).Iter()
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
-//	ch := iter.ToChan(ctx)
+//	ch := iter.Chan(ctx)
 //	for val := range ch {
 //	    fmt.Println(val)
 //	}
 //
 // The resulting channel allows streaming elements from the iterator with optional context handling.
-func (seq SeqDeque[V]) ToChan(ctxs ...context.Context) chan V {
+func (seq SeqDeque[V]) Chan(ctxs ...context.Context) chan V {
 	ctx := context.Background()
 	if len(ctxs) > 0 {
 		ctx = ctxs[0]

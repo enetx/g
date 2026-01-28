@@ -135,7 +135,7 @@ func (mo MapOrd[K, V]) IterReverse() SeqMapOrd[K, V] {
 //	mapOrd := g.MapOrdFromStd[string, int](goMap)
 //
 // Converts the standard Go map 'map[K]V' to an ordered Map.
-func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, V](m).ToMapOrd() }
+func MapOrdFromStd[K comparable, V any](m map[K]V) MapOrd[K, V] { return Map[K, V](m).Ordered() }
 
 // SortBy sorts the ordered Map by a custom comparison function.
 //
@@ -280,16 +280,16 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) {
 	}
 }
 
-// ToMap converts the ordered Map to a standard Map.
-func (mo MapOrd[K, V]) ToMap() Map[K, V] {
+// Map converts the ordered Map to a standard Map.
+func (mo MapOrd[K, V]) Map() Map[K, V] {
 	m := NewMap[K, V](mo.Len())
 	mo.Iter().ForEach(func(k K, v V) { m[k] = v })
 
 	return m
 }
 
-// ToMapSafe converts a ordered Map to a thread-safe Map.
-func (mo MapOrd[K, V]) ToMapSafe() *MapSafe[K, V] {
+// Safe converts a ordered Map to a thread-safe Map.
+func (mo MapOrd[K, V]) Safe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
 	mo.Iter().ForEach(func(k K, v V) { ms.Insert(k, v) })
 

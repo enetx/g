@@ -238,7 +238,7 @@ func (d *Dir) Join(elem ...String) Result[String] {
 	se := SliceOf(elem...)
 	se.Insert(0, path.v)
 
-	return Ok(String(filepath.Join(se.ToStringSlice()...)))
+	return Ok(String(filepath.Join(TransformSlice(se, String.Std)...)))
 }
 
 // SetPath sets the path of the current directory.

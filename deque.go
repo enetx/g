@@ -515,8 +515,8 @@ func (dq *Deque[T]) BinarySearch(value T, fn func(T, T) cmp.Ordering) (Int, bool
 	return left, false
 }
 
-// ToSlice converts the Deque to a Slice, maintaining element order.
-func (dq *Deque[T]) ToSlice() Slice[T] {
+// Slice converts the Deque to a Slice, maintaining element order.
+func (dq *Deque[T]) Slice() Slice[T] {
 	result := make(Slice[T], dq.len)
 
 	for i := Int(0); i < dq.len; i++ {

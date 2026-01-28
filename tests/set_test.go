@@ -324,7 +324,7 @@ func TestSetToSlice(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := SetOf(1, 2, 3)
 	expected1 := Slice[int]{1, 2, 3}
-	slice1 := set1.ToSlice()
+	slice1 := set1.Slice()
 	if len(slice1) != len(expected1) {
 		t.Errorf("Expected length of slice to be %d, got %d", len(expected1), len(slice1))
 	}
@@ -332,7 +332,7 @@ func TestSetToSlice(t *testing.T) {
 	// Test case 2: Empty Set
 	set2 := NewSet[string]()
 	expected2 := Slice[string]{}
-	slice2 := set2.ToSlice()
+	slice2 := set2.Slice()
 	if len(slice2) != len(expected2) {
 		t.Errorf("Expected length of slice to be %d, got %d", len(expected2), len(slice2))
 	}

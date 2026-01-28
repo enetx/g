@@ -30,15 +30,15 @@ func main() {
 	ss := TransformSlice(s, Int.String) // g.Slice[g.String]
 	ss.Get(0).Some().Format("hello %s").Println()
 
-	is := TransformSlice(ss, func(s String) Int { return s.ToInt().Unwrap() }) // g.Slice[g.Int]
+	is := TransformSlice(ss, func(s String) Int { return s.TryInt().Unwrap() }) // g.Slice[g.Int]
 	is.Get(0).Some().Add(99).Println()
 
 	////////////////////////////////////////////////////////////////////////////
 
 	ss1 := SliceOf[String]("1", "22", "3a", "44")
 
-	// is1 := TransformSlice(ss1, String.ToInt).Iter().Filter(Result[Int].IsOk).Collect()
+	// is1 := TransformSlice(ss1, String.TryInt).Iter().Filter(Result[Int].IsOk).Collect()
 	// TransformSlice(is1, Result[Int].Ok).Println() // Slice[1, 22, 44]
 
-	SeqResult[Int](TransformSlice(ss1, String.ToInt).Iter()).Ok().Collect() // Slice[1, 22, 44]
+	SeqResult[Int](TransformSlice(ss1, String.TryInt).Iter()).Ok().Collect() // Slice[1, 22, 44]
 }

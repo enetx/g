@@ -18,7 +18,7 @@ func main() {
 	str = "test"
 	str.Compress().Flate().Decompress().Flate().Unwrap().Println()
 
-	NewString("12").ToInt().Ok().Println()
+	NewString("12").TryInt().Ok().Println()
 
 	str.Encode().JSON().Unwrap().Decode().JSON().Unwrap()
 

@@ -153,8 +153,8 @@ func (s Set[T]) Clone() Set[T] {
 	return clone
 }
 
-// ToSlice returns a new Slice with the same elements as the Set[T].
-func (s Set[T]) ToSlice() Slice[T] {
+// Slice returns a new Slice with the same elements as the Set[T].
+func (s Set[T]) Slice() Slice[T] {
 	if s.IsEmpty() {
 		return NewSlice[T]()
 	}

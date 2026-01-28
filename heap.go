@@ -162,9 +162,9 @@ func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 0
 }
 
-// ToSlice returns a slice containing all elements in the heap.
+// Slice returns a slice containing all elements in the heap.
 // The order is not guaranteed to be sorted.
-func (h *Heap[T]) ToSlice() Slice[T] {
+func (h *Heap[T]) Slice() Slice[T] {
 	result := make(Slice[T], len(h.data))
 	copy(result, h.data)
 

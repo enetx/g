@@ -276,7 +276,7 @@ func TestDequeSkipTakeParallel(t *testing.T) {
 		Skip(3).
 		Collect()
 
-	skipSlice := skipRes.Iter().Collect().ToSlice()
+	skipSlice := skipRes.Iter().Collect().Slice()
 	skipSlice.SortBy(cmp.Cmp)
 
 	if !skipSlice.Eq(Slice[int]{4, 5, 6, 7, 8}) {
@@ -290,7 +290,7 @@ func TestDequeSkipTakeParallel(t *testing.T) {
 		Take(3).
 		Collect()
 
-	takeSlice := takeRes.Iter().Collect().ToSlice()
+	takeSlice := takeRes.Iter().Collect().Slice()
 	takeSlice.SortBy(cmp.Cmp)
 
 	if !takeSlice.Eq(Slice[int]{1, 2, 3}) {
@@ -350,7 +350,7 @@ func TestDequeUniqueParallel(t *testing.T) {
 		Unique().
 		Collect()
 
-	result := res.Iter().Collect().ToSlice()
+	result := res.Iter().Collect().Slice()
 	result.SortBy(cmp.Cmp)
 	expected := []int{1, 2, 3, 4, 5}
 
@@ -796,7 +796,7 @@ func TestDequeParExclude(t *testing.T) {
 			t.Errorf("Expected %d elements, got %d", len(expected), result.Len())
 		}
 
-		resultSlice := result.ToSlice()
+		resultSlice := result.Slice()
 		resultSlice.SortBy(cmp.Cmp)
 		for i, exp := range expected {
 			if resultSlice[i] != exp {
