@@ -45,7 +45,7 @@ func main() {
     fmt.Println(value) // 42
 
     // Result for error handling
-    result := g.String("123").ToInt()
+    result := g.String("123").TryInt()
     if result.IsOk() {
         fmt.Println(result.Unwrap()) // 123
     }
@@ -125,7 +125,7 @@ err.UnwrapOr(0)             // 0
 
 // From standard (value, error) pattern
 result := g.ResultOf(strconv.Atoi("42"))    // Ok(42)
-result := g.String("42").ToInt()            // Ok(42)
+result := g.String("42").TryInt()           // Ok(42)
 
 // Chaining
 g.Ok(10).Then(func(x int) g.Result[int] {
@@ -193,7 +193,7 @@ s.Shuffle()                     // random order
 | **Modify** | `Set`, `Push`, `Pop`, `Insert`, `Remove`, `Clear` |
 | **Search** | `Contains`, `ContainsBy`, `Index`, `IndexBy` |
 | **Transform** | `Clone`, `Reverse`, `Shuffle`, `SortBy`, `SubSlice` |
-| **Convert** | `Iter`, `ToHeap`, `ToSet`, `Std` |
+| **Convert** | `Iter`, `Heap`, `Std` |
 | **Info** | `Len`, `Cap`, `IsEmpty` |
 
 </details>
@@ -312,7 +312,7 @@ maxH := g.NewHeap(func(a, b int) cmp.Ordering {
 })
 
 // From slice
-heap := g.SliceOf(5, 3, 8, 1).ToHeap(cmp.Cmp)
+heap := g.SliceOf(5, 3, 8, 1).Heap(cmp.Cmp)
 ```
 
 ---
@@ -390,7 +390,7 @@ g.SliceOf("", "a", "").Iter().Exclude(f.IsZero).Collect()       // ["a"]
 | `FlatMap` | `Last` | `Cycle` | `Counter` | `MinBy` | `Combinations` |
 | `Flatten` | `Nth` | | `Partition` | | `Permutations` |
 | `Dedup` | `Chunks` | | `GroupBy` | | `Context` |
-| `Unique` | `Windows` | | | | `ToChan` |
+| `Unique` | `Windows` | | | | `Chan` |
 | `SortBy` | | | | | `Parallel` |
 
 </details>
@@ -554,7 +554,7 @@ s.Trim()                        // remove whitespace
 // Conversions
 s.Std()                         // Go string
 s.Bytes()                       // Bytes type
-g.String("42").ToInt()          // Result[Int]
+g.String("42").TryInt()         // Result[Int]
 
 // Encoding
 s.Hash().MD5()                  // hash
