@@ -470,3 +470,51 @@ func TestResultErrSource(t *testing.T) {
 		t.Errorf("ErrSource should return inner error, got '%s'", source.Some().Error())
 	}
 }
+
+var (
+	errContext         = errors.New("context")
+	errFailedToProcess = errors.New("failed to process")
+	errLevel1          = errors.New("level 1")
+	errLevel2          = errors.New("level 2")
+)
+
+func TestResultWrap(t *testing.T) {
+	// Test Ok case - should return unchanged
+	okResult := Ok(42)
+	wrapped := okResult.Wrap(errContext)
+	if !wrapped.IsOk() || wrapped.Unwrap() != 42 {
+		t.Error("Wrap on Ok result should return unchanged")
+	}
+
+	// Test Err case - should wrap error
+	originalErr := errors.New("original error")
+	errResult := Err[int](originalErr)
+	wrappedResult := errResult.Wrap(errFailedToProcess)
+	if !wrappedResult.IsErr() {
+		t.Error("Wrap on Err result should remain Err")
+	}
+	expectedMsg := "failed to process: original error"
+	if wrappedResult.Err().Error() != expectedMsg {
+		t.Errorf("Wrap should prepend error, expected '%s', got '%s'", expectedMsg, wrappedResult.Err().Error())
+	}
+
+	// Test that both errors are preserved in chain (errors.Is works for both)
+	if !wrappedResult.ErrIs(originalErr) {
+		t.Error("Wrapped error should preserve original error for errors.Is")
+	}
+	if !wrappedResult.ErrIs(errFailedToProcess) {
+		t.Error("Wrapped error should preserve wrapper error for errors.Is")
+	}
+
+	// Test chaining multiple Wraps
+	chainedResult := Err[int](originalErr).Wrap(errLevel1).Wrap(errLevel2)
+	expectedChained := "level 2: level 1: original error"
+	if chainedResult.Err().Error() != expectedChained {
+		t.Errorf("Chained Wrap expected '%s', got '%s'", expectedChained, chainedResult.Err().Error())
+	}
+
+	// All errors in chain are accessible
+	if !chainedResult.ErrIs(originalErr) || !chainedResult.ErrIs(errLevel1) || !chainedResult.ErrIs(errLevel2) {
+		t.Error("All errors in chain should be accessible via ErrIs")
+	}
+}

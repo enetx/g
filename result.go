@@ -198,3 +198,14 @@ func (r Result[T]) ErrSource() Option[error] {
 
 	return None[error]()
 }
+
+// Wrap wraps the error in Result with additional context error.
+// Both errors are preserved in the chain and accessible via ErrIs.
+// If Result is Ok, returns unchanged.
+func (r Result[T]) Wrap(err error) Result[T] {
+	if r.IsErr() {
+		return Err[T](fmt.Errorf("%w: %w", err, r.err))
+	}
+
+	return r
+}

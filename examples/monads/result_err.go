@@ -28,6 +28,9 @@ func main() {
 
 	// ErrSource - get wrapped error
 	exampleErrSource()
+
+	// Wrap - wrap error with context
+	exampleWrap()
 }
 
 func exampleErrIs() {
@@ -128,4 +131,45 @@ func exampleErrSource() {
 
 		r = g.Err[int](source.Some())
 	}
+}
+
+var (
+	errLoadConfig = errors.New("failed to load config")
+	errStep1      = errors.New("step 1")
+	errStep2      = errors.New("step 2")
+	errStep3      = errors.New("step 3")
+	errIgnored    = errors.New("ignored")
+)
+
+func exampleWrap() {
+	fmt.Println()
+	fmt.Println("=== Wrap ===")
+
+	// Wrap error with context error
+	res := g.ResultOf(os.Open("nonexistent.txt")).Wrap(errLoadConfig)
+	fmt.Printf("wrapped: %s\n", res.Err())
+
+	// Both errors are preserved in chain
+	if res.ErrIs(os.ErrNotExist) {
+		fmt.Println("original error accessible via ErrIs")
+	}
+	if res.ErrIs(errLoadConfig) {
+		fmt.Println("wrapper error accessible via ErrIs")
+	}
+
+	// Chain multiple wraps
+	chained := g.Err[int](errNotFound).
+		Wrap(errStep1).
+		Wrap(errStep2).
+		Wrap(errStep3)
+	fmt.Printf("chained: %s\n", chained.Err())
+
+	// All errors in chain are accessible
+	fmt.Printf("ErrIs(errNotFound): %v\n", chained.ErrIs(errNotFound))
+	fmt.Printf("ErrIs(errStep1): %v\n", chained.ErrIs(errStep1))
+	fmt.Printf("ErrIs(errStep3): %v\n", chained.ErrIs(errStep3))
+
+	// Ok result - unchanged
+	ok := g.Ok(42).Wrap(errIgnored)
+	fmt.Printf("Ok.Wrap() = %v\n", ok.Unwrap())
 }
