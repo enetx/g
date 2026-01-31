@@ -367,3 +367,106 @@ func TestResultString(t *testing.T) {
 		t.Errorf("Err.String() = '%s', want '%s'", errStr, expectedErr)
 	}
 }
+
+var errSentinel = errors.New("sentinel error")
+
+type customError struct {
+	code int
+	msg  string
+}
+
+func (e *customError) Error() string { return e.msg }
+
+func TestResultErrIs(t *testing.T) {
+	// Test Ok case - should return false
+	okResult := Ok(42)
+	if okResult.ErrIs(errSentinel) {
+		t.Error("ErrIs on Ok result should return false")
+	}
+
+	// Test Err case with matching error
+	errResult := Err[int](errSentinel)
+	if !errResult.ErrIs(errSentinel) {
+		t.Error("ErrIs should return true for matching sentinel error")
+	}
+
+	// Test Err case with wrapped error
+	wrappedErr := fmt.Errorf("wrapped: %w", errSentinel)
+	wrappedResult := Err[int](wrappedErr)
+	if !wrappedResult.ErrIs(errSentinel) {
+		t.Error("ErrIs should return true for wrapped sentinel error")
+	}
+
+	// Test Err case with non-matching error
+	otherErr := errors.New("other error")
+	otherResult := Err[int](otherErr)
+	if otherResult.ErrIs(errSentinel) {
+		t.Error("ErrIs should return false for non-matching error")
+	}
+}
+
+func TestResultErrAs(t *testing.T) {
+	// Test Ok case - should return false
+	okResult := Ok(42)
+	var target *customError
+	if okResult.ErrAs(&target) {
+		t.Error("ErrAs on Ok result should return false")
+	}
+
+	// Test Err case with matching type
+	customErr := &customError{code: 404, msg: "not found"}
+	errResult := Err[int](customErr)
+	var matched *customError
+	if !errResult.ErrAs(&matched) {
+		t.Error("ErrAs should return true for matching error type")
+	}
+	if matched.code != 404 {
+		t.Errorf("ErrAs should set target, expected code 404, got %d", matched.code)
+	}
+
+	// Test Err case with wrapped custom error
+	wrappedErr := fmt.Errorf("wrapped: %w", customErr)
+	wrappedResult := Err[int](wrappedErr)
+	var wrappedMatched *customError
+	if !wrappedResult.ErrAs(&wrappedMatched) {
+		t.Error("ErrAs should return true for wrapped custom error")
+	}
+	if wrappedMatched.code != 404 {
+		t.Errorf("ErrAs should set target for wrapped error, expected code 404, got %d", wrappedMatched.code)
+	}
+
+	// Test Err case with non-matching type
+	plainErr := errors.New("plain error")
+	plainResult := Err[int](plainErr)
+	var notMatched *customError
+	if plainResult.ErrAs(&notMatched) {
+		t.Error("ErrAs should return false for non-matching error type")
+	}
+}
+
+func TestResultErrSource(t *testing.T) {
+	// Test Ok case - should return None
+	okResult := Ok(42)
+	if okResult.ErrSource().IsSome() {
+		t.Error("ErrSource on Ok result should return None")
+	}
+
+	// Test Err case with no wrapped error
+	plainErr := errors.New("plain error")
+	plainResult := Err[int](plainErr)
+	if plainResult.ErrSource().IsSome() {
+		t.Error("ErrSource should return None for error without wrapped error")
+	}
+
+	// Test Err case with wrapped error
+	innerErr := errors.New("inner error")
+	wrappedErr := fmt.Errorf("outer: %w", innerErr)
+	wrappedResult := Err[int](wrappedErr)
+	source := wrappedResult.ErrSource()
+	if source.IsNone() {
+		t.Error("ErrSource should return Some for wrapped error")
+	}
+	if source.Some().Error() != "inner error" {
+		t.Errorf("ErrSource should return inner error, got '%s'", source.Some().Error())
+	}
+}

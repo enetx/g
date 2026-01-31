@@ -179,3 +179,22 @@ func (r Result[T]) String() string {
 
 	return fmt.Sprintf("Err(%v)", r.err)
 }
+
+// ErrIs reports whether the error in Result matches target (using errors.Is).
+// Returns false if Result is Ok.
+func (r Result[T]) ErrIs(target error) bool { return errors.Is(r.err, target) }
+
+// ErrAs finds the first error in Result's error chain that matches target,
+// and if so, sets target to that error value and returns true (using errors.As).
+// Returns false if Result is Ok.
+func (r Result[T]) ErrAs(target any) bool { return errors.As(r.err, target) }
+
+// ErrSource returns the underlying error wrapped by the Result's error, if any.
+// Returns None if Result is Ok or if the error doesn't wrap another error.
+func (r Result[T]) ErrSource() Option[error] {
+	if source := errors.Unwrap(r.err); source != nil {
+		return Some(source)
+	}
+
+	return None[error]()
+}
