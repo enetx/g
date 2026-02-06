@@ -3,6 +3,7 @@ package g_test
 import (
 	"context"
 	"errors"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -125,7 +126,7 @@ func TestPool(t *testing.T) {
 
 func TestPoolLimit(t *testing.T) {
 	p := pool.New[int]()
-	p.Limit(0)
+	p.Limit(2)
 
 	activeGoroutines := int32(0)
 	maxObserved := int32(0)
@@ -419,4 +420,430 @@ func TestPoolContextCancellation(t *testing.T) {
 	if len(results) != 0 {
 		t.Errorf("Expected 0 results with cancelled context, got %d", len(results))
 	}
+}
+
+func TestPoolStream_Basic(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Ok(2) })
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	var results []int
+	for r := range ch {
+		if r.IsErr() {
+			t.Errorf("Unexpected error: %v", r.Err())
+		}
+		results = append(results, r.Ok())
+	}
+
+	if len(results) != 3 {
+		t.Errorf("Expected 3 results, got %d", len(results))
+	}
+}
+
+func TestPoolStream_ChannelCloses(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(42) })
+	})
+
+	count := 0
+	for range ch {
+		count++
+	}
+
+	if count != 1 {
+		t.Errorf("Expected 1 result, got %d", count)
+	}
+}
+
+func TestPoolStream_WithErrors(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Err[int](errors.New("fail")) })
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	var oks, errs int
+	for r := range ch {
+		if r.IsOk() {
+			oks++
+		} else {
+			errs++
+		}
+	}
+
+	if oks != 2 {
+		t.Errorf("Expected 2 ok results, got %d", oks)
+	}
+	if errs != 1 {
+		t.Errorf("Expected 1 error result, got %d", errs)
+	}
+}
+
+func TestPoolStream_WithPanic(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { panic("stream panic") })
+	})
+
+	var oks, errs int
+	for r := range ch {
+		if r.IsOk() {
+			oks++
+		} else {
+			if !strings.Contains(r.Err().Error(), "panic: stream panic") {
+				t.Errorf("Expected panic error, got: %v", r.Err())
+			}
+			errs++
+		}
+	}
+
+	if oks != 1 {
+		t.Errorf("Expected 1 ok result, got %d", oks)
+	}
+	if errs != 1 {
+		t.Errorf("Expected 1 error result, got %d", errs)
+	}
+}
+
+func TestPoolStream_WithNilFunction(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(nil)
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result, got %d", len(results))
+	}
+
+	if results[0].IsOk() {
+		t.Error("Expected error for nil function")
+	}
+
+	if !strings.Contains(results[0].Err().Error(), "nil function provided") {
+		t.Errorf("Expected nil function error, got: %v", results[0].Err())
+	}
+}
+
+func TestPoolStream_WithLimit(t *testing.T) {
+	p := pool.New[int]().Limit(2)
+	ch := p.Stream(func() {
+		for i := range 10 {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+	})
+
+	var results []int
+	for r := range ch {
+		results = append(results, r.Ok())
+	}
+
+	if len(results) != 10 {
+		t.Errorf("Expected 10 results, got %d", len(results))
+	}
+}
+
+func TestPoolStream_Buffered(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		for i := range 5 {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+	}, 5)
+
+	var results []int
+	for r := range ch {
+		results = append(results, r.Ok())
+	}
+
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, got %d", len(results))
+	}
+}
+
+func TestPoolStream_CancelOnError(t *testing.T) {
+	p := pool.New[int]().CancelOnError().Limit(1)
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Err[int](errors.New("first fail")) })
+		p.Go(func() Result[int] { return Ok(2) })
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	if len(results) < 1 {
+		t.Fatal("Expected at least 1 result (the error)")
+	}
+
+	hasError := false
+	for _, r := range results {
+		if r.IsErr() && strings.Contains(r.Err().Error(), "first fail") {
+			hasError = true
+		}
+	}
+
+	if !hasError {
+		t.Error("Expected 'first fail' error in results")
+	}
+
+	if p.FailedTasks() < 1 {
+		t.Errorf("Expected at least 1 failed task, got %d", p.FailedTasks())
+	}
+}
+
+func TestPoolStream_CancelOnError_ErrorNotLost(t *testing.T) {
+	for range 100 {
+		p := pool.New[int]().CancelOnError().Limit(1)
+		ch := p.Stream(func() {
+			p.Go(func() Result[int] { return Err[int](errors.New("must arrive")) })
+		}, 1)
+
+		var gotError bool
+		for r := range ch {
+			if r.IsErr() && strings.Contains(r.Err().Error(), "must arrive") {
+				gotError = true
+			}
+		}
+
+		if !gotError {
+			t.Fatal("Error result was lost — emit likely happened after Cancel")
+		}
+	}
+}
+
+func TestPoolStream_NoResults(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		// no tasks
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results, got %d", len(results))
+	}
+}
+
+func TestPoolStream_DoesNotAccumulateResults(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Ok(2) })
+	})
+
+	for range ch {
+	}
+
+	if p.TotalTasks() != 2 {
+		t.Errorf("Expected totalTasks=2, got %d", p.TotalTasks())
+	}
+}
+
+func TestPoolStream_WithContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	p := pool.New[int]().Context(ctx).Limit(1)
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] {
+			cancel()
+			return Ok(2)
+		})
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	if len(results) > 3 {
+		t.Errorf("Expected at most 3 results, got %d", len(results))
+	}
+
+	t.Logf("Received %d results before context cancellation", len(results))
+}
+
+func TestPoolStream_PanicBeforeStream(t *testing.T) {
+	p := pool.New[int]()
+
+	p.Go(func() Result[int] { return Ok(1) })
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("Expected panic when calling Stream after Go")
+		}
+		if !strings.Contains(r.(string), "Stream must be called before submitting tasks") {
+			t.Errorf("Unexpected panic message: %v", r)
+		}
+	}()
+
+	p.Stream(func() {})
+}
+
+func TestPoolStream_Concurrent(t *testing.T) {
+	p := pool.New[int]().Limit(10)
+	tasks := 1000
+	ch := p.Stream(func() {
+		for i := range tasks {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+	})
+
+	var count atomic.Int32
+	for range ch {
+		count.Add(1)
+	}
+
+	if int(count.Load()) != tasks {
+		t.Errorf("Expected %d results, got %d", tasks, count.Load())
+	}
+
+	if p.TotalTasks() != tasks {
+		t.Errorf("Expected totalTasks=%d, got %d", tasks, p.TotalTasks())
+	}
+}
+
+func TestPoolStream_ResetAfterStream(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+	})
+
+	for range ch {
+	}
+
+	err := p.Reset()
+	if err != nil {
+		t.Errorf("Expected no error resetting after stream drained, got: %v", err)
+	}
+
+	p.Go(func() Result[int] { return Ok(2) })
+
+	results := p.Wait().Collect()
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result after reset, got %d", len(results))
+	}
+
+	if results[0].Ok() != 2 {
+		t.Errorf("Expected 2, got %d", results[0].Ok())
+	}
+}
+
+func TestPoolStream_Metrics(t *testing.T) {
+	p := pool.New[int]()
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Err[int](errors.New("fail")) })
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	for range ch {
+	}
+
+	if p.TotalTasks() != 3 {
+		t.Errorf("Expected totalTasks=3, got %d", p.TotalTasks())
+	}
+	if p.FailedTasks() != 1 {
+		t.Errorf("Expected failedTasks=1, got %d", p.FailedTasks())
+	}
+	if p.ActiveTasks() != 0 {
+		t.Errorf("Expected activeTasks=0, got %d", p.ActiveTasks())
+	}
+}
+
+func TestPoolStream_WorkerCount(t *testing.T) {
+	p := pool.New[int]().Limit(3)
+
+	var maxConcurrent atomic.Int32
+	var current atomic.Int32
+
+	ch := p.Stream(func() {
+		for range 20 {
+			p.Go(func() Result[int] {
+				cur := current.Add(1)
+				for {
+					old := maxConcurrent.Load()
+					if cur <= old || maxConcurrent.CompareAndSwap(old, cur) {
+						break
+					}
+				}
+				runtime.Gosched()
+				current.Add(-1)
+				return Ok(0)
+			})
+		}
+	})
+
+	for range ch {
+	}
+
+	if maxConcurrent.Load() > 3 {
+		t.Errorf("Expected max concurrency <= 3, got %d", maxConcurrent.Load())
+	}
+}
+
+func TestPoolStream_FIFO(t *testing.T) {
+	p := pool.New[int]().Limit(1)
+	ch := p.Stream(func() {
+		for i := range 10 {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+	})
+
+	var results []int
+	for r := range ch {
+		results = append(results, r.Ok())
+	}
+
+	if len(results) != 10 {
+		t.Fatalf("Expected 10 results, got %d", len(results))
+	}
+
+	for i, v := range results {
+		if v != i {
+			t.Errorf("Expected results[%d]=%d, got %d (FIFO violated)", i, i, v)
+			break
+		}
+	}
+}
+
+func TestPoolStream_ConsumerCancel(t *testing.T) {
+	p := pool.New[int]().Limit(1)
+	ch := p.Stream(func() {
+		for i := range 1000 {
+			p.Go(func() Result[int] { return Ok(i * i) })
+		}
+	})
+
+	var collected []int
+	for r := range ch {
+		collected = append(collected, r.Ok())
+		if r.Ok() == 25 { // found 5*5
+			p.Cancel()
+			break
+		}
+	}
+
+	if len(collected) < 1 {
+		t.Error("Expected at least 1 result")
+	}
+
+	t.Logf("Collected %d results before cancel", len(collected))
 }

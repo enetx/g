@@ -113,6 +113,12 @@ func (f Float) Std() float64 { return float64(f) }
 // Gt checks if the Float is greater than the specified Float.
 func (f Float) Gt(b Float) bool { return f.Cmp(b).IsGt() }
 
+// Gte checks if the Float is greater than or equal to the specified Float.
+func (f Float) Gte(b Float) bool { return !f.Lt(b) }
+
+// Lte checks if the Float is less than or equal to the specified Float.
+func (f Float) Lte(b Float) bool { return !f.Gt(b) }
+
 // Int returns the Float as an Int.
 func (f Float) Int() Int { return Int(f) }
 

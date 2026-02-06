@@ -317,11 +317,7 @@ func (s Set[T]) Eq(other Set[T]) bool {
 func (s Set[T]) Ne(other Set[T]) bool { return !s.Eq(other) }
 
 // Clear removes all values from the Set.
-func (s Set[T]) Clear() {
-	for k := range s {
-		delete(s, k)
-	}
-}
+func (s Set[T]) Clear() { clear(s) }
 
 // Empty checks if the Set is empty.
 func (s Set[T]) IsEmpty() bool { return len(s) == 0 }

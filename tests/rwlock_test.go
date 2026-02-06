@@ -367,3 +367,168 @@ func TestRwLock_TryReadMultiple(t *testing.T) {
 	opt2.Unwrap().Unlock()
 	opt3.Unwrap().Unlock()
 }
+
+func TestRwLock_With(t *testing.T) {
+	rwlock := NewRwLock(10)
+	rwlock.With(func(v *int) {
+		*v = 42
+	})
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	if guard.Get() != 42 {
+		t.Errorf("Expected 42 after With, got %d", guard.Get())
+	}
+}
+
+func TestRwLock_RWith(t *testing.T) {
+	rwlock := NewRwLock(42)
+	var got int
+	rwlock.RWith(func(v int) {
+		got = v
+	})
+	if got != 42 {
+		t.Errorf("Expected 42 from RWith, got %d", got)
+	}
+}
+
+func TestRwLock_RWith_ReceivesCopy(t *testing.T) {
+	rwlock := NewRwLock(SliceOf(1, 2, 3))
+	rwlock.RWith(func(sl Slice[int]) {
+		if sl.Len() != 3 {
+			t.Errorf("Expected slice length 3, got %d", sl.Len())
+		}
+	})
+}
+
+func TestRwLock_With_Struct(t *testing.T) {
+	type Config struct {
+		Host string
+		Port int
+	}
+	rwlock := NewRwLock(Config{Host: "localhost", Port: 8080})
+	rwlock.With(func(c *Config) {
+		c.Host = "0.0.0.0"
+		c.Port = 9000
+	})
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	config := guard.Get()
+	if config.Host != "0.0.0.0" || config.Port != 9000 {
+		t.Errorf("Expected {0.0.0.0, 9000}, got %+v", config)
+	}
+}
+
+func TestRwLock_With_Slice(t *testing.T) {
+	rwlock := NewRwLock(SliceOf(1, 2, 3))
+	rwlock.With(func(sl *Slice[int]) {
+		sl.Push(4, 5)
+	})
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	if guard.Deref().Len() != 5 {
+		t.Errorf("Expected length 5, got %d", guard.Deref().Len())
+	}
+}
+
+func TestRwLock_With_Map(t *testing.T) {
+	rwlock := NewRwLock(NewMap[string, int]())
+	rwlock.With(func(m *Map[string, int]) {
+		m.Entry("a").OrInsert(1)
+		m.Entry("b").OrInsert(2)
+	})
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	if guard.Deref().Get("a").UnwrapOr(0) != 1 {
+		t.Error("Expected a=1")
+	}
+	if guard.Deref().Get("b").UnwrapOr(0) != 2 {
+		t.Error("Expected b=2")
+	}
+}
+
+func TestRwLock_With_Concurrent(t *testing.T) {
+	rwlock := NewRwLock(0)
+	var wg sync.WaitGroup
+
+	writers := 100
+	wg.Add(writers)
+	for range writers {
+		go func() {
+			defer wg.Done()
+			rwlock.With(func(v *int) { *v++ })
+		}()
+	}
+	wg.Wait()
+
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	if guard.Get() != writers {
+		t.Errorf("Expected %d, got %d", writers, guard.Get())
+	}
+}
+
+func TestRwLock_RWith_Concurrent(t *testing.T) {
+	rwlock := NewRwLock(42)
+	var wg sync.WaitGroup
+	var readersActive atomic.Int32
+
+	readers := 10
+	wg.Add(readers)
+	for range readers {
+		go func() {
+			defer wg.Done()
+			rwlock.RWith(func(v int) {
+				readersActive.Add(1)
+				time.Sleep(20 * time.Millisecond)
+				if v != 42 {
+					t.Errorf("Expected 42, got %d", v)
+				}
+				readersActive.Add(-1)
+			})
+		}()
+	}
+
+	time.Sleep(10 * time.Millisecond)
+	if readersActive.Load() < 2 {
+		t.Error("Expected multiple concurrent readers in RWith")
+	}
+
+	wg.Wait()
+}
+
+func TestRwLock_With_PanicUnlocks(t *testing.T) {
+	rwlock := NewRwLock(42)
+	func() {
+		defer func() { recover() }()
+		rwlock.With(func(v *int) {
+			*v = 100
+			panic("test panic")
+		})
+	}()
+
+	// Lock should be released after panic
+	guard := rwlock.Read()
+	defer guard.Unlock()
+	if guard.Get() != 100 {
+		t.Errorf("Expected 100 after panic in With, got %d", guard.Get())
+	}
+}
+
+func TestRwLock_RWith_PanicUnlocks(t *testing.T) {
+	rwlock := NewRwLock(42)
+	func() {
+		defer func() { recover() }()
+		rwlock.RWith(func(v int) {
+			_ = v
+			panic("test panic")
+		})
+	}()
+
+	// Lock should be released after panic
+	guard := rwlock.Write()
+	defer guard.Unlock()
+	guard.Set(99)
+	if guard.Get() != 99 {
+		t.Errorf("Expected 99 after panic in RWith, got %d", guard.Get())
+	}
+}

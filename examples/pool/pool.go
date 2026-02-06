@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
 	defer cancel()
 
 	p := pool.New[int]() // Create a new pool for managing tasks

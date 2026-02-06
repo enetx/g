@@ -20,6 +20,8 @@ import (
 // Key Operations:
 // - Read(): Acquire read lock - multiple readers allowed
 // - Write(): Acquire write lock - exclusive access
+// - RWith(): Acquire read lock, call fn with copy of value, release automatically
+// - With(): Acquire write lock, call fn with pointer to value, release automatically
 // - TryRead(): Non-blocking read lock attempt
 // - TryWrite(): Non-blocking write lock attempt
 // - ReadGuard.Get()/Deref(): Access protected value (read-only)
@@ -58,22 +60,22 @@ func BasicRwLockOperations() {
 
 	data := NewRwLock("initial value")
 
-	// Read access
-	readGuard := data.Read()
-	fmt.Printf("Read value: %s\n", readGuard.Get())
-	readGuard.Unlock()
+	// Read access with RWith
+	data.RWith(func(v string) {
+		fmt.Printf("Read value: %s\n", v)
+	})
 
-	// Write access
-	writeGuard := data.Write()
-	fmt.Printf("Before write: %s\n", writeGuard.Get())
-	writeGuard.Set("modified value")
-	fmt.Printf("After write: %s\n", writeGuard.Get())
-	writeGuard.Unlock()
+	// Write access with With
+	data.With(func(v *string) {
+		fmt.Printf("Before write: %s\n", *v)
+		*v = "modified value"
+		fmt.Printf("After write: %s\n", *v)
+	})
 
 	// Verify change
-	readGuard2 := data.Read()
-	defer readGuard2.Unlock()
-	fmt.Printf("Final value: %s\n", readGuard2.Get())
+	data.RWith(func(v string) {
+		fmt.Printf("Final value: %s\n", v)
+	})
 }
 
 // Example 2: Multiple Readers Simultaneously
@@ -91,6 +93,7 @@ func MultipleReadersExample() {
 		go func(id int) {
 			defer wg.Done()
 
+			// Multiple readers hold read locks concurrently
 			guard := data.Read()
 			readersActive.Add(1)
 
@@ -125,18 +128,11 @@ func ConfigurationManager() {
 		Features:    NewMap[string, bool](),
 	})
 
-	// Many goroutines reading config
+	// Many goroutines reading config (needs return value — use Read/Guard)
 	getConfig := func() Config {
 		guard := config.Read()
 		defer guard.Unlock()
 		return guard.Get()
-	}
-
-	// Occasional updates (e.g., from config reload)
-	updateConfig := func(fn func(*Config)) {
-		guard := config.Write()
-		defer guard.Unlock()
-		fn(guard.Deref())
 	}
 
 	// Simulate usage
@@ -152,12 +148,12 @@ func ConfigurationManager() {
 		}(i)
 	}
 
-	// 1 writer (config reload)
+	// 1 writer (config reload) — With for clean scoped write
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		time.Sleep(10 * time.Millisecond)
-		updateConfig(func(c *Config) {
+		config.With(func(c *Config) {
 			c.MaxConns = 20
 			c.Timeout = 60 * time.Second
 		})
@@ -181,7 +177,7 @@ func ReadHeavyCacheExample() {
 
 	cache := NewRwLock(NewMap[string, CacheEntry]())
 
-	// Read (very frequent)
+	// Read (very frequent, needs return value — use Read/Guard)
 	get := func(key string) Option[string] {
 		guard := cache.Read()
 		defer guard.Unlock()
@@ -192,14 +188,13 @@ func ReadHeavyCacheExample() {
 		return None[string]()
 	}
 
-	// Write (infrequent)
+	// Write (infrequent) — With for clean scoped write
 	set := func(key, value string) {
-		guard := cache.Write()
-		defer guard.Unlock()
-
-		guard.Deref().Entry(key).OrInsert(CacheEntry{
-			Data:      value,
-			CreatedAt: time.Now(),
+		cache.With(func(m *Map[string, CacheEntry]) {
+			m.Entry(key).OrInsert(CacheEntry{
+				Data:      value,
+				CreatedAt: time.Now(),
+			})
 		})
 	}
 
@@ -248,17 +243,13 @@ func FeatureFlagsExample() {
 	flags := NewRwLock(NewMap[string, bool]())
 
 	// Initialize flags
-	func() {
-		guard := flags.Write()
-		defer guard.Unlock()
-
-		m := guard.Deref()
+	flags.With(func(m *Map[string, bool]) {
 		m.Entry("dark_mode").OrInsert(true)
 		m.Entry("new_ui").OrInsert(false)
 		m.Entry("beta_features").OrInsert(false)
-	}()
+	})
 
-	// Check flag (very frequent)
+	// Check flag (very frequent, needs return value — use Read/Guard)
 	isEnabled := func(flag string) bool {
 		guard := flags.Read()
 		defer guard.Unlock()
@@ -267,11 +258,10 @@ func FeatureFlagsExample() {
 
 	// Toggle flag (rare - admin action)
 	toggle := func(flag string) {
-		guard := flags.Write()
-		defer guard.Unlock()
-
-		current := guard.Deref().Get(flag).UnwrapOr(false)
-		guard.Deref().Entry(flag).OrInsert(!current)
+		flags.With(func(m *Map[string, bool]) {
+			current := m.Get(flag).UnwrapOr(false)
+			m.Entry(flag).OrInsert(!current)
+		})
 	}
 
 	fmt.Printf("dark_mode: %t\n", isEnabled("dark_mode"))
@@ -306,7 +296,7 @@ func RateLimiterExample() {
 	limit := 5
 	window := 100 * time.Millisecond
 
-	// Check if allowed (read-heavy)
+	// Check if allowed (read-heavy, needs return value — use Read/Guard)
 	isAllowed := func(clientID string) bool {
 		guard := limiter.Read()
 		defer guard.Unlock()
@@ -324,29 +314,28 @@ func RateLimiterExample() {
 		return s.Requests < limit
 	}
 
-	// Record request (write)
+	// Record request (write) — With for clean scoped write
 	recordRequest := func(clientID string) {
-		guard := limiter.Write()
-		defer guard.Unlock()
+		limiter.With(func(m *Map[string, RateLimitState]) {
+			now := time.Now()
+			state := m.Get(clientID)
 
-		now := time.Now()
-		state := guard.Deref().Get(clientID)
-
-		var newState RateLimitState
-		if state.IsNone() || now.After(state.Unwrap().ResetTime) {
-			newState = RateLimitState{
-				Requests:  1,
-				ResetTime: now.Add(window),
+			var newState RateLimitState
+			if state.IsNone() || now.After(state.Unwrap().ResetTime) {
+				newState = RateLimitState{
+					Requests:  1,
+					ResetTime: now.Add(window),
+				}
+			} else {
+				s := state.Unwrap()
+				newState = RateLimitState{
+					Requests:  s.Requests + 1,
+					ResetTime: s.ResetTime,
+				}
 			}
-		} else {
-			s := state.Unwrap()
-			newState = RateLimitState{
-				Requests:  s.Requests + 1,
-				ResetTime: s.ResetTime,
-			}
-		}
 
-		guard.Deref().Entry(clientID).OrInsert(newState)
+			m.Entry(clientID).OrInsert(newState)
+		})
 	}
 
 	// Simulate requests
@@ -426,7 +415,7 @@ func ReaderWriterFairness() {
 		logMu.Unlock()
 	}
 
-	// Start readers
+	// Start readers (need to hold lock for a duration — use Read/Guard)
 	for i := range 3 {
 		wg.Add(1)
 		go func(id int) {
@@ -446,12 +435,12 @@ func ReaderWriterFairness() {
 	go func() {
 		defer wg.Done()
 		logEvent("Writer waiting")
-		guard := data.Write()
-		logEvent("Writer acquired lock")
-		guard.Set(42)
-		time.Sleep(10 * time.Millisecond)
-		logEvent("Writer finished")
-		guard.Unlock()
+		data.With(func(v *int) {
+			logEvent("Writer acquired lock")
+			*v = 42
+			time.Sleep(10 * time.Millisecond)
+			logEvent("Writer finished")
+		})
 	}()
 
 	wg.Wait()
@@ -479,13 +468,9 @@ func RwLockPerformanceComparison() {
 		go func(op int) {
 			defer wg.Done()
 			if op%100 < readRatio {
-				guard := rwData.Read()
-				_ = guard.Get()
-				guard.Unlock()
+				rwData.RWith(func(v int) { _ = v })
 			} else {
-				guard := rwData.Write()
-				guard.Set(guard.Get() + 1)
-				guard.Unlock()
+				rwData.With(func(v *int) { *v++ })
 			}
 		}(i)
 	}
@@ -500,13 +485,13 @@ func RwLockPerformanceComparison() {
 		wg.Add(1)
 		go func(op int) {
 			defer wg.Done()
-			guard := muData.Lock()
 			if op%100 < readRatio {
+				guard := muData.Lock()
 				_ = guard.Get()
+				guard.Unlock()
 			} else {
-				guard.Set(guard.Get() + 1)
+				muData.With(func(v *int) { *v++ })
 			}
-			guard.Unlock()
 		}(i)
 	}
 	wg.Wait()
@@ -529,24 +514,24 @@ func ErrorHandlingExamples() {
 
 	// Zero value
 	zeroLock := NewRwLock(0)
-	guard := zeroLock.Read()
-	fmt.Printf("Zero value works: %d\n", guard.Get())
-	guard.Unlock()
+	zeroLock.RWith(func(v int) {
+		fmt.Printf("Zero value works: %d\n", v)
+	})
 
 	// Nil pointer
 	var ptr *string
 	nilLock := NewRwLock(ptr)
-	guard2 := nilLock.Read()
-	fmt.Printf("Nil pointer works: %v\n", guard2.Get() == nil)
-	guard2.Unlock()
+	nilLock.RWith(func(v *string) {
+		fmt.Printf("Nil pointer works: %v\n", v == nil)
+	})
 
 	// Empty collections
 	emptyLock := NewRwLock(NewSlice[int]())
-	guard3 := emptyLock.Read()
-	fmt.Printf("Empty slice works: len=%d\n", guard3.Deref().Len())
-	guard3.Unlock()
+	emptyLock.RWith(func(sl Slice[int]) {
+		fmt.Printf("Empty slice works: len=%d\n", sl.Len())
+	})
 
-	// Proper cleanup with defer
+	// With is panic-safe: defer inside With ensures unlock
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -555,10 +540,9 @@ func ErrorHandlingExamples() {
 		}()
 
 		m := NewRwLock(42)
-		guard := m.Write()
-		defer guard.Unlock() // Always released
-
-		fmt.Println("Work completed successfully")
+		m.With(func(*int) {
+			fmt.Println("Work completed successfully")
+		})
 	}()
 
 	fmt.Println("All edge cases handled correctly")

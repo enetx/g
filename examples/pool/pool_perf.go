@@ -59,10 +59,10 @@ func main() {
 	results := p.Wait().Ok()
 
 	taskSum := results.Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
-
 	taskMin := results.MinBy(cmp.Cmp).Some()
 	taskMax := results.MaxBy(cmp.Cmp).Some()
 	taskAvg := taskSum / TASKS_NUM
+
 	total := time.Since(start).Seconds()
 
 	fmt.Printf(

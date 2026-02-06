@@ -28,6 +28,26 @@ type RwLockWriteGuard[T any] struct {
 // NewRwLock creates a new RwLock containing the given value.
 func NewRwLock[T any](value T) *RwLock[T] { return &RwLock[T]{val: value} }
 
+// RWith acquires a read lock, calls fn with a copy of the protected value,
+// and releases the lock when fn returns.
+// The value is passed by copy to prevent accidental mutation under a read lock.
+func (r *RwLock[T]) RWith(fn func(T)) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	fn(r.val)
+}
+
+// With acquires a write lock, calls fn with a pointer to the protected value,
+// and releases the lock when fn returns.
+// This is a convenience method that eliminates the need for manual Lock/Unlock management.
+func (r *RwLock[T]) With(fn func(*T)) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	fn(&r.val)
+}
+
 // Read acquires a read lock and returns a guard that provides read-only access.
 // Multiple goroutines can hold read locks simultaneously.
 // The caller must call Unlock on the guard when done (typically via defer).

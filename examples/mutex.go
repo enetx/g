@@ -20,6 +20,7 @@ import (
 // Key Operations:
 // - Lock(): Acquire lock, returns MutexGuard - blocks until acquired
 // - TryLock(): Attempt to acquire without blocking - returns Option[MutexGuard]
+// - With(): Acquire lock, call fn with pointer to value, release automatically
 // - Guard.Get(): Get a copy of the protected value
 // - Guard.Set(): Replace the protected value
 // - Guard.Deref(): Get pointer for direct manipulation
@@ -59,19 +60,18 @@ func BasicMutexOperations() {
 	// Create a mutex protecting an integer
 	counter := NewMutex(0)
 
-	// Lock and modify
+	// With: lock, modify, unlock automatically
+	counter.With(func(v *int) {
+		fmt.Printf("Initial value: %d\n", *v)
+		*v = 42
+		fmt.Printf("After Set(42): %d\n", *v)
+	})
+
+	// Lock/Guard style for when you need more control
 	guard := counter.Lock()
-	fmt.Printf("Initial value: %d\n", guard.Get())
+	defer guard.Unlock()
 
-	guard.Set(42)
-	fmt.Printf("After Set(42): %d\n", guard.Get())
-
-	guard.Unlock()
-
-	// Lock again to verify
-	guard2 := counter.Lock()
-	defer guard2.Unlock()
-	fmt.Printf("Value persisted: %d\n", guard2.Get())
+	fmt.Printf("Value persisted: %d\n", guard.Get())
 }
 
 // Example 2: Thread-Safe Counter
@@ -90,9 +90,7 @@ func CounterExample() {
 		go func() {
 			defer wg.Done()
 			for range incrementsPerWorker {
-				guard := counter.Lock()
-				guard.Set(guard.Get() + 1)
-				guard.Unlock()
+				counter.With(func(v *int) { *v++ })
 			}
 		}()
 	}
@@ -120,18 +118,16 @@ func SharedCacheExample() {
 
 	// Set cache entry
 	set := func(key, value string, ttl time.Duration) {
-		guard := cache.Lock()
-		defer guard.Unlock()
-
-		guard.Deref().Entry(key).OrInsert(CacheEntry{
-			Value:     value,
-			ExpiresAt: time.Now().Add(ttl),
+		cache.With(func(m *Map[string, CacheEntry]) {
+			m.Entry(key).OrInsert(CacheEntry{
+				Value:     value,
+				ExpiresAt: time.Now().Add(ttl),
+			})
 		})
-
 		fmt.Printf("Cached: %s = %s\n", key, value)
 	}
 
-	// Get cache entry
+	// Get cache entry (needs return value — use Lock/Guard)
 	get := func(key string) Option[string] {
 		guard := cache.Lock()
 		defer guard.Unlock()
@@ -179,29 +175,22 @@ func ProtectedConfigExample() {
 		MaxConns: 100,
 	})
 
-	// Read config
+	// Read config (needs return value — use Lock/Guard)
 	readConfig := func() AppConfig {
 		guard := config.Lock()
 		defer guard.Unlock()
 		return guard.Get()
 	}
 
-	// Update config
-	updateConfig := func(fn func(*AppConfig)) {
-		guard := config.Lock()
-		defer guard.Unlock()
-		fn(guard.Deref())
-	}
-
 	fmt.Printf("Initial config: %+v\n", readConfig())
 
-	// Update in different goroutines
+	// Update config — With eliminates manual lock management
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
 		defer wg.Done()
-		updateConfig(func(c *AppConfig) {
+		config.With(func(c *AppConfig) {
 			c.Debug = true
 			c.LogLevel = "debug"
 		})
@@ -210,7 +199,7 @@ func ProtectedConfigExample() {
 
 	go func() {
 		defer wg.Done()
-		updateConfig(func(c *AppConfig) {
+		config.With(func(c *AppConfig) {
 			c.MaxConns = 200
 		})
 		fmt.Println("Increased max connections")
@@ -251,7 +240,6 @@ func TryLockExample() {
 		if opt := m.TryLock(); opt.IsSome() {
 			guard := opt.Unwrap()
 			defer guard.Unlock()
-			// Process...
 			guard.Set(guard.Get() + 1)
 			return true
 		}
@@ -267,16 +255,18 @@ func TryLockExample() {
 func DerefExample() {
 	fmt.Println("\n=== Deref for Direct Manipulation ===")
 
-	// With slice
+	// With slice — using With for clean scoped access
 	numbers := NewMutex(SliceOf(1, 2, 3))
 
-	guard := numbers.Lock()
-	// Direct manipulation via pointer
-	guard.Deref().Push(4, 5, 6)
-	guard.Deref().SortBy(func(a, b int) cmp.Ordering {
-		return cmp.Cmp(b, a) // Descending
+	numbers.With(func(sl *Slice[int]) {
+		sl.Push(4, 5, 6)
+		sl.SortBy(func(a, b int) cmp.Ordering {
+			return cmp.Cmp(b, a) // Descending
+		})
 	})
-	fmt.Printf("Slice after Deref operations: %v\n", guard.Get())
+
+	guard := numbers.Lock()
+	fmt.Printf("Slice after With operations: %v\n", guard.Get())
 	guard.Unlock()
 
 	// With struct
@@ -288,12 +278,10 @@ func DerefExample() {
 	stats := NewMutex(Stats{})
 
 	addValue := func(v int) {
-		guard := stats.Lock()
-		defer guard.Unlock()
-
-		s := guard.Deref()
-		s.Count++
-		s.Sum += v
+		stats.With(func(s *Stats) {
+			s.Count++
+			s.Sum += v
+		})
 	}
 
 	addValue(10)
@@ -339,15 +327,15 @@ type UserServiceNew struct {
 }
 
 func (s *UserServiceNew) GetUser(id string) Option[User] {
-    guard := s.users.Lock()  // Must lock to access
+    guard := s.users.Lock()
     defer guard.Unlock()
     return guard.Deref().Get(id)
 }
 
 func (s *UserServiceNew) UpdateCache(id string, data Data) {
-    guard := s.cache.Lock()  // Each data has its own lock
-    defer guard.Unlock()
-    guard.Deref().Entry(id).OrInsert(data)
+    s.cache.With(func(m *Map[string, Data]) {
+        m.Entry(id).OrInsert(data)
+    })
 }
 `)
 
@@ -355,7 +343,7 @@ func (s *UserServiceNew) UpdateCache(id string, data Data) {
 	fmt.Println("1. Data and lock are bound - can't access data without lock")
 	fmt.Println("2. Each field has explicit protection")
 	fmt.Println("3. Compiler catches mistakes at compile time")
-	fmt.Println("4. Self-documenting code")
+	fmt.Println("4. With() eliminates manual lock management for mutations")
 }
 
 // Example 8: Concurrent Map Operations
@@ -375,16 +363,16 @@ func ConcurrentMapExample() {
 		go func(name string) {
 			defer wg.Done()
 			for range updates {
-				guard := userScores.Lock()
-				guard.Deref().Entry(name).AndModify(func(v *int) { *v++ }).OrInsert(1)
-				guard.Unlock()
+				userScores.With(func(m *Map[string, int]) {
+					m.Entry(name).AndModify(func(v *int) { *v++ }).OrInsert(1)
+				})
 			}
 		}(user)
 	}
 
 	wg.Wait()
 
-	// Print final scores
+	// Print final scores (read — use Lock/Guard for iteration)
 	guard := userScores.Lock()
 	defer guard.Unlock()
 
@@ -407,18 +395,16 @@ func MetricsCollector() {
 	metrics := NewMutex(Metrics{})
 
 	recordRequest := func(latency time.Duration, isError bool) {
-		guard := metrics.Lock()
-		defer guard.Unlock()
-
-		m := guard.Deref()
-		m.RequestCount++
-		m.TotalLatency += latency
-
-		if isError {
-			m.ErrorCount++
-		}
+		metrics.With(func(m *Metrics) {
+			m.RequestCount++
+			m.TotalLatency += latency
+			if isError {
+				m.ErrorCount++
+			}
+		})
 	}
 
+	// Needs return values — use Lock/Guard
 	getMetrics := func() (requests, errors int64, avgLatency time.Duration) {
 		guard := metrics.Lock()
 		defer guard.Unlock()
@@ -456,24 +442,24 @@ func ErrorHandlingExample() {
 
 	// Zero value
 	zeroMutex := NewMutex(0)
-	guard := zeroMutex.Lock()
-	fmt.Printf("Zero value works: %d\n", guard.Get())
-	guard.Unlock()
+	zeroMutex.With(func(v *int) {
+		fmt.Printf("Zero value works: %d\n", *v)
+	})
 
 	// Nil pointer
 	var ptr *string
 	nilMutex := NewMutex(ptr)
-	guard2 := nilMutex.Lock()
-	fmt.Printf("Nil pointer works: %v\n", guard2.Get() == nil)
-	guard2.Unlock()
+	nilMutex.With(func(v **string) {
+		fmt.Printf("Nil pointer works: %v\n", *v == nil)
+	})
 
 	// Empty collections
 	emptySlice := NewMutex(NewSlice[int]())
-	guard3 := emptySlice.Lock()
-	fmt.Printf("Empty slice works: len=%d\n", guard3.Deref().Len())
-	guard3.Unlock()
+	emptySlice.With(func(sl *Slice[int]) {
+		fmt.Printf("Empty slice works: len=%d\n", sl.Len())
+	})
 
-	// Proper cleanup with defer
+	// With is panic-safe: defer inside With ensures unlock
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -482,11 +468,10 @@ func ErrorHandlingExample() {
 		}()
 
 		m := NewMutex(42)
-		guard := m.Lock()
-		defer guard.Unlock() // Always released, even on panic
-
-		// Simulate work that might panic
-		fmt.Println("Work completed successfully")
+		m.With(func(*int) {
+			// Simulate work that might panic
+			fmt.Println("Work completed successfully")
+		})
 	}()
 
 	fmt.Println("All edge cases handled correctly")

@@ -197,16 +197,7 @@ func (ms *MapSafe[K, V]) Clear() {
 }
 
 // IsEmpty checks if the MapSafe is empty.
-func (ms *MapSafe[K, V]) IsEmpty() bool {
-	empty := true
-
-	ms.data.Range(func(_, _ any) bool {
-		empty = false
-		return false
-	})
-
-	return empty
-}
+func (ms *MapSafe[K, V]) IsEmpty() bool { return ms.count.Load() == 0 }
 
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {

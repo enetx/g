@@ -27,6 +27,16 @@ func (m *Mutex[T]) Lock() MutexGuard[T] {
 	return MutexGuard[T]{mu: &m.mu, val: &m.val}
 }
 
+// With acquires the mutex, calls fn with a pointer to the protected value,
+// and releases the mutex when fn returns.
+// This is a convenience method that eliminates the need for manual Lock/Unlock management.
+func (m *Mutex[T]) With(fn func(*T)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	fn(&m.val)
+}
+
 // TryLock attempts to acquire the mutex without blocking.
 // Returns Some(guard) if successful, None if the mutex is already locked.
 func (m *Mutex[T]) TryLock() Option[MutexGuard[T]] {

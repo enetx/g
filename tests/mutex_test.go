@@ -220,3 +220,95 @@ func TestMutex_NilPointer(t *testing.T) {
 		t.Errorf("Expected pointer to 42, got %d", *guard.Get())
 	}
 }
+
+func TestMutex_With(t *testing.T) {
+	mutex := NewMutex(10)
+	mutex.With(func(v *int) {
+		*v = 42
+	})
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	if guard.Get() != 42 {
+		t.Errorf("Expected 42 after With, got %d", guard.Get())
+	}
+}
+
+func TestMutex_With_Struct(t *testing.T) {
+	type User struct {
+		Name  string
+		Count int
+	}
+	mutex := NewMutex(User{Name: "Alice", Count: 0})
+	mutex.With(func(u *User) {
+		u.Name = "Bob"
+		u.Count = 5
+	})
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	result := guard.Get()
+	if result.Name != "Bob" || result.Count != 5 {
+		t.Errorf("Expected User{Bob, 5}, got %+v", result)
+	}
+}
+
+func TestMutex_With_Slice(t *testing.T) {
+	mutex := NewMutex(SliceOf(1, 2, 3))
+	mutex.With(func(sl *Slice[int]) {
+		sl.Push(4, 5)
+	})
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	if guard.Get().Len() != 5 {
+		t.Errorf("Expected slice length 5, got %d", guard.Get().Len())
+	}
+}
+
+func TestMutex_With_Map(t *testing.T) {
+	mutex := NewMutex(NewMap[string, int]())
+	mutex.With(func(m *Map[string, int]) {
+		m.Entry("key").OrInsert(42)
+	})
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	val := guard.Deref().Get("key")
+	if val.IsNone() || val.Unwrap() != 42 {
+		t.Errorf("Expected Some(42), got %v", val)
+	}
+}
+
+func TestMutex_With_Concurrent(t *testing.T) {
+	mutex := NewMutex(0)
+	var wg sync.WaitGroup
+	iterations := 1000
+	wg.Add(iterations)
+	for range iterations {
+		go func() {
+			defer wg.Done()
+			mutex.With(func(v *int) { *v++ })
+		}()
+	}
+	wg.Wait()
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	if guard.Get() != iterations {
+		t.Errorf("Expected %d, got %d", iterations, guard.Get())
+	}
+}
+
+func TestMutex_With_PanicUnlocks(t *testing.T) {
+	mutex := NewMutex(42)
+	func() {
+		defer func() { recover() }()
+		mutex.With(func(v *int) {
+			*v = 100
+			panic("test panic")
+		})
+	}()
+
+	// Mutex should be unlocked after panic - lock must succeed
+	guard := mutex.Lock()
+	defer guard.Unlock()
+	if guard.Get() != 100 {
+		t.Errorf("Expected 100 after panic in With, got %d", guard.Get())
+	}
+}
