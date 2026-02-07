@@ -528,3 +528,27 @@ func (seq SeqResult[V]) FirstErr() Option[error] {
 
 	return result
 }
+
+// FromResultChan converts a channel of Results into a SeqResult iterator.
+// It consumes the channel until it's closed, yielding each Result to the iterator.
+// This is particularly useful with pool.Stream() for processing task results
+// as they complete in real-time.
+//
+// Example usage with pool.Stream:
+//
+//	ch := pool.New[int]().Limit(10).Stream(func() {
+//	    for i := range 100 {
+//	        p.Go(func() Result[int] {
+//	            if i%10 == 0 {
+//	                return Err[int](fmt.Errorf("task %d failed", i))
+//	            }
+//	            return Ok(i * i)
+//	        })
+//	    }
+//	})
+//
+//	successful, failed := FromResultChan(ch).Partition()
+//	fmt.Printf("Successful: %d, Failed: %d\n", successful.Len(), failed.Len())
+func FromResultChan[V any](ch <-chan Result[V]) SeqResult[V] {
+	return SeqResult[V](iter.FromChan(ch))
+}

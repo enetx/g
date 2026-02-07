@@ -28,18 +28,18 @@ var ErrAllTasksDone = errors.New("all tasks completed")
 //
 // These modes are mutually exclusive — use one or the other per pool lifecycle.
 type Pool[T any] struct {
-	ctx           context.Context          // Context for controlling cancellation and timeouts
-	cancel        context.CancelCauseFunc  // Function to cancel the context
-	tokens        chan Unit                // Semaphore for Wait mode concurrency; nil means unlimited
-	results       *MapSafe[int, Result[T]] // Stores task results (Wait mode only)
-	wg            sync.WaitGroup           // Waits for goroutines (Wait mode) or workers (Stream mode)
-	stream        chan Result[T]           // Real-time result channel (Stream mode only)
-	jobs          chan func() Result[T]    // Task queue for worker pool (Stream mode only)
-	streaming     atomic.Bool              // Whether the pool is in stream mode (race-free flag)
-	totalTasks    int32                    // Total number of tasks submitted
-	activeTasks   int32                    // Number of currently active tasks
-	failedTasks   int32                    // Number of failed tasks
-	cancelOnError bool                     // Cancels remaining tasks if any task fails
+	ctx             context.Context          // Context for controlling cancellation and timeouts
+	cancel          context.CancelCauseFunc  // Function to cancel the context
+	tokens          chan Unit                // Semaphore for Wait mode concurrency, nil means unlimited
+	results         *MapSafe[int, Result[T]] // Stores task results (Wait mode only)
+	wg              sync.WaitGroup           // Waits for goroutines (Wait mode) or workers (Stream mode)
+	stream          chan Result[T]           // Real-time result channel (Stream mode only)
+	jobs            chan func() Result[T]    // Task queue for worker pool (Stream mode only)
+	streaming       atomic.Bool              // Whether the pool is in stream mode (race-free flag)
+	totalTasks      int32                    // Total number of tasks submitted
+	activeTasks     int32                    // Number of currently active tasks
+	failedTasks     int32                    // Number of failed tasks
+	cancelPredicate func(Result[T]) bool     // Optional predicate for conditional cancellation, set via CancelOn
 }
 
 // New creates a new goroutine pool.
@@ -87,10 +87,9 @@ func (p *Pool[T]) acquire() bool {
 }
 
 // release frees a worker slot and signals task completion.
-// Used only in Wait mode; called exactly once per acquired task.
+// Used only in Wait mode, called exactly once per acquired task.
 func (p *Pool[T]) release() {
-	defer atomic.AddInt32(&p.activeTasks, -1)
-
+	atomic.AddInt32(&p.activeTasks, -1)
 	if p.tokens != nil {
 		<-p.tokens
 	}
@@ -103,7 +102,6 @@ func (p *Pool[T]) release() {
 // when CancelOnError is enabled.
 func (p *Pool[T]) error(index int32, err error) {
 	atomic.AddInt32(&p.failedTasks, 1)
-
 	result := Err[T](err)
 
 	if p.streaming.Load() {
@@ -112,13 +110,11 @@ func (p *Pool[T]) error(index int32, err error) {
 		p.results.Insert(int(index), result)
 	}
 
-	if p.cancelOnError {
-		p.Cancel(err)
-	}
+	p.checkCancel(result)
 }
 
 // emit sends a result to the stream channel.
-// If the context is canceled, the result is silently dropped —
+// If the context is canceled, the result is silently dropped -
 // this is expected with CancelOnError, where only the first error
 // is guaranteed to be delivered.
 func (p *Pool[T]) emit(result Result[T]) {
@@ -179,12 +175,14 @@ func (p *Pool[T]) exec(fn func() Result[T]) {
 	}
 
 	result := fn()
+
 	if result.IsErr() {
 		p.error(-1, result.Err())
 		return
 	}
 
 	p.emit(result)
+	p.checkCancel(result)
 }
 
 // Go submits a task for execution.
@@ -235,12 +233,14 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 		}
 
 		result := fn()
+
 		if result.IsErr() {
 			p.error(index, result.Err())
 			return
 		}
 
 		p.results.Insert(int(index), result)
+		p.checkCancel(result)
 	}(index)
 }
 
@@ -255,7 +255,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 // is set). Memory usage is constant regardless of how many tasks are submitted.
 //
 // An optional buffer size prevents slow consumers from blocking workers.
-// With CancelOnError, the first error is guaranteed to be delivered;
+// With CancelOnError, the first error is guaranteed to be delivered,
 // subsequent results may be dropped after cancellation.
 //
 // Stream and Wait are mutually exclusive.
@@ -297,6 +297,11 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 	// workers to drain remaining tasks and exit.
 	go func() {
 		defer close(p.jobs)
+		defer func() {
+			if r := recover(); r != nil {
+				p.Cancel(epanic(r))
+			}
+		}()
 		fn()
 	}()
 
@@ -311,7 +316,7 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 }
 
 // Wait blocks until all submitted tasks finish and returns their results.
-// Results are returned in an iterator; order is not guaranteed.
+// Results are returned in an iterator, order is not guaranteed.
 //
 // Example:
 //
@@ -323,19 +328,7 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 //	}
 func (p *Pool[T]) Wait() SeqResult[T] {
 	defer p.Cancel(ErrAllTasksDone)
-
-	done := make(chan Unit)
-
-	go func() {
-		p.wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-	case <-p.ctx.Done():
-	}
-
+	p.wg.Wait()
 	return SeqResult[T](p.results.Iter().Values())
 }
 
@@ -370,14 +363,89 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 	return p
 }
 
+// CancelOn configures the pool to cancel all remaining tasks
+// when any task result satisfies the provided predicate.
+//
+// The predicate is evaluated for every completed task (both successful and failed).
+// If it returns true, the pool immediately cancels all remaining tasks.
+// The triggering result is guaranteed to be delivered before cancellation.
+//
+// Common patterns:
+//
+//	// Cancel on any error
+//	p.CancelOn(func(r Result[int]) bool {
+//	    return r.IsErr()
+//	})
+//
+//	// Cancel on specific error type
+//	p.CancelOn(func(r Result[int]) bool {
+//	    return r.IsErr() && r.ErrIs(ErrCritical)
+//	})
+//
+//	// Cancel when a condition is met
+//	p.CancelOn(func(r Result[int]) bool {
+//	    return r.IsOk() && r.Ok() > 1000  // threshold exceeded
+//	})
+//
+//	// Cancel on timeout errors only
+//	p.CancelOn(func(r Result[int]) bool {
+//	    return r.IsErr() && r.ErrIs(context.DeadlineExceeded)
+//	})
+//
+//	// Cancel on database errors
+//	p.CancelOn(func(r Result[int]) bool {
+//	    return r.IsErr() && r.ErrAs(&sql.ErrNoRows)
+//	})
+func (p *Pool[T]) CancelOn(predicate func(Result[T]) bool) *Pool[T] {
+	if atomic.LoadInt32(&p.totalTasks) > 0 {
+		panic("cannot set cancellation predicate while tasks are running")
+	}
+
+	p.cancelPredicate = predicate
+	return p
+}
+
 // CancelOnError configures the pool to cancel all remaining tasks
 // when any task returns an error or panics.
 //
-// In Stream mode, the triggering error is guaranteed to be delivered;
+// In Stream mode, the triggering error is guaranteed to be delivered,
 // subsequent results may be dropped.
 func (p *Pool[T]) CancelOnError() *Pool[T] {
-	p.cancelOnError = true
-	return p
+	return p.CancelOn(func(r Result[T]) bool { return r.IsErr() })
+}
+
+// evalPredicate safely evaluates the cancellation predicate,
+// recovering from panics. If the predicate panics, it returns
+// matched=true so the pool is canceled with the panic as the cause.
+func (p *Pool[T]) evalPredicate(result Result[T]) (matched bool, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			matched = true
+			err = epanic(r)
+		}
+	}()
+
+	return p.cancelPredicate(result), nil
+}
+
+// checkCancel evaluates the cancellation predicate and cancels if needed.
+func (p *Pool[T]) checkCancel(result Result[T]) {
+	if p.cancelPredicate == nil {
+		return
+	}
+
+	matched, perr := p.evalPredicate(result)
+
+	if matched {
+		cause := errors.New("cancellation predicate matched")
+		if perr != nil {
+			cause = fmt.Errorf("cancellation predicate panicked: %w", perr)
+		} else if result.IsErr() {
+			cause = result.Err()
+		}
+
+		p.Cancel(cause)
+	}
 }
 
 // Context replaces the pool's context with the provided context.
@@ -433,6 +501,7 @@ func (p *Pool[T]) Reset() error {
 	p.stream = nil
 	p.jobs = nil
 	p.streaming.Store(false)
+	p.cancelPredicate = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
 
 	return nil
@@ -452,6 +521,16 @@ func (p *Pool[T]) ActiveTasks() int { return int(atomic.LoadInt32(&p.activeTasks
 
 // FailedTasks returns the number of tasks that completed with an error.
 func (p *Pool[T]) FailedTasks() int { return int(atomic.LoadInt32(&p.failedTasks)) }
+
+// SuccessfulTasks returns the number of tasks that completed successfully.
+// Calculated as TotalTasks - FailedTasks.
+// Accurate only after Wait returns or the Stream channel is drained,
+// while tasks are running, the count includes in-flight tasks.
+func (p *Pool[T]) SuccessfulTasks() int {
+	total := atomic.LoadInt32(&p.totalTasks)
+	failed := atomic.LoadInt32(&p.failedTasks)
+	return int(total - failed)
+}
 
 func epanic(r any) error {
 	stack := debug.Stack()

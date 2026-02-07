@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/pool"
 )
 
 func TestSeqResultAll(t *testing.T) {
@@ -2875,6 +2876,175 @@ func TestSeqResultFirstErr(t *testing.T) {
 
 		if firstErr.IsSome() {
 			t.Errorf("Expected None, got Some(%v)", firstErr.Some())
+		}
+	})
+}
+
+func TestFromResultChan(t *testing.T) {
+	t.Run("closed empty channel", func(t *testing.T) {
+		ch := make(chan Result[int])
+		close(ch)
+
+		collected := FromResultChan(ch).Collect()
+		if len(collected) != 0 {
+			t.Errorf("expected 0 results, got %d", len(collected))
+		}
+	})
+
+	t.Run("buffered channel with Ok values", func(t *testing.T) {
+		ch := make(chan Result[int], 3)
+		ch <- Ok(1)
+		ch <- Ok(2)
+		ch <- Ok(3)
+		close(ch)
+
+		seq := FromResultChan(ch)
+		collected := seq.Ok().Collect()
+
+		want := []int{1, 2, 3}
+		if len(collected) != len(want) {
+			t.Fatalf("expected %d items, got %d", len(want), len(collected))
+		}
+		for i, v := range collected {
+			if v != want[i] {
+				t.Errorf("index %d: want %d, got %d", i, want[i], v)
+			}
+		}
+	})
+
+	t.Run("mixed Ok and Err", func(t *testing.T) {
+		ch := make(chan Result[int], 4)
+		ch <- Ok(10)
+		ch <- Err[int](errors.New("fail"))
+		ch <- Ok(30)
+		ch <- Err[int](errors.New("fail2"))
+		close(ch)
+
+		okVals, errVals := FromResultChan(ch).Partition()
+
+		if len(okVals) != 2 {
+			t.Errorf("expected 2 ok values, got %d", len(okVals))
+		}
+		if len(errVals) != 2 {
+			t.Errorf("expected 2 errors, got %d", len(errVals))
+		}
+	})
+
+	t.Run("only errors", func(t *testing.T) {
+		ch := make(chan Result[int], 2)
+		ch <- Err[int](errors.New("e1"))
+		ch <- Err[int](errors.New("e2"))
+		close(ch)
+
+		firstErr := FromResultChan(ch).FirstErr()
+		if firstErr.IsNone() {
+			t.Fatal("expected an error, got None")
+		}
+		if firstErr.Some().Error() != "e1" {
+			t.Errorf("expected 'e1', got %q", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("async producer", func(t *testing.T) {
+		ch := make(chan Result[int])
+		go func() {
+			defer close(ch)
+			for i := range 5 {
+				ch <- Ok(i * 10)
+			}
+		}()
+
+		collected := FromResultChan(ch).Ok().Collect()
+		want := []int{0, 10, 20, 30, 40}
+		if len(collected) != len(want) {
+			t.Fatalf("expected %d items, got %d", len(want), len(collected))
+		}
+		for i, v := range collected {
+			if v != want[i] {
+				t.Errorf("index %d: want %d, got %d", i, want[i], v)
+			}
+		}
+	})
+
+	t.Run("with pool Stream", func(t *testing.T) {
+		p := pool.New[int]().Limit(3)
+		ch := p.Stream(func() {
+			for i := range 10 {
+				p.Go(func() Result[int] {
+					if i%3 == 0 {
+						return Err[int](errors.New("divisible by 3"))
+					}
+					return Ok(i)
+				})
+			}
+		})
+
+		okVals, errVals := FromResultChan(ch).Partition()
+
+		// i=0,3,6,9 fail → 4 errors; i=1,2,4,5,7,8 succeed → 6 ok
+		if len(okVals) != 6 {
+			t.Errorf("expected 6 ok values, got %d", len(okVals))
+		}
+		if len(errVals) != 4 {
+			t.Errorf("expected 4 errors, got %d", len(errVals))
+		}
+	})
+
+	t.Run("chaining SeqResult methods", func(t *testing.T) {
+		ch := make(chan Result[int], 5)
+		ch <- Ok(1)
+		ch <- Ok(2)
+		ch <- Ok(3)
+		ch <- Ok(4)
+		ch <- Ok(5)
+		close(ch)
+
+		collected := FromResultChan(ch).
+			Filter(func(v int) bool { return v%2 != 0 }).
+			Map(func(v int) int { return v * 100 }).
+			Ok().
+			Collect()
+
+		want := []int{100, 300, 500}
+		if len(collected) != len(want) {
+			t.Fatalf("expected %d items, got %d", len(want), len(collected))
+		}
+		for i, v := range collected {
+			if v != want[i] {
+				t.Errorf("index %d: want %d, got %d", i, want[i], v)
+			}
+		}
+	})
+
+	t.Run("count", func(t *testing.T) {
+		ch := make(chan Result[int], 3)
+		ch <- Ok(1)
+		ch <- Err[int](errors.New("x"))
+		ch <- Ok(3)
+		close(ch)
+
+		count := FromResultChan(ch).Count()
+		if count != 3 {
+			t.Errorf("expected count 3, got %d", count)
+		}
+	})
+
+	t.Run("Find on channel results", func(t *testing.T) {
+		ch := make(chan Result[int], 5)
+		ch <- Ok(10)
+		ch <- Ok(20)
+		ch <- Ok(30)
+		ch <- Ok(40)
+		ch <- Ok(50)
+		close(ch)
+
+		res := FromResultChan(ch).Find(func(v int) bool { return v == 30 })
+		if res.IsErr() {
+			t.Fatalf("expected Ok, got Err: %v", res.Err())
+		}
+		opt := res.UnwrapOr(None[int]())
+		if !opt.IsSome() || opt.Some() != 30 {
+			t.Errorf("expected Some(30), got %v", opt)
 		}
 	})
 }

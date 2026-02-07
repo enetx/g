@@ -847,3 +847,347 @@ func TestPoolStream_ConsumerCancel(t *testing.T) {
 
 	t.Logf("Collected %d results before cancel", len(collected))
 }
+
+func TestCancelOn_SuccessPredicate(t *testing.T) {
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		return r.IsOk() && r.Ok() > 5
+	})
+
+	for i := range 100 {
+		p.Go(func() Result[int] { return Ok(i) })
+	}
+
+	results := p.Wait().Collect()
+
+	// Should stop early once a value > 5 is produced.
+	if len(results) >= 100 {
+		t.Errorf("Expected early cancellation, got all %d results", len(results))
+	}
+
+	// The triggering result (value > 5) must be present.
+	found := false
+	for _, r := range results {
+		if r.IsOk() && r.Ok() > 5 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected at least one result > 5 (the trigger)")
+	}
+
+	t.Logf("Got %d results before cancellation", len(results))
+}
+
+func TestCancelOn_SpecificErrorType(t *testing.T) {
+	errCritical := errors.New("critical")
+
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		return r.IsErr() && errors.Is(r.Err(), errCritical)
+	})
+
+	p.Go(func() Result[int] { return Err[int](errors.New("minor")) })
+	p.Go(func() Result[int] { return Err[int](errCritical) })
+	p.Go(func() Result[int] { return Ok(42) })
+
+	results := p.Wait().Collect()
+
+	// Minor error should not trigger cancellation, critical should.
+	hasCritical := false
+	for _, r := range results {
+		if r.IsErr() && errors.Is(r.Err(), errCritical) {
+			hasCritical = true
+		}
+	}
+	if !hasCritical {
+		t.Error("Expected critical error in results")
+	}
+
+	if !errors.Is(p.Cause(), errCritical) {
+		t.Errorf("Expected cause to be errCritical, got: %v", p.Cause())
+	}
+}
+
+func TestCancelOn_NoMatch(t *testing.T) {
+	p := pool.New[int]().Limit(2).CancelOn(func(r Result[int]) bool {
+		return r.IsOk() && r.Ok() > 1000 // never true
+	})
+
+	for i := range 10 {
+		p.Go(func() Result[int] { return Ok(i) })
+	}
+
+	results := p.Wait().Collect()
+
+	if len(results) != 10 {
+		t.Errorf("Expected all 10 results (predicate never matched), got %d", len(results))
+	}
+}
+
+func TestCancelOn_PredicatePanic(t *testing.T) {
+	p := pool.New[int]().Limit(1).CancelOn(func(Result[int]) bool {
+		panic("predicate boom")
+	})
+
+	p.Go(func() Result[int] { return Ok(1) })
+
+	results := p.Wait().Collect()
+
+	// Pool should be cancelled due to predicate panic.
+	cause := p.Cause()
+	if cause == nil {
+		t.Fatal("Expected pool to be cancelled after predicate panic")
+	}
+
+	if !strings.Contains(cause.Error(), "predicate panicked") {
+		t.Errorf("Expected cause to mention predicate panic, got: %v", cause)
+	}
+
+	t.Logf("Got %d results, cause: %v", len(results), cause)
+}
+
+func TestCancelOn_PredicatePanicOnError(t *testing.T) {
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		if r.IsErr() {
+			panic("predicate panic on error path")
+		}
+		return false
+	})
+
+	p.Go(func() Result[int] { return Err[int](errors.New("task error")) })
+	p.Go(func() Result[int] { return Ok(2) })
+
+	results := p.Wait().Collect()
+
+	cause := p.Cause()
+	if cause == nil {
+		t.Fatal("Expected cancellation after predicate panic")
+	}
+	if !strings.Contains(cause.Error(), "predicate panicked") {
+		t.Errorf("Expected predicate panic cause, got: %v", cause)
+	}
+
+	// The error result should still be recorded (error() stores before checkCancel).
+	hasErr := false
+	for _, r := range results {
+		if r.IsErr() {
+			hasErr = true
+		}
+	}
+	if !hasErr {
+		t.Error("Expected the task error to be in results")
+	}
+
+	t.Logf("Got %d results, cause: %v", len(results), cause)
+}
+
+func TestCancelOn_CalledAfterGo_Panics(t *testing.T) {
+	p := pool.New[int]()
+
+	p.Go(func() Result[int] { return Ok(1) })
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("Expected panic when calling CancelOn after Go")
+		}
+		msg, ok := r.(string)
+		if !ok || !strings.Contains(msg, "cannot set cancellation predicate") {
+			t.Errorf("Unexpected panic message: %v", r)
+		}
+	}()
+
+	p.CancelOn(func(Result[int]) bool { return true })
+}
+
+func TestCancelOn_Stream_SuccessPredicate(t *testing.T) {
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		return r.IsOk() && r.Ok() == 5
+	})
+
+	ch := p.Stream(func() {
+		for i := range 100 {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	if len(results) >= 100 {
+		t.Errorf("Expected early cancellation in stream, got all %d results", len(results))
+	}
+
+	found := false
+	for _, r := range results {
+		if r.IsOk() && r.Ok() == 5 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("Expected trigger value (5) in stream results")
+	}
+
+	t.Logf("Stream got %d results before cancellation", len(results))
+}
+
+func TestCancelOn_Stream_ErrorPredicate(t *testing.T) {
+	errFatal := errors.New("fatal")
+
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		return r.IsErr() && errors.Is(r.Err(), errFatal)
+	})
+
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Err[int](errFatal) })
+		p.Go(func() Result[int] { return Ok(3) })
+	})
+
+	var results []Result[int]
+	for r := range ch {
+		results = append(results, r)
+	}
+
+	hasFatal := false
+	for _, r := range results {
+		if r.IsErr() && errors.Is(r.Err(), errFatal) {
+			hasFatal = true
+		}
+	}
+	if !hasFatal {
+		t.Error("Expected fatal error in stream results")
+	}
+
+	if !errors.Is(p.Cause(), errFatal) {
+		t.Errorf("Expected cause to be errFatal, got: %v", p.Cause())
+	}
+}
+
+func TestCancelOn_Stream_PredicatePanic(t *testing.T) {
+	p := pool.New[int]().Limit(1).CancelOn(func(Result[int]) bool {
+		panic("stream predicate boom")
+	})
+
+	ch := p.Stream(func() {
+		p.Go(func() Result[int] { return Ok(1) })
+		p.Go(func() Result[int] { return Ok(2) })
+	})
+
+	for range ch {
+	}
+
+	cause := p.Cause()
+	if cause == nil {
+		t.Fatal("Expected cancellation from predicate panic in stream")
+	}
+	if !strings.Contains(cause.Error(), "predicate panicked") {
+		t.Errorf("Expected predicate panic cause in stream, got: %v", cause)
+	}
+}
+
+func TestCancelOn_Stream_ErrorGuaranteed(t *testing.T) {
+	// Same spirit as TestPoolStream_CancelOnError_ErrorNotLost but with CancelOn.
+	for range 100 {
+		p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+			return r.IsErr()
+		})
+
+		ch := p.Stream(func() {
+			p.Go(func() Result[int] { return Err[int](errors.New("must arrive")) })
+		}, 1)
+
+		gotErr := false
+		for r := range ch {
+			if r.IsErr() && strings.Contains(r.Err().Error(), "must arrive") {
+				gotErr = true
+			}
+		}
+
+		if !gotErr {
+			t.Fatal("Error result was lost with CancelOn in stream mode")
+		}
+	}
+}
+
+func TestCancelOn_WrappedError(t *testing.T) {
+	errBase := errors.New("base")
+
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		return r.IsErr() && errors.Is(r.Err(), errBase)
+	})
+
+	p.Go(func() Result[int] { return Ok(1) })
+	p.Go(func() Result[int] {
+		return Err[int](errors.Join(errors.New("wrapper"), errBase))
+	})
+	p.Go(func() Result[int] { return Ok(3) })
+
+	results := p.Wait().Collect()
+
+	if len(results) >= 3 {
+		t.Errorf("Expected early cancellation on wrapped error, got %d results", len(results))
+	}
+
+	if !errors.Is(p.Cause(), errBase) {
+		t.Errorf("Expected cause chain to contain errBase, got: %v", p.Cause())
+	}
+}
+
+func TestCancelOn_CountingPredicate(t *testing.T) {
+	// Cancel after N failures (using external counter).
+	var failures atomic.Int32
+
+	p := pool.New[int]().Limit(1).CancelOn(func(r Result[int]) bool {
+		if r.IsErr() {
+			return failures.Add(1) >= 3
+		}
+		return false
+	})
+
+	for i := range 20 {
+		p.Go(func() Result[int] {
+			if i%2 == 0 {
+				return Err[int](errors.New("fail"))
+			}
+			return Ok(i)
+		})
+	}
+
+	results := p.Wait().Collect()
+
+	if len(results) >= 20 {
+		t.Errorf("Expected cancellation after 3 failures, got all %d results", len(results))
+	}
+
+	if failures.Load() < 3 {
+		t.Errorf("Expected at least 3 failures before cancel, got %d", failures.Load())
+	}
+
+	t.Logf("Got %d results, %d failures counted", len(results), failures.Load())
+}
+
+func TestCancelOn_ResetClearsPredicate(t *testing.T) {
+	p := pool.New[int]().CancelOn(func(r Result[int]) bool {
+		return r.IsErr()
+	})
+
+	p.Go(func() Result[int] { return Err[int](errors.New("fail")) })
+	p.Wait()
+
+	p.Reset()
+
+	// After reset, predicate should be cleared — errors should not cancel.
+	p.Go(func() Result[int] { return Err[int](errors.New("fail1")) })
+	p.Go(func() Result[int] { return Err[int](errors.New("fail2")) })
+	p.Go(func() Result[int] { return Ok(42) })
+
+	results := p.Wait().Collect()
+
+	if len(results) != 3 {
+		t.Errorf("Expected 3 results after reset (no predicate), got %d", len(results))
+	}
+}
