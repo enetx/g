@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/internal/rlimit"
@@ -40,6 +41,7 @@ type Pool[T any] struct {
 	activeTasks     int32                    // Number of currently active tasks
 	failedTasks     int32                    // Number of failed tasks
 	cancelPredicate func(Result[T]) bool     // Optional predicate for conditional cancellation, set via CancelOn
+	rl              *limiter                 // Token-bucket rate limiter, nil means no rate limit
 }
 
 // New creates a new goroutine pool.
@@ -69,6 +71,60 @@ func New[T any]() *Pool[T] {
 		cancel:  cancel,
 		results: NewMapSafe[int, Result[T]](),
 	}
+}
+
+// Rate limits the rate of task execution to n tasks per duration d.
+// This is independent of Limit (concurrency) — they compose naturally:
+//   - Limit controls how many tasks run simultaneously
+//   - Rate controls how fast new tasks start
+//
+// By default, burst equals n, allowing an initial burst before settling
+// into the steady rate. Override with an explicit burst value.
+//
+// Zero or negative n removes the rate limit.
+// Cannot be changed while tasks are running.
+//
+// Examples:
+//
+//	p.Rate(10, time.Second)           // 10 tasks/sec, burst of 10
+//	p.Rate(10, time.Second, 1)        // 10 tasks/sec, no burst (smooth)
+//	p.Rate(100, time.Minute)          // 100 tasks/min, burst of 100
+//	p.Rate(5, time.Second, 20)        // 5 tasks/sec, burst of 20
+//
+//	// Combined with Limit:
+//	p.Limit(10).Rate(5, time.Second)  // max 10 concurrent, max 5 starts/sec
+func (p *Pool[T]) Rate(n int, d time.Duration, burst ...int) *Pool[T] {
+	if atomic.LoadInt32(&p.totalTasks) > 0 {
+		panic("cannot change rate limit while tasks are running")
+	}
+
+	if p.rl != nil {
+		p.rl.stop()
+		p.rl = nil
+	}
+
+	if n <= 0 {
+		return p
+	}
+
+	b := n
+	if len(burst) > 0 && burst[0] > 0 {
+		b = burst[0]
+	}
+
+	p.rl = newLimiter(n, d, b)
+	return p
+}
+
+// waitRate blocks until the rate limiter allows a new task to start.
+// Returns true if allowed, false if the context was canceled.
+// No-op (always true) if no rate limit is set.
+func (p *Pool[T]) waitRate() bool {
+	if p.rl == nil {
+		return true
+	}
+
+	return p.rl.wait(p.ctx)
 }
 
 // acquire blocks until a worker slot is available or the context is canceled.
@@ -155,7 +211,13 @@ func (p *Pool[T]) worker() {
 
 // exec runs a single task within a worker goroutine.
 // Handles nil functions, panics, errors, and context cancellation.
+// In Stream mode, rate limiting is applied here — right before execution —
+// so that the rate reflects actual task starts, not queue insertion time.
 func (p *Pool[T]) exec(fn func() Result[T]) {
+	if !p.waitRate() {
+		return
+	}
+
 	atomic.AddInt32(&p.activeTasks, 1)
 	defer atomic.AddInt32(&p.activeTasks, -1)
 
@@ -189,9 +251,12 @@ func (p *Pool[T]) exec(fn func() Result[T]) {
 //
 // In Wait mode, Go blocks the caller until a worker slot is available
 // (backpressure via semaphore), then spawns a goroutine to execute the task.
+// Rate limiting is applied before acquiring a slot, so the rate governs
+// how fast new goroutines are spawned.
 //
 // In Stream mode, Go sends the task to the worker pool's job queue.
 // It blocks if all workers are busy (backpressure via channel).
+// Rate limiting is applied by workers at execution time, not here.
 //
 // If fn is nil, the task completes with an error.
 // If fn panics, the panic is recovered and recorded as an error with a stack trace.
@@ -203,6 +268,10 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 		case <-p.ctx.Done():
 		}
 
+		return
+	}
+
+	if !p.waitRate() {
 		return
 	}
 
@@ -473,6 +542,10 @@ func (p *Pool[T]) Cancel(err ...error) {
 		cause = err[0]
 	}
 
+	if p.rl != nil {
+		p.rl.stop()
+	}
+
 	p.cancel(cause)
 }
 
@@ -495,6 +568,8 @@ func (p *Pool[T]) Reset() error {
 	}
 
 	p.Cancel()
+
+	p.rl = nil
 	p.ClearMetrics()
 	p.results.Clear()
 	p.tokens = nil
