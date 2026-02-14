@@ -338,7 +338,7 @@ func (s Set[T]) String() string {
 		}
 
 		first = false
-		b.WriteString(Format("{}", v))
+		fmt.Fprint(&b, v)
 	}
 
 	b.WriteString("}")

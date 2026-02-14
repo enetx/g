@@ -23,7 +23,7 @@ func main() {
 
 	fmt.Println("Comparable values:")
 
-	values.Iter().Filter(f.IsComparable).
+	values.Iter().Filter(f.IsComparableValue).
 		ForEach(func(v any) {
 			Println("{1.type} - {1.debug}", v)
 		})

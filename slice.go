@@ -2,9 +2,9 @@ package g
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/rand/v2"
+	"reflect"
 	"slices"
 	"strings"
 
@@ -217,9 +217,16 @@ func (sl Slice[T]) Fill(val T) {
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) Int {
-	var zero T
-	if f.IsComparable(zero) {
-		return sl.IndexBy(func(v T) bool { return f.Eq[any](v)(val) })
+	if f.IsComparable[T]() {
+		target := any(val)
+
+		for i, v := range sl {
+			if any(v) == target {
+				return Int(i)
+			}
+		}
+
+		return -1
 	}
 
 	return sl.IndexBy(f.Eqd(val))
@@ -330,7 +337,7 @@ func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
 func (sl *Slice[T]) Insert(i Int, values ...T) {
 	if sl.IsEmpty() {
 		if i != 0 {
-			panic(Errorf("runtime error: slice bounds out of range [{}] with length 0", i))
+			boundpanic(i, 0)
 		}
 
 		sl.Push(values...)
@@ -359,17 +366,17 @@ func (sl *Slice[T]) Insert(i Int, values ...T) {
 //
 // After the Replace operation, the resulting slice will be: ["a", "e", "f", "d"].
 func (sl *Slice[T]) Replace(i, j Int, values ...T) {
-	ii := sl.bound(i)
-	jj := sl.bound(j)
-
-	if ii.IsErr() {
-		panic(ii.err)
-	}
-	if jj.IsErr() {
-		panic(jj.err)
+	ii, ok := sl.bound(i)
+	if !ok {
+		boundpanic(i, len(*sl))
 	}
 
-	i, j = ii.v, jj.v
+	jj, ok := sl.bound(j)
+	if !ok {
+		boundpanic(j, len(*sl))
+	}
+
+	i, j = ii, jj
 
 	if i > j {
 		*sl = (*sl)[:0]
@@ -397,6 +404,7 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 			copy((*sl)[i+addedCount:], (*sl)[i:oldLen])
 			copy((*sl)[i:], values)
 		}
+
 		return
 	}
 
@@ -422,12 +430,12 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 // Get returns the element at the given index, handling negative indices as counting from the end
 // of the slice.
 func (sl Slice[T]) Get(index Int) Option[T] {
-	i := sl.bound(index)
-	if i.IsErr() {
+	i, ok := sl.bound(index)
+	if !ok {
 		return None[T]()
 	}
 
-	return Some(sl[i.v])
+	return Some(sl[i])
 }
 
 // Shuffle shuffles the elements in the slice randomly.
@@ -552,7 +560,17 @@ func (sl Slice[T]) Join(sep ...T) String {
 		separator = fmt.Sprint(sep[0])
 	}
 
-	return String(strings.Join(TransformSlice(sl, func(v T) string { return fmt.Sprint(v) }), separator))
+	var b strings.Builder
+
+	for i, v := range sl {
+		if i > 0 {
+			b.WriteString(separator)
+		}
+
+		fmt.Fprint(&b, v)
+	}
+
+	return String(b.String())
 }
 
 // SubSlice returns a new slice containing elements from the current slice between the specified start
@@ -588,20 +606,22 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 		return sl
 	}
 
-	_step := Slice[Int](step).Get(0).UnwrapOr(1)
-
-	ii := sl.bound(start, Unit{})
-	jj := sl.bound(end, Unit{})
-
-	if ii.IsErr() {
-		panic(ii.err)
+	_step := Int(1)
+	if len(step) > 0 {
+		_step = Int(step[0])
 	}
 
-	if jj.IsErr() {
-		panic(jj.err)
+	ii, ok := sl.boundsub(start)
+	if !ok {
+		boundpanic(start, len(sl))
 	}
 
-	start, end = ii.v, jj.v
+	jj, ok := sl.boundsub(end)
+	if !ok {
+		boundpanic(end, len(sl))
+	}
+
+	start, end = ii, jj
 
 	if _step == 1 {
 		if start >= end {
@@ -681,12 +701,21 @@ func (sl Slice[T]) LastIndex() Int {
 
 // Eq returns true if the slice is equal to the provided other slice.
 func (sl Slice[T]) Eq(other Slice[T]) bool {
-	var zero T
-	if f.IsComparable(zero) {
-		return sl.EqBy(other, func(x, y T) bool { return f.Eq[any](x)(y) })
+	if len(sl) != len(other) {
+		return false
 	}
 
-	return sl.EqBy(other, func(x, y T) bool { return f.Eqd(x)(y) })
+	if f.IsComparable[T]() {
+		for i, v := range sl {
+			if any(v) != any(other[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return sl.EqBy(other, func(x, y T) bool { return reflect.DeepEqual(x, y) })
 }
 
 // EqBy reports whether two slices are equal using an equality
@@ -712,7 +741,7 @@ func (sl Slice[T]) String() string {
 			b.WriteString(", ")
 		}
 
-		b.WriteString(Format("{}", v))
+		fmt.Fprint(&b, v)
 	}
 
 	b.WriteString("]")
@@ -747,6 +776,22 @@ func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 //
 // Output: [1 2 3 4 5 6 7].
 func (sl Slice[T]) AppendUnique(elems ...T) Slice[T] {
+	if f.IsComparable[T]() {
+		set := make(Set[any], len(sl)+len(elems))
+		for _, v := range sl {
+			set[v] = Unit{}
+		}
+
+		for _, elem := range elems {
+			if !set.Contains(elem) {
+				sl = append(sl, elem)
+				set.Insert(elem)
+			}
+		}
+
+		return sl
+	}
+
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
 			sl = append(sl, elem)
@@ -776,6 +821,22 @@ func (sl *Slice[T]) Push(elems ...T) { *sl = append(*sl, elems...) }
 //
 // Output: [1 2 3 4 5 6 7].
 func (sl *Slice[T]) PushUnique(elems ...T) {
+	if f.IsComparable[T]() {
+		set := make(Set[any], len(*sl)+len(elems))
+		for _, v := range *sl {
+			set[v] = Unit{}
+		}
+
+		for _, elem := range elems {
+			if !set.Contains(elem) {
+				sl.Push(elem)
+				set.Insert(elem)
+			}
+		}
+
+		return
+	}
+
 	for _, elem := range elems {
 		if !sl.Contains(elem) {
 			sl.Push(elem)
@@ -798,6 +859,21 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
+	if f.IsComparable[T]() {
+		set := make(Set[any], len(sl))
+		for _, v := range sl {
+			set[v] = Unit{}
+		}
+
+		for _, v := range values {
+			if set.Contains(v) {
+				return true
+			}
+		}
+
+		return false
+	}
+
 	return slices.ContainsFunc(values, sl.Contains)
 }
 
@@ -805,6 +881,21 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 func (sl Slice[T]) ContainsAll(values ...T) bool {
 	if sl.IsEmpty() || len(values) == 0 {
 		return len(values) == 0
+	}
+
+	if f.IsComparable[T]() {
+		set := make(Set[any], len(sl))
+		for _, v := range sl {
+			set[v] = Unit{}
+		}
+
+		for _, v := range values {
+			if !set.Contains(v) {
+				return false
+			}
+		}
+
+		return true
 	}
 
 	for _, v := range values {
@@ -905,12 +996,12 @@ func (sl *Slice[T]) Pop() Option[T] {
 //
 // Output: [1 2 99 4 5].
 func (sl Slice[T]) Set(index Int, val T) {
-	i := sl.bound(index)
-	if i.IsErr() {
-		panic(i.err)
+	i, ok := sl.bound(index)
+	if !ok {
+		boundpanic(index, len(sl))
 	}
 
-	sl[i.v] = val
+	sl[i] = val
 }
 
 // Len returns the length of the slice.
@@ -937,18 +1028,17 @@ func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 //
 // Output: [1 4 3 2 5].
 func (sl Slice[T]) Swap(i, j Int) {
-	ii := sl.bound(i)
-	jj := sl.bound(j)
-
-	if ii.IsErr() {
-		panic(ii.err)
+	ii, ok := sl.bound(i)
+	if !ok {
+		boundpanic(i, len(sl))
 	}
 
-	if jj.IsErr() {
-		panic(jj.err)
+	jj, ok := sl.bound(j)
+	if !ok {
+		boundpanic(j, len(sl))
 	}
 
-	sl[ii.v], sl[jj.v] = sl[jj.v], sl[ii.v]
+	sl[ii], sl[jj] = sl[jj], sl[ii]
 }
 
 // Grow increases the slice's capacity, if necessary, to guarantee space for
@@ -1017,24 +1107,40 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 //	fmt.Println(minInt) // Output: 1
 func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
-func (sl Slice[T]) bound(i Int, subslice ...Unit) Result[Int] {
-	if sl.IsEmpty() {
-		return Err[Int](errors.New("runtime error: slice is empty"))
+func (sl Slice[T]) bound(i Int) (Int, bool) {
+	n := sl.Len()
+	if n == 0 {
+		return 0, false
 	}
 
-	ii := i
-	if ii < 0 {
-		ii += sl.Len()
+	if i < 0 {
+		i += n
 	}
 
-	var negative Int
-	if len(subslice) != 0 {
-		negative = -1
+	if i > n || i < 0 {
+		return 0, false
 	}
 
-	if ii > sl.Len() || ii < negative {
-		return Err[Int](Errorf("runtime error: slice bounds out of range [{}] with length {}", i, len(sl)))
+	return i, true
+}
+
+func (sl Slice[T]) boundsub(i Int) (Int, bool) {
+	n := sl.Len()
+	if n == 0 {
+		return 0, false
 	}
 
-	return Ok(ii)
+	if i < 0 {
+		i += n
+	}
+
+	if i > n || i < -1 {
+		return 0, false
+	}
+
+	return i, true
+}
+
+func boundpanic(index Int, length int) {
+	panic(fmt.Sprintf("runtime error: slice bounds out of range [%d] with length %d", index, length))
 }

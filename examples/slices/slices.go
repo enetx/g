@@ -65,9 +65,9 @@ func main() {
 	result.Remove(1)
 	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
 	result.Remove(-9)
-	result.Println() // Slice[1, 3, 4, 5, 6, 7, 8, 9, 10]
+	result.Println() // Slice[3, 4, 5, 6, 7, 8, 9, 10]
 
-	result.SubSlice(1, -3).Println()            // Slice[2, 3, 4, 5, 6, 7]
+	result.SubSlice(1, -3).Println()            // Slice[4, 5, 6, 7]
 	result.SubSlice(-3, result.Len()).Println() // Slice[8, 9, 10]
 	result.SubSlice(-3, -1).Println()           // Slice[8, 9]
 	result.SubSlice(-1, result.Len()).Println() // Slice[10]

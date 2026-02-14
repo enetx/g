@@ -7,7 +7,7 @@ import (
 	"github.com/enetx/g/f"
 )
 
-func TestIsComparable(t *testing.T) {
+func TestIsComparableValue(t *testing.T) {
 	tests := []struct {
 		name  string
 		value any
@@ -22,12 +22,40 @@ func TestIsComparable(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := f.IsComparable(tt.value)
+			got := f.IsComparableValue(tt.value)
 			if got != tt.want {
-				t.Errorf("IsComparable() = %v, want %v", got, tt.want)
+				t.Errorf("IsComparableValue() = %v, want %v", got, tt.want)
 			}
 		})
 	}
+}
+
+func TestIsComparable(t *testing.T) {
+	t.Run("int is comparable", func(t *testing.T) {
+		if !f.IsComparable[int]() {
+			t.Error("expected int to be comparable")
+		}
+	})
+	t.Run("string is comparable", func(t *testing.T) {
+		if !f.IsComparable[string]() {
+			t.Error("expected string to be comparable")
+		}
+	})
+	t.Run("struct is comparable", func(t *testing.T) {
+		if !f.IsComparable[struct{ Name string }]() {
+			t.Error("expected struct to be comparable")
+		}
+	})
+	t.Run("slice is not comparable", func(t *testing.T) {
+		if f.IsComparable[[]int]() {
+			t.Error("expected slice to not be comparable")
+		}
+	})
+	t.Run("map is not comparable", func(t *testing.T) {
+		if f.IsComparable[map[string]int]() {
+			t.Error("expected map to not be comparable")
+		}
+	})
 }
 
 func TestIsZero(t *testing.T) {

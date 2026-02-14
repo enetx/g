@@ -2,6 +2,7 @@ package g
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
@@ -150,7 +151,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		var current V
 		hasFirst := false
-		comparable := f.IsComparable(current)
+		comparable := f.IsComparable[V]()
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -165,11 +166,11 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 			}
 
 			if comparable {
-				if f.Eq[any](current)(v.v) {
+				if any(current) == any(v.v) {
 					return true
 				}
 			} else {
-				if f.Eqd(current)(v.v) {
+				if reflect.DeepEqual(current, v.v) {
 					return true
 				}
 			}
@@ -186,18 +187,41 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 // Future occurrences of a previously seen Ok value are skipped.
 func (seq SeqResult[V]) Unique() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
-		seen := NewSet[any]()
-		seq(func(v Result[V]) bool {
-			if v.IsErr() {
-				yield(v)
-				return false
-			}
-			if !seen.Contains(v.v) {
-				seen.Insert(v.v)
+		if f.IsComparable[V]() {
+			seen := NewSet[any]()
+
+			seq(func(v Result[V]) bool {
+				if v.IsErr() {
+					yield(v)
+					return false
+				}
+
+				if !seen.Contains(v.v) {
+					seen.Insert(v.v)
+					return yield(v)
+				}
+
+				return true
+			})
+		} else {
+			var seen Slice[V]
+
+			seq(func(v Result[V]) bool {
+				if v.IsErr() {
+					yield(v)
+					return false
+				}
+
+				for _, s := range seen {
+					if reflect.DeepEqual(s, v.v) {
+						return true
+					}
+				}
+
+				seen = append(seen, v.v)
 				return yield(v)
-			}
-			return true
-		})
+			})
+		}
 	}
 }
 

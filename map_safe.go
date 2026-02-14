@@ -2,6 +2,7 @@ package g
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"sync/atomic"
 
@@ -113,9 +114,7 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 		return true
 	}
 
-	var zero V
-	comparable := f.IsComparable(zero)
-
+	comparable := f.IsComparable[V]()
 	equal := true
 
 	ms.data.Range(func(key, value any) bool {
@@ -128,9 +127,16 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 		v1 := *(value.(*V))
 		v2 := *(ovalue.(*V))
 
-		if comparable && !f.Eq[any](v1)(v2) || !comparable && !f.Eqd(v1)(v2) {
-			equal = false
-			return false
+		if comparable {
+			if any(v1) != any(v2) {
+				equal = false
+				return false
+			}
+		} else {
+			if !reflect.DeepEqual(v1, v2) {
+				equal = false
+				return false
+			}
 		}
 
 		return true
@@ -214,9 +220,12 @@ func (ms *MapSafe[K, V]) String() string {
 		first = false
 
 		if vptr, ok := value.(*V); ok && vptr != nil {
-			b.WriteString(Format("{}:{}", key, *vptr))
+			fmt.Fprint(&b, key)
+			b.WriteByte(':')
+			fmt.Fprint(&b, *vptr)
 		} else {
-			b.WriteString(Format("{}:<invalid>", key))
+			fmt.Fprint(&b, key)
+			b.WriteString(":<invalid>")
 		}
 
 		return true

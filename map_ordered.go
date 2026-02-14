@@ -3,6 +3,7 @@ package g
 import (
 	"fmt"
 	"math/rand/v2"
+	"reflect"
 	"slices"
 
 	"github.com/enetx/g/cmp"
@@ -377,19 +378,22 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 	idx := other.indexMap()
 
-	var zero V
-	comparable := f.IsComparable(zero)
-
+	comparable := f.IsComparable[V]()
 	for i, mp := range mo {
 		j, ok := idx[mp.Key]
+
 		if !ok || j != i {
 			return false
 		}
 
-		value := other[j].Value
-
-		if comparable && !f.Eq[any](value)(mp.Value) || !comparable && !f.Eqd(value)(mp.Value) {
-			return false
+		if comparable {
+			if any(other[j].Value) != any(mp.Value) {
+				return false
+			}
+		} else {
+			if !reflect.DeepEqual(other[j].Value, mp.Value) {
+				return false
+			}
 		}
 	}
 
@@ -412,7 +416,9 @@ func (mo MapOrd[K, V]) String() string {
 		}
 
 		first = false
-		b.WriteString(Format("{}:{}", pair.Key, pair.Value))
+		fmt.Fprint(&b, pair.Key)
+		b.WriteByte(':')
+		fmt.Fprint(&b, pair.Value)
 	}
 
 	b.WriteString("}")

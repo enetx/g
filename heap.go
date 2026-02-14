@@ -243,7 +243,7 @@ func (h Heap[T]) String() string {
 			b.WriteString(", ")
 		}
 
-		b.WriteString(Format("{}", v))
+		fmt.Fprint(&b, v)
 	}
 
 	b.WriteString("]")

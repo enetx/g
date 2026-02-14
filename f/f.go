@@ -9,8 +9,17 @@ import (
 	"github.com/enetx/g/constraints"
 )
 
-// IsComparable reports whether the value v is comparable.
-func IsComparable[T any](t T) bool { return reflect.ValueOf(t).Comparable() }
+// IsComparable reports whether the type T is comparable at the type level.
+// It uses reflect.TypeFor[T]() without requiring a value, making it suitable
+// for use in generic code where the type is known at compile time.
+// The result is determined solely by the type and does not depend on any runtime value.
+func IsComparable[T any]() bool { return reflect.TypeFor[T]().Comparable() }
+
+// IsComparableValue reports whether the concrete value v is comparable.
+// Unlike IsComparable, which checks at the type level, IsComparableValue
+// inspects the actual runtime value, making it suitable for filtering
+// or checking dynamic values of type 'any'.
+func IsComparableValue(v any) bool { return reflect.ValueOf(v).Comparable() }
 
 // IsZero is a generic function designed to check if a value is considered zero.
 func IsZero[T cmp.Ordered](v T) bool { return v == *new(T) }

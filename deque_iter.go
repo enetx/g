@@ -257,11 +257,14 @@ func (seq SeqDeque[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqDeque[V]) Dedup() SeqDeque[V] {
+	if f.IsComparable[V]() {
+		return SeqDeque[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
+			return any(a) == any(b)
+		}))
+	}
+
 	return SeqDeque[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
-		if f.IsComparable(a) {
-			return f.Eq[any](a)(b)
-		}
-		return f.Eqd(a)(b)
+		return reflect.DeepEqual(a, b)
 	}))
 }
 

@@ -145,7 +145,6 @@ func exampleSmoothVsBurst() {
 
 		ch := p.Stream(func() {
 			for i := range 15 {
-				i := i
 				p.Go(func() Result[int] {
 					elapsed := time.Since(start).Truncate(time.Millisecond)
 					fmt.Printf("  task %02d started at %s\n", i, elapsed)

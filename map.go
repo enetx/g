@@ -3,6 +3,7 @@ package g
 import (
 	"fmt"
 	"maps"
+	"reflect"
 
 	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
@@ -128,18 +129,26 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 	if n != len(other) {
 		return false
 	}
-
 	if n == 0 {
 		return true
 	}
 
-	var zero V
-	comparable := f.IsComparable(zero)
+	comparable := f.IsComparable[V]()
 
 	for k, value := range m {
 		ovalue, ok := other[k]
-		if !ok || comparable && !f.Eq[any](value)(ovalue) || !comparable && !f.Eqd(value)(ovalue) {
+		if !ok {
 			return false
+		}
+
+		if comparable {
+			if any(value) != any(ovalue) {
+				return false
+			}
+		} else {
+			if !reflect.DeepEqual(value, ovalue) {
+				return false
+			}
 		}
 	}
 
@@ -162,7 +171,9 @@ func (m Map[K, V]) String() string {
 		}
 
 		first = false
-		b.WriteString(Format("{}:{}", k, v))
+		fmt.Fprint(&b, k)
+		b.WriteByte(':')
+		fmt.Fprint(&b, v)
 	}
 
 	b.WriteString("}")

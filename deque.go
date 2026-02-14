@@ -2,6 +2,7 @@ package g
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
@@ -451,17 +452,16 @@ func (dq *Deque[T]) ShrinkToFit() {
 
 // Contains checks if the Deque contains the specified value.
 func (dq *Deque[T]) Contains(value T) bool {
-	var zero T
-
-	if f.IsComparable(zero) {
+	if f.IsComparable[T]() {
+		target := any(value)
 		for i := Int(0); i < dq.len; i++ {
-			if f.Eq[any](dq.data[dq.realIndex(i)])(value) {
+			if any(dq.data[dq.realIndex(i)]) == target {
 				return true
 			}
 		}
 	} else {
 		for i := Int(0); i < dq.len; i++ {
-			if f.Eqd(value)(dq.data[dq.realIndex(i)]) {
+			if reflect.DeepEqual(dq.data[dq.realIndex(i)], value) {
 				return true
 			}
 		}
@@ -473,17 +473,16 @@ func (dq *Deque[T]) Contains(value T) bool {
 // Index returns the index of the first occurrence of the specified value,
 // or -1 if not found.
 func (dq *Deque[T]) Index(value T) Int {
-	var zero T
-
-	if f.IsComparable(zero) {
+	if f.IsComparable[T]() {
+		target := any(value)
 		for i := Int(0); i < dq.len; i++ {
-			if f.Eq[any](dq.data[dq.realIndex(i)])(value) {
+			if any(dq.data[dq.realIndex(i)]) == target {
 				return i
 			}
 		}
 	} else {
 		for i := Int(0); i < dq.len; i++ {
-			if f.Eqd(value)(dq.data[dq.realIndex(i)]) {
+			if reflect.DeepEqual(dq.data[dq.realIndex(i)], value) {
 				return i
 			}
 		}
@@ -540,7 +539,7 @@ func (dq Deque[T]) String() string {
 			b.WriteString(", ")
 		}
 
-		b.WriteString(Format("{}", dq.data[dq.realIndex(i)]))
+		fmt.Fprint(&b, dq.data[dq.realIndex(i)])
 	}
 
 	b.WriteString("]")
@@ -554,12 +553,9 @@ func (dq *Deque[T]) Eq(other *Deque[T]) bool {
 		return false
 	}
 
-	var zero T
-	if f.IsComparable(zero) {
+	if f.IsComparable[T]() {
 		for i := Int(0); i < dq.len; i++ {
-			a := dq.data[dq.realIndex(i)]
-			b := other.data[other.realIndex(i)]
-			if !f.Eq[any](a)(b) {
+			if any(dq.data[dq.realIndex(i)]) != any(other.data[other.realIndex(i)]) {
 				return false
 			}
 		}
@@ -567,7 +563,7 @@ func (dq *Deque[T]) Eq(other *Deque[T]) bool {
 		for i := Int(0); i < dq.len; i++ {
 			a := dq.data[dq.realIndex(i)]
 			b := other.data[other.realIndex(i)]
-			if !f.Eqd(a)(b) {
+			if !reflect.DeepEqual(a, b) {
 				return false
 			}
 		}
