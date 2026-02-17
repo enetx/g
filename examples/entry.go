@@ -31,6 +31,7 @@ func main() {
 	freq := Map[string, Int]{}
 
 	words.Iter().ForEach(func(word string) {
+		// freq[word]++
 		freq.Entry(word).AndModify(func(v *Int) { *v++ }).OrInsert(1)
 	})
 

@@ -534,6 +534,19 @@ func (f *File) Read() Result[String] {
 	return Ok(String(content))
 }
 
+// Reader returns an io.ReadCloser for reading the file's contents.
+// If the file is not already open, it attempts to open it automatically.
+// The caller is responsible for closing the returned reader to release system resources.
+func (f *File) Reader() Result[io.ReadCloser] {
+	if f.file == nil {
+		if r := f.Open(); r.IsErr() {
+			return Err[io.ReadCloser](r.err)
+		}
+	}
+
+	return Ok[io.ReadCloser](f.file)
+}
+
 // Remove removes the file.
 func (f *File) Remove() Result[*File] {
 	if err := os.Remove(f.name.Std()); err != nil {
