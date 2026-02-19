@@ -2193,6 +2193,47 @@ func TestStringIsUpper(t *testing.T) {
 	}
 }
 
+func TestStringIsTitle(t *testing.T) {
+	tests := []struct {
+		name string
+		in   String
+		want bool
+	}{
+		{"Empty", "", false},
+		{"OnlyDigits", "12345", false},
+		{"OnlyPunct", "!?-+", false},
+		{"ASCII_title", "Hello World", true},
+		{"ASCII_lower", "hello world", false},
+		{"ASCII_upper", "HELLO WORLD", false},
+		{"FirstLower", "hello World", false},
+		{"SecondLower", "Hello world", false},
+		{"SingleWord", "Hello", true},
+		{"SingleLower", "hello", false},
+		{"SingleUpper", "HELLO", false},
+		{"WithPunct", "Hello, World!", true},
+		{"WithDigits", "Hello 123 World", true},
+		{"SingleLetterWords", "A B C", true},
+		{"Apostrophe", "It's A Test", false},
+		{"Cyrillic_title", "Привет Мир", true},
+		{"Cyrillic_lower", "привет мир", false},
+		{"Cyrillic_upper", "ПРИВЕТ МИР", false},
+		{"Mixed_title", "Héllo Wörld", true},
+		{"Mixed_lower", "héllo wörld", false},
+		{"CombiningTitle", "E\u0301gal", false},
+		{"CombiningLower", "e\u0301gal", false},
+		{"InvalidUTF8", String([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsTitle()
+			if got != tc.want {
+				t.Errorf("IsTitle(%q) = %v; want %v", string(tc.in), got, tc.want)
+			}
+		})
+	}
+}
+
 func TestStringScan(t *testing.T) {
 	var s String
 

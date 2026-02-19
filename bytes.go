@@ -335,163 +335,163 @@ func (bs Bytes) Runes() []rune { return bytes.Runes(bs) }
 // Title converts the Bytes to title case.
 func (bs Bytes) Title() Bytes { return title.Bytes(bs) }
 
-// Lower converts the Bytes to lowercase.
-func (bs Bytes) Lower() Bytes {
-	for _, b := range bs {
-		if b >= utf8.RuneSelf {
-			return lower.Bytes(bs)
-		}
-	}
-
-	needs := false
-
-	for _, b := range bs {
-		if 'A' <= b && b <= 'Z' {
-			needs = true
-			break
-		}
-	}
-
-	if !needs {
-		return bs
-	}
-
-	out := make(Bytes, len(bs))
-
+func convertCase(bs Bytes, from byte, diff int8, ucFn func([]byte) []byte) Bytes {
 	for i, b := range bs {
-		if 'A' <= b && b <= 'Z' {
-			out[i] = b + ('a' - 'A')
-		} else {
-			out[i] = b
+		if b >= utf8.RuneSelf {
+			return ucFn(bs)
+		}
+
+		if from <= b && b <= from+25 {
+			for _, c := range bs[i+1:] {
+				if c >= utf8.RuneSelf {
+					return ucFn(bs)
+				}
+			}
+
+			out := make(Bytes, len(bs))
+			copy(out, bs[:i])
+			out[i] = byte(int8(b) + diff)
+
+			for j, c := range bs[i+1:] {
+				if from <= c && c <= from+25 {
+					out[i+1+j] = byte(int8(c) + diff)
+				} else {
+					out[i+1+j] = c
+				}
+			}
+
+			return out
 		}
 	}
 
-	return out
+	return bs
 }
+
+// Lower converts the Bytes to lowercase.
+func (bs Bytes) Lower() Bytes { return convertCase(bs, 'A', 'a'-'A', lower.Bytes) }
 
 // Upper converts the Bytes to uppercase.
-func (bs Bytes) Upper() Bytes {
-	for _, b := range bs {
-		if b >= utf8.RuneSelf {
-			return upper.Bytes(bs)
-		}
-	}
+func (bs Bytes) Upper() Bytes { return convertCase(bs, 'a', 'A'-'a', upper.Bytes) }
 
-	needs := false
-
-	for _, b := range bs {
-		if 'a' <= b && b <= 'z' {
-			needs = true
-			break
-		}
-	}
-
-	if !needs {
-		return bs
-	}
-
-	out := make(Bytes, len(bs))
-
-	for i, b := range bs {
-		if 'a' <= b && b <= 'z' {
-			out[i] = b - ('a' - 'A')
-		} else {
-			out[i] = b
-		}
-	}
-
-	return out
-}
-
-// IsLower reports whether bs contains at least one letter
-// and no uppercase letters. Non-letters are ignored.
+// IsLower reports whether bs contains at least one letter and no uppercase letters.
 func (bs Bytes) IsLower() bool {
 	letter := false
-	ascii := true
 
-	for _, b := range bs {
+	for i, b := range bs {
 		if b >= utf8.RuneSelf {
-			ascii = false
-			break
-		}
-	}
+			rest := bs[i:]
+			for len(rest) > 0 {
+				r, size := utf8.DecodeRune(rest)
+				rest = rest[size:]
+				if r == utf8.RuneError && size == 1 {
+					continue
+				}
 
-	if ascii {
-		for _, b := range bs {
-			if 'A' <= b && b <= 'Z' {
-				return false
+				if unicode.IsLetter(r) {
+					letter = true
+					if unicode.IsUpper(r) {
+						return false
+					}
+				}
 			}
 
-			if 'a' <= b && b <= 'z' {
-				letter = true
-			}
+			return letter
 		}
 
-		return letter
-	}
-
-	for len(bs) > 0 {
-		r, size := utf8.DecodeRune(bs)
-		if r == utf8.RuneError && size == 1 {
-			bs = bs[1:]
-			continue
+		if 'A' <= b && b <= 'Z' {
+			return false
 		}
 
-		if unicode.IsLetter(r) {
+		if 'a' <= b && b <= 'z' {
 			letter = true
-			if unicode.IsUpper(r) {
-				return false
-			}
 		}
-
-		bs = bs[size:]
 	}
 
 	return letter
 }
 
-// IsUpper reports whether bs contains at least one letter
-// and no lowercase letters. Non-letters are ignored.
+// IsUpper reports whether bs contains at least one letter and no lowercase letters.
 func (bs Bytes) IsUpper() bool {
 	letter := false
-	ascii := true
 
-	for _, b := range bs {
+	for i, b := range bs {
 		if b >= utf8.RuneSelf {
-			ascii = false
-			break
-		}
-	}
+			rest := bs[i:]
+			for len(rest) > 0 {
+				r, size := utf8.DecodeRune(rest)
+				rest = rest[size:]
+				if r == utf8.RuneError && size == 1 {
+					continue
+				}
 
-	if ascii {
-		for _, b := range bs {
-			if 'a' <= b && b <= 'z' {
-				return false
+				if unicode.IsLetter(r) {
+					letter = true
+					if unicode.IsLower(r) {
+						return false
+					}
+				}
 			}
 
-			if 'A' <= b && b <= 'Z' {
-				letter = true
-			}
+			return letter
 		}
 
-		return letter
-	}
-
-	for len(bs) > 0 {
-		r, size := utf8.DecodeRune(bs)
-		if r == utf8.RuneError && size == 1 {
-			bs = bs[1:]
-			continue
+		if 'a' <= b && b <= 'z' {
+			return false
 		}
 
-		if unicode.IsLetter(r) {
+		if 'A' <= b && b <= 'Z' {
 			letter = true
-			if unicode.IsLower(r) {
-				return false
+		}
+	}
+
+	return letter
+}
+
+// IsTitle reports whether bs is in title case: the first letter of each word
+// is uppercase (or titlecase), the remaining letters are lowercase.
+// Non-letter characters act as word separators. Returns false if bs has no letters.
+func (bs Bytes) IsTitle() bool {
+	letter := false
+	prevLetter := false
+
+	for i, b := range bs {
+		if b >= utf8.RuneSelf {
+			rest := bs[i:]
+			for len(rest) > 0 {
+				r, size := utf8.DecodeRune(rest)
+				rest = rest[size:]
+
+				if r == utf8.RuneError && size == 1 {
+					prevLetter = false
+					continue
+				}
+
+				if unicode.IsLetter(r) {
+					letter = true
+					if prevLetter && !unicode.IsLower(r) {
+						return false
+					}
+					if !prevLetter && !unicode.IsUpper(r) && !unicode.IsTitle(r) {
+						return false
+					}
+					prevLetter = true
+				} else {
+					prevLetter = false
+				}
 			}
+
+			return letter
 		}
 
-		bs = bs[size:]
+		if ('a' <= b && b <= 'z') || ('A' <= b && b <= 'Z') {
+			letter = true
+			if prevLetter == (b <= 'Z') {
+				return false
+			}
+			prevLetter = true
+		} else {
+			prevLetter = false
+		}
 	}
 
 	return letter

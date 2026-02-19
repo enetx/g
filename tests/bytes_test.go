@@ -1784,6 +1784,47 @@ func TestBytesIsUpper(t *testing.T) {
 	}
 }
 
+func TestBytesIsTitle(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Bytes
+		want bool
+	}{
+		{"Empty", Bytes(""), false},
+		{"OnlyDigits", Bytes("12345"), false},
+		{"OnlyPunct", Bytes("!?-+"), false},
+		{"ASCII_title", Bytes("Hello World"), true},
+		{"ASCII_lower", Bytes("hello world"), false},
+		{"ASCII_upper", Bytes("HELLO WORLD"), false},
+		{"FirstLower", Bytes("hello World"), false},
+		{"SecondLower", Bytes("Hello world"), false},
+		{"SingleWord", Bytes("Hello"), true},
+		{"SingleLower", Bytes("hello"), false},
+		{"SingleUpper", Bytes("HELLO"), false},
+		{"WithPunct", Bytes("Hello, World!"), true},
+		{"WithDigits", Bytes("Hello 123 World"), true},
+		{"SingleLetterWords", Bytes("A B C"), true},
+		{"Apostrophe", Bytes("It's A Test"), false}, // apostrophe resets word boundary: 's' must be uppercase
+		{"Cyrillic_title", Bytes("Привет Мир"), true},
+		{"Cyrillic_lower", Bytes("привет мир"), false},
+		{"Cyrillic_upper", Bytes("ПРИВЕТ МИР"), false},
+		{"Mixed_title", Bytes("Héllo Wörld"), true},
+		{"Mixed_lower", Bytes("héllo wörld"), false},
+		{"CombiningTitle", Bytes("E\u0301gal"), false}, // combining mark resets word boundary: 'g' must be uppercase
+		{"CombiningLower", Bytes("e\u0301gal"), false},
+		{"InvalidUTF8", Bytes([]byte{0xff, 0xfe, 0xfd}), false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.in.IsTitle()
+			if got != tc.want {
+				t.Errorf("IsTitle(%q) = %v; want %v", []byte(tc.in), got, tc.want)
+			}
+		})
+	}
+}
+
 func TestBytesScan(t *testing.T) {
 	var b Bytes
 

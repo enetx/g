@@ -170,6 +170,9 @@ func (s String) IsLower() bool { return s.Bytes().IsLower() }
 // IsUpper checks if the String consists only of uppercase letters.
 func (s String) IsUpper() bool { return s.Bytes().IsUpper() }
 
+// IsTitle checks if the String is in title case.
+func (s String) IsTitle() bool { return s.Bytes().IsTitle() }
+
 // Trim removes leading and trailing white space from the String.
 func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
 
