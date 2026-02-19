@@ -208,6 +208,7 @@ func (ms *MapSafe[K, V]) IsEmpty() bool { return ms.count.Load() == 0 }
 // String returns a string representation of the MapSafe.
 func (ms *MapSafe[K, V]) String() string {
 	var b Builder
+	b.Grow(ms.Len() * 16)
 	b.WriteString("MapSafe{")
 
 	first := true

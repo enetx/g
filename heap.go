@@ -236,6 +236,7 @@ func (h Heap[T]) String() string {
 	}
 
 	var b Builder
+	b.Grow(Int(len(h.data)) * 8)
 	b.WriteString("Heap[")
 
 	for i, v := range h.data {

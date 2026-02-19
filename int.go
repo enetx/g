@@ -149,10 +149,10 @@ func (i Int) Sub(b Int) Int { return i - b }
 func (i Int) Binary() String { return String(fmt.Sprintf("%08b", i)) }
 
 // Hex returns the Int as a hexadecimal string.
-func (i Int) Hex() String { return String(fmt.Sprintf("%x", i)) }
+func (i Int) Hex() String { return String(strconv.FormatInt(int64(i), 16)) }
 
 // Octal returns the Int as an octal string.
-func (i Int) Octal() String { return String(fmt.Sprintf("%o", i)) }
+func (i Int) Octal() String { return String(strconv.FormatInt(int64(i), 8)) }
 
 // UInt returns the Int as a uint.
 func (i Int) UInt() uint { return uint(i) }

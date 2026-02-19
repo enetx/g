@@ -24,7 +24,9 @@ func (s String) Encode() encode { return encode{s} }
 func (s String) Decode() decode { return decode{s} }
 
 // Base64 encodes the wrapped String using Base64 and returns the encoded result as an String.
-func (e encode) Base64() String { return String(base64.StdEncoding.EncodeToString(e.str.Bytes())) }
+func (e encode) Base64() String {
+	return String(base64.StdEncoding.EncodeToString(e.str.BytesUnsafe()))
+}
 
 // Base64 decodes the wrapped String using Base64 and returns the decoded result as Result[String].
 func (d decode) Base64() Result[String] {
@@ -49,7 +51,7 @@ func (e encode) JSON() Result[String] {
 // JSON decodes the provided JSON string and returns the result as Result[String].
 func (d decode) JSON() Result[String] {
 	var data String
-	err := json.Unmarshal(d.str.Bytes(), &data)
+	err := json.Unmarshal(d.str.BytesUnsafe(), &data)
 	if err != nil {
 		return Err[String](err)
 	}
@@ -75,6 +77,7 @@ func (e encode) URL(safe ...String) String {
 	}
 
 	var b Builder
+	b.Grow(e.str.Len())
 
 	for _, r := range e.str {
 		if reserved.ContainsRune(r) {
@@ -147,9 +150,18 @@ func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
 
 // Hex hex-encodes the wrapped String and returns the encoded result as an String.
 func (e encode) Hex() String {
+	const hexChars = "0123456789abcdef"
+
 	var b Builder
+	b.Grow(e.str.Len() * 2)
+
 	for i := range len(e.str) {
-		b.WriteString(Int(e.str[i]).Hex())
+		c := e.str[i]
+		if c >= 16 {
+			b.WriteByte(hexChars[c>>4])
+		}
+
+		b.WriteByte(hexChars[c&0xf])
 	}
 
 	return b.String()
@@ -167,12 +179,21 @@ func (d decode) Hex() Result[String] {
 
 // Octal returns the octal representation of the encoded string.
 func (e encode) Octal() String {
-	result := NewSlice[String](e.str.LenRunes())
-	for i, char := range e.str.Runes() {
-		result.Set(Int(i), Int(char).Octal())
+	var b Builder
+	var tmp [7]byte // max rune in octal: U+10FFFF = 4177777 (7 digits)
+
+	first := true
+
+	for _, char := range e.str {
+		if !first {
+			b.WriteByte(' ')
+		}
+
+		_, _ = b.Write(strconv.AppendInt(tmp[:0], int64(char), 8))
+		first = false
 	}
 
-	return result.Join(" ")
+	return b.String()
 }
 
 // Octal returns the octal representation of the decimal-encoded string as Result[String].
@@ -194,8 +215,13 @@ func (d decode) Octal() Result[String] {
 // Binary converts the wrapped String to its binary representation as an String.
 func (e encode) Binary() String {
 	var b Builder
+	b.Grow(e.str.Len() * 8)
+
 	for i := range len(e.str) {
-		b.WriteString(Int(e.str[i]).Binary())
+		c := e.str[i]
+		for bit := 7; bit >= 0; bit-- {
+			b.WriteByte('0' + (c>>uint(bit))&1)
+		}
 	}
 
 	return b.String()

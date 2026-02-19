@@ -63,25 +63,29 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 //	randomString := g.String.Random(10)
 //	randomString contains a random String with 10 characters.
 func (String) Random(length Int, letters ...String) String {
-	var chars Slice[rune]
-
-	if len(letters) != 0 {
-		var b Builder
-
-		for _, set := range letters {
-			_, _ = b.WriteString(set)
-		}
-
-		chars = b.String().Runes()
-	} else {
-		chars = (ASCII_LETTERS + DIGITS).Runes()
-	}
-
 	var b Builder
 	b.Grow(length)
 
-	for range length {
-		b.WriteRune(chars.Random())
+	if len(letters) != 0 {
+		var buf Builder
+
+		for _, set := range letters {
+			_, _ = buf.WriteString(set)
+		}
+
+		chars := buf.String().Runes()
+		n := Int(len(chars))
+
+		for range length {
+			b.WriteRune(chars[n.Random()])
+		}
+	} else {
+		const charset = ASCII_LETTERS + DIGITS
+		n := charset.Len()
+
+		for range length {
+			b.WriteByte(charset[n.Random().Std()])
+		}
 	}
 
 	return b.String()
@@ -159,19 +163,19 @@ func (s String) TryFloat() Result[Float] {
 func (s String) Title() String { return String(title.String(s.Std())) }
 
 // Lower returns the String in lowercase.
-func (s String) Lower() String { return s.Bytes().Lower().String() }
+func (s String) Lower() String { return s.BytesUnsafe().Lower().StringUnsafe() }
 
 // Upper returns the String in uppercase.
-func (s String) Upper() String { return s.Bytes().Upper().String() }
+func (s String) Upper() String { return s.BytesUnsafe().Upper().StringUnsafe() }
 
 // IsLower checks if the String consists only of lowercase letters.
-func (s String) IsLower() bool { return s.Bytes().IsLower() }
+func (s String) IsLower() bool { return s.BytesUnsafe().IsLower() }
 
 // IsUpper checks if the String consists only of uppercase letters.
-func (s String) IsUpper() bool { return s.Bytes().IsUpper() }
+func (s String) IsUpper() bool { return s.BytesUnsafe().IsUpper() }
 
 // IsTitle checks if the String is in title case.
-func (s String) IsTitle() bool { return s.Bytes().IsTitle() }
+func (s String) IsTitle() bool { return s.BytesUnsafe().IsTitle() }
 
 // Trim removes leading and trailing white space from the String.
 func (s String) Trim() String { return String(strings.TrimSpace(s.Std())) }
@@ -309,7 +313,12 @@ func (s String) ReplaceNth(oldS, newS String, n Int) String {
 		count++
 
 		if count == n || (n == -1 && s[pos+oldS.Len():].Index(oldS) == -1) {
-			return s[:pos] + newS + s[pos+oldS.Len():]
+			var b Builder
+			b.WriteString(s[:pos])
+			b.WriteString(newS)
+			b.WriteString(s[pos+oldS.Len():])
+
+			return b.String()
 		}
 
 		i = pos + oldS.Len()
@@ -447,18 +456,39 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 		return func(func(String) bool) {}
 	}
 
-	runes := s.Runes()
-	if size.Gte(Int(len(runes))) {
-		return func(yield func(String) bool) { yield(s) }
+	if s.IsASCII() {
+		n := size.Std()
+		l := len(s)
+
+		if n >= l {
+			return func(yield func(String) bool) { yield(s) }
+		}
+
+		return func(yield func(String) bool) {
+			for i := 0; i < l; i += n {
+				if !yield(s[i:min(i+n, l)]) {
+					return
+				}
+			}
+		}
 	}
 
 	n := size.Std()
+
 	return func(yield func(String) bool) {
-		for i := 0; i < len(runes); i += n {
-			end := min(i+n, len(runes))
-			if !yield(String(runes[i:end])) {
+		rest := s
+		for !rest.IsEmpty() {
+			i := 0
+			for count := 0; count < n && i < len(rest); count++ {
+				_, sz := utf8.DecodeRuneInString(string(rest)[i:])
+				i += sz
+			}
+
+			if !yield(rest[:i]) {
 				return
 			}
+
+			rest = rest[i:]
 		}
 	}
 }
@@ -559,31 +589,30 @@ func (s String) Similarity(str String) Float {
 	s1 := s.Runes()
 	s2 := str.Runes()
 
-	lenS1 := s.LenRunes()
-	lenS2 := str.LenRunes()
+	n1, n2 := len(s1), len(s2)
 
-	if lenS1 > lenS2 {
-		s1, s2, lenS1, lenS2 = s2, s1, lenS2, lenS1
+	if n1 > n2 {
+		s1, s2, n1, n2 = s2, s1, n2, n1
 	}
 
-	distance := NewSlice[Int](lenS1 + 1)
+	distance := make([]int, n1+1)
 
 	for i, r2 := range s2 {
-		prev := Int(i) + 1
+		prev := i + 1
 
 		for j, r1 := range s1 {
 			current := distance[j]
 			if r2 != r1 {
-				current = distance[j].Add(1).Min(prev + 1).Min(distance[j+1] + 1)
+				current = min(distance[j]+1, min(prev+1, distance[j+1]+1))
 			}
 
 			distance[j], prev = prev, current
 		}
 
-		distance[lenS1] = prev
+		distance[n1] = prev
 	}
 
-	return Float(1).Sub(distance[lenS1].Float() / lenS1.Max(lenS2).Float()).Mul(100)
+	return Float(1-float64(distance[n1])/float64(max(n1, n2))) * 100
 }
 
 // Cmp compares two Strings and returns an cmp.Ordering indicating their relative order.
@@ -665,7 +694,7 @@ func (s String) Reader() *strings.Reader { return strings.NewReader(s.Std()) }
 func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(), count.Std())) }
 
 // Reverse reverses the String.
-func (s String) Reverse() String { return s.Bytes().Reverse().String() }
+func (s String) Reverse() String { return s.BytesUnsafe().Reverse().StringUnsafe() }
 
 // Runes returns the String as a slice of runes.
 func (s String) Runes() Slice[rune] { return []rune(s) }
@@ -720,11 +749,29 @@ func (s String) Format(template String) String { return Format(template, s) }
 //	result3 := s3.Truncate(3)
 //	// result3: "😊😊😊..."
 func (s String) Truncate(max Int) String {
-	if max.IsNegative() || s.LenRunes().Lte(max) {
+	if max.IsNegative() {
 		return s
 	}
 
-	return String(s.Runes().SubSlice(0, max)).Append("...")
+	if s.IsASCII() {
+		if Int(len(s)) <= max {
+			return s
+		}
+
+		return s[:max].Append("...")
+	}
+
+	i := 0
+	for count := Int(0); i < len(s); count++ {
+		if count == max {
+			return s[:i].Append("...")
+		}
+
+		_, sz := utf8.DecodeRuneInString(string(s)[i:])
+		i += sz
+	}
+
+	return s
 }
 
 // LeftJustify justifies the String to the left by adding padding to the right, up to the
@@ -805,17 +852,19 @@ func (s String) RightJustify(length Int, pad String) String {
 //	result := s.Center(10, "...")
 //	// result: "..Hello..."
 func (s String) Center(length Int, pad String) String {
-	if s.LenRunes() >= length || pad.IsEmpty() {
+	slen := s.LenRunes()
+	if slen >= length || pad.IsEmpty() {
 		return s
 	}
 
 	var b Builder
 
-	remains := length - s.LenRunes()
+	padlen := pad.LenRunes()
+	remains := length - slen
 
-	writePadding(&b, pad, pad.LenRunes(), remains/2)
+	writePadding(&b, pad, padlen, remains/2)
 	_, _ = b.WriteString(s)
-	writePadding(&b, pad, pad.LenRunes(), (remains+1)/2)
+	writePadding(&b, pad, padlen, (remains+1)/2)
 
 	return b.String()
 }
@@ -828,9 +877,24 @@ func writePadding(b *Builder, pad String, padlen, remains Int) {
 		_, _ = b.WriteString(pad.Repeat(repeats))
 	}
 
-	padrunes := pad.Runes()
-	for i := range remains % padlen {
-		_, _ = b.WriteRune(padrunes[i])
+	rem := remains % padlen
+	if rem == 0 {
+		return
+	}
+
+	if pad.IsASCII() {
+		for i := range rem {
+			b.WriteByte(pad[i])
+		}
+
+		return
+	}
+
+	i := 0
+	for range rem {
+		r, sz := utf8.DecodeRuneInString(string(pad)[i:])
+		_, _ = b.WriteRune(r)
+		i += sz
 	}
 }
 

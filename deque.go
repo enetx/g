@@ -532,6 +532,7 @@ func (dq Deque[T]) String() string {
 	}
 
 	var b Builder
+	b.Grow(dq.len * 8)
 	b.WriteString("Deque[")
 
 	for i := Int(0); i < dq.len; i++ {

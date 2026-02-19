@@ -31,7 +31,7 @@ func (c compress) Zstd() String {
 	buffer := new(bytes.Buffer)
 	writer, _ := zstd.NewWriter(buffer)
 
-	_, _ = io.WriteString(writer, c.str.Std())
+	_, _ = writer.Write(c.str.BytesUnsafe())
 	_ = writer.Flush()
 	_ = writer.Close()
 
@@ -63,7 +63,7 @@ func (c compress) Brotli() String {
 	buffer := new(bytes.Buffer)
 	writer := brotli.NewWriter(buffer)
 
-	_, _ = io.WriteString(writer, c.str.Std())
+	_, _ = writer.Write(c.str.BytesUnsafe())
 	_ = writer.Flush()
 	_ = writer.Close()
 
@@ -90,7 +90,7 @@ func (c compress) Zlib() String {
 	buffer := new(bytes.Buffer)
 	writer := zlib.NewWriter(buffer)
 
-	_, _ = io.WriteString(writer, c.str.Std())
+	_, _ = writer.Write(c.str.BytesUnsafe())
 	_ = writer.Flush()
 	_ = writer.Close()
 
@@ -123,7 +123,7 @@ func (c compress) Gzip() String {
 	buffer := new(bytes.Buffer)
 	writer := gzip.NewWriter(buffer)
 
-	_, _ = io.WriteString(writer, c.str.Std())
+	_, _ = writer.Write(c.str.BytesUnsafe())
 	_ = writer.Flush()
 	_ = writer.Close()
 
@@ -163,7 +163,7 @@ func (c compress) Flate(level ...int) String {
 
 	writer, _ := flate.NewWriter(buffer, l)
 
-	_, _ = io.WriteString(writer, c.str.Std())
+	_, _ = writer.Write(c.str.BytesUnsafe())
 	_ = writer.Flush()
 	_ = writer.Close()
 

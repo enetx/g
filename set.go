@@ -7,7 +7,11 @@ type Set[T comparable] map[T]Unit
 
 // NewSet creates a new Set of the specified size or an empty Set if no size is provided.
 func NewSet[T comparable](size ...Int) Set[T] {
-	return make(Set[T], Slice[Int](size).Get(0).UnwrapOrDefault())
+	if len(size) > 0 {
+		return make(Set[T], size[0])
+	}
+
+	return make(Set[T])
 }
 
 // TransformSet applies the given function to each element of a Set and returns a new Set
@@ -329,6 +333,7 @@ func (s Set[T]) String() string {
 	}
 
 	var b Builder
+	b.Grow(Int(len(s)) * 8)
 	b.WriteString("Set{")
 
 	first := true

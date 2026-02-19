@@ -38,7 +38,11 @@ type MapOrd[K comparable, V any] []Pair[K, V] // ordered key-value pairs
 //
 // Creates a new ordered Map with an initial size of 10.
 func NewMapOrd[K comparable, V any](size ...Int) MapOrd[K, V] {
-	return make(MapOrd[K, V], 0, Slice[Int](size).Get(0).UnwrapOrDefault())
+	if len(size) > 0 {
+		return make(MapOrd[K, V], 0, size[0])
+	}
+
+	return make(MapOrd[K, V], 0)
 }
 
 // Transform applies a transformation function to the MapOrd and returns the result.
@@ -407,6 +411,7 @@ func (mo MapOrd[K, V]) String() string {
 	}
 
 	var b Builder
+	b.Grow(Int(len(mo)) * 16)
 	b.WriteString("MapOrd{")
 
 	first := true

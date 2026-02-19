@@ -14,7 +14,11 @@ type Map[K comparable, V any] map[K]V
 
 // NewMap creates a new Map of the specified size or an empty Map if no size is provided.
 func NewMap[K comparable, V any](size ...Int) Map[K, V] {
-	return make(Map[K, V], Slice[Int](size).Get(0).UnwrapOrDefault())
+	if len(size) > 0 {
+		return make(Map[K, V], size[0])
+	}
+
+	return make(Map[K, V])
 }
 
 // Transform applies a transformation function to the Map and returns the result.
@@ -162,6 +166,7 @@ func (m Map[K, V]) String() string {
 	}
 
 	var b Builder
+	b.Grow(Int(len(m)) * 16)
 	b.WriteString("Map{")
 
 	first := true

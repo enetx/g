@@ -7,13 +7,13 @@ type shash struct{ str String }
 func (s String) Hash() shash { return shash{s} }
 
 // MD5 computes the MD5 hash of the wrapped String and returns the hash as an String.
-func (sh shash) MD5() String { return sh.str.Bytes().Hash().MD5().String() }
+func (sh shash) MD5() String { return sh.str.BytesUnsafe().Hash().MD5().StringUnsafe() }
 
 // SHA1 computes the SHA1 hash of the wrapped String and returns the hash as an String.
-func (sh shash) SHA1() String { return sh.str.Bytes().Hash().SHA1().String() }
+func (sh shash) SHA1() String { return sh.str.BytesUnsafe().Hash().SHA1().StringUnsafe() }
 
 // SHA256 computes the SHA256 hash of the wrapped String and returns the hash as an String.
-func (sh shash) SHA256() String { return sh.str.Bytes().Hash().SHA256().String() }
+func (sh shash) SHA256() String { return sh.str.BytesUnsafe().Hash().SHA256().StringUnsafe() }
 
 // SHA512 computes the SHA512 hash of the wrapped String and returns the hash as an String.
-func (sh shash) SHA512() String { return sh.str.Bytes().Hash().SHA512().String() }
+func (sh shash) SHA512() String { return sh.str.BytesUnsafe().Hash().SHA512().StringUnsafe() }

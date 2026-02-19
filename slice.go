@@ -547,12 +547,23 @@ func (sl Slice[T]) Join(sep ...T) String {
 			}
 		}
 
-		strs := make([]string, len(s))
-		for i, str := range s {
-			strs[i] = str.Std()
+		total := len(separator) * (len(s) - 1)
+		for _, str := range s {
+			total += len(str)
 		}
 
-		return String(strings.Join(strs, separator))
+		var b strings.Builder
+		b.Grow(total)
+
+		for i, str := range s {
+			if i > 0 {
+				b.WriteString(separator)
+			}
+
+			b.WriteString(str.Std())
+		}
+
+		return String(b.String())
 	}
 
 	var separator string
@@ -734,6 +745,7 @@ func (sl Slice[T]) String() string {
 	}
 
 	var b Builder
+	b.Grow(Int(len(sl)) * 8)
 	b.WriteString("Slice[")
 
 	for i, v := range sl {
