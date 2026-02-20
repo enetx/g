@@ -46,29 +46,33 @@ func Match[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
 
 // Contains returns a function that checks whether a string or []byte contains a given substring.
 func Contains[T ~string | ~[]byte](t T) func(T) bool {
+	target := string(t)
 	return func(s T) bool {
-		return strings.Contains(string(s), string(t))
+		return strings.Contains(string(s), target)
 	}
 }
 
 // ContainsAnyChars returns a function that checks whether a string contains any of the characters from a given set.
 func ContainsAnyChars[T ~string | ~[]byte](t T) func(T) bool {
+	chars := string(t)
 	return func(s T) bool {
-		return strings.ContainsAny(string(s), string(t))
+		return strings.ContainsAny(string(s), chars)
 	}
 }
 
 // StartsWith returns a function that checks whether a string starts with a given prefix.
 func StartsWith[T ~string | ~[]byte](t T) func(T) bool {
+	prefix := string(t)
 	return func(s T) bool {
-		return strings.HasPrefix(string(s), string(t))
+		return strings.HasPrefix(string(s), prefix)
 	}
 }
 
 // EndsWith returns a function that checks whether a string ends with a given suffix.
 func EndsWith[T ~string | ~[]byte](t T) func(T) bool {
+	suffix := string(t)
 	return func(s T) bool {
-		return strings.HasSuffix(string(s), string(t))
+		return strings.HasSuffix(string(s), suffix)
 	}
 }
 

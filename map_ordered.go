@@ -288,7 +288,9 @@ func (mo *MapOrd[K, V]) Copy(src MapOrd[K, V]) {
 // Map converts the ordered Map to a standard Map.
 func (mo MapOrd[K, V]) Map() Map[K, V] {
 	m := NewMap[K, V](mo.Len())
-	mo.Iter().ForEach(func(k K, v V) { m[k] = v })
+	for _, p := range mo {
+		m[p.Key] = p.Value
+	}
 
 	return m
 }
@@ -296,7 +298,9 @@ func (mo MapOrd[K, V]) Map() Map[K, V] {
 // Safe converts a ordered Map to a thread-safe Map.
 func (mo MapOrd[K, V]) Safe() *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
-	mo.Iter().ForEach(func(k K, v V) { ms.Insert(k, v) })
+	for _, p := range mo {
+		ms.Insert(p.Key, p.Value)
+	}
 
 	return ms
 }
@@ -350,10 +354,32 @@ func (mo MapOrd[K, V]) index(key K) int {
 }
 
 // Keys returns an Slice containing all the keys in the ordered Map.
-func (mo MapOrd[K, V]) Keys() Slice[K] { return mo.Iter().Keys().Collect() }
+func (mo MapOrd[K, V]) Keys() Slice[K] {
+	if len(mo) == 0 {
+		return NewSlice[K]()
+	}
+
+	keys := make(Slice[K], len(mo))
+	for i, p := range mo {
+		keys[i] = p.Key
+	}
+
+	return keys
+}
 
 // Values returns an Slice containing all the values in the ordered Map.
-func (mo MapOrd[K, V]) Values() Slice[V] { return mo.Iter().Values().Collect() }
+func (mo MapOrd[K, V]) Values() Slice[V] {
+	if len(mo) == 0 {
+		return NewSlice[V]()
+	}
+
+	values := make(Slice[V], len(mo))
+	for i, p := range mo {
+		values[i] = p.Value
+	}
+
+	return values
+}
 
 // Remove removes the specified key from the ordered Map and returns the removed value.
 func (mo *MapOrd[K, V]) Remove(key K) Option[V] {

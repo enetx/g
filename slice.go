@@ -655,15 +655,14 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 
 	slice := make(Slice[T], 0, resultSize)
 
-	var loopCondition func(Int) bool
 	if _step > 0 {
-		loopCondition = func(i Int) bool { return i < end }
+		for i := start; i < end; i += _step {
+			slice = append(slice, sl[i])
+		}
 	} else {
-		loopCondition = func(i Int) bool { return i > end }
-	}
-
-	for i := start; loopCondition(i); i += _step {
-		slice = append(slice, sl[i])
+		for i := start; i > end; i += _step {
+			slice = append(slice, sl[i])
+		}
 	}
 
 	return slice

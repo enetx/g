@@ -1505,3 +1505,78 @@ func TestMapOrdSet(t *testing.T) {
 		}
 	})
 }
+
+func TestMapOrdKeys(t *testing.T) {
+	m := NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	keys := m.Keys()
+
+	if keys.Len() != 3 {
+		t.Fatalf("expected 3 keys, got %d", keys.Len())
+	}
+
+	expected := Slice[string]{"a", "b", "c"}
+	for i, k := range keys {
+		if k != expected[i] {
+			t.Errorf("expected key[%d] = %q, got %q", i, expected[i], k)
+		}
+	}
+
+	empty := NewMapOrd[string, int]()
+	if !empty.Keys().IsEmpty() {
+		t.Error("expected empty slice for empty map")
+	}
+}
+
+func TestMapOrdToMap(t *testing.T) {
+	mo := NewMapOrd[string, int]()
+	mo.Insert("x", 10)
+	mo.Insert("y", 20)
+	mo.Insert("z", 30)
+
+	m := mo.Map()
+
+	if m.Len() != 3 {
+		t.Fatalf("expected 3 entries, got %d", m.Len())
+	}
+
+	for _, p := range mo {
+		v, ok := m[p.Key]
+		if !ok || v != p.Value {
+			t.Errorf("key %q: expected %d, got %d (ok=%v)", p.Key, p.Value, v, ok)
+		}
+	}
+
+	empty := NewMapOrd[string, int]()
+	if empty.Map().Len() != 0 {
+		t.Error("expected empty map from empty MapOrd")
+	}
+}
+
+func TestMapOrdToSafe(t *testing.T) {
+	mo := NewMapOrd[string, int]()
+	mo.Insert("a", 1)
+	mo.Insert("b", 2)
+	mo.Insert("c", 3)
+
+	ms := mo.Safe()
+
+	if ms.Len() != 3 {
+		t.Fatalf("expected 3 entries, got %d", ms.Len())
+	}
+
+	for _, p := range mo {
+		v := ms.Get(p.Key)
+		if v.IsNone() || v.Some() != p.Value {
+			t.Errorf("key %q: expected %d, got %v", p.Key, p.Value, v)
+		}
+	}
+
+	empty := NewMapOrd[string, int]()
+	if empty.Safe().Len() != 0 {
+		t.Error("expected empty MapSafe from empty MapOrd")
+	}
+}

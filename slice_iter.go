@@ -171,8 +171,9 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 	collection := make([]Slice[V], 0)
 
 	seqs(func(v []V) bool {
-		inner := SeqSlice[V](iter.FromSlice(v)).Collect()
-		collection = append(collection, inner)
+		chunk := make(Slice[V], len(v))
+		copy(chunk, v)
+		collection = append(collection, chunk)
 		return true
 	})
 

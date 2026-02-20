@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math/big"
+	"math/rand/v2"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"unsafe"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/f"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -63,12 +63,8 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 //	randomString := g.String.Random(10)
 //	randomString contains a random String with 10 characters.
 func (String) Random(length Int, letters ...String) String {
-	var b Builder
-	b.Grow(length)
-
 	if len(letters) != 0 {
 		var buf Builder
-
 		for _, set := range letters {
 			_, _ = buf.WriteString(set)
 		}
@@ -76,19 +72,23 @@ func (String) Random(length Int, letters ...String) String {
 		chars := buf.String().Runes()
 		n := Int(len(chars))
 
+		var b Builder
+		b.Grow(length)
 		for range length {
 			b.WriteRune(chars[n.Random()])
 		}
-	} else {
-		const charset = ASCII_LETTERS + DIGITS
-		n := charset.Len()
 
-		for range length {
-			b.WriteByte(charset[n.Random().Std()])
-		}
+		return b.String()
 	}
 
-	return b.String()
+	const charset = ASCII_LETTERS + DIGITS
+	n := len(charset)
+	buf := make([]byte, length)
+	for i := range buf {
+		buf[i] = charset[rand.N(n)]
+	}
+
+	return String(buf)
 }
 
 // IsASCII checks if all characters in the String are ASCII bytes.
@@ -328,7 +328,7 @@ func (s String) ReplaceNth(oldS, newS String, n Int) String {
 }
 
 // Contains checks if the String contains the specified substring.
-func (s String) Contains(substr String) bool { return f.Contains(substr)(s) }
+func (s String) Contains(substr String) bool { return strings.Contains(s.Std(), substr.Std()) }
 
 // ContainsAny checks if the String contains any of the specified substrings.
 func (s String) ContainsAny(substrs ...String) bool {
@@ -347,11 +347,12 @@ func (s String) ContainsAll(substrs ...String) bool {
 }
 
 // ContainsAnyChars checks if the String contains any characters from the specified String.
-func (s String) ContainsAnyChars(chars String) bool { return f.ContainsAnyChars(chars)(s) }
+func (s String) ContainsAnyChars(chars String) bool {
+	return strings.ContainsAny(s.Std(), chars.Std())
+}
 
 // StartsWith checks if the String starts with the specified prefix.
-// It uses a higher-order function to perform the check.
-func (s String) StartsWith(prefix String) bool { return f.StartsWith(prefix)(s) }
+func (s String) StartsWith(prefix String) bool { return strings.HasPrefix(s.Std(), prefix.Std()) }
 
 // StartsWithAny checks if the String starts with any of the provided prefixes.
 // The method accepts a variable number of arguments, allowing for checking against multiple
@@ -370,8 +371,7 @@ func (s String) StartsWithAny(prefixes ...String) bool {
 }
 
 // EndsWith checks if the String ends with the specified suffix.
-// It uses a higher-order function to perform the check.
-func (s String) EndsWith(suffix String) bool { return f.EndsWith(suffix)(s) }
+func (s String) EndsWith(suffix String) bool { return strings.HasSuffix(s.Std(), suffix.Std()) }
 
 // EndsWithAny checks if the String ends with any of the provided suffixes.
 // The method accepts a variable number of arguments, allowing for checking against multiple
@@ -479,8 +479,9 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 		rest := s
 		for !rest.IsEmpty() {
 			i := 0
+			str := rest.Std()
 			for count := 0; count < n && i < len(rest); count++ {
-				_, sz := utf8.DecodeRuneInString(string(rest)[i:])
+				_, sz := utf8.DecodeRuneInString(str[i:])
 				i += sz
 			}
 
@@ -762,12 +763,13 @@ func (s String) Truncate(max Int) String {
 	}
 
 	i := 0
+	str := s.Std()
 	for count := Int(0); i < len(s); count++ {
 		if count == max {
 			return s[:i].Append("...")
 		}
 
-		_, sz := utf8.DecodeRuneInString(string(s)[i:])
+		_, sz := utf8.DecodeRuneInString(str[i:])
 		i += sz
 	}
 
@@ -891,8 +893,9 @@ func writePadding(b *Builder, pad String, padlen, remains Int) {
 	}
 
 	i := 0
+	str := pad.Std()
 	for range rem {
-		r, sz := utf8.DecodeRuneInString(string(pad)[i:])
+		r, sz := utf8.DecodeRuneInString(str[i:])
 		_, _ = b.WriteRune(r)
 		i += sz
 	}

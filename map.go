@@ -109,9 +109,9 @@ func (m Map[K, V]) Std() map[K]V { return m }
 
 // Ordered converts a standard Map to an ordered Map.
 func (m Map[K, V]) Ordered() MapOrd[K, V] {
-	mo := NewMapOrd[K, V](m.Len())
+	mo := make(MapOrd[K, V], 0, len(m))
 	for k, v := range m {
-		mo.Insert(k, v)
+		mo = append(mo, Pair[K, V]{Key: k, Value: v})
 	}
 
 	return mo

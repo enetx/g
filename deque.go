@@ -48,13 +48,15 @@ func NewDeque[T any](capacity ...Int) *Deque[T] {
 
 // DequeOf creates a new Deque containing the provided elements.
 func DequeOf[T any](elements ...T) *Deque[T] {
-	dq := NewDeque[T](Int(len(elements)))
+	n := Int(len(elements))
+	data := make(Slice[T], n)
+	copy(data, elements)
 
-	for _, elem := range elements {
-		dq.PushBack(elem)
+	return &Deque[T]{
+		data:  data,
+		front: 0,
+		len:   n,
 	}
-
-	return dq
 }
 
 // Len returns the number of elements in the Deque.
@@ -86,13 +88,28 @@ func (dq *Deque[T]) grow() {
 	}
 
 	newData := make(Slice[T], newCap)
-
-	for i := Int(0); i < dq.len; i++ {
-		newData[i] = dq.data[dq.realIndex(i)]
-	}
-
+	dq.copyToContiguous(newData)
 	dq.data = newData
 	dq.front = 0
+}
+
+// copyToContiguous copies the deque's logical elements into dst starting at index 0.
+// dst must have at least dq.len capacity.
+func (dq *Deque[T]) copyToContiguous(dst Slice[T]) {
+	if dq.len == 0 {
+		return
+	}
+
+	cap := Int(len(dq.data))
+	if dq.front+dq.len <= cap {
+		// Contiguous region
+		copy(dst, dq.data[dq.front:dq.front+dq.len])
+	} else {
+		// Wrap-around: two copy operations
+		firstPart := cap - dq.front
+		copy(dst, dq.data[dq.front:])
+		copy(dst[firstPart:], dq.data[:dq.len-firstPart])
+	}
 }
 
 // PushFront adds an element to the front of the Deque.
@@ -285,12 +302,7 @@ func (dq *Deque[T]) Remove(index Int) Option[T] {
 
 // Clear removes all elements from the Deque.
 func (dq *Deque[T]) Clear() {
-	var zero T
-
-	for i := Int(0); i < dq.len; i++ {
-		dq.data[dq.realIndex(i)] = zero
-	}
-
+	clear(dq.data)
 	dq.front = 0
 	dq.len = 0
 }
@@ -355,10 +367,7 @@ func (dq *Deque[T]) MakeContiguous() Slice[T] {
 	}
 
 	newData := make(Slice[T], len(dq.data))
-	for i := Int(0); i < dq.len; i++ {
-		newData[i] = dq.data[dq.realIndex(i)]
-	}
-
+	dq.copyToContiguous(newData)
 	dq.data = newData
 	dq.front = 0
 
@@ -367,23 +376,44 @@ func (dq *Deque[T]) MakeContiguous() Slice[T] {
 
 // Clone creates a deep copy of the Deque.
 func (dq *Deque[T]) Clone() *Deque[T] {
-	newDeque := NewDeque[T](dq.Capacity())
+	newData := make(Slice[T], len(dq.data))
+	dq.copyToContiguous(newData)
 
-	for i := Int(0); i < dq.len; i++ {
-		newDeque.PushBack(dq.data[dq.realIndex(i)])
+	return &Deque[T]{
+		data:  newData,
+		front: 0,
+		len:   dq.len,
 	}
-
-	return newDeque
 }
 
 // Iter returns an iterator for the Deque, allowing for sequential iteration
 // over its elements from front to back.
 func (dq *Deque[T]) Iter() SeqDeque[T] {
 	return func(yield func(T) bool) {
-		for i := Int(0); i < dq.len; i++ {
-			value := dq.data[dq.realIndex(i)]
-			if !yield(value) {
-				return
+		cap := Int(len(dq.data))
+		if cap == 0 || dq.len == 0 {
+			return
+		}
+
+		if dq.front+dq.len <= cap {
+			// Contiguous: iterate directly
+			for _, v := range dq.data[dq.front : dq.front+dq.len] {
+				if !yield(v) {
+					return
+				}
+			}
+		} else {
+			// Wrap-around: first part from front to end, then from start
+			for _, v := range dq.data[dq.front:] {
+				if !yield(v) {
+					return
+				}
+			}
+			wrapLen := dq.len - (cap - dq.front)
+			for _, v := range dq.data[:wrapLen] {
+				if !yield(v) {
+					return
+				}
 			}
 		}
 	}
@@ -420,10 +450,7 @@ func (dq *Deque[T]) Reserve(additional Int) {
 	}
 
 	newData := make(Slice[T], newCap)
-	for i := Int(0); i < dq.len; i++ {
-		newData[i] = dq.data[dq.realIndex(i)]
-	}
-
+	dq.copyToContiguous(newData)
 	dq.data = newData
 	dq.front = 0
 }
@@ -442,21 +469,38 @@ func (dq *Deque[T]) ShrinkToFit() {
 	}
 
 	newData := make(Slice[T], dq.len)
-	for i := Int(0); i < dq.len; i++ {
-		newData[i] = dq.data[dq.realIndex(i)]
-	}
-
+	dq.copyToContiguous(newData)
 	dq.data = newData
 	dq.front = 0
 }
 
 // Contains checks if the Deque contains the specified value.
 func (dq *Deque[T]) Contains(value T) bool {
+	if dq.len == 0 {
+		return false
+	}
+
+	cap := Int(len(dq.data))
+
 	if f.IsComparable[T]() {
 		target := any(value)
-		for i := Int(0); i < dq.len; i++ {
-			if any(dq.data[dq.realIndex(i)]) == target {
-				return true
+		if dq.front+dq.len <= cap {
+			for _, v := range dq.data[dq.front : dq.front+dq.len] {
+				if any(v) == target {
+					return true
+				}
+			}
+		} else {
+			for _, v := range dq.data[dq.front:] {
+				if any(v) == target {
+					return true
+				}
+			}
+			wrapLen := dq.len - (cap - dq.front)
+			for _, v := range dq.data[:wrapLen] {
+				if any(v) == target {
+					return true
+				}
 			}
 		}
 	} else {
@@ -517,10 +561,7 @@ func (dq *Deque[T]) BinarySearch(value T, fn func(T, T) cmp.Ordering) (Int, bool
 // Slice converts the Deque to a Slice, maintaining element order.
 func (dq *Deque[T]) Slice() Slice[T] {
 	result := make(Slice[T], dq.len)
-
-	for i := Int(0); i < dq.len; i++ {
-		result[i] = dq.data[dq.realIndex(i)]
-	}
+	dq.copyToContiguous(result)
 
 	return result
 }
@@ -535,12 +576,29 @@ func (dq Deque[T]) String() string {
 	b.Grow(dq.len * 8)
 	b.WriteString("Deque[")
 
-	for i := Int(0); i < dq.len; i++ {
-		if i > 0 {
+	cap := Int(len(dq.data))
+	first := true
+
+	writeElem := func(v T) {
+		if !first {
 			b.WriteString(", ")
 		}
+		first = false
+		fmt.Fprint(&b, v)
+	}
 
-		fmt.Fprint(&b, dq.data[dq.realIndex(i)])
+	if dq.front+dq.len <= cap {
+		for _, v := range dq.data[dq.front : dq.front+dq.len] {
+			writeElem(v)
+		}
+	} else {
+		for _, v := range dq.data[dq.front:] {
+			writeElem(v)
+		}
+		wrapLen := dq.len - (cap - dq.front)
+		for _, v := range dq.data[:wrapLen] {
+			writeElem(v)
+		}
 	}
 
 	b.WriteString("]")

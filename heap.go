@@ -117,9 +117,15 @@ func (h *Heap[T]) IntoIter() SeqHeap[T] {
 
 // Push adds one or more items to the heap.
 func (h *Heap[T]) Push(items ...T) {
-	for _, item := range items {
-		h.data = append(h.data, item)
+	if len(items) == 1 {
+		h.data = append(h.data, items[0])
 		h.heapifyUp(len(h.data) - 1)
+		return
+	}
+
+	if len(items) > 1 {
+		h.data = append(h.data, items...)
+		h.heapify()
 	}
 }
 
