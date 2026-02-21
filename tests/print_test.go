@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -39,6 +40,132 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 			format:   "Show literal \\{{.Upper}\\} here",
 			args:     []any{String("upper")},
 			expected: "Show literal {UPPER} here",
+		},
+		{
+			name:     "Autoindex with modifier {.Upper}",
+			format:   "{.Upper} and {.Lower}",
+			args:     []any{String("hello"), String("WORLD")},
+			expected: "HELLO and world",
+		},
+		{
+			name:     "Zero positional index {0}",
+			format:   "Value: {0}",
+			args:     []any{"first"},
+			expected: "Value: {0}",
+		},
+		{
+			name:     "Negative positional index {-1}",
+			format:   "Value: {-1}",
+			args:     []any{"first"},
+			expected: "Value: {-1}",
+		},
+		{
+			name:     "Positional index out of range",
+			format:   "Value: {5}",
+			args:     []any{"only one"},
+			expected: "Value: {5}",
+		},
+		{
+			name:     "Nil positional argument",
+			format:   "Got: {}",
+			args:     []any{nil},
+			expected: "Got: <nil>",
+		},
+		{
+			name:     "Nil positional argument with index",
+			format:   "Got: {1}",
+			args:     []any{nil},
+			expected: "Got: <nil>",
+		},
+		{
+			name:     "Mixed positional and named",
+			format:   "{1} is {name}",
+			args:     []any{"Alice", Named{"name": "great"}},
+			expected: "Alice is great",
+		},
+		{
+			name:     "Empty template",
+			format:   "",
+			args:     []any{"ignored"},
+			expected: "",
+		},
+		{
+			name:     "Escaped closing brace",
+			format:   "literal \\}",
+			args:     nil,
+			expected: "literal }",
+		},
+		{
+			name:     "Lone opening brace without closing",
+			format:   "broken { here",
+			args:     nil,
+			expected: "broken { here",
+		},
+		{
+			name:     "Multiple lone opening braces",
+			format:   "a { b { c",
+			args:     nil,
+			expected: "a { b { c",
+		},
+		{
+			name:     "Modifier type",
+			format:   "Type: {1.type}",
+			args:     []any{Int(42)},
+			expected: "Type: g.Int",
+		},
+		{
+			name:     "Modifier debug on string",
+			format:   "Debug: {1.debug}",
+			args:     []any{String("hi")},
+			expected: `Debug: "hi"`,
+		},
+		{
+			name:     "Modifier debug on int",
+			format:   "Debug: {1.debug}",
+			args:     []any{Int(7)},
+			expected: "Debug: 7",
+		},
+		{
+			name:     "Method with missing params (no panic)",
+			format:   "Result: {1.Replace}",
+			args:     []any{String("hello")},
+			expected: "Result: hello",
+		},
+		{
+			name:     "Method with insufficient params (no panic)",
+			format:   "Result: {1.Replace(a)}",
+			args:     []any{String("hello")},
+			expected: "Result: hello",
+		},
+		{
+			name:     "Nil pointer argument with modifier",
+			format:   "Value: {1.Something}",
+			args:     []any{(*string)(nil)},
+			expected: "Value: <nil>",
+		},
+		{
+			name:     "Adjacent placeholders",
+			format:   "{1}{2}{3}",
+			args:     []any{"a", "b", "c"},
+			expected: "abc",
+		},
+		{
+			name:     "Placeholder with only spaces",
+			format:   "Hello, {   }!",
+			args:     []any{"world"},
+			expected: "Hello, world!",
+		},
+		{
+			name:     "Repeated same index",
+			format:   "{1} {1} {1}",
+			args:     []any{"echo"},
+			expected: "echo echo echo",
+		},
+		{
+			name:     "Backslash not before brace",
+			format:   "path\\nhere",
+			args:     nil,
+			expected: "path\\nhere",
 		},
 	}
 
@@ -261,6 +388,36 @@ func TestFormat(t *testing.T) {
 			//   -> $reverse => "alpmaxa"
 			expected: "alpmaxa",
 		},
+		{
+			name:     "Named nil value",
+			format:   "Value: {key}",
+			args:     Named{"key": nil},
+			expected: "Value: {key}",
+		},
+		{
+			name:     "Both key and fallback missing",
+			format:   "Hello, {x?y}!",
+			args:     Named{"z": "nope"},
+			expected: "Hello, {x?y}!",
+		},
+		{
+			name:     "Modifier type on named",
+			format:   "Type: {val.type}",
+			args:     Named{"val": Int(10)},
+			expected: "Type: g.Int",
+		},
+		{
+			name:     "Modifier debug on named",
+			format:   "Debug: {val.debug}",
+			args:     Named{"val": String("test")},
+			expected: `Debug: "test"`,
+		},
+		{
+			name:     "Empty named map",
+			format:   "Hi {name}",
+			args:     Named{},
+			expected: "Hi {name}",
+		},
 	}
 
 	for _, tt := range tests {
@@ -314,6 +471,18 @@ func TestFormatFormatWithErrors(t *testing.T) {
 			format:   "Value: {obj.Upper}",
 			args:     Named{"obj": Unit{}},
 			expected: "Value: {}",
+		},
+		{
+			name:     "Nested unclosed brace",
+			format:   "Hello {name.Upper",
+			args:     Named{"name": String("john")},
+			expected: "Hello {name.Upper",
+		},
+		{
+			name:     "Empty brace pair in named context",
+			format:   "A {} B",
+			args:     Named{"x": "y"},
+			expected: "A {} B",
 		},
 	}
 
@@ -690,6 +859,22 @@ func TestFormatMapSliceStruct(t *testing.T) {
 			},
 			expected: "Access: subfieldvalue",
 		},
+		{
+			name:     "Slice index out of range",
+			template: "Value: {1.10}",
+			args: []any{
+				[]string{"only", "two"},
+			},
+			expected: "Value: [only two]",
+		},
+		{
+			name:     "Struct missing field",
+			template: "Value: {1.NonExistent}",
+			args: []any{
+				struct{ Name string }{Name: "test"},
+			},
+			expected: "Value: {test}",
+		},
 	}
 
 	for _, tt := range tests {
@@ -767,6 +952,19 @@ func TestWrite(t *testing.T) {
 	}
 }
 
+func TestWriteWithPlaceholders(t *testing.T) {
+	var sb strings.Builder
+
+	res := Write(&sb, "Hello, {}!", "world")
+	if res.IsErr() {
+		t.Fatalf("Write error: %v", res.Err())
+	}
+
+	if got := sb.String(); got != "Hello, world!" {
+		t.Fatalf("content mismatch: %q", got)
+	}
+}
+
 func TestWriteln(t *testing.T) {
 	var sb strings.Builder
 
@@ -780,6 +978,19 @@ func TestWriteln(t *testing.T) {
 	}
 
 	if got := sb.String(); got != "test message\n" {
+		t.Fatalf("content mismatch: %q", got)
+	}
+}
+
+func TestWritelnWithPlaceholders(t *testing.T) {
+	var sb strings.Builder
+
+	res := Writeln(&sb, "Hello, {}", "world")
+	if res.IsErr() {
+		t.Fatalf("Writeln error: %v", res.Err())
+	}
+
+	if got := sb.String(); got != "Hello, world\n" {
 		t.Fatalf("content mismatch: %q", got)
 	}
 }
@@ -802,6 +1013,99 @@ func TestEprint(t *testing.T) {
 func TestEprintln(t *testing.T) {
 	// Test that Eprintln doesn't crash - we can't easily capture stderr in unit tests
 	Eprintln("test eprintln")
+}
+
+func TestErrorf(t *testing.T) {
+	sentinel := errors.New("sentinel")
+
+	t.Run("no wrap — plain error", func(t *testing.T) {
+		err := Errorf("something went wrong: {}", sentinel)
+		if err.Error() != "something went wrong: sentinel" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+		if errors.Is(err, sentinel) {
+			t.Fatal("expected no wrapping")
+		}
+	})
+
+	t.Run("positional wrap {1.wrap}", func(t *testing.T) {
+		err := Errorf("failed: {1.wrap}", sentinel)
+		if err.Error() != "failed: sentinel" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+		if !errors.Is(err, sentinel) {
+			t.Fatal("expected errors.Is to find sentinel")
+		}
+	})
+
+	t.Run("auto-index wrap {.wrap}", func(t *testing.T) {
+		err := Errorf("open {}: {.wrap}", "foo.txt", sentinel)
+		if err.Error() != "open foo.txt: sentinel" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+		if !errors.Is(err, sentinel) {
+			t.Fatal("expected errors.Is to find sentinel")
+		}
+	})
+
+	t.Run("named wrap {cause.wrap}", func(t *testing.T) {
+		err := Errorf("read {file}: {cause.wrap}", Named{"file": "bar.txt", "cause": sentinel})
+		if err.Error() != "read bar.txt: sentinel" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+		if !errors.Is(err, sentinel) {
+			t.Fatal("expected errors.Is to find sentinel")
+		}
+	})
+
+	t.Run("multiple wraps", func(t *testing.T) {
+		e1 := errors.New("e1")
+		e2 := errors.New("e2")
+		err := Errorf("{1.wrap} and {2.wrap}", e1, e2)
+		if !errors.Is(err, e1) {
+			t.Fatal("expected errors.Is to find e1")
+		}
+		if !errors.Is(err, e2) {
+			t.Fatal("expected errors.Is to find e2")
+		}
+	})
+
+	t.Run("wrap with chained modifier", func(t *testing.T) {
+		err := Errorf("msg: {1.wrap}", sentinel)
+		if !errors.Is(err, sentinel) {
+			t.Fatal("expected wrapping")
+		}
+	})
+
+	t.Run("wrap on non-error value — no panic", func(t *testing.T) {
+		err := Errorf("value: {1.wrap}", "not an error")
+		if err.Error() != "value: not an error" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+		// no wrapping since value is not an error
+	})
+
+	t.Run("nil argument in Errorf", func(t *testing.T) {
+		err := Errorf("value is {}", nil)
+		if err.Error() != "value is <nil>" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+	})
+
+	t.Run("no placeholders", func(t *testing.T) {
+		err := Errorf("static error message")
+		if err.Error() != "static error message" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+	})
+
+	t.Run("wrap nil error — no panic", func(t *testing.T) {
+		// nil is converted to "<nil>" string, so wrap should not match error interface
+		err := Errorf("err: {1.wrap}", nil)
+		if err.Error() != "err: <nil>" {
+			t.Fatalf("unexpected message: %s", err)
+		}
+	})
 }
 
 func TestFormatMapOrdAccess(t *testing.T) {

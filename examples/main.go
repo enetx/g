@@ -15,7 +15,6 @@ func main() {
 	str.Random(9).Println()
 	str.Hash().MD5().Println()
 
-	str = "test"
 	str.Compress().Flate().Decompress().Flate().Unwrap().Println()
 
 	NewString("12").TryInt().Ok().Println()

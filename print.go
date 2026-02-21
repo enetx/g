@@ -74,13 +74,42 @@ func Eprintln[T ~string](format T, args ...any) Result[int] {
 }
 
 // Errorf formats according to a format specifier and returns it as an error.
+// If any argument is referenced via the {wrap} modifier, it is both displayed
+// and wrapped into the returned error, making errors.Is and errors.As work
+// through the chain. Multiple {wrap} references wrap multiple errors (Go 1.20+).
 //
 // Example:
 //
-//	err := g.Errorf("could not open {}: {}", filename, err)
-//	if err != nil { /* ... */ }
+//	err := g.Errorf("could not open {1}: {2.wrap}", filename, err)
+//	errors.Is(err, os.ErrNotExist) // true
 func Errorf[T ~string](format T, args ...any) error {
-	return errors.New(Format(format, args...).Std())
+	tmpl := String(format)
+
+	var (
+		named      Named
+		positional Slice[any]
+	)
+
+	for _, arg := range args {
+		switch x := arg.(type) {
+		case Named:
+			named = x
+		case nil:
+			positional = append(positional, "<nil>")
+		default:
+			positional = append(positional, x)
+		}
+	}
+
+	var wraps []error
+
+	msg := parseTmpl(tmpl, named, positional, &wraps)
+
+	if len(wraps) == 0 {
+		return errors.New(msg.Std())
+	}
+
+	return &wrappedError{msg: msg.Std(), errs: wraps}
 }
 
 // Format processes a template string and replaces placeholders with corresponding values from the provided arguments.
@@ -148,10 +177,10 @@ func Format[T ~string](template T, args ...any) String {
 		}
 	}
 
-	return parseTmpl(tmpl, named, positional)
+	return parseTmpl(tmpl, named, positional, nil)
 }
 
-func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
+func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) String {
 	var builder Builder
 	length := tmpl.Len()
 	builder.Grow(length)
@@ -190,7 +219,7 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 				}
 			}
 
-			replaced := processPlaceholder(placeholder, named, positional)
+			replaced := processPlaceholder(placeholder, named, positional, wraps)
 			builder.WriteString(replaced)
 
 			idx = eidx + 1
@@ -203,7 +232,7 @@ func parseTmpl(tmpl String, named Named, positional Slice[any]) String {
 	return builder.String()
 }
 
-func processPlaceholder(placeholder String, named Named, positional Slice[any]) String {
+func processPlaceholder(placeholder String, named Named, positional Slice[any], wraps *[]error) String {
 	var (
 		keyfall String
 		mods    String
@@ -236,6 +265,14 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any]) 
 			Exclude(f.IsZero).
 			ForEach(func(segment String) {
 				name, params := parseMod(segment)
+				if name == "wrap" {
+					if wraps != nil {
+						if err, ok := value.(error); ok {
+							*wraps = append(*wraps, err)
+						}
+					}
+					return
+				}
 				value = applyMod(value, name, params)
 			})
 	}
@@ -307,9 +344,9 @@ func toType(param String, targetType reflect.Type) Result[reflect.Value] {
 		return Ok(reflect.ValueOf(fl).Convert(targetType))
 	default:
 		switch targetType {
-		case reflect.TypeOf(""):
+		case reflect.TypeFor[string]():
 			return Ok(reflect.ValueOf(param.Std()))
-		case reflect.TypeOf(String("")):
+		case reflect.TypeFor[String]():
 			return Ok(reflect.ValueOf(param))
 		default:
 			return Err[reflect.Value](fmt.Errorf("unsupported type: %s", targetType))
@@ -422,6 +459,10 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 
 	if isVariadic {
 		numIn--
+	}
+
+	if int(params.Len()) < numIn {
+		return None[any]()
 	}
 
 	var args []reflect.Value

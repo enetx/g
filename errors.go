@@ -15,3 +15,11 @@ type ErrFileClosed struct{ Msg string }
 func (e *ErrFileClosed) Error() string {
 	return fmt.Sprintf("%s: file is already closed and unlocked", e.Msg)
 }
+
+type wrappedError struct {
+	msg  string
+	errs []error
+}
+
+func (e *wrappedError) Error() string   { return e.msg }
+func (e *wrappedError) Unwrap() []error { return e.errs }
