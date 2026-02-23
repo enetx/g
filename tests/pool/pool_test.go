@@ -1191,3 +1191,80 @@ func TestCancelOn_ResetClearsPredicate(t *testing.T) {
 		t.Errorf("Expected 3 results after reset (no predicate), got %d", len(results))
 	}
 }
+
+func TestPoolWait_Order(t *testing.T) {
+	const n = 100
+
+	t.Run("submission order preserved", func(t *testing.T) {
+		p := pool.New[int]()
+
+		for i := range n {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+
+		results := p.Wait().Collect()
+
+		if len(results) != n {
+			t.Fatalf("Expected %d results, got %d", n, len(results))
+		}
+
+		for i, r := range results {
+			if r.Ok() != i {
+				t.Errorf("results[%d] = %d, want %d (order violated)", i, r.Ok(), i)
+				return
+			}
+		}
+	})
+
+	t.Run("submission order preserved with limit", func(t *testing.T) {
+		p := pool.New[int]().Limit(4)
+
+		for i := range n {
+			p.Go(func() Result[int] { return Ok(i) })
+		}
+
+		results := p.Wait().Collect()
+
+		if len(results) != n {
+			t.Fatalf("Expected %d results, got %d", n, len(results))
+		}
+
+		for i, r := range results {
+			if r.Ok() != i {
+				t.Errorf("results[%d] = %d, want %d (order violated with limit)", i, r.Ok(), i)
+				return
+			}
+		}
+	})
+
+	t.Run("errors preserve submission order", func(t *testing.T) {
+		p := pool.New[int]()
+
+		for i := range 10 {
+			p.Go(func() Result[int] {
+				if i%3 == 0 {
+					return Err[int](errors.New("fail"))
+				}
+				return Ok(i)
+			})
+		}
+
+		results := p.Wait().Collect()
+
+		if len(results) != 10 {
+			t.Fatalf("Expected 10 results, got %d", len(results))
+		}
+
+		for i, r := range results {
+			if i%3 == 0 {
+				if !r.IsErr() {
+					t.Errorf("results[%d] should be Err, got Ok(%d)", i, r.Ok())
+				}
+			} else {
+				if r.Ok() != i {
+					t.Errorf("results[%d] = %d, want %d", i, r.Ok(), i)
+				}
+			}
+		}
+	})
+}

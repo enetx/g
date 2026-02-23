@@ -385,7 +385,7 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 }
 
 // Wait blocks until all submitted tasks finish and returns their results.
-// Results are returned in an iterator, order is not guaranteed.
+// Results are returned in submission order.
 //
 // Example:
 //
@@ -398,7 +398,18 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 func (p *Pool[T]) Wait() SeqResult[T] {
 	defer p.Cancel(ErrAllTasksDone)
 	p.wg.Wait()
-	return SeqResult[T](p.results.Iter().Values())
+
+	total := int(atomic.LoadInt32(&p.totalTasks))
+
+	return SeqResult[T](func(yield func(Result[T]) bool) {
+		for i := range total {
+			if v := p.results.Get(i); v.IsSome() {
+				if !yield(v.Some()) {
+					return
+				}
+			}
+		}
+	})
 }
 
 // Limit sets the maximum number of concurrently running tasks.
