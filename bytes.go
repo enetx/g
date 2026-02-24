@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql/driver"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"unicode"
@@ -496,13 +495,6 @@ func (bs Bytes) IsTitle() bool {
 	}
 
 	return letter
-}
-
-// Hex returns hex-encoded representation of Bytes.
-func (bs Bytes) Hex() Bytes {
-	out := make(Bytes, hex.EncodedLen(len(bs)))
-	hex.Encode(out, bs)
-	return out
 }
 
 // Print writes the content of the Bytes to the standard output (console)

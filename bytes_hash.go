@@ -16,24 +16,24 @@ type bhash struct{ bytes Bytes }
 func (bs Bytes) Hash() bhash { return bhash{bs} }
 
 // MD5 computes the MD5 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
-func (bh bhash) MD5() Bytes { return bh.MD5Raw().Hex() }
+func (bh bhash) MD5() Bytes { return bh.MD5Raw().Encode().Hex() }
 
 // SHA1 computes the SHA1 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
-func (bh bhash) SHA1() Bytes { return bh.SHA1Raw().Hex() }
+func (bh bhash) SHA1() Bytes { return bh.SHA1Raw().Encode().Hex() }
 
 // SHA256 computes the SHA256 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
-func (bh bhash) SHA256() Bytes { return bh.SHA256Raw().Hex() }
+func (bh bhash) SHA256() Bytes { return bh.SHA256Raw().Encode().Hex() }
 
 // SHA512 computes the SHA512 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
-func (bh bhash) SHA512() Bytes { return bh.SHA512Raw().Hex() }
+func (bh bhash) SHA512() Bytes { return bh.SHA512Raw().Encode().Hex() }
 
 // HMACSHA256 computes the HMAC-SHA256 of the wrapped Bytes using the provided key
 // and returns the result as hex-encoded Bytes.
-func (bh bhash) HMACSHA256(key Bytes) Bytes { return bh.HMACSHA256Raw(key).Hex() }
+func (bh bhash) HMACSHA256(key Bytes) Bytes { return bh.HMACSHA256Raw(key).Encode().Hex() }
 
 // HMACSHA512 computes the HMAC-SHA512 of the wrapped Bytes using the provided key
 // and returns the result as hex-encoded Bytes.
-func (bh bhash) HMACSHA512(key Bytes) Bytes { return bh.HMACSHA512Raw(key).Hex() }
+func (bh bhash) HMACSHA512(key Bytes) Bytes { return bh.HMACSHA512Raw(key).Encode().Hex() }
 
 // MD5Raw computes the MD5 hash of the wrapped Bytes and returns the raw digest.
 func (bh bhash) MD5Raw() Bytes { return rawHasher(md5.New(), bh.bytes) }

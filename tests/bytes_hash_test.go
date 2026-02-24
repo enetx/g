@@ -91,7 +91,7 @@ func TestBytes_Hash_RawHexConsistency(t *testing.T) {
 	data := g.Bytes("hello world")
 
 	hex := data.Hash().SHA256()
-	rawHex := data.Hash().SHA256Raw().Hex()
+	rawHex := data.Hash().SHA256Raw().Encode().Hex()
 
 	if !hex.Eq(rawHex) {
 		t.Errorf("SHA256() and SHA256Raw().Hex() should be equal\ngot:  %s\nwant: %s", rawHex, hex)
@@ -149,7 +149,7 @@ func TestBytes_Hash_HMACRawHexConsistency(t *testing.T) {
 	key := g.Bytes("secret")
 
 	hex := data.Hash().HMACSHA256(key)
-	rawHex := data.Hash().HMACSHA256Raw(key).Hex()
+	rawHex := data.Hash().HMACSHA256Raw(key).Encode().Hex()
 
 	if !hex.Eq(rawHex) {
 		t.Errorf("HMACSHA256() and HMACSHA256Raw().Hex() should be equal\ngot:  %s\nwant: %s", rawHex, hex)
@@ -181,7 +181,7 @@ func TestBytes_Hash_HMACDifferentKeys(t *testing.T) {
 
 func TestBytes_Hex(t *testing.T) {
 	data := g.Bytes("hello")
-	hex := data.Hex()
+	hex := data.Encode().Hex()
 
 	expected := g.Bytes("68656c6c6f")
 	if !hex.Eq(expected) {
@@ -191,7 +191,7 @@ func TestBytes_Hex(t *testing.T) {
 
 func TestBytes_Hex_Empty(t *testing.T) {
 	data := g.Bytes("")
-	hex := data.Hex()
+	hex := data.Encode().Hex()
 
 	if !hex.IsEmpty() {
 		t.Errorf("Hex() of empty Bytes should be empty, got %s", hex)

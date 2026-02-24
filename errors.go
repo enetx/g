@@ -1,6 +1,14 @@
 package g
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
+
+var (
+	ErrInvalidBinaryLength = errors.New("binary string length must be multiple of 8")
+	ErrInvalidBinaryDigit  = errors.New("binary string must contain only '0' and '1'")
+)
 
 // ErrFileNotExist represents an error for when a file does not exist.
 type ErrFileNotExist struct{ Msg string }

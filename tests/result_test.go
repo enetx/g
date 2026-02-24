@@ -40,8 +40,8 @@ func TestTransformResult(t *testing.T) {
 	// Test 1: Mapping over a Result with a value
 	result1 := Ok(5)
 
-	fn1 := func(x int) Result[int] {
-		return Ok(x * 2)
+	fn1 := func(x int) int {
+		return x * 2
 	}
 
 	mappedResult1 := TransformResult(result1, fn1)
@@ -327,7 +327,7 @@ func TestResultExpect(t *testing.T) {
 func TestResultMapErr(t *testing.T) {
 	// Test Ok case - should not change
 	okResult := Ok(42)
-	mappedOk := okResult.MapErr(func(err error) error {
+	mappedOk := okResult.MapErr(func(error) error {
 		return errors.New("new error")
 	})
 
@@ -337,7 +337,7 @@ func TestResultMapErr(t *testing.T) {
 
 	// Test Err case - should transform error
 	errResult := Err[int](errors.New("original error"))
-	mappedErr := errResult.MapErr(func(err error) error {
+	mappedErr := errResult.MapErr(func(error) error {
 		return errors.New("mapped error")
 	})
 

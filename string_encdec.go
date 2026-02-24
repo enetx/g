@@ -1,8 +1,6 @@
 package g
 
 import (
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"html"
 	"net/url"
@@ -23,64 +21,60 @@ func (s String) Encode() encode { return encode{s} }
 // Decode returns a decode struct wrapping the given String.
 func (s String) Decode() decode { return decode{s} }
 
-// Base64 encodes the wrapped String using Base64 and returns the encoded result as an String.
-func (e encode) Base64() String {
-	return String(base64.StdEncoding.EncodeToString(e.str.BytesUnsafe()))
-}
+// Base64 encodes the wrapped String using standard Base64 (with padding).
+func (e encode) Base64() String { return e.str.BytesUnsafe().Encode().Base64() }
 
 // Base64Raw encodes the wrapped String using standard Base64 without padding.
-func (e encode) Base64Raw() String {
-	return String(base64.RawStdEncoding.EncodeToString(e.str.BytesUnsafe()))
-}
+func (e encode) Base64Raw() String { return e.str.BytesUnsafe().Encode().Base64Raw() }
 
 // Base64URL encodes the wrapped String using URL-safe Base64 (with padding).
-func (e encode) Base64URL() String {
-	return String(base64.URLEncoding.EncodeToString(e.str.BytesUnsafe()))
-}
+func (e encode) Base64URL() String { return e.str.BytesUnsafe().Encode().Base64URL() }
 
 // Base64RawURL encodes the wrapped String using URL-safe Base64 without padding.
-func (e encode) Base64RawURL() String {
-	return String(base64.RawURLEncoding.EncodeToString(e.str.BytesUnsafe()))
-}
+func (e encode) Base64RawURL() String { return e.str.BytesUnsafe().Encode().Base64RawURL() }
 
-// Base64 decodes the wrapped String using Base64 and returns the decoded result as Result[String].
+// Base64 decodes the wrapped String using standard Base64 (with padding).
 func (d decode) Base64() Result[String] {
-	decoded, err := base64.StdEncoding.DecodeString(d.str.Std())
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(String(decoded))
+	return TransformResult(d.str.BytesUnsafe().Decode().Base64(), Bytes.String)
 }
 
 // Base64Raw decodes the wrapped String using standard Base64 without padding.
 func (d decode) Base64Raw() Result[String] {
-	decoded, err := base64.RawStdEncoding.DecodeString(d.str.Std())
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(String(decoded))
+	return TransformResult(d.str.BytesUnsafe().Decode().Base64Raw(), Bytes.String)
 }
 
 // Base64URL decodes the wrapped String using URL-safe Base64 (with padding).
 func (d decode) Base64URL() Result[String] {
-	decoded, err := base64.URLEncoding.DecodeString(d.str.Std())
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(String(decoded))
+	return TransformResult(d.str.BytesUnsafe().Decode().Base64URL(), Bytes.String)
 }
 
 // Base64RawURL decodes the wrapped String using URL-safe Base64 without padding.
 func (d decode) Base64RawURL() Result[String] {
-	decoded, err := base64.RawURLEncoding.DecodeString(d.str.Std())
-	if err != nil {
-		return Err[String](err)
-	}
+	return TransformResult(d.str.BytesUnsafe().Decode().Base64RawURL(), Bytes.String)
+}
 
-	return Ok(String(decoded))
+// Hex hex-encodes the wrapped String and returns the encoded result as an String.
+func (e encode) Hex() String { return e.str.BytesUnsafe().Encode().Hex().StringUnsafe() }
+
+// Hex hex-decodes the wrapped String and returns the decoded result as Result[String].
+func (d decode) Hex() Result[String] {
+	return TransformResult(d.str.BytesUnsafe().Decode().Hex(), Bytes.String)
+}
+
+// XOR encodes the wrapped String using XOR cipher with the given key.
+func (e encode) XOR(key String) String {
+	return String(e.str.BytesUnsafe().Encode().XOR(key.BytesUnsafe()))
+}
+
+// XOR decodes the wrapped String using XOR cipher with the given key.
+func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
+
+// Binary converts the wrapped String to its binary representation.
+func (e encode) Binary() String { return e.str.BytesUnsafe().Encode().Binary() }
+
+// Binary converts the wrapped binary String back to its original String.
+func (d decode) Binary() Result[String] {
+	return TransformResult(d.str.BytesUnsafe().Decode().Binary(), Bytes.String)
 }
 
 // JSON encodes the provided string as JSON and returns the result as Result[String].
@@ -106,17 +100,8 @@ func (d decode) JSON() Result[String] {
 
 // URL encodes the input string, escaping reserved characters as per RFC 2396.
 // If safe characters are provided, they will not be encoded.
-//
-// Parameters:
-//
-// - safe (String): Optional. Characters to exclude from encoding.
-// If provided, the function will not encode these characters.
-//
-// Returns:
-//
-// - String: Encoded URL string.
 func (e encode) URL(safe ...String) String {
-	reserved := String(";/?:@&=+$,") // Reserved characters as per RFC 2396
+	reserved := String(";/?:@&=+$,")
 	if len(safe) != 0 {
 		reserved = safe[0]
 	}
@@ -146,14 +131,13 @@ func (d decode) URL() Result[String] {
 	return Ok(String(result))
 }
 
-// HTML HTML-encodes the wrapped String and returns the encoded result as an String.
+// HTML HTML-encodes the wrapped String.
 func (e encode) HTML() String { return String(html.EscapeString(e.str.Std())) }
 
-// HTML HTML-decodes the wrapped String and returns the decoded result as an String.
+// HTML HTML-decodes the wrapped String.
 func (d decode) HTML() String { return String(html.UnescapeString(d.str.Std())) }
 
-// Rot13 encodes the wrapped String using ROT13 cipher and returns the encoded result as an
-// String.
+// Rot13 encodes the wrapped String using ROT13 cipher.
 func (e encode) Rot13() String {
 	rot := func(r rune) rune {
 		switch {
@@ -169,63 +153,13 @@ func (e encode) Rot13() String {
 	return e.str.Map(rot)
 }
 
-// Rot13 decodes the wrapped String using ROT13 cipher and returns the decoded result as an
-// String.
+// Rot13 decodes the wrapped String using ROT13 cipher.
 func (d decode) Rot13() String { return d.str.Encode().Rot13() }
-
-// XOR encodes the wrapped String using XOR cipher with the given key and returns the encoded
-// result as an String.
-func (e encode) XOR(key String) String {
-	if key.IsEmpty() {
-		return e.str
-	}
-
-	encrypted := e.str.Bytes()
-
-	for i := range len(e.str) {
-		encrypted[i] ^= key[i%len(key)]
-	}
-
-	return String(encrypted)
-}
-
-// XOR decodes the wrapped String using XOR cipher with the given key and returns the decoded
-// result as an String.
-func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
-
-// Hex hex-encodes the wrapped String and returns the encoded result as an String.
-func (e encode) Hex() String {
-	const hexChars = "0123456789abcdef"
-
-	var b Builder
-	b.Grow(e.str.Len() * 2)
-
-	for i := range len(e.str) {
-		c := e.str[i]
-		if c >= 16 {
-			b.WriteByte(hexChars[c>>4])
-		}
-
-		b.WriteByte(hexChars[c&0xf])
-	}
-
-	return b.String()
-}
-
-// Hex hex-decodes the wrapped String and returns the decoded result as Result[String].
-func (d decode) Hex() Result[String] {
-	result, err := hex.DecodeString(d.str.Std())
-	if err != nil {
-		return Err[String](err)
-	}
-
-	return Ok(String(result))
-}
 
 // Octal returns the octal representation of the encoded string.
 func (e encode) Octal() String {
 	var b Builder
-	var tmp [7]byte // max rune in octal: U+10FFFF = 4177777 (7 digits)
+	var tmp [7]byte
 
 	first := true
 
@@ -241,7 +175,7 @@ func (e encode) Octal() String {
 	return b.String()
 }
 
-// Octal returns the octal representation of the decimal-encoded string as Result[String].
+// Octal decodes the octal representation back to String.
 func (d decode) Octal() Result[String] {
 	var b Builder
 
@@ -255,35 +189,4 @@ func (d decode) Octal() Result[String] {
 	}
 
 	return Ok(b.String())
-}
-
-// Binary converts the wrapped String to its binary representation as an String.
-func (e encode) Binary() String {
-	var b Builder
-	b.Grow(e.str.Len() * 8)
-
-	for i := range len(e.str) {
-		c := e.str[i]
-		for bit := 7; bit >= 0; bit-- {
-			b.WriteByte('0' + (c>>uint(bit))&1)
-		}
-	}
-
-	return b.String()
-}
-
-// Binary converts the wrapped binary String back to its original String representation as Result[String].
-func (d decode) Binary() Result[String] {
-	var result Bytes
-
-	for i := 0; i+8 <= len(d.str); i += 8 {
-		b, err := strconv.ParseUint(d.str[i:i+8].Std(), 2, 8)
-		if err != nil {
-			return Err[String](err)
-		}
-
-		result = append(result, byte(b))
-	}
-
-	return Ok(result.String())
 }

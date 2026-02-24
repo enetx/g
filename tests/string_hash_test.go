@@ -217,7 +217,7 @@ func TestStringHashRawHexConsistency(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.raw.Hex().StringUnsafe(); got != tt.hex {
+			if got := tt.raw.Encode().Hex().StringUnsafe(); got != tt.hex {
 				t.Errorf("%s() and %sRaw().Hex() mismatch\ngot:  %s\nwant: %s", tt.name, tt.name, got, tt.hex)
 			}
 		})

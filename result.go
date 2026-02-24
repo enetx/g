@@ -39,10 +39,9 @@ func ResultOf[T any](value T, err error) Result[T] {
 
 // TransformResult applies a function to the contained Ok value, returning a new Result.
 // If the input Result is Err, the error is propagated.
-// This is also known as 'and_then' or 'flat_map'.
-func TransformResult[T, U any](r Result[T], fn func(T) Result[U]) Result[U] {
+func TransformResult[T, U any](r Result[T], fn func(T) U) Result[U] {
 	if r.IsOk() {
-		return fn(r.v)
+		return Ok(fn(r.v))
 	}
 
 	return Err[U](r.err)
