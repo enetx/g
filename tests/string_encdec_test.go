@@ -470,3 +470,186 @@ func TestURLDecode(t *testing.T) {
 		}
 	}
 }
+
+func TestStringBase64RawEncode(t *testing.T) {
+	tests := []struct {
+		name string
+		e    String
+		want String
+	}{
+		{"empty", "", ""},
+		{"hello", "hello", "aGVsbG8"},
+		{"hello world", "hello world", "aGVsbG8gd29ybGQ"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.e.Encode().Base64Raw(); got != tt.want {
+				t.Errorf("enc.Base64Raw() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64RawDecode(t *testing.T) {
+	tests := []struct {
+		name string
+		d    String
+		want String
+	}{
+		{"hello world", "aGVsbG8gd29ybGQ", "hello world"},
+		{"empty", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.d.Decode().Base64Raw().Unwrap(); got != tt.want {
+				t.Errorf("dec.Base64Raw() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64URLEncode(t *testing.T) {
+	tests := []struct {
+		name string
+		e    String
+		want String
+	}{
+		{"empty", "", ""},
+		{"hello", "hello", "aGVsbG8="},
+		{"url unsafe chars", "subjects?_d", "c3ViamVjdHM_X2Q="},
+		{"binary-like", "\xfb\xf0", "-_A="},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.e.Encode().Base64URL(); got != tt.want {
+				t.Errorf("enc.Base64URL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64URLDecode(t *testing.T) {
+	tests := []struct {
+		name string
+		d    String
+		want String
+	}{
+		{"hello", "aGVsbG8=", "hello"},
+		{"url unsafe chars", "c3ViamVjdHM_X2Q=", "subjects?_d"},
+		{"empty", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.d.Decode().Base64URL().Unwrap(); got != tt.want {
+				t.Errorf("dec.Base64URL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64RawURLEncode(t *testing.T) {
+	tests := []struct {
+		name string
+		e    String
+		want String
+	}{
+		{"empty", "", ""},
+		{"hello", "hello", "aGVsbG8"},
+		{"url unsafe chars", "subjects?_d", "c3ViamVjdHM_X2Q"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.e.Encode().Base64RawURL(); got != tt.want {
+				t.Errorf("enc.Base64RawURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64RawURLDecode(t *testing.T) {
+	tests := []struct {
+		name string
+		d    String
+		want String
+	}{
+		{"hello", "aGVsbG8", "hello"},
+		{"url unsafe chars", "c3ViamVjdHM_X2Q", "subjects?_d"},
+		{"empty", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.d.Decode().Base64RawURL().Unwrap(); got != tt.want {
+				t.Errorf("dec.Base64RawURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestStringBase64RoundTrip(t *testing.T) {
+	input := String("Hello, World! 🌍")
+
+	if got := input.Encode().Base64().Decode().Base64().Unwrap(); got != input {
+		t.Errorf("Base64 round trip failed: got %v", got)
+	}
+
+	if got := input.Encode().Base64Raw().Decode().Base64Raw().Unwrap(); got != input {
+		t.Errorf("Base64Raw round trip failed: got %v", got)
+	}
+
+	if got := input.Encode().Base64URL().Decode().Base64URL().Unwrap(); got != input {
+		t.Errorf("Base64URL round trip failed: got %v", got)
+	}
+
+	if got := input.Encode().Base64RawURL().Decode().Base64RawURL().Unwrap(); got != input {
+		t.Errorf("Base64RawURL round trip failed: got %v", got)
+	}
+}
+
+func TestStringBase64DecodeErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  String
+		decode func(String) Result[String]
+	}{
+		{"Base64 invalid", "!!!invalid!!!", func(s String) Result[String] { return s.Decode().Base64() }},
+		{"Base64Raw invalid", "!!!invalid!!!", func(s String) Result[String] { return s.Decode().Base64Raw() }},
+		{"Base64URL invalid", "!!!invalid!!!", func(s String) Result[String] { return s.Decode().Base64URL() }},
+		{"Base64RawURL invalid", "!!!invalid!!!", func(s String) Result[String] { return s.Decode().Base64RawURL() }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if result := tt.decode(tt.input); !result.IsErr() {
+				t.Errorf("%s: expected error for invalid input, got %v", tt.name, result.Ok())
+			}
+		})
+	}
+}
+
+func TestStringBase64URLvsStd(t *testing.T) {
+	input := String("\xfb\xf0\x3f")
+
+	std := input.Encode().Base64()
+	url := input.Encode().Base64URL()
+
+	if !std.Contains("+") && !std.Contains("/") {
+		t.Skip("test input doesn't produce +/ in std base64")
+	}
+
+	if url.Contains("+") || url.Contains("/") {
+		t.Errorf("Base64URL should not contain + or /, got %s", url)
+	}
+
+	stdDec := std.Decode().Base64().Unwrap()
+	urlDec := url.Decode().Base64URL().Unwrap()
+
+	if stdDec != urlDec {
+		t.Errorf("Base64 and Base64URL should decode to same value")
+	}
+}

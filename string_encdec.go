@@ -28,9 +28,54 @@ func (e encode) Base64() String {
 	return String(base64.StdEncoding.EncodeToString(e.str.BytesUnsafe()))
 }
 
+// Base64Raw encodes the wrapped String using standard Base64 without padding.
+func (e encode) Base64Raw() String {
+	return String(base64.RawStdEncoding.EncodeToString(e.str.BytesUnsafe()))
+}
+
+// Base64URL encodes the wrapped String using URL-safe Base64 (with padding).
+func (e encode) Base64URL() String {
+	return String(base64.URLEncoding.EncodeToString(e.str.BytesUnsafe()))
+}
+
+// Base64RawURL encodes the wrapped String using URL-safe Base64 without padding.
+func (e encode) Base64RawURL() String {
+	return String(base64.RawURLEncoding.EncodeToString(e.str.BytesUnsafe()))
+}
+
 // Base64 decodes the wrapped String using Base64 and returns the decoded result as Result[String].
 func (d decode) Base64() Result[String] {
 	decoded, err := base64.StdEncoding.DecodeString(d.str.Std())
+	if err != nil {
+		return Err[String](err)
+	}
+
+	return Ok(String(decoded))
+}
+
+// Base64Raw decodes the wrapped String using standard Base64 without padding.
+func (d decode) Base64Raw() Result[String] {
+	decoded, err := base64.RawStdEncoding.DecodeString(d.str.Std())
+	if err != nil {
+		return Err[String](err)
+	}
+
+	return Ok(String(decoded))
+}
+
+// Base64URL decodes the wrapped String using URL-safe Base64 (with padding).
+func (d decode) Base64URL() Result[String] {
+	decoded, err := base64.URLEncoding.DecodeString(d.str.Std())
+	if err != nil {
+		return Err[String](err)
+	}
+
+	return Ok(String(decoded))
+}
+
+// Base64RawURL decodes the wrapped String using URL-safe Base64 without padding.
+func (d decode) Base64RawURL() Result[String] {
+	decoded, err := base64.RawURLEncoding.DecodeString(d.str.Std())
 	if err != nil {
 		return Err[String](err)
 	}

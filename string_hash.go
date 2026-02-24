@@ -6,14 +6,50 @@ type shash struct{ str String }
 // Hash returns a shash struct wrapping the given String.
 func (s String) Hash() shash { return shash{s} }
 
-// MD5 computes the MD5 hash of the wrapped String and returns the hash as an String.
+// MD5 computes the MD5 hash of the wrapped String and returns the hash as hex-encoded String.
 func (sh shash) MD5() String { return sh.str.BytesUnsafe().Hash().MD5().StringUnsafe() }
 
-// SHA1 computes the SHA1 hash of the wrapped String and returns the hash as an String.
+// SHA1 computes the SHA1 hash of the wrapped String and returns the hash as hex-encoded String.
 func (sh shash) SHA1() String { return sh.str.BytesUnsafe().Hash().SHA1().StringUnsafe() }
 
-// SHA256 computes the SHA256 hash of the wrapped String and returns the hash as an String.
+// SHA256 computes the SHA256 hash of the wrapped String and returns the hash as hex-encoded String.
 func (sh shash) SHA256() String { return sh.str.BytesUnsafe().Hash().SHA256().StringUnsafe() }
 
-// SHA512 computes the SHA512 hash of the wrapped String and returns the hash as an String.
+// SHA512 computes the SHA512 hash of the wrapped String and returns the hash as hex-encoded String.
 func (sh shash) SHA512() String { return sh.str.BytesUnsafe().Hash().SHA512().StringUnsafe() }
+
+// HMACSHA256 computes the HMAC-SHA256 of the wrapped String using the provided key
+// and returns the result as hex-encoded String.
+func (sh shash) HMACSHA256(key String) String {
+	return sh.str.BytesUnsafe().Hash().HMACSHA256(key.BytesUnsafe()).StringUnsafe()
+}
+
+// HMACSHA512 computes the HMAC-SHA512 of the wrapped String using the provided key
+// and returns the result as hex-encoded String.
+func (sh shash) HMACSHA512(key String) String {
+	return sh.str.BytesUnsafe().Hash().HMACSHA512(key.BytesUnsafe()).StringUnsafe()
+}
+
+// MD5Raw computes the MD5 hash of the wrapped String and returns the raw digest as Bytes.
+func (sh shash) MD5Raw() Bytes { return sh.str.BytesUnsafe().Hash().MD5Raw() }
+
+// SHA1Raw computes the SHA1 hash of the wrapped String and returns the raw digest as Bytes.
+func (sh shash) SHA1Raw() Bytes { return sh.str.BytesUnsafe().Hash().SHA1Raw() }
+
+// SHA256Raw computes the SHA256 hash of the wrapped String and returns the raw digest as Bytes.
+func (sh shash) SHA256Raw() Bytes { return sh.str.BytesUnsafe().Hash().SHA256Raw() }
+
+// SHA512Raw computes the SHA512 hash of the wrapped String and returns the raw digest as Bytes.
+func (sh shash) SHA512Raw() Bytes { return sh.str.BytesUnsafe().Hash().SHA512Raw() }
+
+// HMACSHA256Raw computes the HMAC-SHA256 of the wrapped String using the provided key
+// and returns the raw digest as Bytes.
+func (sh shash) HMACSHA256Raw(key String) Bytes {
+	return sh.str.BytesUnsafe().Hash().HMACSHA256Raw(key.BytesUnsafe())
+}
+
+// HMACSHA512Raw computes the HMAC-SHA512 of the wrapped String using the provided key
+// and returns the raw digest as Bytes.
+func (sh shash) HMACSHA512Raw(key String) Bytes {
+	return sh.str.BytesUnsafe().Hash().HMACSHA512Raw(key.BytesUnsafe())
+}

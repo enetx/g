@@ -16,6 +16,29 @@ import (
 	"golang.org/x/text/language"
 )
 
+func TestBytesHex(t *testing.T) {
+	tests := []struct {
+		name string
+		data Bytes
+		want Bytes
+	}{
+		{"hello", Bytes("hello"), Bytes("68656c6c6f")},
+		{"empty", Bytes(""), Bytes("")},
+		{"space", Bytes(" "), Bytes("20")},
+		{"binary", Bytes{0x00, 0xff, 0x0a}, Bytes("00ff0a")},
+		{"all zeros", Bytes{0x00, 0x00, 0x00}, Bytes("000000")},
+		{"single byte", Bytes{0xab}, Bytes("ab")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.data.Hex(); !got.Eq(tt.want) {
+				t.Errorf("Bytes.Hex() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestBytes(t *testing.T) {
 	// Test case with string input
 	strInput := "hello"

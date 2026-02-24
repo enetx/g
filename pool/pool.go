@@ -401,7 +401,7 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 
 	total := int(atomic.LoadInt32(&p.totalTasks))
 
-	return SeqResult[T](func(yield func(Result[T]) bool) {
+	return func(yield func(Result[T]) bool) {
 		for i := range total {
 			if v := p.results.Get(i); v.IsSome() {
 				if !yield(v.Some()) {
@@ -409,7 +409,7 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 				}
 			}
 		}
-	})
+	}
 }
 
 // Limit sets the maximum number of concurrently running tasks.
