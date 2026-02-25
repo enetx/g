@@ -121,6 +121,144 @@ func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 	return o
 }
 
+// Filter returns Some(value) if the Option is Some and the predicate returns true.
+// Otherwise, it returns None.
+func (o Option[T]) Filter(pred func(T) bool) Option[T] {
+	if o.isSome && pred(o.v) {
+		return o
+	}
+
+	return None[T]()
+}
+
+// Or returns the Option if it contains a value.
+// Otherwise, it returns the provided alternative Option.
+func (o Option[T]) Or(other Option[T]) Option[T] {
+	if o.isSome {
+		return o
+	}
+
+	return other
+}
+
+// OrElse returns the Option if it contains a value.
+// Otherwise, it calls fn and returns its result.
+func (o Option[T]) OrElse(fn func() Option[T]) Option[T] {
+	if o.isSome {
+		return o
+	}
+
+	return fn()
+}
+
+// IsSomeAnd returns true if the Option is Some
+// and the predicate returns true for the contained value.
+func (o Option[T]) IsSomeAnd(pred func(T) bool) bool {
+	return o.isSome && pred(o.v)
+}
+
+// Insert inserts the given value into the Option,
+// replacing any existing value, and returns a pointer
+// to the inserted value.
+func (o *Option[T]) Insert(value T) *T {
+	o.v = value
+	o.isSome = true
+
+	return &o.v
+}
+
+// GetOrInsert inserts the given value if the Option is None,
+// and returns a pointer to the contained value.
+// If the Option already contains a value, it is left unchanged.
+func (o *Option[T]) GetOrInsert(value T) *T {
+	if !o.isSome {
+		o.v = value
+		o.isSome = true
+	}
+	return &o.v
+}
+
+// GetOrInsertWith inserts a value computed by fn if the Option is None,
+// and returns a pointer to the contained value.
+// The function fn is evaluated lazily.
+func (o *Option[T]) GetOrInsertWith(fn func() T) *T {
+	if !o.isSome {
+		o.v = fn()
+		o.isSome = true
+	}
+
+	return &o.v
+}
+
+// Take takes the value out of the Option, leaving None in its place.
+// It returns Some(value) if the Option was Some,
+// otherwise returns None.
+func (o *Option[T]) Take() Option[T] {
+	if !o.isSome {
+		return None[T]()
+	}
+
+	val := o.v
+	var zero T
+
+	o.v = zero
+	o.isSome = false
+
+	return Some(val)
+}
+
+// Replace replaces the contained value with the given value,
+// returning the old value as an Option.
+// If the Option was None, it inserts the value and returns None.
+func (o *Option[T]) Replace(value T) Option[T] {
+	old := o.Take()
+	o.v = value
+	o.isSome = true
+
+	return old
+}
+
+// OkOr converts the Option into a Result.
+// Returns Ok(value) if Some, otherwise returns Err(err).
+func (o Option[T]) OkOr(err error) Result[T] {
+	if o.isSome {
+		return Ok(o.v)
+	}
+
+	return Err[T](err)
+}
+
+// OkOrElse converts the Option into a Result.
+// Returns Ok(value) if Some.
+// Otherwise, it calls fn and returns Err(fn()).
+func (o Option[T]) OkOrElse(fn func() error) Result[T] {
+	if o.isSome {
+		return Ok(o.v)
+	}
+
+	return Err[T](fn())
+}
+
+// FromPtr converts a pointer into an Option.
+// Returns None if ptr is nil.
+func FromPtr[T any](ptr *T) Option[T] {
+	if ptr == nil {
+		return None[T]()
+	}
+
+	return Some(*ptr)
+}
+
+// Ptr returns a pointer to the contained value if Some.
+// Otherwise, it returns nil.
+func (o Option[T]) Ptr() *T {
+	if o.isSome {
+		return &o.v
+	}
+
+	return nil
+}
+
 // Result converts an Option into a Result.
 // If the Option is Some, it returns an Ok Result with the value.
 // If the Option is None, it returns an Err Result with the provided error.

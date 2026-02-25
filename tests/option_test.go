@@ -244,3 +244,228 @@ func TestOptionString(t *testing.T) {
 		t.Errorf("None string should contain 'None', got %s", str2)
 	}
 }
+
+func TestOptionFilter(t *testing.T) {
+	opt := Some(10)
+
+	res := opt.Filter(func(x int) bool {
+		return x > 5
+	})
+
+	if res.IsNone() {
+		t.Error("Expected Some(10)")
+	}
+
+	res2 := opt.Filter(func(x int) bool {
+		return x > 20
+	})
+
+	if res2.IsSome() {
+		t.Error("Expected None")
+	}
+}
+
+func TestOptionOr(t *testing.T) {
+	a := Some(1)
+	b := Some(2)
+	n := None[int]()
+
+	if a.Or(b).Unwrap() != 1 {
+		t.Error("Or should return first Some")
+	}
+
+	if n.Or(b).Unwrap() != 2 {
+		t.Error("Or should return alternative")
+	}
+}
+
+func TestOptionOrElse(t *testing.T) {
+	a := Some(1)
+	n := None[int]()
+
+	called := false
+
+	res := a.OrElse(func() Option[int] {
+		called = true
+		return Some(2)
+	})
+
+	if called {
+		t.Error("OrElse should not call fn when Some")
+	}
+	if res.Unwrap() != 1 {
+		t.Error("Unexpected value")
+	}
+
+	res2 := n.OrElse(func() Option[int] {
+		called = true
+		return Some(3)
+	})
+
+	if !called {
+		t.Error("OrElse should call fn when None")
+	}
+	if res2.Unwrap() != 3 {
+		t.Error("Unexpected value")
+	}
+}
+
+func TestOptionIsSomeAnd(t *testing.T) {
+	opt := Some(10)
+
+	if !opt.IsSomeAnd(func(x int) bool { return x == 10 }) {
+		t.Error("Expected true")
+	}
+
+	if opt.IsSomeAnd(func(x int) bool { return x > 20 }) {
+		t.Error("Expected false")
+	}
+
+	if None[int]().IsSomeAnd(func(int) bool { return true }) {
+		t.Error("None should return false")
+	}
+}
+
+func TestOptionInsert(t *testing.T) {
+	opt := None[int]()
+
+	ptr := opt.Insert(5)
+
+	if !opt.IsSome() || *ptr != 5 {
+		t.Error("Insert failed")
+	}
+}
+
+func TestOptionGetOrInsert(t *testing.T) {
+	opt := None[int]()
+
+	ptr := opt.GetOrInsert(10)
+
+	if *ptr != 10 {
+		t.Error("Expected inserted value 10")
+	}
+
+	ptr2 := opt.GetOrInsert(20)
+
+	if *ptr2 != 10 {
+		t.Error("Should not overwrite existing value")
+	}
+}
+
+func TestOptionGetOrInsertWith(t *testing.T) {
+	opt := None[int]()
+
+	called := false
+
+	ptr := opt.GetOrInsertWith(func() int {
+		called = true
+		return 30
+	})
+
+	if !called || *ptr != 30 {
+		t.Error("Lazy insert failed")
+	}
+
+	called = false
+
+	opt.GetOrInsertWith(func() int {
+		called = true
+		return 40
+	})
+
+	if called {
+		t.Error("Should not call fn when Some")
+	}
+}
+
+func TestOptionTake(t *testing.T) {
+	opt := Some(50)
+
+	old := opt.Take()
+
+	if old.IsNone() || old.Unwrap() != 50 {
+		t.Error("Take should return old value")
+	}
+
+	if opt.IsSome() {
+		t.Error("Option should become None after Take")
+	}
+}
+
+func TestOptionReplace(t *testing.T) {
+	opt := Some(1)
+
+	old := opt.Replace(2)
+
+	if old.Unwrap() != 1 {
+		t.Error("Replace should return old value")
+	}
+
+	if opt.Unwrap() != 2 {
+		t.Error("Replace should set new value")
+	}
+}
+
+func TestOptionOkOr(t *testing.T) {
+	opt := Some(5)
+
+	res := opt.OkOr(errors.New("err"))
+
+	if res.IsErr() || res.Unwrap() != 5 {
+		t.Error("Expected Ok(5)")
+	}
+
+	none := None[int]()
+
+	res2 := none.OkOr(errors.New("err"))
+
+	if res2.IsOk() {
+		t.Error("Expected Err")
+	}
+}
+
+func TestOptionOkOrElse(t *testing.T) {
+	opt := None[int]()
+
+	called := false
+
+	res := opt.OkOrElse(func() error {
+		called = true
+		return errors.New("generated")
+	})
+
+	if !called {
+		t.Error("Expected fn to be called")
+	}
+
+	if res.IsOk() {
+		t.Error("Expected Err")
+	}
+}
+
+func TestOptionPtr(t *testing.T) {
+	opt := Some(5)
+
+	ptr := opt.Ptr()
+
+	if ptr == nil || *ptr != 5 {
+		t.Error("Ptr failed")
+	}
+
+	if None[int]().Ptr() != nil {
+		t.Error("Ptr of None should be nil")
+	}
+}
+
+func TestOptionFromPtr(t *testing.T) {
+	val := 10
+	opt := FromPtr(&val)
+
+	if opt.IsNone() || opt.Unwrap() != 10 {
+		t.Error("FromPtr failed")
+	}
+
+	if FromPtr[int](nil).IsSome() {
+		t.Error("FromPtr(nil) should be None")
+	}
+}
