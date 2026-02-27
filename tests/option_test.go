@@ -459,13 +459,13 @@ func TestOptionPtr(t *testing.T) {
 
 func TestOptionFromPtr(t *testing.T) {
 	val := 10
-	opt := FromPtr(&val)
+	opt := OptionFromPtr(&val)
 
 	if opt.IsNone() || opt.Unwrap() != 10 {
 		t.Error("FromPtr failed")
 	}
 
-	if FromPtr[int](nil).IsSome() {
+	if OptionFromPtr[int](nil).IsSome() {
 		t.Error("FromPtr(nil) should be None")
 	}
 }

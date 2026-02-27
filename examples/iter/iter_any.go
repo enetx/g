@@ -25,6 +25,6 @@ func main() {
 
 	values.Iter().Filter(f.IsComparableValue).
 		ForEach(func(v any) {
-			Println("{1.type} - {1.debug}", v)
+			Println("{1:T} - {1:?}", v)
 		})
 }

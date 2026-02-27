@@ -62,9 +62,9 @@ func main() {
 	today := Named{"today": time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)}
 	Println("today is {today.Format(2006-01-02)}", today) // today is 2025-06-15
 
-	// --- type and debug specifiers ---
-	// type → fmt.Sprintf("%T", v), debug → fmt.Sprintf("%#v", v)
-	Println("{.type}  {.debug}", Int(99), Int(99)) // g.Int  99
+	// --- type and debug format specs ---
+	// {:T} → fmt.Sprintf("%T", v), {:?} → fmt.Sprintf("%#v", v)
+	Println("{:T}  {:?}", Int(99), Int(99)) // g.Int  99
 
 	// --- Mixing named and positional ---
 	Println("lang={lang}, arg={}, arg={}",

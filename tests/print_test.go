@@ -3,6 +3,7 @@ package g_test
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -108,20 +109,20 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 			expected: "a { b { c",
 		},
 		{
-			name:     "Modifier type",
-			format:   "Type: {1.type}",
+			name:     "Spec type",
+			format:   "Type: {1:T}",
 			args:     []any{Int(42)},
 			expected: "Type: g.Int",
 		},
 		{
-			name:     "Modifier debug on string",
-			format:   "Debug: {1.debug}",
+			name:     "Spec debug on string",
+			format:   "Debug: {1:?}",
 			args:     []any{String("hi")},
 			expected: `Debug: "hi"`,
 		},
 		{
-			name:     "Modifier debug on int",
-			format:   "Debug: {1.debug}",
+			name:     "Spec debug on int",
+			format:   "Debug: {1:?}",
 			args:     []any{Int(7)},
 			expected: "Debug: 7",
 		},
@@ -401,14 +402,14 @@ func TestFormat(t *testing.T) {
 			expected: "Hello, {x?y}!",
 		},
 		{
-			name:     "Modifier type on named",
-			format:   "Type: {val.type}",
+			name:     "Spec type on named",
+			format:   "Type: {val:T}",
 			args:     Named{"val": Int(10)},
 			expected: "Type: g.Int",
 		},
 		{
-			name:     "Modifier debug on named",
-			format:   "Debug: {val.debug}",
+			name:     "Spec debug on named",
+			format:   "Debug: {val:?}",
 			args:     Named{"val": String("test")},
 			expected: `Debug: "test"`,
 		},
@@ -1028,8 +1029,8 @@ func TestErrorf(t *testing.T) {
 		}
 	})
 
-	t.Run("positional wrap {1.wrap}", func(t *testing.T) {
-		err := Errorf("failed: {1.wrap}", sentinel)
+	t.Run("positional wrap {1:w}", func(t *testing.T) {
+		err := Errorf("failed: {1:w}", sentinel)
 		if err.Error() != "failed: sentinel" {
 			t.Fatalf("unexpected message: %s", err)
 		}
@@ -1038,8 +1039,8 @@ func TestErrorf(t *testing.T) {
 		}
 	})
 
-	t.Run("auto-index wrap {.wrap}", func(t *testing.T) {
-		err := Errorf("open {}: {.wrap}", "foo.txt", sentinel)
+	t.Run("auto-index wrap {:w}", func(t *testing.T) {
+		err := Errorf("open {}: {:w}", "foo.txt", sentinel)
 		if err.Error() != "open foo.txt: sentinel" {
 			t.Fatalf("unexpected message: %s", err)
 		}
@@ -1048,8 +1049,8 @@ func TestErrorf(t *testing.T) {
 		}
 	})
 
-	t.Run("named wrap {cause.wrap}", func(t *testing.T) {
-		err := Errorf("read {file}: {cause.wrap}", Named{"file": "bar.txt", "cause": sentinel})
+	t.Run("named wrap {cause:w}", func(t *testing.T) {
+		err := Errorf("read {file}: {cause:w}", Named{"file": "bar.txt", "cause": sentinel})
 		if err.Error() != "read bar.txt: sentinel" {
 			t.Fatalf("unexpected message: %s", err)
 		}
@@ -1061,7 +1062,7 @@ func TestErrorf(t *testing.T) {
 	t.Run("multiple wraps", func(t *testing.T) {
 		e1 := errors.New("e1")
 		e2 := errors.New("e2")
-		err := Errorf("{1.wrap} and {2.wrap}", e1, e2)
+		err := Errorf("{1:w} and {2:w}", e1, e2)
 		if !errors.Is(err, e1) {
 			t.Fatal("expected errors.Is to find e1")
 		}
@@ -1070,15 +1071,15 @@ func TestErrorf(t *testing.T) {
 		}
 	})
 
-	t.Run("wrap with chained modifier", func(t *testing.T) {
-		err := Errorf("msg: {1.wrap}", sentinel)
+	t.Run("wrap with positional spec", func(t *testing.T) {
+		err := Errorf("msg: {1:w}", sentinel)
 		if !errors.Is(err, sentinel) {
 			t.Fatal("expected wrapping")
 		}
 	})
 
 	t.Run("wrap on non-error value — no panic", func(t *testing.T) {
-		err := Errorf("value: {1.wrap}", "not an error")
+		err := Errorf("value: {1:w}", "not an error")
 		if err.Error() != "value: not an error" {
 			t.Fatalf("unexpected message: %s", err)
 		}
@@ -1101,7 +1102,7 @@ func TestErrorf(t *testing.T) {
 
 	t.Run("wrap nil error — no panic", func(t *testing.T) {
 		// nil is converted to "<nil>" string, so wrap should not match error interface
-		err := Errorf("err: {1.wrap}", nil)
+		err := Errorf("err: {1:w}", nil)
 		if err.Error() != "err: <nil>" {
 			t.Fatalf("unexpected message: %s", err)
 		}
@@ -1192,6 +1193,293 @@ func TestFormatMapOrdAccess(t *testing.T) {
 			result := Format(tt.template, tt.args...)
 			if result != String(tt.expected) {
 				t.Errorf("Test %s failed: expected %s, got %s", tt.name, tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestFormatSpec(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   string
+		args     []any
+		expected string
+	}{
+		// ── Verb: x (hex lowercase) ──
+		{name: "x int", format: "{:x}", args: []any{255}, expected: "ff"},
+		{name: "x zero", format: "{:x}", args: []any{0}, expected: "0"},
+		{name: "x negative", format: "{:x}", args: []any{-255}, expected: "-ff"},
+		{name: "x uint", format: "{:x}", args: []any{uint(255)}, expected: "ff"},
+		{name: "x uint8", format: "{:x}", args: []any{uint8(255)}, expected: "ff"},
+		{name: "x uint16", format: "{:x}", args: []any{uint16(1024)}, expected: "400"},
+		{name: "x uint32", format: "{:x}", args: []any{uint32(65535)}, expected: "ffff"},
+		{name: "x uint64", format: "{:x}", args: []any{uint64(0xdeadbeef)}, expected: "deadbeef"},
+		{name: "x int8", format: "{:x}", args: []any{int8(127)}, expected: "7f"},
+		{name: "x int16", format: "{:x}", args: []any{int16(256)}, expected: "100"},
+		{name: "x int32", format: "{:x}", args: []any{int32(255)}, expected: "ff"},
+		{name: "x int64", format: "{:x}", args: []any{int64(4096)}, expected: "1000"},
+		{name: "x g.Int", format: "{:x}", args: []any{Int(255)}, expected: "ff"},
+		{name: "x g.Int negative", format: "{:x}", args: []any{Int(-1)}, expected: "-1"},
+		{name: "x non-numeric", format: "{:x}", args: []any{"hello"}, expected: "hello"},
+
+		// ── Verb: X (hex uppercase) ──
+		{name: "X int", format: "{:X}", args: []any{255}, expected: "FF"},
+		{name: "X uint64", format: "{:X}", args: []any{uint64(0xabcdef)}, expected: "ABCDEF"},
+
+		// ── Verb: o (octal) ──
+		{name: "o int", format: "{:o}", args: []any{255}, expected: "377"},
+		{name: "o zero", format: "{:o}", args: []any{0}, expected: "0"},
+		{name: "o negative", format: "{:o}", args: []any{-8}, expected: "-10"},
+		{name: "o uint", format: "{:o}", args: []any{uint(8)}, expected: "10"},
+		{name: "o g.Int", format: "{:o}", args: []any{Int(255)}, expected: "377"},
+		{name: "o non-numeric", format: "{:o}", args: []any{"hello"}, expected: "hello"},
+
+		// ── Verb: b (binary) ──
+		{name: "b int", format: "{:b}", args: []any{42}, expected: "101010"},
+		{name: "b zero", format: "{:b}", args: []any{0}, expected: "0"},
+		{name: "b negative", format: "{:b}", args: []any{-5}, expected: "-101"},
+		{name: "b uint", format: "{:b}", args: []any{uint(255)}, expected: "11111111"},
+		{name: "b g.Int", format: "{:b}", args: []any{Int(42)}, expected: "101010"},
+		{name: "b non-numeric", format: "{:b}", args: []any{"hello"}, expected: "hello"},
+
+		// ── Verb: e/E (exponential) ──
+		{name: "e float64", format: "{:e}", args: []any{3.14}, expected: "3.140000e+00"},
+		{name: "E float64", format: "{:E}", args: []any{3.14}, expected: "3.140000E+00"},
+		{name: "e float32", format: "{:e}", args: []any{float32(3.14)}, expected: "3.140000e+00"},
+		{name: "e g.Float", format: "{:e}", args: []any{Float(3.14)}, expected: "3.140000e+00"},
+		{name: "e int", format: "{:e}", args: []any{100}, expected: "1.000000e+02"},
+		{name: "e precision", format: "{:.2e}", args: []any{3.14159}, expected: "3.14e+00"},
+		{name: "E precision", format: "{:.2E}", args: []any{3.14159}, expected: "3.14E+00"},
+		{name: "e precision 0", format: "{:.0e}", args: []any{3.14}, expected: "3e+00"},
+		{name: "e negative", format: "{:e}", args: []any{-3.14}, expected: "-3.140000e+00"},
+		{name: "e with sign", format: "{:+e}", args: []any{3.14}, expected: "+3.140000e+00"},
+		{name: "e non-numeric", format: "{:e}", args: []any{"hello"}, expected: "hello"},
+
+		// ── Verb: ? (debug) ──
+		{name: "debug string", format: "{:?}", args: []any{"hello"}, expected: `"hello"`},
+		{name: "debug int", format: "{:?}", args: []any{42}, expected: "42"},
+		{name: "debug nil", format: "{:?}", args: []any{(*int)(nil)}, expected: "(*int)(nil)"},
+		{name: "debug slice", format: "{:?}", args: []any{[]int{1, 2, 3}}, expected: "[]int{1, 2, 3}"},
+		{name: "debug map", format: "{:?}", args: []any{map[string]int{"a": 1}}, expected: `map[string]int{"a":1}`},
+
+		// ── Verb: #? (pretty debug) ──
+		{
+			name:     "pretty debug",
+			format:   "{:#?}",
+			args:     []any{struct{ X int }{42}},
+			expected: "struct {\n   X int \n}{\n  X:42\n}",
+		},
+		{
+			name:     "pretty debug strings",
+			format:   "{:#?}",
+			args:     []any{struct{ A, B string }{"hi", "bye"}},
+			expected: "struct {\n   A string; B string \n}{\n  A:\"hi\",\n   B:\"bye\"\n}",
+		},
+
+		// ── Verb: T (type) ──
+		{name: "T int", format: "{:T}", args: []any{42}, expected: "int"},
+		{name: "T string", format: "{:T}", args: []any{"hello"}, expected: "string"},
+		{name: "T g.Int", format: "{:T}", args: []any{Int(1)}, expected: "g.Int"},
+		{name: "T g.String", format: "{:T}", args: []any{String("s")}, expected: "g.String"},
+		{name: "T g.Float", format: "{:T}", args: []any{Float(1)}, expected: "g.Float"},
+		{name: "T slice", format: "{:T}", args: []any{[]int{1}}, expected: "[]int"},
+
+		// ── Verb: p (pointer) ──
+		{name: "pointer", format: "{:p}", args: []any{&struct{}{}}},
+
+		// ── Alternate form (#) ──
+		{name: "#x", format: "{:#x}", args: []any{255}, expected: "0xff"},
+		{name: "#X", format: "{:#X}", args: []any{255}, expected: "0xFF"},
+		{name: "#o", format: "{:#o}", args: []any{255}, expected: "0o377"},
+		{name: "#b", format: "{:#b}", args: []any{42}, expected: "0b101010"},
+		{name: "#x zero", format: "{:#x}", args: []any{0}, expected: "0x0"},
+		{name: "#x negative", format: "{:#x}", args: []any{-255}, expected: "-0xff"},
+		{name: "#x uint", format: "{:#x}", args: []any{uint(255)}, expected: "0xff"},
+		{name: "#x g.Int", format: "{:#x}", args: []any{Int(255)}, expected: "0xff"},
+
+		// ── Alignment: > (right) ──
+		{name: "> string", format: "{:>10}", args: []any{"hello"}, expected: "     hello"},
+		{name: "> int", format: "{:>10}", args: []any{42}, expected: "        42"},
+		{name: "> exact width", format: "{:>5}", args: []any{"hello"}, expected: "hello"},
+		{name: "> content wider", format: "{:>3}", args: []any{"hello"}, expected: "hello"},
+
+		// ── Alignment: < (left) ──
+		{name: "< string", format: "{:<10}", args: []any{"hello"}, expected: "hello     "},
+		{name: "< int", format: "{:<10}", args: []any{42}, expected: "42        "},
+
+		// ── Alignment: ^ (center) ──
+		{name: "^ string", format: "{:^10}", args: []any{"hello"}, expected: "  hello   "},
+		{name: "^ even", format: "{:^6}", args: []any{"ab"}, expected: "  ab  "},
+		{name: "^ odd", format: "{:^7}", args: []any{"ab"}, expected: "  ab   "},
+
+		// ── Fill + alignment ──
+		{name: "fill - center", format: "{:-^20}", args: []any{"hello"}, expected: "-------hello--------"},
+		{name: "fill * right", format: "{:*>10}", args: []any{"hi"}, expected: "********hi"},
+		{name: "fill . left", format: "{:.<10}", args: []any{"hi"}, expected: "hi........"},
+		{name: "fill = center", format: "{:=^10}", args: []any{"hi"}, expected: "====hi===="},
+		{name: "fill 0 left", format: "{:0<10}", args: []any{"hi"}, expected: "hi00000000"},
+
+		// ── Default alignment (no explicit align) ──
+		{name: "default string left", format: "{:10}", args: []any{"hi"}, expected: "hi        "},
+		{name: "default int right", format: "{:10}", args: []any{42}, expected: "        42"},
+		{name: "default float right", format: "{:10}", args: []any{3.14}, expected: "      3.14"},
+		{name: "default g.Int right", format: "{:10}", args: []any{Int(42)}, expected: "        42"},
+
+		// ── Precision ──
+		{name: "prec float .2", format: "{:.2}", args: []any{3.14159}, expected: "3.14"},
+		{name: "prec float .0", format: "{:.0}", args: []any{3.14159}, expected: "3"},
+		{name: "prec float .4", format: "{:.4}", args: []any{3.14159}, expected: "3.1416"},
+		{name: "prec float .10", format: "{:.10}", args: []any{3.14}, expected: "3.1400000000"},
+		{name: "prec g.Float .2", format: "{:.2}", args: []any{Float(3.14159)}, expected: "3.14"},
+		{name: "prec float32 .2", format: "{:.2}", args: []any{float32(3.14)}, expected: "3.14"},
+		{name: "prec negative float", format: "{:.2}", args: []any{-3.14159}, expected: "-3.14"},
+		{name: "prec string truncate", format: "{:.3}", args: []any{"hello"}, expected: "hel"},
+		{name: "prec string no trunc", format: "{:.10}", args: []any{"hello"}, expected: "hello"},
+		{name: "prec string exact", format: "{:.5}", args: []any{"hello"}, expected: "hello"},
+		{name: "prec string zero", format: "{:.0}", args: []any{"hello"}, expected: ""},
+		{name: "prec unicode trunc", format: "{:.3}", args: []any{"привет"}, expected: "при"},
+
+		// ── Sign ──
+		{name: "sign + positive int", format: "{:+}", args: []any{42}, expected: "+42"},
+		{name: "sign + negative int", format: "{:+}", args: []any{-42}, expected: "-42"},
+		{name: "sign + zero", format: "{:+}", args: []any{0}, expected: "+0"},
+		{name: "sign + positive float", format: "{:+.2}", args: []any{3.14}, expected: "+3.14"},
+		{name: "sign + negative float", format: "{:+.2}", args: []any{-3.14}, expected: "-3.14"},
+		{name: "sign + g.Int", format: "{:+}", args: []any{Int(42)}, expected: "+42"},
+		{name: "sign + g.Float", format: "{:+.1}", args: []any{Float(3.14)}, expected: "+3.1"},
+		{name: "sign space positive", format: "{: }", args: []any{42}, expected: " 42"},
+		{name: "sign space negative", format: "{: }", args: []any{-42}, expected: "-42"},
+		{name: "sign space float", format: "{: .2}", args: []any{3.14}, expected: " 3.14"},
+		{name: "sign + hex", format: "{:+x}", args: []any{255}, expected: "+ff"},
+		{name: "sign + octal", format: "{:+o}", args: []any{255}, expected: "+377"},
+		{name: "sign + binary", format: "{:+b}", args: []any{42}, expected: "+101010"},
+
+		// ── Zero-padding ──
+		{name: "0pad int", format: "{:05}", args: []any{42}, expected: "00042"},
+		{name: "0pad negative", format: "{:05}", args: []any{-42}, expected: "-0042"},
+		{name: "0pad +sign", format: "{:+05}", args: []any{42}, expected: "+0042"},
+		{name: "0pad #x", format: "{:#010x}", args: []any{255}, expected: "0x000000ff"},
+		{name: "0pad #X", format: "{:#010X}", args: []any{255}, expected: "0x000000FF"},
+		{name: "0pad #b", format: "{:#010b}", args: []any{42}, expected: "0b00101010"},
+		{name: "0pad #o", format: "{:#010o}", args: []any{255}, expected: "0o00000377"},
+		{name: "0pad binary", format: "{:08b}", args: []any{42}, expected: "00101010"},
+		{name: "0pad hex", format: "{:04x}", args: []any{15}, expected: "000f"},
+		{name: "0pad wider than needed", format: "{:02}", args: []any{123}, expected: "123"},
+		{name: "0pad exact width", format: "{:03}", args: []any{123}, expected: "123"},
+		{name: "0pad g.Int", format: "{:05}", args: []any{Int(42)}, expected: "00042"},
+		{name: "0pad negative hex", format: "{:08x}", args: []any{-255}, expected: "-00000ff"},
+
+		// ── Width + verb combinations ──
+		{name: "width + hex right", format: "{:>10x}", args: []any{255}, expected: "        ff"},
+		{name: "width + hex left", format: "{:<10x}", args: []any{255}, expected: "ff        "},
+		{name: "width + binary center", format: "{:^10b}", args: []any{42}, expected: "  101010  "},
+		{name: "width + octal fill", format: "{:_>10o}", args: []any{255}, expected: "_______377"},
+		{name: "width + #x", format: "{:>#10x}", args: []any{255}, expected: "      0xff"},
+
+		// ── Width + precision ──
+		{name: "w+p float right", format: "{:>10.2}", args: []any{3.14159}, expected: "      3.14"},
+		{name: "w+p float left", format: "{:<10.2}", args: []any{3.14159}, expected: "3.14      "},
+		{name: "w+p float center", format: "{:^10.2}", args: []any{3.14159}, expected: "   3.14   "},
+		{name: "w+p float fill", format: "{:*>10.2}", args: []any{3.14159}, expected: "******3.14"},
+		{name: "w+p string trunc + pad", format: "{:>10.3}", args: []any{"hello"}, expected: "       hel"},
+		{name: "w+p sign + prec + width", format: "{:+10.2}", args: []any{3.14}, expected: "     +3.14"},
+
+		// ── g.Int / g.Float all verbs ──
+		{name: "g.Int octal", format: "{:o}", args: []any{Int(255)}, expected: "377"},
+		{name: "g.Int exponential", format: "{:e}", args: []any{Int(100)}, expected: "1.000000e+02"},
+		{name: "g.Int sign", format: "{:+}", args: []any{Int(42)}, expected: "+42"},
+		{name: "g.Int #x", format: "{:#x}", args: []any{Int(255)}, expected: "0xff"},
+		{name: "g.Float exponential", format: "{:e}", args: []any{Float(3.14)}, expected: "3.140000e+00"},
+		{name: "g.Float sign", format: "{:+}", args: []any{Float(3.14)}, expected: "+3.14"},
+
+		// ── Modifier + spec combinations ──
+		{name: "mod Abs + 0pad", format: "{1.Abs:05}", args: []any{Int(-42)}, expected: "00042"},
+		{name: "mod Upper + right", format: "{.Upper:>10}", args: []any{String("hello")}, expected: "     HELLO"},
+		{name: "mod chain + spec", format: "{.Trim.Upper:>10}", args: []any{String("  go  ")}, expected: "        GO"},
+		{name: "named + spec", format: "{num:x}", args: []any{Named{"num": 255}}, expected: "ff"},
+		{
+			name:     "named mod + spec",
+			format:   "{name.Upper:>10}",
+			args:     []any{Named{"name": String("go")}},
+			expected: "        GO",
+		},
+		{name: "fallback + spec", format: "{x?y:x}", args: []any{Named{"y": 255}}, expected: "ff"},
+
+		// ── Auto-index + spec ──
+		{name: "auto x and b", format: "{:x} and {:b}", args: []any{255, 42}, expected: "ff and 101010"},
+		{name: "auto multiple", format: "{:x} {:o} {:b}", args: []any{255, 255, 255}, expected: "ff 377 11111111"},
+		{name: "auto with plain", format: "{} {:x} {}", args: []any{"a", 255, "b"}, expected: "a ff b"},
+
+		// ── Same arg different specs ──
+		{
+			name:     "same arg multi spec",
+			format:   "{1:x} {1:o} {1:b} {1}",
+			args:     []any{255},
+			expected: "ff 377 11111111 255",
+		},
+
+		// ── Edge cases ──
+		{name: "empty spec", format: "{:}", args: []any{"hello"}, expected: "hello"},
+		{name: "empty spec int", format: "{:}", args: []any{42}, expected: "42"},
+		{
+			name:     "colon in parens",
+			format:   "{1.Format(15:04:05)}",
+			args:     []any{time.Date(2025, 1, 17, 14, 30, 45, 0, time.UTC)},
+			expected: "14:30:45",
+		},
+		{name: "+#x combined", format: "{:+#x}", args: []any{255}, expected: "+0xff"},
+		{name: " #x combined", format: "{: #x}", args: []any{255}, expected: " 0xff"},
+		{
+			name:     "spec on non-existent key",
+			format:   "{missing:x}",
+			args:     []any{Named{"other": 1}},
+			expected: "{missing}",
+		},
+		{name: "width 1 string", format: "{:1}", args: []any{"hello"}, expected: "hello"},
+		{name: "width 0", format: "{:0}", args: []any{"hello"}, expected: "hello"},
+
+		// ── parseFmtSpec: signMinus branch ──
+		{name: "sign - positive", format: "{:-}", args: []any{42}, expected: "42"},
+		{name: "sign - negative", format: "{:-}", args: []any{-42}, expected: "-42"},
+
+		// ── parseFmtSpec: precision dot with no digits ──
+		{name: "prec dot only float", format: "{:.}", args: []any{3.14}, expected: "3"},
+		{name: "prec dot only string", format: "{:.}", args: []any{"hello"}, expected: ""},
+
+		// ── fmtToInt64: uint types via sign path ──
+		{name: "sign + uint", format: "{:+}", args: []any{uint(42)}, expected: "+42"},
+		{name: "sign + uint16", format: "{:+}", args: []any{uint16(42)}, expected: "+42"},
+		{name: "sign + uint32", format: "{:+}", args: []any{uint32(42)}, expected: "+42"},
+		{name: "sign + uint64", format: "{:+}", args: []any{uint64(42)}, expected: "+42"},
+		{
+			name:     "sign + uint64 overflow",
+			format:   "{:+}",
+			args:     []any{uint64(math.MaxUint64)},
+			expected: "18446744073709551615",
+		},
+
+		// ── fmtToInt64: uint types via exponential path ──
+		{name: "e uint8", format: "{:e}", args: []any{uint8(1)}, expected: "1.000000e+00"},
+		{name: "e uint16", format: "{:e}", args: []any{uint16(100)}, expected: "1.000000e+02"},
+		{name: "e uint32", format: "{:e}", args: []any{uint32(100)}, expected: "1.000000e+02"},
+
+		// ── fmtToInt64: float types via intbase path ──
+		{name: "x Float", format: "{:x}", args: []any{Float(255)}, expected: "ff"},
+		{name: "x float32", format: "{:x}", args: []any{float32(255)}, expected: "ff"},
+		{name: "x float64", format: "{:x}", args: []any{float64(255)}, expected: "ff"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := Format(tt.format, tt.args...)
+			if tt.name == "pointer" {
+				if !strings.HasPrefix(string(result), "0x") {
+					t.Errorf("expected pointer format starting with 0x, got '%s'", result)
+				}
+				return
+			}
+			if string(result) != tt.expected {
+				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
 		})
 	}

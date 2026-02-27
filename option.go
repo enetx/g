@@ -35,6 +35,16 @@ func OptionOf[T any](value T, ok bool) Option[T] {
 	return None[T]()
 }
 
+// OptionFromPtr converts a pointer into an Option.
+// Returns None if ptr is nil.
+func OptionFromPtr[T any](ptr *T) Option[T] {
+	if ptr == nil {
+		return None[T]()
+	}
+
+	return Some(*ptr)
+}
+
 // TransformOption applies the given function to the value inside the Option, producing a new Option with the transformed value.
 // If the input Option is None, the output Option will also be None.
 // Parameters:
@@ -237,16 +247,6 @@ func (o Option[T]) OkOrElse(fn func() error) Result[T] {
 	}
 
 	return Err[T](fn())
-}
-
-// FromPtr converts a pointer into an Option.
-// Returns None if ptr is nil.
-func FromPtr[T any](ptr *T) Option[T] {
-	if ptr == nil {
-		return None[T]()
-	}
-
-	return Some(*ptr)
 }
 
 // Ptr returns a pointer to the contained value if Some.

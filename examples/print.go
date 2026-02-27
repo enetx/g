@@ -31,7 +31,7 @@ func main() {
 		Sub:   struct{ InnerField String }{InnerField: "innerValue"},
 	}
 
-	Print("Struct field: {1.Field}, Sub-Field: {1.Sub.InnerField.Upper}, {1.type}, {1.debug}\n", structExample)
+	Print("Struct field: {1.Field}, Sub-Field: {1.Sub.InnerField.Upper}, {1:T}, {1:?}\n", structExample)
 
 	// Methods
 	Print("{.SubString(0,-1,2).Center(9,=)}\n", String("somestring"))

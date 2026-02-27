@@ -74,13 +74,13 @@ func Eprintln[T ~string](format T, args ...any) Result[int] {
 }
 
 // Errorf formats according to a format specifier and returns it as an error.
-// If any argument is referenced via the {wrap} modifier, it is both displayed
+// If any argument is referenced via the {:w} format verb, it is both displayed
 // and wrapped into the returned error, making errors.Is and errors.As work
-// through the chain. Multiple {wrap} references wrap multiple errors (Go 1.20+).
+// through the chain. Multiple {:w} references wrap multiple errors (Go 1.20+).
 //
 // Example:
 //
-//	err := g.Errorf("could not open {1}: {2.wrap}", filename, err)
+//	err := g.Errorf("could not open {1}: {2:w}", filename, err)
 //	errors.Is(err, os.ErrNotExist) // true
 func Errorf[T ~string](format T, args ...any) error {
 	tmpl := String(format)
@@ -211,12 +211,24 @@ func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) 
 			eidx := idx + 1 + cidx
 			placeholder := tmpl[idx+1 : eidx]
 
+			// extract format spec before auto-index check
+			var fmtSuffix String
+			if ci := findUnparenColon(placeholder); ci >= 0 {
+				fmtSuffix = placeholder[ci:] // includes ':'
+				placeholder = placeholder[:ci]
+			}
+
 			trimmed := placeholder.Trim()
 			if trimmed.IsEmpty() || trimmed[0] == '.' {
 				autoidx++
 				if autoidx <= positional.Len() {
 					placeholder = autoidx.String() + trimmed
 				}
+			}
+
+			// re-attach format spec
+			if !fmtSuffix.IsEmpty() {
+				placeholder += fmtSuffix
 			}
 
 			replaced := processPlaceholder(placeholder, named, positional, wraps)
@@ -233,6 +245,9 @@ func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) 
 }
 
 func processPlaceholder(placeholder String, named Named, positional Slice[any], wraps *[]error) String {
+	// split off format spec
+	placeholder, formatSpec := splitFmtSpec(placeholder)
+
 	var (
 		keyfall String
 		mods    String
@@ -265,16 +280,23 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any], 
 			Exclude(f.IsZero).
 			ForEach(func(segment String) {
 				name, params := parseMod(segment)
-				if name == "wrap" {
-					if wraps != nil {
-						if err, ok := value.(error); ok {
-							*wraps = append(*wraps, err)
-						}
-					}
-					return
-				}
 				value = applyMod(value, name, params)
 			})
+	}
+
+	if !formatSpec.IsEmpty() {
+		spec := parseFmtSpec(formatSpec)
+		if spec.verb == 'w' {
+			if wraps != nil {
+				if err, ok := value.(error); ok {
+					*wraps = append(*wraps, err)
+				}
+			}
+
+			return String(fmt.Sprint(value))
+		}
+
+		return applyFmtSpec(value, spec)
 	}
 
 	return String(fmt.Sprint(value))
@@ -498,13 +520,6 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 }
 
 func applyMod(value any, name String, params Slice[String]) any {
-	switch name {
-	case "type":
-		return fmt.Sprintf("%T", value)
-	case "debug":
-		return fmt.Sprintf("%#v", value)
-	}
-
 	current := reflect.ValueOf(value)
 
 	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
