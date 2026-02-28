@@ -8,6 +8,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/enetx/g)](https://goreportcard.com/report/github.com/enetx/g)
 [![Coverage Status](https://coveralls.io/repos/github/enetx/g/badge.svg?branch=main&service=github)](https://coveralls.io/github/enetx/g?branch=main)
 [![Go](https://github.com/enetx/g/actions/workflows/go.yml/badge.svg)](https://github.com/enetx/g/actions/workflows/go.yml)
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/enetx/g)
 
 ```bash
