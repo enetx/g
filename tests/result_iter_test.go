@@ -9,6 +9,135 @@ import (
 	"github.com/enetx/g/pool"
 )
 
+func TestOkSeq(t *testing.T) {
+	t.Run("yields single Ok value", func(t *testing.T) {
+		seq := OkSeq(42)
+		collected := seq.Ok().Collect()
+
+		if len(collected) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(collected))
+		}
+		if collected[0] != 42 {
+			t.Errorf("expected 42, got %d", collected[0])
+		}
+	})
+
+	t.Run("no errors", func(t *testing.T) {
+		seq := OkSeq(42)
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsSome() {
+			t.Errorf("expected no error, got %v", firstErr.Some())
+		}
+	})
+
+	t.Run("string value", func(t *testing.T) {
+		seq := OkSeq("hello")
+		collected := seq.Ok().Collect()
+
+		if len(collected) != 1 || collected[0] != "hello" {
+			t.Errorf("expected [hello], got %v", collected)
+		}
+	})
+
+	t.Run("partition gives one ok, zero errors", func(t *testing.T) {
+		seq := OkSeq(99)
+		okVals, errVals := seq.Partition()
+
+		if len(okVals) != 1 || okVals[0] != 99 {
+			t.Errorf("expected ok=[99], got %v", okVals)
+		}
+		if len(errVals) != 0 {
+			t.Errorf("expected no errors, got %v", errVals)
+		}
+	})
+
+	t.Run("chainable with other SeqResult", func(t *testing.T) {
+		seq1 := OkSeq(1)
+		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		collected := seq1.Chain(seq2).Ok().Collect()
+		want := []int{1, 2, 3}
+
+		if len(collected) != len(want) {
+			t.Fatalf("expected %d items, got %d", len(want), len(collected))
+		}
+		for i, v := range collected {
+			if v != want[i] {
+				t.Errorf("index %d: want %d, got %d", i, want[i], v)
+			}
+		}
+	})
+}
+
+func TestErrSeq(t *testing.T) {
+	t.Run("yields single Err value", func(t *testing.T) {
+		seq := ErrSeq[int](errors.New("something went wrong"))
+		firstErr := seq.FirstErr()
+
+		if firstErr.IsNone() {
+			t.Fatal("expected Some(error), got None")
+		}
+		if firstErr.Some().Error() != "something went wrong" {
+			t.Errorf("expected 'something went wrong', got %q", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("no Ok values", func(t *testing.T) {
+		seq := ErrSeq[int](errors.New("fail"))
+		collected := seq.Ok().Collect()
+
+		if len(collected) != 0 {
+			t.Errorf("expected no Ok values, got %d", len(collected))
+		}
+	})
+
+	t.Run("partition gives zero ok, one error", func(t *testing.T) {
+		seq := ErrSeq[string](errors.New("oops"))
+		okVals, errVals := seq.Partition()
+
+		if len(okVals) != 0 {
+			t.Errorf("expected no Ok values, got %v", okVals)
+		}
+		if len(errVals) != 1 || errVals[0].Error() != "oops" {
+			t.Errorf("expected errors=[oops], got %v", errVals)
+		}
+	})
+
+	t.Run("nil error", func(t *testing.T) {
+		seq := ErrSeq[int](nil)
+		collected := seq.Collect()
+
+		if len(collected) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(collected))
+		}
+		if !collected[0].IsErr() {
+			t.Errorf("expected Err, got Ok(%v)", collected[0].Ok())
+		}
+	})
+
+	t.Run("error stops only current seq in chain", func(t *testing.T) {
+		errSeq := ErrSeq[int](errors.New("early exit"))
+		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+		})
+
+		// errSeq stops itself, but seq2 is still visited by Chain's outer loop
+		okVals, errVals := errSeq.Chain(seq2).Partition()
+
+		if len(okVals) != 2 {
+			t.Errorf("expected 2 Ok values from seq2, got %v", okVals)
+		}
+		if len(errVals) != 1 || errVals[0].Error() != "early exit" {
+			t.Errorf("expected error 'early exit', got %v", errVals)
+		}
+	})
+}
+
 func TestSeqResultAll(t *testing.T) {
 	t.Run("all pass, no error", func(t *testing.T) {
 		seq := SeqResult[int](func(yield func(Result[int]) bool) {

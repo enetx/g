@@ -11,6 +11,28 @@ import (
 // SeqResult is an iterator over sequences of Result[V] values.
 type SeqResult[V any] iter.Seq[Result[V]]
 
+// OkSeq wraps a single Ok value into a SeqResult iterator.
+// Useful for returning a successful single-element sequence without manually
+// constructing the yield function.
+//
+// Example:
+//
+//	return OkSeq(42)
+func OkSeq[V any](v V) SeqResult[V] {
+	return func(yield func(Result[V]) bool) { yield(Ok(v)) }
+}
+
+// ErrSeq wraps a single error into a SeqResult iterator.
+// Useful for early returns in functions that produce a SeqResult,
+// where a plain error needs to be lifted into the sequence type.
+//
+// Example:
+//
+//	return ErrSeq[int](errors.New("something went wrong"))
+func ErrSeq[V any](err error) SeqResult[V] {
+	return func(yield func(Result[V]) bool) { yield(Err[V](err)) }
+}
+
 // Pull converts the “push-style” sequence of Result[V] into a “pull-style” iterator accessed by two functions: next and stop.
 //
 // The next function returns the next Result[V] in the sequence and a boolean indicating whether the value is valid.
