@@ -16,6 +16,20 @@ type SeqSlice[V any] iter.Seq[V]
 // SeqSlices is an iterator over slices of sequences of individual values.
 type SeqSlices[V any] iter.Seq[[]V]
 
+// Flatten flattens SeqSlice[E] where E is a slice type into SeqSlice[T].
+func Flatten[T any, E ~[]T](seq SeqSlice[E]) SeqSlice[T] {
+	return func(yield func(T) bool) {
+		seq(func(slice E) bool {
+			for _, item := range slice {
+				if !yield(item) {
+					return false
+				}
+			}
+			return true
+		})
+	}
+}
+
 // Range returns a SeqSlice[T] yielding a sequence of integers of type T,
 // starting at start, incrementing by step, and ending before stop (exclusive).
 //

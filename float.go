@@ -123,7 +123,7 @@ func (f Float) Lte(b Float) bool { return !f.Gt(b) }
 func (f Float) Int() Int { return Int(f) }
 
 // String returns the Float as an String.
-func (f Float) String() String { return String(strconv.FormatFloat(f.Std(), 'g', -1, 64)) }
+func (f Float) String() String { return String(strconv.FormatFloat(f.Std(), 'f', -1, 64)) }
 
 // Lt checks if the Float is less than the specified Float.
 func (f Float) Lt(b Float) bool { return f.Cmp(b).IsLt() }

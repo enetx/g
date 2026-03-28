@@ -33,6 +33,27 @@ func ErrSeq[V any](err error) SeqResult[V] {
 	return func(yield func(Result[V]) bool) { yield(Err[V](err)) }
 }
 
+// FlattenResult flattens SeqResult[E] where E is a slice type into SeqResult[T].
+// If an Err is encountered, it is propagated downstream and iteration stops.
+func FlattenResult[T any, E ~[]T](seq SeqResult[E]) SeqResult[T] {
+	return func(yield func(Result[T]) bool) {
+		seq(func(v Result[E]) bool {
+			if v.IsErr() {
+				yield(Err[T](v.err))
+				return false
+			}
+
+			for _, item := range v.v {
+				if !yield(Ok(item)) {
+					return false
+				}
+			}
+
+			return true
+		})
+	}
+}
+
 // Pull converts the “push-style” sequence of Result[V] into a “pull-style” iterator accessed by two functions: next and stop.
 //
 // The next function returns the next Result[V] in the sequence and a boolean indicating whether the value is valid.
