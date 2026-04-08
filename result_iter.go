@@ -34,21 +34,20 @@ func ErrSeq[V any](err error) SeqResult[V] {
 }
 
 // FlattenResult flattens SeqResult[E] where E is a slice type into SeqResult[T].
-// If an Err is encountered, it is propagated downstream and iteration stops.
 func FlattenResult[T any, E ~[]T](seq SeqResult[E]) SeqResult[T] {
 	return func(yield func(Result[T]) bool) {
 		seq(func(v Result[E]) bool {
 			if v.IsErr() {
-				yield(Err[T](v.err))
-				return false
+				if !yield(Err[T](v.err)) {
+					return false
+				}
+				return true
 			}
-
 			for _, item := range v.v {
 				if !yield(Ok(item)) {
 					return false
 				}
 			}
-
 			return true
 		})
 	}
