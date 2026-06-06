@@ -57,12 +57,6 @@ func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 	return Err[U](r.err)
 }
 
-// MapResult applies the given function to the contained Ok value, producing a new Result
-// holding the transformed value. If the input Result is Err, the error is propagated.
-// It is the cross-type plain-map free function for Result, mirroring MapOption for Option;
-// it is an alias for TransformResult.
-func MapResult[T, U any](r Result[T], fn func(T) U) Result[U] { return TransformResult(r, fn) }
-
 // Ok returns the value held in the Result.
 //
 // WARNING: If the Result contains an error, this method will return the zero value

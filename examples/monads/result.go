@@ -81,7 +81,7 @@ func main() {
 		fmt.Println("Error:", resultFloat.Err()) // Output: Error: division by zero
 	}
 
-	// Example 5: Converting a string to an integer using MapResult and MapToResult
+	// Example 5: Converting a string to an integer using TransformResult and TransformResultOf
 
 	// Define a string containing a valid integer
 	str := "123"

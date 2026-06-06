@@ -551,38 +551,3 @@ func TestResultInspect(t *testing.T) {
 		}
 	})
 }
-
-func TestMapResult(t *testing.T) {
-	t.Run("Ok maps the value", func(t *testing.T) {
-		out := MapResult(Ok(21), func(v int) string {
-			return fmt.Sprintf("v=%d", v*2)
-		})
-
-		if out.IsErr() {
-			t.Fatalf("MapResult(Ok) should be Ok, got err %v", out.Err())
-		}
-		if out.Ok() != "v=42" {
-			t.Errorf("MapResult got %q, want %q", out.Ok(), "v=42")
-		}
-	})
-
-	t.Run("Err propagates", func(t *testing.T) {
-		err := errors.New("boom")
-		out := MapResult(Err[int](err), func(v int) string { return fmt.Sprintf("%d", v) })
-		if out.IsOk() {
-			t.Fatal("MapResult(Err) should be Err")
-		}
-		if !errors.Is(out.Err(), err) {
-			t.Errorf("MapResult should propagate the original error, got %v", out.Err())
-		}
-	})
-
-	t.Run("Matches TransformResult", func(t *testing.T) {
-		fn := func(v int) int { return v + 1 }
-		a := MapResult(Ok(1), fn)
-		b := TransformResult(Ok(1), fn)
-		if a.Ok() != b.Ok() {
-			t.Error("MapResult should equal TransformResult")
-		}
-	})
-}
