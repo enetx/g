@@ -1,5 +1,5 @@
 package rlimit
 
-// RlimitStack is used to adjust the maximum number of worker goroutines, taking into account the
-// system's file descriptor limit.
+// RlimitStack adjusts the maximum number of worker goroutines based on the system's
+// open-file-descriptor limit. Windows has no RLIMIT_NOFILE, so the count is unchanged.
 func RlimitStack(workers int) int { return workers }

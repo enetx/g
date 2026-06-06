@@ -7,9 +7,17 @@ type shash struct{ str String }
 func (s String) Hash() shash { return shash{s} }
 
 // MD5 computes the MD5 hash of the wrapped String and returns the hash as hex-encoded String.
+//
+// WARNING: MD5 is cryptographically broken and is NOT a security primitive.
+// Do not use it for passwords, signatures, or integrity against an adversary.
+// Use it only for checksums or legacy interop.
 func (sh shash) MD5() String { return sh.str.BytesUnsafe().Hash().MD5().StringUnsafe() }
 
 // SHA1 computes the SHA1 hash of the wrapped String and returns the hash as hex-encoded String.
+//
+// WARNING: SHA1 is cryptographically broken (collision attacks are practical) and
+// is NOT a security primitive. Do not use it for signatures or integrity against
+// an adversary. Use SHA256/SHA512 instead.
 func (sh shash) SHA1() String { return sh.str.BytesUnsafe().Hash().SHA1().StringUnsafe() }
 
 // SHA256 computes the SHA256 hash of the wrapped String and returns the hash as hex-encoded String.
@@ -31,9 +39,15 @@ func (sh shash) HMACSHA512(key String) String {
 }
 
 // MD5Raw computes the MD5 hash of the wrapped String and returns the raw digest as Bytes.
+//
+// WARNING: MD5 is cryptographically broken and is NOT a security primitive.
+// Use it only for checksums or legacy interop, never for security.
 func (sh shash) MD5Raw() Bytes { return sh.str.BytesUnsafe().Hash().MD5Raw() }
 
 // SHA1Raw computes the SHA1 hash of the wrapped String and returns the raw digest as Bytes.
+//
+// WARNING: SHA1 is cryptographically broken and is NOT a security primitive.
+// Use SHA256/SHA512 instead for any security-sensitive purpose.
 func (sh shash) SHA1Raw() Bytes { return sh.str.BytesUnsafe().Hash().SHA1Raw() }
 
 // SHA256Raw computes the SHA256 hash of the wrapped String and returns the raw digest as Bytes.

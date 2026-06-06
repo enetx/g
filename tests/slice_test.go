@@ -1623,3 +1623,100 @@ func TestSliceAppend(t *testing.T) {
 		t.Errorf("Append to empty: expected length %d, got %d", len(expected3), len(result3))
 	}
 }
+
+func TestSliceGet(t *testing.T) {
+	tests := []struct {
+		name    string
+		slice   Slice[int]
+		index   Int
+		wantOk  bool
+		wantVal int
+	}{
+		{name: "first", slice: Slice[int]{10, 20, 30}, index: 0, wantOk: true, wantVal: 10},
+		{name: "middle", slice: Slice[int]{10, 20, 30}, index: 1, wantOk: true, wantVal: 20},
+		{name: "last", slice: Slice[int]{10, 20, 30}, index: 2, wantOk: true, wantVal: 30},
+		{name: "negative -1", slice: Slice[int]{10, 20, 30}, index: -1, wantOk: true, wantVal: 30},
+		{name: "negative -3", slice: Slice[int]{10, 20, 30}, index: -3, wantOk: true, wantVal: 10},
+		// M1: Get(Len()) must return None, not panic.
+		{name: "index == len", slice: Slice[int]{10, 20, 30}, index: 3, wantOk: false},
+		{name: "index > len", slice: Slice[int]{10, 20, 30}, index: 99, wantOk: false},
+		{name: "negative out of range", slice: Slice[int]{10, 20, 30}, index: -4, wantOk: false},
+		{name: "empty slice", slice: Slice[int]{}, index: 0, wantOk: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.slice.Get(tt.index)
+			if got.IsSome() != tt.wantOk {
+				t.Fatalf("Get(%d).IsSome() = %v; want %v", tt.index, got.IsSome(), tt.wantOk)
+			}
+			if tt.wantOk && got.Some() != tt.wantVal {
+				t.Errorf("Get(%d) = %d; want %d", tt.index, got.Some(), tt.wantVal)
+			}
+		})
+	}
+}
+
+func TestSliceGetAtLenNoPanic(t *testing.T) {
+	// M1 verification: Get(Len()) on a non-empty slice must not panic and must be None.
+	sl := Slice[int]{1, 2, 3}
+	got := sl.Get(sl.Len())
+	if got.IsSome() {
+		t.Fatalf("Get(Len()) = %v; want None", got)
+	}
+}
+
+func TestSliceReplacePanicReversedRange(t *testing.T) {
+	// M2: Replace with i > j must panic, not silently empty the slice.
+	tests := []struct {
+		name string
+		i, j Int
+	}{
+		{name: "i>j middle", i: 3, j: 1},
+		{name: "i>j adjacent", i: 2, j: 1},
+		{name: "negative reversed", i: -1, j: -3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("Replace(%d, %d) did not panic on reversed range", tt.i, tt.j)
+				}
+			}()
+			sl := Slice[string]{"a", "b", "c", "d"}
+			sl.Replace(tt.i, tt.j, "x")
+		})
+	}
+}
+
+func TestSliceSubSliceEmptyReturnsFreshSlice(t *testing.T) {
+	// L-SL1: SubSlice on an empty receiver must return a fresh slice, not the receiver.
+	empty := Slice[int]{}
+	out := empty.SubSlice(0, 0)
+	if !out.IsEmpty() {
+		t.Fatalf("expected empty result, got %v", out)
+	}
+
+	// Mutating the result must never alias the receiver's backing array.
+	out = out.Append(1, 2, 3)
+	if !empty.IsEmpty() {
+		t.Errorf("expected receiver to stay empty, got %v", empty)
+	}
+}
+
+func TestSliceMaxByEmpty(t *testing.T) {
+	// Documented behavior: MaxBy on empty returns the zero value of T.
+	var s Slice[int]
+	if got := s.MaxBy(cmp.Cmp); got != 0 {
+		t.Errorf("MaxBy(empty) = %d; want 0 (zero value)", got)
+	}
+}
+
+func TestSliceMinByEmpty(t *testing.T) {
+	// Documented behavior: MinBy on empty returns the zero value of T.
+	var s Slice[int]
+	if got := s.MinBy(cmp.Cmp); got != 0 {
+		t.Errorf("MinBy(empty) = %d; want 0 (zero value)", got)
+	}
+}

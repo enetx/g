@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
@@ -381,6 +382,116 @@ func TestLte(t *testing.T) {
 	if !f.Lte(3.14)(3.14) {
 		t.Errorf("Test case 2: Expected true, got false")
 	}
+}
+
+func TestMatch_NamedTypes(t *testing.T) {
+	pattern := regexp.MustCompile(`^\d+$`)
+
+	t.Run("g.String matches", func(t *testing.T) {
+		matchString := f.Match[g.String](pattern)
+		if !matchString(g.String("12345")) {
+			t.Errorf("Match[g.String](%q) = false, want true", "12345")
+		}
+		if matchString(g.String("12a45")) {
+			t.Errorf("Match[g.String](%q) = true, want false", "12a45")
+		}
+	})
+
+	t.Run("g.Bytes matches", func(t *testing.T) {
+		matchBytes := f.Match[g.Bytes](pattern)
+		if !matchBytes(g.Bytes("12345")) {
+			t.Errorf("Match[g.Bytes](%q) = false, want true", "12345")
+		}
+		if matchBytes(g.Bytes("12a45")) {
+			t.Errorf("Match[g.Bytes](%q) = true, want false", "12a45")
+		}
+	})
+
+	t.Run("base []byte matches", func(t *testing.T) {
+		matchBytes := f.Match[[]byte](pattern)
+		if !matchBytes([]byte("12345")) {
+			t.Errorf("Match[[]byte](%q) = false, want true", "12345")
+		}
+		if matchBytes([]byte("nope")) {
+			t.Errorf("Match[[]byte](%q) = true, want false", "nope")
+		}
+	})
+}
+
+func TestNot(t *testing.T) {
+	isEven := func(i int) bool { return i%2 == 0 }
+	isOdd := f.Not(isEven)
+
+	tests := []struct {
+		name  string
+		input int
+		want  bool
+	}{
+		{"odd is not even", 3, true},
+		{"even is even", 4, false},
+		{"zero is even", 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isOdd(tt.input)
+			if got != tt.want {
+				t.Errorf("Not(isEven)(%d) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestAnd(t *testing.T) {
+	t.Run("all true", func(t *testing.T) {
+		pred := f.And(f.Gt(0), f.Lt(10))
+		if !pred(5) {
+			t.Errorf("And(Gt(0), Lt(10))(5) = false, want true")
+		}
+	})
+
+	t.Run("one false short-circuits", func(t *testing.T) {
+		pred := f.And(f.Gt(0), f.Lt(10))
+		if pred(15) {
+			t.Errorf("And(Gt(0), Lt(10))(15) = true, want false")
+		}
+		if pred(-1) {
+			t.Errorf("And(Gt(0), Lt(10))(-1) = true, want false")
+		}
+	})
+
+	t.Run("no predicates is true", func(t *testing.T) {
+		pred := f.And[int]()
+		if !pred(42) {
+			t.Errorf("And()(42) = false, want true")
+		}
+	})
+}
+
+func TestOr(t *testing.T) {
+	t.Run("any true", func(t *testing.T) {
+		pred := f.Or(f.Lt(0), f.Gt(10))
+		if !pred(15) {
+			t.Errorf("Or(Lt(0), Gt(10))(15) = false, want true")
+		}
+		if !pred(-5) {
+			t.Errorf("Or(Lt(0), Gt(10))(-5) = false, want true")
+		}
+	})
+
+	t.Run("all false", func(t *testing.T) {
+		pred := f.Or(f.Lt(0), f.Gt(10))
+		if pred(5) {
+			t.Errorf("Or(Lt(0), Gt(10))(5) = true, want false")
+		}
+	})
+
+	t.Run("no predicates is false", func(t *testing.T) {
+		pred := f.Or[int]()
+		if pred(42) {
+			t.Errorf("Or()(42) = true, want false")
+		}
+	})
 }
 
 func TestFilterRxMatch(t *testing.T) {

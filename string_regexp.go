@@ -12,16 +12,17 @@ type regexps struct{ str String }
 // Regexp wraps a String into an re struct to provide regex-related methods.
 func (s String) Regexp() regexps { return regexps{s} }
 
-// Find searches the String for the first occurrence of the regulare xpression pattern
+// Find searches the String for the first occurrence of the regular expression pattern
 // and returns an Option[String] containing the matched substring.
-// If no match is found, it returns None.
+// A genuine empty match (e.g. patterns like `\d*`, `a*`, or `^`) returns Some(""),
+// while the absence of any match returns None.
 func (r regexps) Find(pattern *regexp.Regexp) Option[String] {
-	result := String(pattern.FindString(r.str.Std()))
-	if result.IsEmpty() {
+	loc := pattern.FindStringIndex(r.str.Std())
+	if loc == nil {
 		return None[String]()
 	}
 
-	return Some(result)
+	return Some(r.str[loc[0]:loc[1]])
 }
 
 // Replace replaces all occurrences of the regular expression matches in the String

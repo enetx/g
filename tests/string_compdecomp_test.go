@@ -66,6 +66,27 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	}
 }
 
+func TestFlateLevelClamp(t *testing.T) {
+	inputData := String("hello world, the quick brown fox jumps over the lazy dog")
+
+	// Levels outside flate's valid [-2, 9] range must not panic and must still
+	// round-trip; the level is clamped internally.
+	levels := []int{-100, -3, -2, 0, 5, 9, 10, 1000}
+
+	for _, lvl := range levels {
+		compressed := inputData.Compress().Flate(lvl)
+		decompressed := compressed.Decompress().Flate()
+
+		if decompressed.IsErr() {
+			t.Fatalf("Flate(%d): decompression error: %v", lvl, decompressed.Err())
+		}
+
+		if decompressed.Unwrap().Ne(inputData) {
+			t.Errorf("Flate(%d): round trip mismatch, got %q", lvl, decompressed.Unwrap())
+		}
+	}
+}
+
 // go test -bench=. -benchmem -count=4
 
 var alice = String(

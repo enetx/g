@@ -194,6 +194,114 @@ func (seqs SeqSlices[V]) Collect() []Slice[V] {
 	return collection
 }
 
+// Map transforms each group (sub-slice) in the iterator using the given function.
+//
+// The function creates a new lazy iterator by applying the provided function to each
+// group produced by the original iterator, preserving the streaming pipeline.
+//
+// Params:
+//
+// - fn (func(Slice[V]) Slice[V]): The function used to transform each group.
+//
+// Returns:
+//
+// - SeqSlices[V]: An iterator yielding the transformed groups.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4}
+//	doubled := slice.Iter().
+//		Chunks(2).
+//		Map(func(chunk g.Slice[int]) g.Slice[int] {
+//			return chunk.Iter().Map(func(v int) int { return v * 2 }).Collect()
+//		}).
+//		Collect()
+//	// Output: [Slice[2, 4] Slice[6, 8]]
+func (seqs SeqSlices[V]) Map(fn func(Slice[V]) Slice[V]) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		seqs(func(v []V) bool {
+			return yield(fn(Slice[V](v)))
+		})
+	}
+}
+
+// Filter returns a new iterator containing only the groups (sub-slices) that satisfy
+// the provided function.
+//
+// The function applies the provided function to each group produced by the original
+// iterator. If the function returns true for a group, that group is included in the
+// resulting iterator.
+//
+// Params:
+//
+// - fn (func(Slice[V]) bool): The predicate applied to each group.
+//
+// Returns:
+//
+// - SeqSlices[V]: An iterator yielding the groups that satisfy the given condition.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
+//	pairs := slice.Iter().
+//		Chunks(2).
+//		Filter(func(chunk g.Slice[int]) bool { return chunk.Len() == 2 }).
+//		Collect()
+func (seqs SeqSlices[V]) Filter(fn func(Slice[V]) bool) SeqSlices[V] {
+	return func(yield func([]V) bool) {
+		seqs(func(v []V) bool {
+			if fn(Slice[V](v)) {
+				return yield(v)
+			}
+			return true
+		})
+	}
+}
+
+// ForEach iterates through all groups (sub-slices) and applies the given function to each.
+//
+// Params:
+//
+// - fn (func(Slice[V])): The function to apply to each group.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4}
+//	slice.Iter().Chunks(2).ForEach(func(chunk g.Slice[int]) {
+//		fmt.Println(chunk)
+//	})
+func (seqs SeqSlices[V]) ForEach(fn func(s Slice[V])) {
+	seqs(func(v []V) bool {
+		fn(Slice[V](v))
+		return true
+	})
+}
+
+// Flatten flattens the iterator of groups (sub-slices) into a single SeqSlice[V],
+// yielding the elements of each group in order.
+//
+// Returns:
+//
+// - SeqSlice[V]: A single iterator containing the elements from each group in sequence.
+//
+// Example usage:
+//
+//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6}
+//	flat := slice.Iter().Chunks(2).Flatten().Collect()
+//	// Output: Slice[1, 2, 3, 4, 5, 6]
+func (seqs SeqSlices[V]) Flatten() SeqSlice[V] {
+	return func(yield func(V) bool) {
+		seqs(func(v []V) bool {
+			for _, item := range v {
+				if !yield(item) {
+					return false
+				}
+			}
+			return true
+		})
+	}
+}
+
 // Count consumes the iterator, counting the number of iterations and returning it.
 func (seq SeqSlice[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 
@@ -206,8 +314,8 @@ func (seq SeqSlice[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 //
 // Returns:
 //
-// - map[any]Int: with keys representing the unique elements in the slice
-// and values representing the counts of those elements.
+// - SeqMapOrd[any, Int]: an ordered map sequence with keys representing the unique
+// elements in the slice and values representing the counts of those elements.
 //
 // Example usage:
 //
@@ -312,7 +420,7 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
-	if f.IsComparable[V]() {
+	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
 		return SeqSlice[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
 			return any(a) == any(b)
 		}))

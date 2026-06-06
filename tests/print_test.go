@@ -1455,7 +1455,13 @@ func TestFormatSpec(t *testing.T) {
 			name:     "sign + uint64 overflow",
 			format:   "{:+}",
 			args:     []any{uint64(math.MaxUint64)},
-			expected: "18446744073709551615",
+			expected: "+18446744073709551615",
+		},
+		{
+			name:     "sign space uint64 overflow",
+			format:   "{: }",
+			args:     []any{uint64(math.MaxUint64)},
+			expected: " 18446744073709551615",
 		},
 
 		// ── fmtToInt64: uint types via exponential path ──
@@ -1482,5 +1488,93 @@ func TestFormatSpec(t *testing.T) {
 				t.Errorf("expected '%s', got '%s'", tt.expected, result)
 			}
 		})
+	}
+}
+
+// TestFormatPrettyDebugEscapedBackslash exercises M13: a string value ending in
+// a backslash renders (via %#v) as `"...\\"` — an escaped backslash immediately
+// followed by the real closing quote. A one-character lookback would treat that
+// quote as escaped and leave the pretty-printer stuck inside the string,
+// corrupting the indentation of everything after it. The escape toggle must
+// recognize the closing quote and resume structural indentation.
+func TestFormatPrettyDebugEscapedBackslash(t *testing.T) {
+	type wrap struct {
+		A string
+		B int
+	}
+
+	// A ends with a single backslash; %#v emits  A:"path\\"
+	val := wrap{A: `path\`, B: 7}
+
+	got := Format("{:#?}", val).Std()
+
+	// After the string field closes, the next field and the closing brace must
+	// still be present on their own indented lines (not swallowed into a string).
+	if !strings.Contains(got, "B:7") {
+		t.Errorf("pretty-debug should still render fields after a trailing backslash string, got:\n%s", got)
+	}
+
+	// With the bug the trailing `}` is written as a literal char still inside
+	// the "stuck" string, so it has no preceding newline. The fix emits the
+	// closing brace structurally (on its own dedented line).
+	if !strings.Contains(got, "\n}") {
+		t.Errorf("pretty-debug closing brace should be on its own line (escape toggle stuck inString), got:\n%s", got)
+	}
+
+	// The escaped-backslash + closing quote must survive verbatim.
+	if !strings.Contains(got, `path\\`) {
+		t.Errorf("pretty-debug should preserve the escaped backslash, got:\n%s", got)
+	}
+}
+
+// TestFormatParseDigitsOverflow exercises L-PR1: an absurd width/precision must
+// not overflow int or trigger an unbounded allocation. The accumulator is
+// clamped, so the call returns without panicking and the result stays bounded.
+func TestFormatParseDigitsOverflow(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("oversized width/precision must not panic: %v", r)
+		}
+	}()
+
+	// Width digits overflow int64 many times over.
+	got := Format("{:99999999999999999999}", String("x")).Std()
+
+	// Clamped to maxFmtDigits (1<<20); must not balloon past that.
+	if len(got) > (1<<20)+8 {
+		t.Errorf("oversized width should be clamped, got length %d", len(got))
+	}
+
+	if !strings.Contains(got, "x") {
+		t.Errorf("oversized width should still render the value, got length %d", len(got))
+	}
+
+	// Oversized precision must likewise be safe.
+	_ = Format("{:.99999999999999999999}", String("hello")).Std()
+}
+
+// TestFormatUint64SignPath exercises L-PR2: the {:+} / {: } sign verbs must be
+// honored for uint64 values above MaxInt64, which do not fit in int64.
+func TestFormatUint64SignPath(t *testing.T) {
+	big := uint64(math.MaxInt64) + 1 // 9223372036854775808
+
+	if got := Format("{:+}", big).Std(); got != "+9223372036854775808" {
+		t.Errorf("{:+} on big uint64: expected +9223372036854775808, got %q", got)
+	}
+
+	if got := Format("{: }", big).Std(); got != " 9223372036854775808" {
+		t.Errorf("{: } on big uint64: expected leading space, got %q", got)
+	}
+}
+
+// TestFormatMultipleNamedLastWins documents L-PR3: when several Named maps are
+// passed, only the last one is consulted for named placeholders.
+func TestFormatMultipleNamedLastWins(t *testing.T) {
+	first := Named{"who": "first"}
+	second := Named{"who": "second"}
+
+	got := Format("{who}", first, second).Std()
+	if got != "second" {
+		t.Errorf("last Named map should win: expected 'second', got %q", got)
 	}
 }

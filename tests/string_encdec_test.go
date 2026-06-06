@@ -389,6 +389,52 @@ func TestStringOctalDec(t *testing.T) {
 	}
 }
 
+func TestStringOctalDecEmpty(t *testing.T) {
+	// decode.Octal("") must round-trip with encode.Octal("") == "".
+	result := String("").Decode().Octal()
+	if result.IsErr() {
+		t.Fatalf("decode.Octal(\"\") returned error: %v", result.Err())
+	}
+
+	if result.Ok() != "" {
+		t.Errorf("decode.Octal(\"\") = %q, want empty string", result.Ok())
+	}
+}
+
+func TestStringOctalRoundTripEmpty(t *testing.T) {
+	input := String("")
+	encoded := input.Encode().Octal()
+	decoded := encoded.Decode().Octal()
+
+	if decoded.IsErr() {
+		t.Fatalf("round trip error: %v", decoded.Err())
+	}
+
+	if decoded.Ok() != input {
+		t.Errorf("Octal empty round trip = %q, want %q", decoded.Ok(), input)
+	}
+}
+
+func TestStringOctalDecOutOfRange(t *testing.T) {
+	tests := []struct {
+		name  string
+		input String
+	}{
+		{"above MaxRune", "77777777777"},   // > 0x10FFFF
+		{"surrogate", "154000"},            // 0xD800 in octal == 154000
+		{"invalid token", "999"},           // 9 is not an octal digit
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tt.input.Decode().Octal()
+			if !result.IsErr() {
+				t.Errorf("decode.Octal(%q) = %q, want error", tt.input, result.Ok())
+			}
+		})
+	}
+}
+
 func TestURLEncode(t *testing.T) {
 	testCases := []struct {
 		input    String

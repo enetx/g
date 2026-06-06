@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/internal/rlimit"
 	"github.com/enetx/g/pool"
 )
 
@@ -1267,4 +1268,40 @@ func TestPoolWait_Order(t *testing.T) {
 			}
 		}
 	})
+}
+
+// --- rlimit worker capping ---
+
+func TestRlimitStack_SmallRequestUnchanged(t *testing.T) {
+	// A modest worker count is well under any sane RLIMIT_NOFILE and must pass
+	// through unchanged.
+	if got := rlimit.RlimitStack(4); got != 4 {
+		t.Errorf("RlimitStack(4) = %d, want 4 (should not clamp small requests)", got)
+	}
+}
+
+func TestRlimitStack_NeverNegative(t *testing.T) {
+	// Whatever the syscall returns (including an error path that yields the
+	// request unchanged), the result must never go negative.
+	for _, n := range []int{1, 100, 1_000_000, 1 << 30} {
+		if got := rlimit.RlimitStack(n); got < 0 {
+			t.Errorf("RlimitStack(%d) = %d, want >= 0", n, got)
+		}
+	}
+}
+
+func TestLimit_HighRequest_StaysUsable(t *testing.T) {
+	// Even when the requested limit exceeds the fd-based cap, Limit must leave a
+	// usable pool (>= 1 worker) — never clamp to zero. Submit work and confirm it
+	// all runs.
+	p := pool.New[int]().Limit(1 << 20)
+
+	for i := range 50 {
+		p.Go(func() Result[int] { return Ok(i) })
+	}
+
+	results := p.Wait().Collect()
+	if len(results) != 50 {
+		t.Errorf("expected 50 results with a very high Limit, got %d", len(results))
+	}
 }

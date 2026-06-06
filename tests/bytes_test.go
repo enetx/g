@@ -1868,3 +1868,172 @@ func TestBytesValue(t *testing.T) {
 		t.Fatalf("Expected nil or empty slice, got %v", val2)
 	}
 }
+
+func TestBytesScanCopiesDriverBuffer(t *testing.T) {
+	// Drivers reuse the same backing buffer across rows; Scan must copy.
+	buf := []byte{1, 2, 3}
+
+	var b Bytes
+	if err := b.Scan(buf); err != nil {
+		t.Fatalf("Scan error: %v", err)
+	}
+
+	// Mutate the driver-owned buffer as the next row would.
+	buf[0] = 9
+
+	if b[0] != 1 {
+		t.Fatalf("Scan aliased the driver buffer: got %v, want first byte 1", b)
+	}
+}
+
+func TestBytesGte(t *testing.T) {
+	tests := []struct {
+		a, b Bytes
+		want bool
+	}{
+		{Bytes("b"), Bytes("a"), true},
+		{Bytes("a"), Bytes("a"), true},
+		{Bytes("a"), Bytes("b"), false},
+		{Bytes(""), Bytes(""), true},
+	}
+
+	for _, tc := range tests {
+		if got := tc.a.Gte(tc.b); got != tc.want {
+			t.Errorf("%q.Gte(%q) = %v, want %v", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
+func TestBytesLte(t *testing.T) {
+	tests := []struct {
+		a, b Bytes
+		want bool
+	}{
+		{Bytes("a"), Bytes("b"), true},
+		{Bytes("a"), Bytes("a"), true},
+		{Bytes("b"), Bytes("a"), false},
+		{Bytes(""), Bytes(""), true},
+	}
+
+	for _, tc := range tests {
+		if got := tc.a.Lte(tc.b); got != tc.want {
+			t.Errorf("%q.Lte(%q) = %v, want %v", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
+func TestBytesMin(t *testing.T) {
+	if got := Bytes("c").Min(Bytes("a"), Bytes("b")); !got.Eq(Bytes("a")) {
+		t.Errorf("Min = %q, want %q", got, Bytes("a"))
+	}
+	if got := Bytes("x").Min(); !got.Eq(Bytes("x")) {
+		t.Errorf("Min (single) = %q, want %q", got, Bytes("x"))
+	}
+}
+
+func TestBytesMax(t *testing.T) {
+	if got := Bytes("a").Max(Bytes("c"), Bytes("b")); !got.Eq(Bytes("c")) {
+		t.Errorf("Max = %q, want %q", got, Bytes("c"))
+	}
+	if got := Bytes("x").Max(); !got.Eq(Bytes("x")) {
+		t.Errorf("Max (single) = %q, want %q", got, Bytes("x"))
+	}
+}
+
+func TestBytesStartsWith(t *testing.T) {
+	tests := []struct {
+		bs     Bytes
+		prefix Bytes
+		want   bool
+	}{
+		{Bytes("hello world"), Bytes("hello"), true},
+		{Bytes("hello world"), Bytes("world"), false},
+		{Bytes("hello"), Bytes(""), true},
+		{Bytes(""), Bytes("x"), false},
+	}
+
+	for _, tc := range tests {
+		if got := tc.bs.StartsWith(tc.prefix); got != tc.want {
+			t.Errorf("%q.StartsWith(%q) = %v, want %v", tc.bs, tc.prefix, got, tc.want)
+		}
+	}
+}
+
+func TestBytesStartsWithAny(t *testing.T) {
+	bs := Bytes("http://example.com")
+	if !bs.StartsWithAny(Bytes("https://"), Bytes("http://")) {
+		t.Error("StartsWithAny should match http://")
+	}
+	if bs.StartsWithAny(Bytes("ftp://"), Bytes("ssh://")) {
+		t.Error("StartsWithAny should not match")
+	}
+	if bs.StartsWithAny() {
+		t.Error("StartsWithAny() with no args should be false")
+	}
+}
+
+func TestBytesEndsWith(t *testing.T) {
+	tests := []struct {
+		bs     Bytes
+		suffix Bytes
+		want   bool
+	}{
+		{Bytes("hello world"), Bytes("world"), true},
+		{Bytes("hello world"), Bytes("hello"), false},
+		{Bytes("hello"), Bytes(""), true},
+		{Bytes(""), Bytes("x"), false},
+	}
+
+	for _, tc := range tests {
+		if got := tc.bs.EndsWith(tc.suffix); got != tc.want {
+			t.Errorf("%q.EndsWith(%q) = %v, want %v", tc.bs, tc.suffix, got, tc.want)
+		}
+	}
+}
+
+func TestBytesEndsWithAny(t *testing.T) {
+	bs := Bytes("example.com")
+	if !bs.EndsWithAny(Bytes(".net"), Bytes(".com")) {
+		t.Error("EndsWithAny should match .com")
+	}
+	if bs.EndsWithAny(Bytes(".org"), Bytes(".io")) {
+		t.Error("EndsWithAny should not match")
+	}
+	if bs.EndsWithAny() {
+		t.Error("EndsWithAny() with no args should be false")
+	}
+}
+
+func TestBytesLines(t *testing.T) {
+	bs := Bytes("line1\nline2\r\nline3")
+	got := bs.Lines().Collect()
+	want := Slice[Bytes]{Bytes("line1"), Bytes("line2"), Bytes("line3")}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Lines() = %v, want %v", got, want)
+	}
+}
+
+func TestBytesSplitN(t *testing.T) {
+	tests := []struct {
+		input Bytes
+		sep   Bytes
+		n     Int
+		want  Slice[Bytes]
+	}{
+		{Bytes("a,b,c"), Bytes(","), 2, Slice[Bytes]{Bytes("a"), Bytes("b,c")}},
+		{Bytes("a,b,c"), Bytes(","), -1, Slice[Bytes]{Bytes("a"), Bytes("b"), Bytes("c")}},
+		{Bytes("a,b,c"), Bytes(","), 1, Slice[Bytes]{Bytes("a,b,c")}},
+	}
+
+	for _, tc := range tests {
+		got := tc.input.SplitN(tc.sep, tc.n)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%q.SplitN(%q, %d) = %v, want %v", tc.input, tc.sep, tc.n, got, tc.want)
+		}
+	}
+
+	if got := Bytes("a,b,c").SplitN(Bytes(","), 0); got.Len() != 0 {
+		t.Errorf("SplitN(_, 0) = %v, want empty", got)
+	}
+}

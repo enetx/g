@@ -217,7 +217,7 @@ func (sl Slice[T]) Fill(val T) {
 // Index returns the index of the first occurrence of the specified value in the slice, or -1 if
 // not found.
 func (sl Slice[T]) Index(val T) Int {
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		target := any(val)
 
 		for i, v := range sl {
@@ -366,12 +366,12 @@ func (sl *Slice[T]) Insert(i Int, values ...T) {
 //
 // After the Replace operation, the resulting slice will be: ["a", "e", "f", "d"].
 func (sl *Slice[T]) Replace(i, j Int, values ...T) {
-	ii, ok := sl.bound(i)
+	ii, ok := sl.boundReplace(i)
 	if !ok {
 		boundpanic(i, len(*sl))
 	}
 
-	jj, ok := sl.bound(j)
+	jj, ok := sl.boundReplace(j)
 	if !ok {
 		boundpanic(j, len(*sl))
 	}
@@ -379,8 +379,7 @@ func (sl *Slice[T]) Replace(i, j Int, values ...T) {
 	i, j = ii, jj
 
 	if i > j {
-		*sl = (*sl)[:0]
-		return
+		boundpanic(j, len(*sl))
 	}
 
 	oldLen := sl.Len()
@@ -472,16 +471,19 @@ func (sl Slice[T]) Shuffle() {
 func (sl Slice[T]) Reverse() { slices.Reverse(sl) }
 
 // SortBy sorts the elements in the slice using the provided comparison function.
-// It modifies the original slice in place. It requires the elements to be of a type
-// that is comparable.
+// It modifies the original slice in place.
 //
-// The function takes a custom comparison function as an argument and sorts the elements
-// of the slice using the provided logic. The comparison function should return true if
-// the element at index i should come before the element at index j, and false otherwise.
+// The comparison function should return:
+//   - cmp.Less if a should come before b
+//   - cmp.Greater if a should come after b
+//   - cmp.Equal if a and b are considered equal
+//
+// The sort is not guaranteed to be stable: the relative order of elements that
+// compare equal may change.
 //
 // Parameters:
 //
-// - f func(a, b T) cmp.Ordered: A comparison function that takes two indices i and j and returns a bool.
+// - fn func(a, b T) cmp.Ordering: A comparison function reporting the ordering of a relative to b.
 //
 // Example usage:
 //
@@ -614,7 +616,7 @@ func (sl Slice[T]) Join(sep ...T) String {
 // Output: [2 4 6].
 func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	if sl.IsEmpty() {
-		return sl
+		return NewSlice[T]()
 	}
 
 	_step := Int(1)
@@ -715,7 +717,7 @@ func (sl Slice[T]) Eq(other Slice[T]) bool {
 		return false
 	}
 
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		for i, v := range sl {
 			if any(v) != any(other[i]) {
 				return false
@@ -787,7 +789,7 @@ func (sl Slice[T]) Append(elems ...T) Slice[T] { return append(sl, elems...) }
 //
 // Output: [1 2 3 4 5 6 7].
 func (sl Slice[T]) AppendUnique(elems ...T) Slice[T] {
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		set := make(Set[any], len(sl)+len(elems))
 		for _, v := range sl {
 			set[v] = Unit{}
@@ -832,7 +834,7 @@ func (sl *Slice[T]) Push(elems ...T) { *sl = append(*sl, elems...) }
 //
 // Output: [1 2 3 4 5 6 7].
 func (sl *Slice[T]) PushUnique(elems ...T) {
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		set := make(Set[any], len(*sl)+len(elems))
 		for _, v := range *sl {
 			set[v] = Unit{}
@@ -870,7 +872,7 @@ func (sl Slice[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		set := make(Set[any], len(sl))
 		for _, v := range sl {
 			set[v] = Unit{}
@@ -894,7 +896,7 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 		return len(values) == 0
 	}
 
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		set := make(Set[any], len(sl))
 		for _, v := range sl {
 			set[v] = Unit{}
@@ -1100,6 +1102,10 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 // It applies fn pairwise to the elements of the slice until it finds the maximum value.
 // It returns the maximum value found.
 //
+// If the slice is empty, the zero value of type T is returned. Callers that must
+// distinguish "no maximum" from a legitimate zero element should use the iterator
+// form via sl.Iter().MaxBy, which returns Option[T].
+//
 // Example:
 //
 //	s := Slice[int]{3, 1, 4, 2, 5}
@@ -1111,6 +1117,10 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 // It applies fn pairwise to the elements of the slice until it finds the minimum value.
 // It returns the minimum value found.
 //
+// If the slice is empty, the zero value of type T is returned. Callers that must
+// distinguish "no minimum" from a legitimate zero element should use the iterator
+// form via sl.Iter().MinBy, which returns Option[T].
+//
 // Example:
 //
 //	s := Slice[int]{3, 1, 4, 2, 5}
@@ -1119,6 +1129,25 @@ func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, 
 func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
 func (sl Slice[T]) bound(i Int) (Int, bool) {
+	n := sl.Len()
+	if n == 0 {
+		return 0, false
+	}
+
+	if i < 0 {
+		i += n
+	}
+
+	if i >= n || i < 0 {
+		return 0, false
+	}
+
+	return i, true
+}
+
+// boundReplace resolves an index for Replace, which may legitimately target
+// i == len(sl) to append at the end. Element accessors use bound (strict i < n).
+func (sl Slice[T]) boundReplace(i Int) (Int, bool) {
 	n := sl.Len()
 	if n == 0 {
 		return 0, false

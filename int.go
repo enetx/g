@@ -74,6 +74,11 @@ func (i Int) Add(b Int) Int { return i + b }
 func (i Int) BigInt() *big.Int { return big.NewInt(i.Int64()) }
 
 // Div divides two Ints and returns the result.
+//
+// Div panics with a runtime "integer divide by zero" error if b is 0.
+// Dividing by zero is treated as a programmer error; guard against a zero
+// divisor at the call site. This differs from Float.Div, which follows IEEE
+// 754 and yields ±Inf or NaN instead of panicking.
 func (i Int) Div(b Int) Int { return i / b }
 
 // Eq checks if two Ints are equal.
@@ -115,8 +120,16 @@ func (i Int) IsZero() bool { return i == 0 }
 // IsNegative checks if the Int is negative.
 func (i Int) IsNegative() bool { return i < 0 }
 
-// IsPositive checks if the Int is positive.
+// IsPositive reports whether the Int is non-negative (greater than or equal to 0).
+//
+// Note: zero is reported as positive (i >= 0), so this is the logical complement
+// of IsNegative rather than a strict "greater than zero" test. For a strict
+// positivity check use i.Gt(0); for clarity prefer the IsNonNegative alias.
 func (i Int) IsPositive() bool { return i >= 0 }
+
+// IsNonNegative reports whether the Int is greater than or equal to 0.
+// It is an alias for IsPositive with a name that makes the inclusion of zero explicit.
+func (i Int) IsNonNegative() bool { return i >= 0 }
 
 // Lt checks if the Int is less than the specified Int.
 func (i Int) Lt(b Int) bool { return i < b }
@@ -140,6 +153,10 @@ func (i Int) Random() Int {
 }
 
 // Rem returns the remainder of the division between the receiver and the input value.
+//
+// Rem panics with a runtime "integer divide by zero" error if b is 0.
+// A zero divisor is treated as a programmer error; guard against it at the
+// call site.
 func (i Int) Rem(b Int) Int { return i % b }
 
 // Sub subtracts two Ints and returns the result.

@@ -58,11 +58,18 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 // Returns:
 // - String: Randomly generated String with the specified length.
 //
+// If length is zero or negative, an empty String is returned. If an explicit
+// letter set is provided but resolves to empty, an empty String is returned as well.
+//
 // Example usage:
 //
 //	randomString := g.String.Random(10)
 //	randomString contains a random String with 10 characters.
 func (String) Random(length Int, letters ...String) String {
+	if length <= 0 {
+		return ""
+	}
+
 	if len(letters) != 0 {
 		var buf Builder
 		for _, set := range letters {
@@ -71,6 +78,9 @@ func (String) Random(length Int, letters ...String) String {
 
 		chars := buf.String().Runes()
 		n := Int(len(chars))
+		if n == 0 {
+			return ""
+		}
 
 		var b Builder
 		b.Grow(length)
@@ -513,13 +523,15 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 // - end (String): The String marking the end of the text to be cut.
 //
 //   - rmtags (bool, optional): An optional boolean parameter indicating whether
-//     to remove 'start' and 'end' tags from the cut text. Defaults to false.
+//     to remove the matched region (including the 'start' and 'end' tags) from the
+//     remainder. Defaults to false, in which case the remainder equals the original
+//     String and only the cut content is extracted.
 //
 // Returns:
 //
-//   - String: The first String containing the remainder of the original String
-//     after the cut, with tags removed if specified,
-//     or an empty String if 'start' or 'end' is empty or not found.
+//   - String: The first String containing the remainder of the original String.
+//     When rmtags is true the matched region is removed from it; otherwise it is
+//     the original String. Returns an empty String if 'start' or 'end' is empty or not found.
 //
 //   - String: The second String containing the text between the first occurrences of
 //     'start' and 'end', or the original String if 'start' or 'end' is empty or not found.
@@ -527,7 +539,7 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 // Example usage:
 //
 //	s := g.String("Hello, [world]! How are you?")
-//	remainder, cut := s.Cut("[", "]")
+//	remainder, cut := s.Cut("[", "]", true)
 //	// remainder: "Hello, ! How are you?"
 //	// cut: "world"
 func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
@@ -548,7 +560,7 @@ func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
 
 	cut := s[startEnd : startEnd+endIndex]
 
-	if len(rmtags) != 0 && !rmtags[0] {
+	if len(rmtags) == 0 || !rmtags[0] {
 		startEnd += end.Len()
 		return s[:startIndex] + s[startIndex:startEnd+endIndex] + s[startEnd+endIndex:], cut
 	}
@@ -709,9 +721,29 @@ func (s String) Chars() SeqSlice[String] { return s.Split() }
 // - A negative 'start' index indicates the position from the end of the String, moving backward.
 // - A negative 'end' index indicates the position from the end of the String.
 // The function ensures that indices are adjusted to fall within the valid range of the String's length.
-// If indices are out of bounds or if 'start' exceeds 'end', the function returns the original String unmodified.
+// Out-of-bounds indices are clamped to the String's bounds instead of panicking;
+// if 'start' exceeds 'end' (for a positive step) the result is an empty String.
 func (s String) SubString(start, end Int, step ...Int) String {
-	return String(s.Runes().SubSlice(start, end, step...))
+	runes := s.Runes()
+	n := runes.Len()
+
+	clamp := func(i Int) Int {
+		if i < 0 {
+			i += n
+		}
+
+		if i < 0 {
+			return 0
+		}
+
+		if i > n {
+			return n
+		}
+
+		return i
+	}
+
+	return String(runes.SubSlice(clamp(start), clamp(end), step...))
 }
 
 // Std returns the String as a string.

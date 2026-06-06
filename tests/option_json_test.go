@@ -459,3 +459,23 @@ func TestOptionJSON_RoundTripStruct(t *testing.T) {
 		t.Errorf("Tags: got %v, want [web, api]", tags)
 	}
 }
+
+func TestOptionMarshalJSON_NoneSharedNull(t *testing.T) {
+	// L-O5: None marshals to "null" via a shared package var; verify repeated
+	// marshals are stable and the output is not corrupted between calls.
+	a, err := json.Marshal(None[int]())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(a) != "null" {
+		t.Errorf("got %s, want null", a)
+	}
+
+	b, err := json.Marshal(None[string]())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if string(b) != "null" {
+		t.Errorf("got %s, want null", b)
+	}
+}

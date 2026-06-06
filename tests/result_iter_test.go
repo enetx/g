@@ -119,18 +119,18 @@ func TestErrSeq(t *testing.T) {
 		}
 	})
 
-	t.Run("error stops only current seq in chain", func(t *testing.T) {
+	t.Run("error ends chain iteration across sequences", func(t *testing.T) {
 		errSeq := ErrSeq[int](errors.New("early exit"))
 		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
 			yield(Ok(1))
 			yield(Ok(2))
 		})
 
-		// errSeq stops itself, but seq2 is still visited by Chain's outer loop
+		// An Err ends further iteration: seq2 must not be visited by Chain.
 		okVals, errVals := errSeq.Chain(seq2).Partition()
 
-		if len(okVals) != 2 {
-			t.Errorf("expected 2 Ok values from seq2, got %v", okVals)
+		if len(okVals) != 0 {
+			t.Errorf("expected no Ok values (iteration stops on Err), got %v", okVals)
 		}
 		if len(errVals) != 1 || errVals[0].Error() != "early exit" {
 			t.Errorf("expected error 'early exit', got %v", errVals)
@@ -3174,6 +3174,203 @@ func TestFromResultChan(t *testing.T) {
 		opt := res.UnwrapOr(None[int]())
 		if !opt.IsSome() || opt.Some() != 30 {
 			t.Errorf("expected Some(30), got %v", opt)
+		}
+	})
+}
+
+func TestMapSeqResult(t *testing.T) {
+	t.Run("all Ok, type changing", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+			yield(Ok(3))
+		})
+
+		// int -> string, demonstrating the cross-type map
+		mapped := MapSeqResult(seq, func(v int) String { return Int(v).String() })
+
+		firstErr := mapped.FirstErr()
+		if firstErr.IsSome() {
+			t.Fatalf("expected all Ok, got Err: %v", firstErr.Some())
+		}
+
+		collected := mapped.Ok().Collect()
+		want := []String{"1", "2", "3"}
+		if len(collected) != len(want) {
+			t.Fatalf("expected %d items, got %d", len(want), len(collected))
+		}
+		for i, v := range collected {
+			if v != want[i] {
+				t.Errorf("index %d: want %q, got %q", i, want[i], v)
+			}
+		}
+	})
+
+	t.Run("empty sequence", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			// no items
+		})
+
+		mapped := MapSeqResult(seq, func(v int) int { return v * 2 })
+
+		firstErr := mapped.FirstErr()
+		if firstErr.IsSome() {
+			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
+		}
+		collected := mapped.Ok().Collect()
+		if len(collected) != 0 {
+			t.Errorf("expected 0 items, got %d", len(collected))
+		}
+	})
+
+	t.Run("err in the middle propagates and stops", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(10))
+			if !yield(Err[int](errors.New("boom"))) {
+				return
+			}
+			yield(Ok(30)) // never reached, iteration stops on Err
+		})
+
+		mapped := MapSeqResult(seq, func(v int) int { return v + 1 })
+
+		firstErr := mapped.FirstErr()
+		if firstErr.IsNone() {
+			collected := mapped.Ok().Collect()
+			t.Fatalf("expected an error, got Ok(%v)", collected)
+		}
+		if firstErr.Some().Error() != "boom" {
+			t.Errorf("expected error \"boom\", got %q", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("err first propagates", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			if !yield(Err[int](errors.New("immediate error"))) {
+				return
+			}
+			yield(Ok(99)) // never reached
+		})
+
+		mapped := MapSeqResult(seq, func(v int) int { return v + 1 })
+
+		firstErr := mapped.FirstErr()
+		if firstErr.IsNone() {
+			collected := mapped.Ok().Collect()
+			t.Fatalf("expected an error, got Ok(%v)", collected)
+		}
+		if firstErr.Some().Error() != "immediate error" {
+			t.Errorf("expected \"immediate error\", got %q", firstErr.Some().Error())
+		}
+	})
+
+	t.Run("downstream stop is honored", func(t *testing.T) {
+		var produced []int
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			for i := 1; i <= 5; i++ {
+				produced = append(produced, i)
+				if !yield(Ok(i)) {
+					return
+				}
+			}
+		})
+
+		// Take(1) downstream of the map must stop the source after the first Ok.
+		collected := MapSeqResult(seq, func(v int) int { return v * 10 }).Take(1).Ok().Collect()
+
+		if len(collected) != 1 || collected[0] != 10 {
+			t.Errorf("expected [10], got %v", collected)
+		}
+		if len(produced) != 1 || produced[0] != 1 {
+			t.Errorf("expected source to produce only [1] before stop, got %v", produced)
+		}
+	})
+}
+
+func TestSeqResultChainHonorsDownstreamStop(t *testing.T) {
+	t.Run("Take(1) over a chain stops without visiting later sequences", func(t *testing.T) {
+		var seq2Visited bool
+
+		seq1 := SeqResult[int](func(yield func(Result[int]) bool) {
+			yield(Ok(1))
+			yield(Ok(2))
+		})
+		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
+			seq2Visited = true
+			yield(Ok(3))
+		})
+
+		// Take(1) requests a stop after the first Ok. Chain must propagate that
+		// stop to the outer loop and never invoke seq2.
+		collected := seq1.Chain(seq2).Take(1).Ok().Collect()
+
+		if len(collected) != 1 || collected[0] != 1 {
+			t.Errorf("expected [1], got %v", collected)
+		}
+		if seq2Visited {
+			t.Error("expected seq2 NOT to be visited after downstream stop, but it was")
+		}
+	})
+
+	t.Run("Take(1) within the first sub-sequence does not start the second", func(t *testing.T) {
+		var seq2Started bool
+
+		seq1 := SeqResult[int](func(yield func(Result[int]) bool) {
+			if !yield(Ok(100)) {
+				return
+			}
+			if !yield(Ok(200)) {
+				return
+			}
+		})
+		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
+			seq2Started = true
+			yield(Ok(300))
+		})
+
+		var seen []int
+		seq1.Chain(seq2).Take(1).Range(func(r Result[int]) bool {
+			if r.IsOk() {
+				seen = append(seen, r.Ok())
+			}
+			return true
+		})
+
+		if len(seen) != 1 || seen[0] != 100 {
+			t.Errorf("expected [100], got %v", seen)
+		}
+		if seq2Started {
+			t.Error("expected seq2 not to start after the consumer stopped, but it did")
+		}
+	})
+}
+
+func TestSeqResultStepByZero(t *testing.T) {
+	t.Run("StepBy(0) yields nothing", func(t *testing.T) {
+		var produced int
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			for i := 1; i <= 3; i++ {
+				produced++
+				if !yield(Ok(i)) {
+					return
+				}
+			}
+		})
+
+		stepped := seq.StepBy(0)
+
+		firstErr := stepped.FirstErr()
+		if firstErr.IsSome() {
+			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
+		}
+
+		collected := stepped.Ok().Collect()
+		if len(collected) != 0 {
+			t.Errorf("expected 0 items from StepBy(0), got %d: %v", len(collected), collected)
+		}
+		// The guard returns before touching the source, so nothing is produced.
+		if produced != 0 {
+			t.Errorf("expected source untouched by StepBy(0), but produced %d items", produced)
 		}
 	})
 }

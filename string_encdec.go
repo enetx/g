@@ -2,9 +2,11 @@ package g
 
 import (
 	"encoding/json"
+	"fmt"
 	"html"
 	"net/url"
 	"strconv"
+	"unicode/utf8"
 )
 
 type (
@@ -61,12 +63,19 @@ func (d decode) Hex() Result[String] {
 	return TransformResult(d.str.BytesUnsafe().Decode().Hex(), Bytes.String)
 }
 
-// XOR encodes the wrapped String using XOR cipher with the given key.
+// XOR encodes the wrapped String using a repeating-key XOR cipher with the given key.
+//
+// WARNING: XOR is NOT a security primitive. A repeating-key XOR cipher provides no
+// confidentiality against any serious analysis and offers no integrity or
+// authentication. Use it only for lightweight obfuscation, never to protect
+// sensitive data.
 func (e encode) XOR(key String) String {
 	return String(e.str.BytesUnsafe().Encode().XOR(key.BytesUnsafe()))
 }
 
-// XOR decodes the wrapped String using XOR cipher with the given key.
+// XOR decodes the wrapped String using a repeating-key XOR cipher with the given key.
+//
+// WARNING: XOR is NOT a security primitive. See encode.XOR for details.
 func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
 
 // Binary converts the wrapped String to its binary representation.
@@ -137,7 +146,10 @@ func (e encode) HTML() String { return String(html.EscapeString(e.str.Std())) }
 // HTML HTML-decodes the wrapped String.
 func (d decode) HTML() String { return String(html.UnescapeString(d.str.Std())) }
 
-// Rot13 encodes the wrapped String using ROT13 cipher.
+// Rot13 encodes the wrapped String using the ROT13 cipher.
+//
+// WARNING: ROT13 is NOT a security primitive. It is a fixed letter-substitution
+// cipher with no key and is trivially reversible. Use it only for obfuscation.
 func (e encode) Rot13() String {
 	rot := func(r rune) rune {
 		switch {
@@ -176,13 +188,23 @@ func (e encode) Octal() String {
 }
 
 // Octal decodes the octal representation back to String.
+// An empty input returns an empty String, mirroring encode.Octal("").
+// Each token must represent a valid Unicode code point in the range [0, MaxRune].
 func (d decode) Octal() Result[String] {
+	if d.str.IsEmpty() {
+		return Ok(String(""))
+	}
+
 	var b Builder
 
 	for v := range d.str.Split(" ") {
 		n, err := strconv.ParseUint(v.Std(), 8, 32)
 		if err != nil {
 			return Err[String](err)
+		}
+
+		if n > utf8.MaxRune || (n >= 0xD800 && n <= 0xDFFF) {
+			return Err[String](fmt.Errorf("g.decode.Octal: invalid code point %d", n))
 		}
 
 		b.WriteRune(rune(n))

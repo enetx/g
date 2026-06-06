@@ -16,9 +16,17 @@ type bhash struct{ bytes Bytes }
 func (bs Bytes) Hash() bhash { return bhash{bs} }
 
 // MD5 computes the MD5 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
+//
+// Warning: MD5 is cryptographically broken and must not be used as a security
+// primitive (e.g. for passwords, signatures, or integrity against an adversary).
+// Use it only for checksums or non-security obfuscation. Prefer SHA256/SHA512.
 func (bh bhash) MD5() Bytes { return bh.MD5Raw().Encode().Hex() }
 
 // SHA1 computes the SHA1 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
+//
+// Warning: SHA1 is cryptographically broken and must not be used as a security
+// primitive (e.g. for signatures or integrity against an adversary). Use it only
+// for checksums or non-security obfuscation. Prefer SHA256/SHA512.
 func (bh bhash) SHA1() Bytes { return bh.SHA1Raw().Encode().Hex() }
 
 // SHA256 computes the SHA256 hash of the wrapped Bytes and returns the hash as hex-encoded Bytes.
@@ -36,9 +44,15 @@ func (bh bhash) HMACSHA256(key Bytes) Bytes { return bh.HMACSHA256Raw(key).Encod
 func (bh bhash) HMACSHA512(key Bytes) Bytes { return bh.HMACSHA512Raw(key).Encode().Hex() }
 
 // MD5Raw computes the MD5 hash of the wrapped Bytes and returns the raw digest.
+//
+// Warning: MD5 is cryptographically broken and must not be used as a security
+// primitive. Use it only for checksums or non-security obfuscation.
 func (bh bhash) MD5Raw() Bytes { return rawHasher(md5.New(), bh.bytes) }
 
 // SHA1Raw computes the SHA1 hash of the wrapped Bytes and returns the raw digest.
+//
+// Warning: SHA1 is cryptographically broken and must not be used as a security
+// primitive. Use it only for checksums or non-security obfuscation.
 func (bh bhash) SHA1Raw() Bytes { return rawHasher(sha1.New(), bh.bytes) }
 
 // SHA256Raw computes the SHA256 hash of the wrapped Bytes and returns the raw digest.

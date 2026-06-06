@@ -96,6 +96,13 @@ func (f Float) Add(b Float) Float { return f + b }
 func (f Float) BigFloat() *big.Float { return big.NewFloat(f.Std()) }
 
 // Cmp compares two Floats and returns an cmp.Ordering.
+//
+// NaN handling is NOT IEEE 754. Comparison routes through cmp.Compare, which
+// imposes a total order: a NaN is treated as less than every non-NaN value, and
+// two NaNs compare as equal. Consequently Eq, Ne, Lt, Gt, Lte, and Gte all
+// inherit this non-IEEE behavior — for example NaN.Eq(NaN) reports true and a
+// NaN sorts as the smallest value. Use math.IsNaN(f.Std()) when strict IEEE 754
+// semantics (where every NaN comparison is false) are required.
 func (f Float) Cmp(b Float) cmp.Ordering { return cmp.Cmp(f, b) }
 
 // Div divides two Floats and returns the result.
@@ -145,6 +152,8 @@ func (f Float) Round() Int { return Int(math.Round(f.Std())) }
 //
 // Returns:
 //   - Float: A new Float value rounded to the specified number of decimal places.
+//     If scaling by 10^precision overflows to a non-finite value (±Inf/NaN),
+//     the Float is returned unchanged.
 func (f Float) RoundDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
@@ -156,7 +165,12 @@ func (f Float) RoundDecimal(precision Int) Float {
 
 	pow := math.Pow(10, float64(precision))
 
-	return Float(math.Round(f.Std()*pow) / pow)
+	scaled := f.Std() * pow
+	if math.IsInf(scaled, 0) || math.IsNaN(scaled) {
+		return f
+	}
+
+	return Float(math.Round(scaled) / pow)
 }
 
 // TruncDecimal truncates the Float value to the specified number of decimal places.
@@ -167,6 +181,8 @@ func (f Float) RoundDecimal(precision Int) Float {
 //
 // Returns:
 //   - Float: A new Float value truncated to the specified number of decimal places.
+//     If scaling by 10^precision overflows to a non-finite value (±Inf/NaN),
+//     the Float is returned unchanged.
 func (f Float) TruncDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
@@ -178,7 +194,12 @@ func (f Float) TruncDecimal(precision Int) Float {
 
 	pow := math.Pow(10, float64(precision))
 
-	return Float(math.Trunc(f.Std()*pow) / pow)
+	scaled := f.Std() * pow
+	if math.IsInf(scaled, 0) || math.IsNaN(scaled) {
+		return f
+	}
+
+	return Float(math.Trunc(scaled) / pow)
 }
 
 // CeilDecimal rounds the Float value up (towards +Inf) to the specified number of decimal places.
@@ -189,6 +210,8 @@ func (f Float) TruncDecimal(precision Int) Float {
 //
 // Returns:
 //   - Float: A new Float value rounded up to the specified number of decimal places.
+//     If scaling by 10^precision overflows to a non-finite value (±Inf/NaN),
+//     the Float is returned unchanged.
 func (f Float) CeilDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
@@ -200,7 +223,12 @@ func (f Float) CeilDecimal(precision Int) Float {
 
 	pow := math.Pow(10, float64(precision))
 
-	return Float(math.Ceil(f.Std()*pow) / pow)
+	scaled := f.Std() * pow
+	if math.IsInf(scaled, 0) || math.IsNaN(scaled) {
+		return f
+	}
+
+	return Float(math.Ceil(scaled) / pow)
 }
 
 // FloorDecimal rounds the Float value down (towards -Inf) to the specified number of decimal places.
@@ -211,6 +239,8 @@ func (f Float) CeilDecimal(precision Int) Float {
 //
 // Returns:
 //   - Float: A new Float value rounded down to the specified number of decimal places.
+//     If scaling by 10^precision overflows to a non-finite value (±Inf/NaN),
+//     the Float is returned unchanged.
 func (f Float) FloorDecimal(precision Int) Float {
 	if precision < 0 {
 		return f
@@ -222,7 +252,12 @@ func (f Float) FloorDecimal(precision Int) Float {
 
 	pow := math.Pow(10, float64(precision))
 
-	return Float(math.Floor(f.Std()*pow) / pow)
+	scaled := f.Std() * pow
+	if math.IsInf(scaled, 0) || math.IsNaN(scaled) {
+		return f
+	}
+
+	return Float(math.Floor(scaled) / pow)
 }
 
 // Sub subtracts two Floats and returns the result.

@@ -18,7 +18,14 @@ type Heap[T any] struct {
 // - cmp.Less if the first argument should have higher priority
 // - cmp.Greater if the second argument should have higher priority
 // - cmp.Equal if they have equal priority
+//
+// NewHeap panics if compareFn is nil, mirroring Slice.Heap, since a nil
+// comparison function would otherwise nil-deref on the first Push.
 func NewHeap[T any](compareFn func(T, T) cmp.Ordering) *Heap[T] {
+	if compareFn == nil {
+		panic("compareFn cannot be nil")
+	}
+
 	return &Heap[T]{
 		data: make(Slice[T], 0),
 		cmp:  compareFn,
@@ -40,7 +47,7 @@ func (h *Heap[T]) Transform(fn func(*Heap[T]) *Heap[T]) *Heap[T] { return fn(h) 
 //
 // Returns:
 //
-// - SeqSlice[T]: An iterator that yields elements in sorted order
+// - SeqHeap[T]: An iterator that yields elements in sorted order
 //
 // Example usage:
 //
@@ -85,7 +92,7 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //
 // Returns:
 //
-// - SeqSlice[T]: An iterator that yields elements in sorted order while consuming the heap
+// - SeqHeap[T]: An iterator that yields elements in sorted order while consuming the heap
 //
 // Example usage:
 //
@@ -158,6 +165,58 @@ func (h *Heap[T]) Peek() Option[T] {
 	return Some(h.data[0])
 }
 
+// Contains reports whether the heap contains the given value.
+//
+// Equality is determined the same way as Slice.Contains: a direct == fast path
+// for comparable element types, falling back to reflect.DeepEqual for
+// interface-typed or otherwise uncomparable values.
+func (h *Heap[T]) Contains(value T) bool { return h.data.Contains(value) }
+
+// Remove removes and returns the element at index i in the heap's backing
+// storage. Indices follow the internal heap layout (index 0 is the root);
+// use Iter or Slice to observe element positions.
+//
+// Returns None if i is out of range. After removal the heap property is
+// restored in O(log n).
+func (h *Heap[T]) Remove(i Int) Option[T] {
+	n := len(h.data) - 1
+	if i < 0 || int(i) > n {
+		return None[T]()
+	}
+
+	idx := int(i)
+	removed := h.data[idx]
+
+	if idx != n {
+		h.data[idx] = h.data[n]
+	}
+
+	h.data = h.data[:n]
+
+	if idx < len(h.data) {
+		h.heapifyDown(idx)
+		h.heapifyUp(idx)
+	}
+
+	return Some(removed)
+}
+
+// Fix re-establishes the heap ordering after the element at index i has changed
+// its value. It is equivalent to, but less expensive than, removing the element
+// at index i and pushing the new value.
+//
+// Indices follow the internal heap layout (index 0 is the root). Fix is a no-op
+// if i is out of range. The cost is O(log n).
+func (h *Heap[T]) Fix(i Int) {
+	if i < 0 || int(i) >= len(h.data) {
+		return
+	}
+
+	idx := int(i)
+	h.heapifyDown(idx)
+	h.heapifyUp(idx)
+}
+
 // Len returns the number of elements in the heap.
 func (h *Heap[T]) Len() Int {
 	return h.data.Len()
@@ -177,9 +236,10 @@ func (h *Heap[T]) Slice() Slice[T] {
 	return result
 }
 
-// Clear removes all elements from the heap.
+// Clear removes all elements from the heap and releases the backing array,
+// allowing the previously held elements to be garbage collected.
 func (h *Heap[T]) Clear() {
-	h.data = h.data[:0]
+	h.data = nil
 }
 
 // Clone creates a deep copy of the heap.
@@ -236,7 +296,7 @@ func (h *Heap[T]) heapifyDown(idx int) {
 }
 
 // String returns a string representation of the heap.
-func (h Heap[T]) String() string {
+func (h *Heap[T]) String() string {
 	if len(h.data) == 0 {
 		return "Heap[]"
 	}

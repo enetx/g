@@ -24,6 +24,10 @@ import (
 //   - BOOLEAN    → bool
 //   - TIMESTAMP  → time.Time
 //
+// Driver-owned []byte buffers (BLOB/TEXT) are copied before being stored, so the
+// scanned Option keeps a value that is safe to retain across subsequent rows
+// (per the database/sql Scanner contract).
+//
 // Returns an error if the value cannot be converted to T.
 func (o *Option[T]) Scan(src any) error {
 	if src == nil {
@@ -42,6 +46,11 @@ func (o *Option[T]) Scan(src any) error {
 	}
 
 	if val, ok := src.(T); ok {
+		// Copy driver-owned []byte buffers before storing: database/sql may
+		// overwrite the backing array on the next row (database/sql contract).
+		if b, isBytes := any(val).([]byte); isBytes {
+			val = any(append([]byte(nil), b...)).(T)
+		}
 		*o = Some(val)
 		return nil
 	}
@@ -156,8 +165,12 @@ func convertToT[T any](src any) (T, bool) {
 			return any(string(v)).(T), true
 		}
 	case []byte:
-		if b, ok := src.([]byte); ok {
-			return any(b).(T), true
+		switch v := src.(type) {
+		case []byte:
+			// Copy the driver-owned buffer: database/sql may reuse it on the next row.
+			return any(append([]byte(nil), v...)).(T), true
+		case string:
+			return any([]byte(v)).(T), true
 		}
 	case bool:
 		if b, ok := src.(bool); ok {

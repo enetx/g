@@ -152,6 +152,8 @@ func (d decompress) Gzip() Result[String] {
 // Flate compresses the wrapped String using the flate (zlib) compression algorithm
 // and returns the compressed data as a String.
 // It accepts an optional compression level. If no level is provided, it defaults to 7.
+// The level is clamped to the valid flate range [-2, 9] to avoid an invalid-level
+// error that would otherwise return a nil writer and panic on use.
 func (c compress) Flate(level ...int) String {
 	// gzdeflate() php
 	buffer := new(bytes.Buffer)
@@ -159,6 +161,12 @@ func (c compress) Flate(level ...int) String {
 	l := 7
 	if len(level) != 0 {
 		l = level[0]
+	}
+
+	if l < flate.HuffmanOnly {
+		l = flate.HuffmanOnly
+	} else if l > flate.BestCompression {
+		l = flate.BestCompression
 	}
 
 	writer, _ := flate.NewWriter(buffer, l)

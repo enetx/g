@@ -1242,3 +1242,130 @@ func TestDir_Walk_EarlyReturn(t *testing.T) {
 		t.Logf("Read %d files before early return (expected 3)", filesRead)
 	}
 }
+
+// TestDir_Walk_EarlyBreakWithPushedSubdir verifies the H2 fix: breaking out of
+// Walk right after a subdirectory has been pushed onto the traversal stack must
+// not re-invoke yield (which would panic with "range function continued
+// iteration after function for loop body returned false"). The subdir is named
+// to sort first so it is the very first entry yielded and is on the stack when
+// the consumer breaks while sibling files remain to be processed.
+func TestDir_Walk_EarlyBreakWithPushedSubdir(t *testing.T) {
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	// "0subdir" sorts before the files, so it is yielded (and pushed) first.
+	subDir := filepath.Join(tempDir, "0subdir")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+	// A file inside the subdir guarantees there is work left if the loop wrongly
+	// pops the pushed subdir after the break.
+	if err := os.WriteFile(filepath.Join(subDir, "inner.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("Failed to create file in subdir: %v", err)
+	}
+
+	for i := 0; i < 3; i++ {
+		filename := filepath.Join(tempDir, "file"+string(rune('0'+i))+".txt")
+		if err := os.WriteFile(filename, []byte("content"), 0o644); err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+
+	dir := NewDir(String(tempDir))
+
+	// Break on the very first yielded entry (the pushed subdir). If Walk does not
+	// honor the stop in the outer loop, this panics.
+	count := 0
+	for result := range dir.Walk() {
+		if result.IsOk() {
+			count++
+			break
+		}
+	}
+
+	if count != 1 {
+		t.Errorf("TestDir_Walk_EarlyBreakWithPushedSubdir: expected to read exactly 1 entry before break, got %d", count)
+	}
+}
+
+// TestDir_Walk_SymlinkCycle verifies that a symlink pointing back to an ancestor
+// directory does not drive Walk into unbounded recursion. Without the cycle
+// guard (Lstat skip + visited-set), the link would be dereferenced and the same
+// subtree re-scanned forever.
+func TestDir_Walk_SymlinkCycle(t *testing.T) {
+	tempDir := createTempDir(t)
+	defer os.RemoveAll(tempDir)
+
+	subDir := filepath.Join(tempDir, "subdir")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(subDir, "file.txt"), []byte("content"), 0o644); err != nil {
+		t.Fatalf("Failed to create file in subdir: %v", err)
+	}
+
+	// Symlink inside subdir pointing back to its parent (a cycle).
+	if err := os.Symlink(tempDir, filepath.Join(subDir, "loop")); err != nil {
+		t.Skipf("symlinks unsupported on this platform: %v", err)
+	}
+
+	dir := NewDir(String(tempDir))
+
+	// Cap the iteration count: with the cycle guard the walk terminates quickly;
+	// without it the loop would not stop. We assert it completes under the cap.
+	const limit = 1000
+	count := 0
+	for result := range dir.Walk() {
+		if result.IsErr() {
+			t.Fatalf("TestDir_Walk_SymlinkCycle: unexpected error: %v", result.Err())
+		}
+		count++
+		if count > limit {
+			t.Fatalf("TestDir_Walk_SymlinkCycle: walk did not terminate (cycle guard missing)")
+		}
+	}
+
+	// The symlink entry itself is still reported, but never descended into.
+	if count == 0 {
+		t.Errorf("TestDir_Walk_SymlinkCycle: expected at least one entry")
+	}
+}
+
+// TestDir_Copy_FileSymlinkNoFollow verifies the M12 fix: with followLinks=false,
+// a symlink to a *regular file* (IsDir == false) must be skipped, not
+// dereferenced and copied. Previously the symlink skip was nested inside the
+// IsDir branch, so file symlinks fell through to f.Copy.
+func TestDir_Copy_FileSymlinkNoFollow(t *testing.T) {
+	sourceDir := createTempDir(t)
+	defer os.RemoveAll(sourceDir)
+
+	// A real file plus a symlink to it.
+	if err := os.WriteFile(filepath.Join(sourceDir, "original.txt"), []byte("data"), 0o644); err != nil {
+		t.Fatalf("Failed to create original file: %v", err)
+	}
+
+	if err := os.Symlink(filepath.Join(sourceDir, "original.txt"), filepath.Join(sourceDir, "link.txt")); err != nil {
+		t.Skipf("symlinks unsupported on this platform: %v", err)
+	}
+
+	destDir := createTempDir(t)
+	defer os.RemoveAll(destDir)
+
+	source := NewDir(String(sourceDir))
+
+	result := source.Copy(String(destDir), false)
+	if result.IsErr() {
+		t.Fatalf("TestDir_Copy_FileSymlinkNoFollow: Copy failed: %v", result.Err())
+	}
+
+	// The real file must be copied.
+	if _, err := os.Stat(filepath.Join(destDir, "original.txt")); os.IsNotExist(err) {
+		t.Error("TestDir_Copy_FileSymlinkNoFollow: original.txt should be copied")
+	}
+
+	// The file symlink must be skipped (not dereferenced into a regular file).
+	if _, err := os.Lstat(filepath.Join(destDir, "link.txt")); !os.IsNotExist(err) {
+		t.Error("TestDir_Copy_FileSymlinkNoFollow: file symlink should be skipped with followLinks=false")
+	}
+}

@@ -62,11 +62,22 @@ func findUnparenColon(placeholder String) Int {
 	return -1
 }
 
+// maxFmtDigits caps the accumulated width/precision value to avoid huge
+// allocations or integer overflow on absurd inputs like {:99999999999999999999}.
+// 1<<20 is far larger than any reasonable field width while staying well below
+// int range on every platform.
+const maxFmtDigits = 1 << 20
+
 func parseDigits(runes []rune, pos int) (int, int, bool) {
 	n, has := 0, false
 
 	for pos < len(runes) && runes[pos] >= '0' && runes[pos] <= '9' {
-		n = n*10 + int(runes[pos]-'0')
+		if n <= maxFmtDigits {
+			n = n*10 + int(runes[pos]-'0')
+			if n > maxFmtDigits {
+				n = maxFmtDigits
+			}
+		}
 		pos++
 		has = true
 	}
@@ -242,6 +253,13 @@ func fmtDefault(value any, spec fmtSpec) String {
 				return fmtApplySign(
 					String(strconv.FormatInt(abs64(i), 10)), i >= 0, spec)
 			}
+
+			// uint64 values above MaxInt64 don't fit in int64; format them
+			// unsigned so the requested sign (e.g. {:+}) is still applied.
+			if u, ok := fmtToUint64(value); ok {
+				return fmtApplySign(
+					String(strconv.FormatUint(u, 10)), true, spec)
+			}
 		}
 	}
 
@@ -367,20 +385,34 @@ func fmtIndentDebug(s String) String {
 
 	indent := Int(0)
 	inString := false
+	escaped := false
 	pad := String("  ")
 
 	for i := Int(0); i < s.Len(); i++ {
 		ch := s[i]
 
-		if ch == '"' && (i == 0 || s[i-1] != '\\') {
-			inString = !inString
+		if inString {
 			b.WriteByte(ch)
+
+			// Track escapes with a running toggle so that a closing quote
+			// preceded by an escaped backslash (`\\"`) is not mistaken for an
+			// escaped quote. A single-char lookback would leave inString stuck.
+			if escaped {
+				escaped = false
+			} else if ch == '\\' {
+				escaped = true
+			} else if ch == '"' {
+				inString = false
+			}
 
 			continue
 		}
 
-		if inString {
+		if ch == '"' {
+			inString = true
+			escaped = false
 			b.WriteByte(ch)
+
 			continue
 		}
 

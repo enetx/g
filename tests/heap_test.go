@@ -548,3 +548,143 @@ func TestHeapPrintln(t *testing.T) {
 		t.Errorf("Println() should not modify heap, expected length 3, got %d", heap.Len())
 	}
 }
+
+func TestNewHeap_NilPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected NewHeap(nil) to panic")
+		}
+	}()
+
+	g.NewHeap[int](nil)
+}
+
+func TestHeap_ClearReleasesBacking(t *testing.T) {
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1, 2, 3, 4, 5)
+
+	heap.Clear()
+
+	if heap.Len() != 0 {
+		t.Errorf("Expected length 0 after clear, got %d", heap.Len())
+	}
+
+	// Heap must remain usable after clear.
+	heap.Push(10, 20, 30)
+	if heap.Len() != 3 {
+		t.Errorf("Expected length 3 after re-push, got %d", heap.Len())
+	}
+
+	if got := heap.Pop().Some(); got != 10 {
+		t.Errorf("Expected min 10 after re-push, got %d", got)
+	}
+}
+
+func TestHeap_Contains(t *testing.T) {
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(3, 1, 4, 1, 5, 9)
+
+	tests := []struct {
+		name string
+		val  int
+		want bool
+	}{
+		{"present_min", 1, true},
+		{"present_mid", 4, true},
+		{"present_max", 9, true},
+		{"absent", 7, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := heap.Contains(tt.val); got != tt.want {
+				t.Errorf("Contains(%d) = %v, want %v", tt.val, got, tt.want)
+			}
+		})
+	}
+
+	empty := g.NewHeap(cmp.Cmp[int])
+	if empty.Contains(1) {
+		t.Error("Expected empty heap to contain nothing")
+	}
+}
+
+func TestHeap_Remove(t *testing.T) {
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(5, 3, 8, 1, 9, 2)
+
+	// Out-of-range indices return None and don't mutate.
+	if heap.Remove(-1).IsSome() {
+		t.Error("Expected None for negative index")
+	}
+	if heap.Remove(heap.Len()).IsSome() {
+		t.Error("Expected None for index == len")
+	}
+	if heap.Len() != 6 {
+		t.Errorf("Expected length unchanged at 6, got %d", heap.Len())
+	}
+
+	// Remove the root (min for a min-heap).
+	removed := heap.Remove(0)
+	if !removed.IsSome() || removed.Some() != 1 {
+		t.Errorf("Expected to remove root 1, got %v", removed)
+	}
+	if heap.Len() != 5 {
+		t.Errorf("Expected length 5 after remove, got %d", heap.Len())
+	}
+
+	// Remaining elements should still pop in sorted order with no duplicates lost.
+	got := make([]int, 0, 5)
+	for !heap.IsEmpty() {
+		got = append(got, heap.Pop().Some())
+	}
+
+	want := []int{2, 3, 5, 8, 9}
+	if len(got) != len(want) {
+		t.Fatalf("Expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Expected sorted %v, got %v", want, got)
+		}
+	}
+}
+
+func TestHeap_RemoveLast(t *testing.T) {
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(1, 2, 3)
+
+	// Removing the final backing index must not panic and must shrink the heap.
+	last := heap.Len() - 1
+	removed := heap.Remove(last)
+	if !removed.IsSome() {
+		t.Error("Expected Some when removing last index")
+	}
+	if heap.Len() != 2 {
+		t.Errorf("Expected length 2 after removing last, got %d", heap.Len())
+	}
+}
+
+func TestHeap_Fix(t *testing.T) {
+	heap := g.NewHeap(cmp.Cmp[int])
+	heap.Push(10, 20, 30, 40)
+
+	// Out-of-range Fix is a no-op (must not panic).
+	heap.Fix(-1)
+	heap.Fix(heap.Len())
+
+	// Fix on a valid index keeps the heap consumable in sorted order.
+	heap.Fix(0)
+
+	got := make([]int, 0, 4)
+	for !heap.IsEmpty() {
+		got = append(got, heap.Pop().Some())
+	}
+
+	want := []int{10, 20, 30, 40}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("Expected sorted %v, got %v", want, got)
+		}
+	}
+}

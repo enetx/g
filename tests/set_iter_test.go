@@ -442,3 +442,113 @@ func TestSeqSetNext(t *testing.T) {
 		}
 	})
 }
+
+func TestSet_Iter_All(t *testing.T) {
+	tests := []struct {
+		name string
+		set  g.Set[int]
+		fn   func(int) bool
+		want bool
+	}{
+		{"all_positive", g.SetOf(1, 2, 3, 4), func(v int) bool { return v > 0 }, true},
+		{"not_all_even", g.SetOf(2, 4, 5, 6), func(v int) bool { return v%2 == 0 }, false},
+		{"empty_is_true", g.NewSet[int](), func(int) bool { return false }, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.set.Iter().All(tt.fn); got != tt.want {
+				t.Errorf("All() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSet_Iter_Any(t *testing.T) {
+	tests := []struct {
+		name string
+		set  g.Set[int]
+		fn   func(int) bool
+		want bool
+	}{
+		{"has_even", g.SetOf(1, 3, 4, 5), func(v int) bool { return v%2 == 0 }, true},
+		{"none_negative", g.SetOf(1, 2, 3), func(v int) bool { return v < 0 }, false},
+		{"empty_is_false", g.NewSet[int](), func(int) bool { return true }, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.set.Iter().Any(tt.fn); got != tt.want {
+				t.Errorf("Any() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSet_Iter_Fold(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	sum := set.Iter().Fold(0, func(acc, val int) int { return acc + val })
+	if sum != 15 {
+		t.Errorf("Fold sum = %d, want 15", sum)
+	}
+
+	empty := g.NewSet[int]()
+	if got := empty.Iter().Fold(42, func(acc, val int) int { return acc + val }); got != 42 {
+		t.Errorf("Fold on empty = %d, want 42", got)
+	}
+}
+
+func TestSet_Iter_Reduce(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	product := set.Iter().Reduce(func(a, b int) int { return a * b })
+	if !product.IsSome() || product.Some() != 120 {
+		t.Errorf("Reduce product = %v, want Some(120)", product)
+	}
+
+	empty := g.NewSet[int]()
+	if empty.Iter().Reduce(func(a, b int) int { return a + b }).IsSome() {
+		t.Error("Reduce on empty set should return None")
+	}
+}
+
+func TestSet_Iter_Skip(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5, 6)
+
+	skipped := set.Iter().Skip(4).Collect()
+	if skipped.Len() != 2 {
+		t.Errorf("Expected 2 elements after Skip(4), got %d", skipped.Len())
+	}
+
+	// Every remaining element must be a member of the original set.
+	skipped.Iter().ForEach(func(v int) {
+		if !set.Contains(v) {
+			t.Errorf("Skip produced element %d not in original set", v)
+		}
+	})
+
+	none := set.Iter().Skip(100).Collect()
+	if none.Len() != 0 {
+		t.Errorf("Expected empty set after Skip(100), got %d", none.Len())
+	}
+}
+
+func TestSet_Iter_FilterMap(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	result := set.Iter().FilterMap(func(n int) g.Option[int] {
+		if n%2 == 0 {
+			return g.Some(n * 10)
+		}
+		return g.None[int]()
+	}).Collect()
+
+	if result.Len() != 2 {
+		t.Errorf("Expected 2 mapped elements, got %d", result.Len())
+	}
+
+	if !result.Contains(20) || !result.Contains(40) {
+		t.Errorf("Expected {20, 40}, got %v", result)
+	}
+}

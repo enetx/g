@@ -33,9 +33,19 @@ func CallerInfo() string {
 		return ""
 	}
 
-	out := fmt.Sprintf("[%s:%d] [%s]", filepath.Base(file), line, runtime.FuncForPC(pc).Name())
+	out := fmt.Sprintf("[%s:%d] [%s]", filepath.Base(file), line, funcName(pc))
 
 	return out
+}
+
+// funcName resolves the function name for a program counter, guarding against a
+// nil *runtime.Func (FuncForPC may return nil for an unknown PC).
+func funcName(pc uintptr) string {
+	if fn := runtime.FuncForPC(pc); fn != nil {
+		return fn.Name()
+	}
+
+	return "?"
 }
 
 // Dbg is a debugging utility function that prints the given expression and its
@@ -64,29 +74,32 @@ func Dbg(exp any) {
 		return
 	}
 
-	f, err := os.Open(file)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "dbg.Dbg: Unable to open expected file")
-		return
-	}
+	base := filepath.Base(file)
+	fn := funcName(pc)
 
-	defer f.Close()
+	// Default output for when the source line is unavailable: still print the
+	// location and value rather than dropping the call entirely.
+	out := fmt.Sprintf("[%s:%d] [%s] = %+v", base, line, fn, exp)
 
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanLines)
+	if f, err := os.Open(file); err == nil {
+		defer f.Close()
 
-	var out string
-	for i := 1; scanner.Scan(); i++ {
-		if i == line {
-			v := scanner.Text()[strings.Index(scanner.Text(), "(")+1 : strings.LastIndex(scanner.Text(), ")")]
-			out = fmt.Sprintf("[%s:%d] [%s] %s = %+v", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), v, exp)
-			break
+		scanner := bufio.NewScanner(f)
+		scanner.Split(bufio.ScanLines)
+
+		for i := 1; scanner.Scan(); i++ {
+			if i == line {
+				if v, ok := extractExpr(scanner.Text()); ok {
+					out = fmt.Sprintf("[%s:%d] [%s] %s = %+v", base, line, fn, v, exp)
+				}
+				break
+			}
 		}
-	}
 
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		return
+		if err := scanner.Err(); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
+			return
+		}
 	}
 
 	switch exp.(type) {
@@ -95,4 +108,20 @@ func Dbg(exp any) {
 	default:
 		fmt.Fprintln(os.Stdout, out)
 	}
+}
+
+// extractExpr pulls the argument expression out of a `Dbg(...)` source line by
+// slicing between the first '(' and the last ')'. Multi-line calls or lines
+// without a balanced pair of parentheses cannot be parsed, so it reports
+// ok=false and the caller falls back to a source-less rendering instead of
+// panicking on an out-of-bounds slice.
+func extractExpr(text string) (string, bool) {
+	open := strings.Index(text, "(")
+	last := strings.LastIndex(text, ")")
+
+	if open < 0 || last < 0 || last <= open+1 {
+		return "", false
+	}
+
+	return text[open+1 : last], true
 }

@@ -2,6 +2,7 @@ package g
 
 import (
 	"context"
+	"math"
 
 	"github.com/enetx/iter"
 )
@@ -32,7 +33,15 @@ func (seq SeqMap[K, V]) Pull() (func() (K, V, bool), func()) { return iter.Pull2
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
+//
+// Values of n larger than math.MaxInt are clamped to math.MaxInt so the
+// conversion to int never wraps to a negative value (which would otherwise
+// cause Take2 to yield nothing).
 func (seq SeqMap[K, V]) Take(n uint) SeqMap[K, V] {
+	if n > math.MaxInt {
+		n = math.MaxInt
+	}
+
 	return SeqMap[K, V](iter.Take2(iter.Seq2[K, V](seq), int(n)))
 }
 
@@ -40,6 +49,67 @@ func (seq SeqMap[K, V]) Take(n uint) SeqMap[K, V] {
 func (seq SeqMap[K, V]) Nth(n Int) Option[Pair[K, V]] {
 	key, value, found := iter.Nth2(iter.Seq2[K, V](seq), int(n))
 	if found {
+		return Some(Pair[K, V]{Key: key, Value: value})
+	}
+
+	return None[Pair[K, V]]()
+}
+
+// Skip returns a new iterator skipping the first n elements.
+//
+// The function creates a new iterator that skips the first n elements of the current iterator
+// and returns an iterator starting from the (n+1)th element.
+//
+// Params:
+//
+// - n (uint): The number of elements to skip from the beginning of the iterator.
+//
+// Returns:
+//
+// - SeqMap[K, V]: An iterator that starts after skipping the first n elements.
+//
+// Example usage:
+//
+//	m := g.NewMap[int, string]()
+//	m.Insert(1, "a")
+//	m.Insert(2, "b")
+//	m.Insert(3, "c")
+//	m.Insert(4, "d")
+//
+//	// Skipping the first two elements and collecting the rest.
+//	m.Iter().Skip(2).Collect().Print()
+//
+// The resulting iterator will start after skipping the specified number of elements.
+func (seq SeqMap[K, V]) Skip(n uint) SeqMap[K, V] {
+	return SeqMap[K, V](iter.Skip2(iter.Seq2[K, V](seq), int(n)))
+}
+
+// StepBy creates a new iterator that iterates over every N-th element of the original iterator.
+// This function is useful when you want to skip a specific number of elements between each iteration.
+//
+// Parameters:
+// - n uint: The step size, indicating how many elements to skip between each iteration.
+//
+// Returns:
+// - SeqMap[K, V]: A new iterator that produces key-value pairs from the original iterator with a step size of N.
+//
+// Example usage:
+//
+//	m := g.NewMap[string, int]()
+//	m.Insert("one", 1)
+//	m.Insert("two", 2)
+//	m.Insert("three", 3)
+//
+//	m.Iter().StepBy(2).Collect().Print()
+//
+// The resulting iterator will produce key-value pairs from the original iterator with a step size of N.
+func (seq SeqMap[K, V]) StepBy(n uint) SeqMap[K, V] {
+	return SeqMap[K, V](iter.StepBy2(iter.Seq2[K, V](seq), int(n)))
+}
+
+// First returns the first key-value pair from the sequence.
+func (seq SeqMap[K, V]) First() Option[Pair[K, V]] {
+	if key, value, ok := iter.First2(iter.Seq2[K, V](seq)); ok {
 		return Some(Pair[K, V]{Key: key, Value: value})
 	}
 
@@ -71,11 +141,14 @@ func (seq SeqMap[K, V]) Values() SeqSlice[V] {
 //
 // Example usage:
 //
-//	iter1 := g.NewMap[int, string]().Set(1, "a").Iter()
-//	iter2 := g.NewMap[int, string]().Set(2, "b").Iter()
+//	m1 := g.NewMap[int, string]()
+//	m1.Insert(1, "a")
+//
+//	m2 := g.NewMap[int, string]()
+//	m2.Insert(2, "b")
 //
 //	// Concatenating iterators and collecting the result.
-//	iter1.Chain(iter2).Collect().Print()
+//	m1.Iter().Chain(m2.Iter()).Collect().Print()
 //
 // Output: Map{1:a, 2:b} // The output order may vary as Map is not ordered.
 //
@@ -118,12 +191,12 @@ func (seq SeqMap[K, V]) Collect() Map[K, V] {
 //
 // - SeqMap[K, V]: An iterator containing elements that satisfy the given function.
 //
-//	m := g.NewMap[int, int]().
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	m := g.NewMap[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
 //	even := m.Iter().
 //		Filter(
@@ -156,12 +229,12 @@ func (seq SeqMap[K, V]) Filter(fn func(K, V) bool) SeqMap[K, V] {
 //
 // Example usage:
 //
-//	m := g.NewMap[int, int]().
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	m := g.NewMap[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
 //	notEven := m.Iter().
 //		Exclude(
@@ -194,7 +267,7 @@ func (seq SeqMap[K, V]) Exclude(fn func(K, V) bool) SeqMap[K, V] {
 // Example usage:
 //
 //	m := g.NewMap[int, int]()
-//	m.Set(1, 1)
+//	m.Insert(1, 1)
 //	f := m.Iter().Find(func(_ int, v int) bool { return v == 1 })
 //	if f.IsSome() {
 //		print(f.Some().Key)
@@ -221,12 +294,12 @@ func (seq SeqMap[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
 //
 // Example usage:
 //
-//	m := g.NewMap[int, int]().
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	m := g.NewMap[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
 //	mmap := m.Iter().
 //		Map(
@@ -264,12 +337,12 @@ func (seq SeqMap[K, V]) Inspect(fn func(k K, v V)) SeqMap[K, V] {
 //
 // Example usage:
 //
-//	m := g.NewMap[int, int]().
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	m := g.NewMap[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
 //	mmap := m.Iter().
 //		Map(

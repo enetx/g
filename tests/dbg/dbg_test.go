@@ -289,3 +289,69 @@ func TestDbgWithoutParens(t *testing.T) {
 	// This should work even if the line parsing fails
 	dbg.Dbg(specialValue)
 }
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+
+	oldStdout := os.Stdout
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	os.Stdout = w
+	fn()
+	w.Close()
+	os.Stdout = oldStdout
+
+	buf := make([]byte, 4096)
+	n, _ := r.Read(buf)
+
+	return string(buf[:n])
+}
+
+func TestDbgMultiLineCall(t *testing.T) {
+	// A multi-line Dbg(...) invocation: the opening line carries '(' but no
+	// matching ')'. The unbounded slice in the old implementation panicked
+	// (slice bounds out of range). It must now degrade gracefully and still
+	// print the location and the value.
+	multiLineValue := 12345
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Dbg with a multi-line call must not panic: %v", r)
+		}
+	}()
+
+	output := captureStdout(t, func() {
+		dbg.Dbg(
+			multiLineValue,
+		)
+	})
+
+	if !strings.Contains(output, "dbg_test.go") {
+		t.Errorf("multi-line Dbg should still print the filename, got: %q", output)
+	}
+
+	if !strings.Contains(output, "12345") {
+		t.Errorf("multi-line Dbg should still print the value, got: %q", output)
+	}
+}
+
+func TestDbgSingleLineExpr(t *testing.T) {
+	// A normal single-line call should still extract the source expression.
+	answer := 99
+
+	output := captureStdout(t, func() {
+		dbg.Dbg(answer)
+	})
+
+	if !strings.Contains(output, "answer") {
+		t.Errorf("single-line Dbg should print the expression name, got: %q", output)
+	}
+
+	if !strings.Contains(output, "99") {
+		t.Errorf("single-line Dbg should print the value, got: %q", output)
+	}
+}

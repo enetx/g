@@ -160,6 +160,35 @@ func TestRxFind(t *testing.T) {
 	}
 }
 
+func TestRxFindEmptyMatch(t *testing.T) {
+	testCases := []struct {
+		name     string
+		pattern  *regexp.Regexp
+		input    String
+		wantSome bool
+		want     String
+	}{
+		{"empty match at start (^)", regexp.MustCompile(`^`), "hello", true, ""},
+		{"zero-or-more empty (a*)", regexp.MustCompile(`a*`), "bbb", true, ""},
+		{"zero-or-more digits empty (\\d*)", regexp.MustCompile(`\d*`), "abc", true, ""},
+		{"genuine no match", regexp.MustCompile(`z+`), "abc", false, ""},
+		{"empty input zero-or-more", regexp.MustCompile(`a*`), "", true, ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := tc.input.Regexp().Find(tc.pattern)
+			if result.IsSome() != tc.wantSome {
+				t.Fatalf("Find(%v) IsSome = %v, want %v", tc.pattern, result.IsSome(), tc.wantSome)
+			}
+
+			if tc.wantSome && result.Some() != tc.want {
+				t.Errorf("Find(%v) = %q, want %q", tc.pattern, result.Some(), tc.want)
+			}
+		})
+	}
+}
+
 func TestRxMatch(t *testing.T) {
 	testCases := []struct {
 		pattern  *regexp.Regexp

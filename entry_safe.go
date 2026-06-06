@@ -189,6 +189,24 @@ func (VacantSafeEntry[K, V]) sealed() {}
 // Key returns the key that would be used for insertion.
 func (e VacantSafeEntry[K, V]) Key() K { return e.key }
 
+// applyPending applies the pending AndModify function (if any) to the value now
+// stored under the key, then returns the resulting stored value.
+//
+// It is used by the Or* methods when an insert loses the race to a concurrent
+// goroutine: the modification registered via AndModify must still be applied to
+// the value that actually won the race. If the key has since been removed,
+// fallback (the value observed during the failed insert) is returned instead.
+func (e VacantSafeEntry[K, V]) applyPending(fallback *V) V {
+	if e.modify != nil {
+		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
+		if val, ok := e.m.data.Load(e.key); ok {
+			return *(val.(*V))
+		}
+	}
+
+	return *fallback
+}
+
 // Insert inserts the provided value into the map and returns the stored value.
 //
 // If another goroutine inserts the same key concurrently, the existing value
@@ -203,20 +221,21 @@ func (e VacantSafeEntry[K, V]) Insert(value V) V { return e.OrInsert(value) }
 // existing value before returning.
 //
 // This ensures that chained calls like Entry(k).AndModify(f).OrInsert(v)
-// behave correctly under concurrent access: the modification is never lost.
+// behave correctly under concurrent access: under contended insertion the
+// modification is applied to the winning value.
+//
+// Edge case: if the key is also removed by another goroutine between the lost
+// insert and the modify, the modification has nothing to apply to and the
+// pre-modify value observed during the failed insert is returned. In that
+// narrow window the modification can be lost.
 func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
 	actual, loaded := e.m.data.LoadOrStore(e.key, &value)
 	if !loaded {
 		e.m.count.Add(1)
 	}
 
-	if loaded && e.modify != nil {
-		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-		if val, ok := e.m.data.Load(e.key); ok {
-			return *(val.(*V))
-		}
-
-		return *(actual.(*V))
+	if loaded {
+		return e.applyPending(actual.(*V))
 	}
 
 	return *(actual.(*V))
@@ -230,14 +249,7 @@ func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
 // of fn() may be discarded and the existing value is returned instead.
 func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		if e.modify != nil {
-			OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-			if val, ok := e.m.data.Load(e.key); ok {
-				return *(val.(*V))
-			}
-		}
-
-		return *(actual.(*V))
+		return e.applyPending(actual.(*V))
 	}
 
 	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn()))
@@ -245,13 +257,8 @@ func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 		e.m.count.Add(1)
 	}
 
-	if loaded && e.modify != nil {
-		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-		if val, ok := e.m.data.Load(e.key); ok {
-			return *(val.(*V))
-		}
-
-		return *(actual.(*V))
+	if loaded {
+		return e.applyPending(actual.(*V))
 	}
 
 	return *(actual.(*V))
@@ -265,14 +272,7 @@ func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 // of fn() may be discarded and the existing value is returned instead.
 func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		if e.modify != nil {
-			OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-			if val, ok := e.m.data.Load(e.key); ok {
-				return *(val.(*V))
-			}
-		}
-
-		return *(actual.(*V))
+		return e.applyPending(actual.(*V))
 	}
 
 	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn(e.key)))
@@ -280,13 +280,8 @@ func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 		e.m.count.Add(1)
 	}
 
-	if loaded && e.modify != nil {
-		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
-		if val, ok := e.m.data.Load(e.key); ok {
-			return *(val.(*V))
-		}
-
-		return *(actual.(*V))
+	if loaded {
+		return e.applyPending(actual.(*V))
 	}
 
 	return *(actual.(*V))

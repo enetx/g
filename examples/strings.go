@@ -24,7 +24,7 @@ func main() {
 	cuted := NewSlice[String]()
 	for ss.ContainsAll("[", "]") {
 		var cut String
-		ss, cut = ss.Cut("[", "]")
+		ss, cut = ss.Cut("[", "]", true)
 		cuted.Push(cut)
 	}
 

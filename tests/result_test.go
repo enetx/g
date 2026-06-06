@@ -518,3 +518,71 @@ func TestResultWrap(t *testing.T) {
 		t.Error("All errors in chain should be accessible via ErrIs")
 	}
 }
+
+func TestResultInspect(t *testing.T) {
+	t.Run("Ok calls fn and returns unchanged", func(t *testing.T) {
+		called := 0
+		var seen int
+		out := Ok(42).Inspect(func(v int) {
+			called++
+			seen = v
+		})
+
+		if called != 1 {
+			t.Errorf("Inspect should call fn once on Ok, called %d times", called)
+		}
+		if seen != 42 {
+			t.Errorf("Inspect fn received %d, want 42", seen)
+		}
+		if out.IsErr() || out.Ok() != 42 {
+			t.Errorf("Inspect should return the Result unchanged, got %v", out)
+		}
+	})
+
+	t.Run("Err does not call fn", func(t *testing.T) {
+		called := 0
+		out := Err[int](errors.New("boom")).Inspect(func(int) { called++ })
+
+		if called != 0 {
+			t.Errorf("Inspect should not call fn on Err, called %d times", called)
+		}
+		if out.IsOk() {
+			t.Errorf("Inspect on Err should remain Err, got %v", out)
+		}
+	})
+}
+
+func TestMapResult(t *testing.T) {
+	t.Run("Ok maps the value", func(t *testing.T) {
+		out := MapResult(Ok(21), func(v int) string {
+			return fmt.Sprintf("v=%d", v*2)
+		})
+
+		if out.IsErr() {
+			t.Fatalf("MapResult(Ok) should be Ok, got err %v", out.Err())
+		}
+		if out.Ok() != "v=42" {
+			t.Errorf("MapResult got %q, want %q", out.Ok(), "v=42")
+		}
+	})
+
+	t.Run("Err propagates", func(t *testing.T) {
+		err := errors.New("boom")
+		out := MapResult(Err[int](err), func(v int) string { return fmt.Sprintf("%d", v) })
+		if out.IsOk() {
+			t.Fatal("MapResult(Err) should be Err")
+		}
+		if !errors.Is(out.Err(), err) {
+			t.Errorf("MapResult should propagate the original error, got %v", out.Err())
+		}
+	})
+
+	t.Run("Matches TransformResult", func(t *testing.T) {
+		fn := func(v int) int { return v + 1 }
+		a := MapResult(Ok(1), fn)
+		b := TransformResult(Ok(1), fn)
+		if a.Ok() != b.Ok() {
+			t.Error("MapResult should equal TransformResult")
+		}
+	})
+}

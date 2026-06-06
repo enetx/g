@@ -1891,3 +1891,134 @@ func TestSeqSliceNext(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqSlicesMap(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Slice[int]
+		size  Int
+		want  [][]int
+	}{
+		{
+			name:  "double each chunk",
+			input: SliceOf(1, 2, 3, 4),
+			size:  2,
+			want:  [][]int{{2, 4}, {6, 8}},
+		},
+		{
+			name:  "single chunk",
+			input: SliceOf(1, 2, 3),
+			size:  3,
+			want:  [][]int{{2, 4, 6}},
+		},
+		{
+			name:  "empty input",
+			input: NewSlice[int](),
+			size:  2,
+			want:  [][]int{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Iter().
+				Chunks(tt.size).
+				Map(func(c Slice[int]) Slice[int] {
+					return c.Iter().Map(func(v int) int { return v * 2 }).Collect()
+				}).
+				Collect()
+			assertGroupsInt(t, got, tt.want)
+		})
+	}
+}
+
+func TestSeqSlicesFilter(t *testing.T) {
+	got := SliceOf(1, 2, 3, 4, 5).
+		Iter().
+		Chunks(2).
+		Filter(func(c Slice[int]) bool { return c.Len() == 2 }).
+		Collect()
+	assertGroupsInt(t, got, [][]int{{1, 2}, {3, 4}})
+}
+
+func TestSeqSlicesForEach(t *testing.T) {
+	var seen [][]int
+	SliceOf(1, 2, 3, 4, 5).
+		Iter().
+		Chunks(2).
+		ForEach(func(c Slice[int]) {
+			cp := make([]int, c.Len())
+			copy(cp, c)
+			seen = append(seen, cp)
+		})
+
+	want := [][]int{{1, 2}, {3, 4}, {5}}
+	if len(seen) != len(want) {
+		t.Fatalf("ForEach groups = %d; want %d", len(seen), len(want))
+	}
+	for i := range want {
+		if !reflect.DeepEqual(seen[i], want[i]) {
+			t.Errorf("group %d = %v; want %v", i, seen[i], want[i])
+		}
+	}
+}
+
+func TestSeqSlicesFlatten(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Slice[int]
+		size  Int
+		want  Slice[int]
+	}{
+		{
+			name:  "chunks flattened back",
+			input: SliceOf(1, 2, 3, 4, 5, 6),
+			size:  2,
+			want:  SliceOf(1, 2, 3, 4, 5, 6),
+		},
+		{
+			name:  "uneven chunks",
+			input: SliceOf(1, 2, 3, 4, 5),
+			size:  2,
+			want:  SliceOf(1, 2, 3, 4, 5),
+		},
+		{
+			name:  "empty",
+			input: NewSlice[int](),
+			size:  2,
+			want:  NewSlice[int](),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.input.Iter().Chunks(tt.size).Flatten().Collect()
+			if !got.Eq(tt.want) {
+				t.Errorf("Flatten().Collect() = %v; want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSeqSlicesFlattenEarlyStop(t *testing.T) {
+	// Flatten must honor downstream stop (yield-after-stop protocol).
+	got := SliceOf(1, 2, 3, 4, 5, 6).
+		Iter().
+		Chunks(2).
+		Flatten().
+		Take(3).
+		Collect()
+	if !got.Eq(SliceOf(1, 2, 3)) {
+		t.Errorf("Flatten().Take(3) = %v; want [1 2 3]", got)
+	}
+}
+
+func TestSeqSlicesFilterEarlyStop(t *testing.T) {
+	// Filter feeding a Take must stop the upstream source cleanly.
+	got := SliceOf(1, 2, 3, 4, 5, 6, 7, 8).
+		Iter().
+		Chunks(2).
+		Filter(func(c Slice[int]) bool { return true }).
+		Collect()
+	assertGroupsInt(t, got, [][]int{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+}

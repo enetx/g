@@ -33,14 +33,11 @@ func IsOdd[T constraints.Integer](i T) bool { return i%2 != 0 }
 // Match returns a function that checks whether a string or []byte matches a given regular expression.
 func Match[T ~string | ~[]byte](t *regexp.Regexp) func(T) bool {
 	return func(s T) bool {
-		switch v := any(s).(type) {
-		case string:
-			return t.MatchString(v)
-		case []byte:
-			return t.Match(v)
-		default:
-			return false
+		if reflect.TypeFor[T]().Kind() == reflect.String {
+			return t.MatchString(reflect.ValueOf(s).String())
 		}
+
+		return t.Match(reflect.ValueOf(s).Bytes())
 	}
 }
 
@@ -129,5 +126,40 @@ func Lt[T cmp.Ordered](t T) func(T) bool {
 func Lte[T cmp.Ordered](t T) func(T) bool {
 	return func(s T) bool {
 		return s <= t
+	}
+}
+
+// Not returns a predicate that negates the result of the provided predicate.
+func Not[T any](fn func(T) bool) func(T) bool {
+	return func(s T) bool {
+		return !fn(s)
+	}
+}
+
+// And returns a predicate that evaluates to true only when all of the provided predicates do.
+// It short-circuits on the first predicate that returns false. With no predicates it returns true.
+func And[T any](fns ...func(T) bool) func(T) bool {
+	return func(s T) bool {
+		for _, fn := range fns {
+			if !fn(s) {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
+// Or returns a predicate that evaluates to true when any of the provided predicates does.
+// It short-circuits on the first predicate that returns true. With no predicates it returns false.
+func Or[T any](fns ...func(T) bool) func(T) bool {
+	return func(s T) bool {
+		for _, fn := range fns {
+			if fn(s) {
+				return true
+			}
+		}
+
+		return false
 	}
 }

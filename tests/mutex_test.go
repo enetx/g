@@ -312,3 +312,28 @@ func TestMutex_With_PanicUnlocks(t *testing.T) {
 		t.Errorf("Expected 100 after panic in With, got %d", guard.Get())
 	}
 }
+
+// TestMutex_GuardSingleUse documents the single-use guard contract: a guard
+// holds pointers into its owning Mutex, so a copy of the guard aliases the same
+// protected value (it is not an independent snapshot). Only one Unlock per Lock
+// is performed here; calling Unlock on multiple copies would double-unlock.
+func TestMutex_GuardSingleUse(t *testing.T) {
+	mutex := NewMutex(7)
+
+	guard := mutex.Lock()
+	alias := guard // copy: aliases the same underlying value via the pointer
+
+	alias.Set(99)
+	if guard.Get() != 99 {
+		t.Errorf("expected copied guard to alias the same value, got %d", guard.Get())
+	}
+
+	guard.Unlock() // single unlock for the single Lock
+
+	// Lock must succeed again after exactly one Unlock.
+	g2 := mutex.Lock()
+	defer g2.Unlock()
+	if g2.Get() != 99 {
+		t.Errorf("expected 99 after alias.Set, got %d", g2.Get())
+	}
+}

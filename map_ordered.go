@@ -14,8 +14,10 @@ import (
 // Pair is a struct representing a key-value Pair for MapOrd.
 type Pair[K, V any] = iter.Pair[K, V]
 
-// MapOrd is an ordered map that maintains insertion order using a slice for pairs
-// and a map for fast index lookups.
+// MapOrd is an ordered map that maintains insertion order using a slice of
+// key-value pairs. Key lookups (Get, Insert, Contains, Remove, Entry) scan the
+// slice linearly and are therefore O(n); use Map for O(1) lookups when order is
+// not required.
 type MapOrd[K comparable, V any] []Pair[K, V] // ordered key-value pairs
 
 // NewMapOrd creates a new ordered Map with the specified size (if provided).
@@ -50,8 +52,8 @@ func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V
 
 // Entry returns an OrdEntry for the given key.
 func (mo *MapOrd[K, V]) Entry(key K) OrdEntry[K, V] {
-	if i := mo.index(key); i != -1 {
-		return OccupiedOrdEntry[K, V]{mo: mo, key: key, index: i}
+	if mo.index(key) != -1 {
+		return OccupiedOrdEntry[K, V]{mo: mo, key: key}
 	}
 
 	return VacantOrdEntry[K, V]{mo: mo, key: key}
@@ -68,9 +70,9 @@ func (mo *MapOrd[K, V]) Entry(key K) OrdEntry[K, V] {
 // Example usage:
 //
 //	m := g.NewMapOrd[int, int]()
-//	m.Set(1, 1)
-//	m.Set(2, 2)
-//	m.Set(3, 3).
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
 //
 //	m.Iter().ForEach(func(k, v int) {
 //	    // Process key-value pair
@@ -99,9 +101,9 @@ func (mo MapOrd[K, V]) Iter() SeqMapOrd[K, V] {
 // Example usage:
 //
 //	m := g.NewMapOrd[int, int]()
-//	m.Set(1, 1)
-//	m.Set(2, 2)
-//	m.Set(3, 3)
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
 //
 //	m.IterReverse().ForEach(func(k, v int) {
 //	    // Process key-value pair in reverse order
@@ -335,7 +337,7 @@ func (mo MapOrd[K, V]) Get(key K) Option[V] {
 // Shuffle randomly reorders the elements of the ordered Map.
 // It operates in place and affects the original order of the map's entries.
 //
-// The function uses the crypto/rand package to generate random indices.
+// The function uses the math/rand/v2 package to generate random indices.
 func (mo MapOrd[K, V]) Shuffle() {
 	for i := mo.Len() - 1; i > 0; i-- {
 		j := rand.N(i + 1)
@@ -389,7 +391,7 @@ func (mo *MapOrd[K, V]) Remove(key K) Option[V] {
 
 	for i, p := range *mo {
 		if p.Key == key {
-			*mo = append((*mo)[:i], (*mo)[i+1:]...)
+			*mo = slices.Delete(*mo, i, i+1)
 			return Some(p.Value)
 		}
 	}
@@ -408,7 +410,7 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 	idx := other.indexMap()
 
-	comparable := f.IsComparable[V]()
+	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
 	for i, mp := range mo {
 		j, ok := idx[mp.Key]
 
@@ -484,7 +486,8 @@ func (mo MapOrd[K, V]) Println() MapOrd[K, V] { fmt.Println(mo); return mo }
 //
 // This function is used to create a temporary indexMap that maps each key in the
 // ordered map to its position (insertion order) within the slice. It is useful
-// for optimizing lookup operations such as Set, Delete, Copy, or Eq.
+// for amortizing the cost of repeated lookups within a single bulk operation
+// such as Copy or Eq, where the per-key linear scan would otherwise be O(n^2).
 //
 // Time complexity: O(n), where n is the number of key-value pairs in the MapOrd.
 func (mo MapOrd[K, V]) indexMap() map[K]int {

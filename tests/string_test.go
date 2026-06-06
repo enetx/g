@@ -489,6 +489,58 @@ func TestStringRandom(t *testing.T) {
 	}
 }
 
+func TestStringRandomEdgeCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		length  Int
+		letters []String
+		wantLen Int
+	}{
+		{"zero length", 0, nil, 0},
+		{"negative length", -5, nil, 0},
+		{"negative length with letters", -1, []String{ASCII_LETTERS}, 0},
+		{"empty letter set", 5, []String{""}, 0},
+		{"empty letter set zero length", 0, []String{""}, 0},
+		{"valid custom set", 8, []String{DIGITS}, 8},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := String("").Random(tt.length, tt.letters...)
+			if got.LenRunes() != tt.wantLen {
+				t.Errorf("Random(%d, %v) length = %d, want %d", tt.length, tt.letters, got.LenRunes(), tt.wantLen)
+			}
+		})
+	}
+}
+
+func TestSubStringClamp(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    String
+		start    Int
+		end      Int
+		expected String
+	}{
+		{"end past length", "Hello", 0, 100, "Hello"},
+		{"start past length", "Hello", 100, 200, ""},
+		{"start way negative", "Hello", -100, 3, "Hel"},
+		{"both negative oob", "Hello", -100, -100, ""},
+		{"start past end clamped", "Hello", 4, 1, ""},
+		{"unicode end past length", "Привет", 0, 100, "Привет"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Must never panic and must clamp gracefully.
+			got := tt.input.SubString(tt.start, tt.end)
+			if got != tt.expected {
+				t.Errorf("SubString(%d, %d) = %q, want %q", tt.start, tt.end, got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestStringChunks(t *testing.T) {
 	str := String("")
 	chunks := str.Chunks(3).Collect()

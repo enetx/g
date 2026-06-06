@@ -502,6 +502,17 @@ func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
 		}
 	}
 
+	// Release any descriptor already held by this File before reassigning,
+	// otherwise re-opening (e.g. WriteFromReader on an open handle) leaks the
+	// previous fd and orphans its advisory lock.
+	if f.file != nil {
+		if f.guard {
+			filelock.Unlock(f.file)
+		}
+
+		f.file.Close()
+	}
+
 	f.file = file
 
 	return Ok(f)
@@ -512,11 +523,11 @@ func (f *File) Path() Result[String] { return f.filePath() }
 
 // Print writes the content of the File to the standard output (console)
 // and returns the File unchanged.
-func (f *File) Print() *File { fmt.Print(f); return f }
+func (f *File) Print() *File { fmt.Print(f.Read().UnwrapOrDefault()); return f }
 
 // Println writes the content of the File to the standard output (console) with a newline
 // and returns the File unchanged.
-func (f *File) Println() *File { fmt.Println(f); return f }
+func (f *File) Println() *File { fmt.Println(f.Read().UnwrapOrDefault()); return f }
 
 // Read opens the named file with a read-lock and returns its contents.
 func (f *File) Read() Result[String] {
@@ -663,8 +674,17 @@ func (f *File) CreateTemp(args ...String) Result[*File] {
 
 	ntmpfile := NewFile(String(tmpfile.Name()))
 	ntmpfile.file = tmpfile
+
 	if f.guard {
 		ntmpfile.guard = true
+
+		// os.CreateTemp returns an unlocked descriptor; acquire the advisory
+		// lock so the deferred Close's Unlock has a registered lock to release
+		// (otherwise fcntl platforms panic in unlock).
+		if err := filelock.Lock(tmpfile); err != nil {
+			tmpfile.Close()
+			return Err[*File](err)
+		}
 	}
 
 	defer ntmpfile.Close()

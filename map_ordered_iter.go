@@ -55,15 +55,15 @@ func (seq SeqMapOrd[K, V]) Unzip() (SeqSlice[K], SeqSlice[V]) { return seq.Keys(
 // Example:
 //
 //	m := g.NewMapOrd[g.Int, g.String]()
-//	m.
-//		Set(6, "bb").
-//		Set(0, "dd").
-//		Set(1, "aa").
-//		Set(5, "xx").
-//		Set(2, "cc").
-//		Set(3, "ff").
-//		Set(4, "zz").
-//		Iter().
+//	m.Insert(6, "bb")
+//	m.Insert(0, "dd")
+//	m.Insert(1, "aa")
+//	m.Insert(5, "xx")
+//	m.Insert(2, "cc")
+//	m.Insert(3, "ff")
+//	m.Insert(4, "zz")
+//
+//	m.Iter().
 //		SortBy(
 //			func(a, b g.Pair[g.Int, g.String]) cmp.Ordering {
 //				return a.Key.Cmp(b.Key)
@@ -91,15 +91,15 @@ func (seq SeqMapOrd[K, V]) SortBy(fn func(a, b Pair[K, V]) cmp.Ordering) SeqMapO
 // Example:
 //
 //	m := g.NewMapOrd[g.Int, g.String]()
-//	m.
-//		Set(6, "bb").
-//		Set(0, "dd").
-//		Set(1, "aa").
-//		Set(5, "xx").
-//		Set(2, "cc").
-//		Set(3, "ff").
-//		Set(4, "zz").
-//		Iter().
+//	m.Insert(6, "bb")
+//	m.Insert(0, "dd")
+//	m.Insert(1, "aa")
+//	m.Insert(5, "xx")
+//	m.Insert(2, "cc")
+//	m.Insert(3, "ff")
+//	m.Insert(4, "zz")
+//
+//	m.Iter().
 //		SortByKey(g.Int.Cmp).
 //		Collect().
 //		Print()
@@ -118,15 +118,15 @@ func (seq SeqMapOrd[K, V]) SortByKey(fn func(a, b K) cmp.Ordering) SeqMapOrd[K, 
 // Example:
 //
 //	m := g.NewMapOrd[g.Int, g.String]()
-//	m.
-//		Set(6, "bb").
-//		Set(0, "dd").
-//		Set(1, "aa").
-//		Set(5, "xx").
-//		Set(2, "cc").
-//		Set(3, "ff").
-//		Set(4, "zz").
-//		Iter().
+//	m.Insert(6, "bb")
+//	m.Insert(0, "dd")
+//	m.Insert(1, "aa")
+//	m.Insert(5, "xx")
+//	m.Insert(2, "cc")
+//	m.Insert(3, "ff")
+//	m.Insert(4, "zz")
+//
+//	m.Iter().
 //		SortByValue(g.String.Cmp).
 //		Collect().
 //		Print()
@@ -180,14 +180,14 @@ func (seq SeqMapOrd[K, V]) StepBy(n uint) SeqMapOrd[K, V] {
 //
 // Example usage:
 //
-//	iter1 := g.NewMapOrd[int, string]()
-//	iter1.Set(1, "a").Iter()
+//	m1 := g.NewMapOrd[int, string]()
+//	m1.Insert(1, "a")
 //
-//	iter2 := g.NewMapOrd[int, string]()
-//	iter2.Set(2, "b").Iter()
+//	m2 := g.NewMapOrd[int, string]()
+//	m2.Insert(2, "b")
 //
 //	// Concatenating iterators and collecting the result.
-//	iter1.Chain(iter2).Collect().Print()
+//	m1.Iter().Chain(m2.Iter()).Collect().Print()
 //
 // Output: MapOrd{1:a, 2:b}
 //
@@ -232,16 +232,14 @@ func (seq SeqMapOrd[K, V]) Collect() MapOrd[K, V] {
 // Example usage:
 //
 
-//	iter := g.NewMapOrd[int, string]()
-//	iter.
-//		Set(1, "a").
-//		Set(2, "b").
-//		Set(3, "c").
-//		Set(4, "d").
-//		Iter()
+//	m := g.NewMapOrd[int, string]()
+//	m.Insert(1, "a")
+//	m.Insert(2, "b")
+//	m.Insert(3, "c")
+//	m.Insert(4, "d")
 //
 //	// Skipping the first two elements and collecting the rest.
-//	iter.Skip(2).Collect().Print()
+//	m.Iter().Skip(2).Collect().Print()
 //
 // Output: MapOrd{3:c, 4:d}
 //
@@ -266,12 +264,11 @@ func (seq SeqMapOrd[K, V]) Skip(n uint) SeqMapOrd[K, V] {
 // Example usage:
 //
 //	mo := g.NewMapOrd[int, int]()
-//	mo.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	mo.Insert(1, 1)
+//	mo.Insert(2, 2)
+//	mo.Insert(3, 3)
+//	mo.Insert(4, 4)
+//	mo.Insert(5, 5)
 //
 //	notEven := mo.Iter().
 //		Exclude(
@@ -304,12 +301,11 @@ func (seq SeqMapOrd[K, V]) Exclude(fn func(K, V) bool) SeqMapOrd[K, V] {
 // Example usage:
 //
 //	mo := g.NewMapOrd[int, int]()
-//	mo.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	mo.Insert(1, 1)
+//	mo.Insert(2, 2)
+//	mo.Insert(3, 3)
+//	mo.Insert(4, 4)
+//	mo.Insert(5, 5)
 //
 //	even := mo.Iter().
 //		Filter(
@@ -342,7 +338,7 @@ func (seq SeqMapOrd[K, V]) Filter(fn func(K, V) bool) SeqMapOrd[K, V] {
 // Example usage:
 //
 //	m := g.NewMapOrd[int, int]()
-//	m.Set(1, 1)
+//	m.Insert(1, 1)
 //	f := m.Iter().Find(func(_ int, v int) bool { return v == 1 })
 //	if f.IsSome() {
 //		print(f.Some().Key)
@@ -368,16 +364,14 @@ func (seq SeqMapOrd[K, V]) Find(fn func(k K, v V) bool) Option[Pair[K, V]] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]()
-//	iter.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5).
-//		Iter()
+//	m := g.NewMapOrd[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
-//	iter.ForEach(func(key K, val V) {
+//	m.Iter().ForEach(func(key K, val V) {
 //	    // Process key-value pair
 //	})
 //
@@ -401,12 +395,11 @@ func (seq SeqMapOrd[K, V]) ForEach(fn func(k K, v V)) {
 // Example usage:
 //
 //	mo := g.NewMapOrd[int, int]()
-//	mo.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5)
+//	mo.Insert(1, 1)
+//	mo.Insert(2, 2)
+//	mo.Insert(3, 3)
+//	mo.Insert(4, 4)
+//	mo.Insert(5, 5)
 //
 //	momap := mo.Iter().
 //		Map(
@@ -435,16 +428,14 @@ func (seq SeqMapOrd[K, V]) Map(transform func(K, V) (K, V)) SeqMapOrd[K, V] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]()
-//	iter.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5).
-//		Iter()
+//	m := g.NewMapOrd[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
-//	iter.Range(func(k, v int) bool {
+//	m.Iter().Range(func(k, v int) bool {
 //	    fmt.Println(v) // Replace this with the function logic you need.
 //	    return v < 5 // Replace this with the condition for continuing iteration.
 //	})
@@ -508,19 +499,17 @@ func (seq SeqMapOrd[K, V]) Nth(n Int) Option[Pair[K, V]] {
 //
 // Example usage:
 //
-//	iter := g.NewMapOrd[int, int]()
-//	iter.
-//		Set(1, 1).
-//		Set(2, 2).
-//		Set(3, 3).
-//		Set(4, 4).
-//		Set(5, 5).
-//		Iter()
+//	m := g.NewMapOrd[int, int]()
+//	m.Insert(1, 1)
+//	m.Insert(2, 2)
+//	m.Insert(3, 3)
+//	m.Insert(4, 4)
+//	m.Insert(5, 5)
 //
 //	ctx, cancel := context.WithCancel(context.Background())
 //	defer cancel() // Ensure cancellation to avoid goroutine leaks.
 //
-//	ch := iter.Chan(ctx)
+//	ch := m.Iter().Chan(ctx)
 //	for pair := range ch {
 //	    // Process key-value pair from the channel
 //	}

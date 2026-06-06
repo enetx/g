@@ -84,6 +84,9 @@ func New[T any]() *Pool[T] {
 // Zero or negative n removes the rate limit.
 // Cannot be changed while tasks are running.
 //
+// The refill goroutine backing the limiter is started lazily on the first task
+// start, so configuring a rate on a pool that is never consumed leaks nothing.
+//
 // Examples:
 //
 //	p.Rate(10, time.Second)           // 10 tasks/sec, burst of 10
@@ -419,9 +422,10 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 // GOMAXPROCS workers in Stream mode).
 // Cannot be changed while tasks are running.
 //
-// On non-Windows systems, the limit is capped by the process stack rlimit.
+// On non-Windows systems, the limit is capped by the process open-file-descriptor
+// limit (RLIMIT_NOFILE) when the requested worker count would exceed it.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
-	if p.tokens != nil && len(p.tokens) > 0 {
+	if atomic.LoadInt32(&p.totalTasks) > 0 {
 		panic("cannot change semaphore limit while tasks are running")
 	}
 

@@ -53,6 +53,27 @@ func FlattenResult[T any, E ~[]T](seq SeqResult[E]) SeqResult[T] {
 	}
 }
 
+// MapSeqResult transforms each Ok value of a SeqResult[V] into a SeqResult[U] using the given function.
+//
+// It is the iterator-level cross-type plain-map free function for SeqResult, mirroring TransformResult
+// for a single Result: fn returns a plain U (always Ok on an Ok input) rather than a Result[U].
+// If an Err is encountered, it is propagated downstream as-is and ends the iteration (yield returns false),
+// matching the same-type SeqResult.Map method.
+//
+// Because Go does not allow type parameters on methods, this type-changing map is provided as a free function;
+// SeqResult.Map remains the V→V method variant.
+func MapSeqResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				yield(Err[U](v.err))
+				return false
+			}
+			return yield(Ok(fn(v.v)))
+		})
+	}
+}
+
 // Pull converts the “push-style” sequence of Result[V] into a “pull-style” iterator accessed by two functions: next and stop.
 //
 // The next function returns the next Result[V] in the sequence and a boolean indicating whether the value is valid.
@@ -193,7 +214,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		var current V
 		hasFirst := false
-		comparable := f.IsComparable[V]()
+		comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -229,7 +250,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 // Future occurrences of a previously seen Ok value are skipped.
 func (seq SeqResult[V]) Unique() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
-		if f.IsComparable[V]() {
+		if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
 			seen := NewSet[any]()
 
 			seq(func(v Result[V]) bool {
@@ -312,6 +333,10 @@ func (seq SeqResult[V]) Skip(n uint) SeqResult[V] {
 // For Ok elements, only every n-th element is yielded.
 func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
+		if n == 0 {
+			return
+		}
+
 		i := uint(0)
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -332,16 +357,31 @@ func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 // After n Ok elements are yielded, the sequence ends.
 func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
+		if n == 0 {
+			return
+		}
+
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				yield(v)
 				return false
 			}
+
+			// Defensive: a source that ignores our stop signal must still not
+			// over-yield past n.
 			if n == 0 {
 				return false
 			}
+
+			if !yield(v) {
+				return false
+			}
+
 			n--
-			return yield(v)
+
+			// Stop tightly once n elements are taken so a well-behaved source is
+			// not pulled one extra time.
+			return n > 0
 		})
 	}
 }
@@ -385,14 +425,26 @@ func (seq SeqResult[V]) Nth(n Int) Result[Option[V]] {
 // If an Err is encountered, it is yielded immediately, ending further iteration.
 func (seq SeqResult[V]) Chain(seqs ...SeqResult[V]) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
+		stopped := false
+
 		for _, seq := range append([]SeqResult[V]{seq}, seqs...) {
 			seq(func(v Result[V]) bool {
-				if v.IsErr() {
-					yield(v)
+				if !yield(v) {
+					stopped = true
 					return false
 				}
-				return yield(v)
+
+				if v.IsErr() {
+					stopped = true
+					return false
+				}
+
+				return true
 			})
+
+			if stopped {
+				return
+			}
 		}
 	}
 }

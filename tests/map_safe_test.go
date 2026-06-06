@@ -408,3 +408,86 @@ func TestMapSafeIsEmpty(t *testing.T) {
 		t.Errorf("Empty() should return false for non-empty map")
 	}
 }
+
+func TestMapSafeTransform(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+
+	// Transform receives and returns the same *MapSafe, enabling fluent chaining.
+	out := ms.Transform(func(m *MapSafe[string, int]) *MapSafe[string, int] {
+		m.Insert("c", 3)
+		return m
+	})
+
+	if out != ms {
+		t.Error("Transform should return the same MapSafe instance")
+	}
+	if ms.Len() != 3 {
+		t.Errorf("expected len 3 after Transform, got %d", ms.Len())
+	}
+	if v := ms.Get("c"); v.IsNone() || v.Some() != 3 {
+		t.Errorf("expected c=3 after Transform, got %v", v)
+	}
+}
+
+func TestMapSafeToMap(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+	ms.Insert("c", 3)
+
+	m := ms.Map()
+	if m.Len() != 3 {
+		t.Fatalf("expected 3 entries, got %d", m.Len())
+	}
+
+	for _, k := range []string{"a", "b", "c"} {
+		v, ok := m[k]
+		want := map[string]int{"a": 1, "b": 2, "c": 3}[k]
+		if !ok || v != want {
+			t.Errorf("key %q: expected %d, got %d (ok=%v)", k, want, v, ok)
+		}
+	}
+
+	// Snapshot independence: mutating the MapSafe must not affect the snapshot.
+	ms.Insert("d", 4)
+	if _, ok := m["d"]; ok {
+		t.Error("Map snapshot should be independent of later MapSafe mutations")
+	}
+
+	if NewMapSafe[string, int]().Map().Len() != 0 {
+		t.Error("expected empty Map from empty MapSafe")
+	}
+}
+
+func TestMapSafeToOrdered(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("a", 1)
+	ms.Insert("b", 2)
+	ms.Insert("c", 3)
+
+	mo := ms.Ordered()
+	if mo.Len() != 3 {
+		t.Fatalf("expected 3 entries, got %d", mo.Len())
+	}
+
+	// Order is unspecified, so verify by key lookup.
+	for _, k := range []string{"a", "b", "c"} {
+		v := mo.Get(k)
+		want := map[string]int{"a": 1, "b": 2, "c": 3}[k]
+		if v.IsNone() || v.Some() != want {
+			t.Errorf("key %q: expected %d, got %v", k, want, v)
+		}
+	}
+
+	// Snapshot independence.
+	ms.Insert("d", 4)
+	if mo.Contains("d") {
+		t.Error("Ordered snapshot should be independent of later MapSafe mutations")
+	}
+
+	if NewMapSafe[string, int]().Ordered().Len() != 0 {
+		t.Error("expected empty MapOrd from empty MapSafe")
+	}
+}

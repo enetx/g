@@ -670,3 +670,61 @@ func TestFloatValue(t *testing.T) {
 		t.Fatalf("Expected 0, got %v", val2)
 	}
 }
+
+func TestFloatNaNNonIEEE(t *testing.T) {
+	nan := Float(math.NaN())
+
+	// Non-IEEE total order: NaN.Eq(NaN) is true (IEEE would be false).
+	if !nan.Eq(nan) {
+		t.Error("NaN.Eq(NaN) should be true under the non-IEEE total order")
+	}
+	if nan.Ne(nan) {
+		t.Error("NaN.Ne(NaN) should be false under the non-IEEE total order")
+	}
+
+	// NaN sorts as the smallest value.
+	if !nan.Lt(Float(0)) {
+		t.Error("NaN should sort less than 0")
+	}
+	if nan.Gt(Float(0)) {
+		t.Error("NaN should not sort greater than 0")
+	}
+	if !nan.Cmp(Float(0)).IsLt() {
+		t.Error("NaN.Cmp(0) should report Lt")
+	}
+}
+
+func TestFloatDecimalOverflowGuard(t *testing.T) {
+	big := Float(math.MaxFloat64)
+
+	tests := []struct {
+		name string
+		got  Float
+	}{
+		{"Round", big.RoundDecimal(308)},
+		{"Trunc", big.TruncDecimal(308)},
+		{"Ceil", big.CeilDecimal(308)},
+		{"Floor", big.FloorDecimal(308)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if math.IsInf(tc.got.Std(), 0) || math.IsNaN(tc.got.Std()) {
+				t.Errorf("%sDecimal overflowed to non-finite %v", tc.name, tc.got)
+			}
+			if tc.got != big {
+				t.Errorf("%sDecimal should return the value unchanged on overflow, got %v", tc.name, tc.got)
+			}
+		})
+	}
+}
+
+func TestFloatDecimalNormal(t *testing.T) {
+	f := Float(3.14159)
+	if got := f.RoundDecimal(2); got != Float(3.14) {
+		t.Errorf("RoundDecimal(2) = %v, want 3.14", got)
+	}
+	if got := f.TruncDecimal(2); got != Float(3.14) {
+		t.Errorf("TruncDecimal(2) = %v, want 3.14", got)
+	}
+}

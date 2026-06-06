@@ -291,3 +291,30 @@ func TestOptionValueUnsupportedSlice(t *testing.T) {
 		t.Fatal("expected error for []int")
 	}
 }
+
+func TestOptionScanRawBytesFromString(t *testing.T) {
+	// L-O1: a TEXT column delivered as a string must scan into Option[[]byte].
+	var b Option[[]byte]
+	if err := b.Scan("hello"); err != nil {
+		t.Fatalf("Scan(string) into Option[[]byte] failed: %v", err)
+	}
+	if string(b.Some()) != "hello" {
+		t.Fatalf("expected 'hello', got %q", string(b.Some()))
+	}
+}
+
+func TestOptionScanRawBytesCopied(t *testing.T) {
+	// L-O2: the driver-owned buffer must be copied, not aliased.
+	src := []byte("abc")
+	var b Option[[]byte]
+	if err := b.Scan(src); err != nil {
+		t.Fatalf("Scan([]byte) into Option[[]byte] failed: %v", err)
+	}
+
+	// Mutate the original driver buffer (simulating database/sql reusing it on the next row).
+	src[0] = 'X'
+
+	if string(b.Some()) != "abc" {
+		t.Fatalf("scanned []byte aliased the driver buffer: got %q, want %q", string(b.Some()), "abc")
+	}
+}

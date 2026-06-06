@@ -257,7 +257,7 @@ func (seq SeqDeque[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqDeque[V]) Dedup() SeqDeque[V] {
-	if f.IsComparable[V]() {
+	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
 		return SeqDeque[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
 			return any(a) == any(b)
 		}))
@@ -722,6 +722,11 @@ func (seq SeqDeque[V]) Nth(n Int) Option[V] {
 // Returns:
 //
 // - chan V: A channel containing the elements from the iterator.
+//
+// Warning: when no context is supplied, the default is context.Background(), which never
+// cancels. The producer goroutine then blocks on send until every element is consumed; if
+// the consumer abandons the channel early (e.g. breaks out of the range loop), that goroutine
+// leaks. Pass a cancelable context and cancel it when you stop consuming to avoid the leak.
 //
 // Example usage:
 //

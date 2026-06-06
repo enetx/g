@@ -184,10 +184,10 @@ func TestDequeGetSet(t *testing.T) {
 		t.Errorf("Expected None for out of bounds index, got %v", val)
 	}
 
-	// Test set
-	success := dq.Set(2, 10)
-	if !success {
-		t.Errorf("Expected successful set operation")
+	// Test set - returns the old value as an Option
+	old := dq.Set(2, 10)
+	if !old.IsSome() || old.Unwrap() != 3 {
+		t.Errorf("Expected Set to return old value 3, got %v", old)
 	}
 
 	val = dq.Get(2)
@@ -196,14 +196,14 @@ func TestDequeGetSet(t *testing.T) {
 	}
 
 	// Test invalid set
-	success = dq.Set(-1, 20)
-	if success {
-		t.Errorf("Expected failed set operation for negative index")
+	old = dq.Set(-1, 20)
+	if old.IsSome() {
+		t.Errorf("Expected None from failed set operation for negative index, got %v", old)
 	}
 
-	success = dq.Set(5, 20)
-	if success {
-		t.Errorf("Expected failed set operation for out of bounds index")
+	old = dq.Set(5, 20)
+	if old.IsSome() {
+		t.Errorf("Expected None from failed set operation for out of bounds index, got %v", old)
 	}
 }
 
@@ -1195,5 +1195,234 @@ func TestDequePrintln(t *testing.T) {
 	// Deque should be unchanged
 	if dq.Len() != 3 {
 		t.Errorf("Println() should not modify deque, expected length 3, got %d", dq.Len())
+	}
+}
+
+func TestDequeSetReturnsOld(t *testing.T) {
+	tests := []struct {
+		name    string
+		initial []int
+		index   g.Int
+		value   int
+		wantOld g.Option[int]
+		wantGet g.Option[int]
+	}{
+		{"middle", []int{1, 2, 3, 4, 5}, 2, 99, g.Some(3), g.Some(99)},
+		{"front", []int{1, 2, 3}, 0, 10, g.Some(1), g.Some(10)},
+		{"back", []int{1, 2, 3}, 2, 30, g.Some(3), g.Some(30)},
+		{"negative", []int{1, 2, 3}, -1, 7, g.None[int](), g.None[int]()},
+		{"out_of_bounds", []int{1, 2, 3}, 3, 7, g.None[int](), g.None[int]()},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dq := g.DequeOf(tt.initial...)
+			old := dq.Set(tt.index, tt.value)
+			if old != tt.wantOld {
+				t.Errorf("Set old value: expected %v, got %v", tt.wantOld, old)
+			}
+
+			if tt.index >= 0 && tt.index < dq.Len() {
+				got := dq.Get(tt.index)
+				if got != tt.wantGet {
+					t.Errorf("Get after Set: expected %v, got %v", tt.wantGet, got)
+				}
+			}
+		})
+	}
+
+	// Set on empty deque returns None and does not mutate.
+	empty := g.NewDeque[int]()
+	if empty.Set(0, 1).IsSome() {
+		t.Errorf("Set on empty deque should return None")
+	}
+	if !empty.IsEmpty() {
+		t.Errorf("Set on empty deque should not add elements")
+	}
+}
+
+func TestDequeTransform(t *testing.T) {
+	dq := g.DequeOf(1, 2, 3)
+
+	doubled := dq.Transform(func(d *g.Deque[int]) *g.Deque[int] {
+		return d.Iter().Map(func(v int) int { return v * 2 }).Collect()
+	})
+
+	expected := []int{2, 4, 6}
+	for i, exp := range expected {
+		val := doubled.Get(g.Int(i))
+		if !val.IsSome() || val.Unwrap() != exp {
+			t.Errorf("Transform: expected element %d at index %d, got %v", exp, i, val)
+		}
+	}
+
+	// Identity transform returns the same deque.
+	same := dq.Transform(func(d *g.Deque[int]) *g.Deque[int] { return d })
+	if same != dq {
+		t.Errorf("Transform identity should return the same deque instance")
+	}
+}
+
+func TestDequeNe(t *testing.T) {
+	dq1 := g.DequeOf(1, 2, 3)
+	dq2 := g.DequeOf(1, 2, 3)
+	dq3 := g.DequeOf(1, 2, 4)
+	dq4 := g.DequeOf(1, 2)
+
+	if dq1.Ne(dq2) {
+		t.Errorf("Expected dq1 not to be Ne to dq2 (they are equal)")
+	}
+	if !dq1.Ne(dq3) {
+		t.Errorf("Expected dq1 to be Ne to dq3 (different values)")
+	}
+	if !dq1.Ne(dq4) {
+		t.Errorf("Expected dq1 to be Ne to dq4 (different lengths)")
+	}
+	if dq1.Ne(dq1) {
+		t.Errorf("Deque should not be Ne to itself")
+	}
+}
+
+func TestDequeEqNil(t *testing.T) {
+	dq := g.DequeOf(1, 2, 3)
+
+	// Eq with nil argument should not panic and should report not-equal.
+	if dq.Eq(nil) {
+		t.Errorf("Expected non-nil deque not to equal nil")
+	}
+
+	// Ne with nil mirrors Eq.
+	if !dq.Ne(nil) {
+		t.Errorf("Expected non-nil deque to be Ne to nil")
+	}
+
+	// nil receiver compared to nil argument is equal (identity).
+	var nilDq *g.Deque[int]
+	if !nilDq.Eq(nil) {
+		t.Errorf("Expected nil deque to equal nil")
+	}
+
+	// nil receiver vs non-nil argument is not equal.
+	if nilDq.Eq(dq) {
+		t.Errorf("Expected nil deque not to equal non-nil deque")
+	}
+}
+
+func TestDequeContainsAny(t *testing.T) {
+	dq := g.DequeOf(1, 2, 3, 4, 5)
+
+	if !dq.ContainsAny(10, 3, 20) {
+		t.Errorf("Expected ContainsAny to be true when one value matches")
+	}
+	if dq.ContainsAny(10, 20, 30) {
+		t.Errorf("Expected ContainsAny to be false when no value matches")
+	}
+	if dq.ContainsAny() {
+		t.Errorf("Expected ContainsAny() with no args to be false")
+	}
+
+	// Empty deque
+	empty := g.NewDeque[int]()
+	if empty.ContainsAny(1, 2, 3) {
+		t.Errorf("Expected empty deque ContainsAny to be false")
+	}
+}
+
+func TestDequeContainsAll(t *testing.T) {
+	dq := g.DequeOf(1, 2, 3, 4, 5)
+
+	if !dq.ContainsAll(1, 3, 5) {
+		t.Errorf("Expected ContainsAll to be true when all values match")
+	}
+	if dq.ContainsAll(1, 3, 99) {
+		t.Errorf("Expected ContainsAll to be false when one value is missing")
+	}
+	if !dq.ContainsAll() {
+		t.Errorf("Expected ContainsAll() with no args to be true (vacuously true)")
+	}
+
+	// Empty deque with values is false.
+	empty := g.NewDeque[int]()
+	if empty.ContainsAll(1) {
+		t.Errorf("Expected empty deque ContainsAll(1) to be false")
+	}
+	// Empty deque with no values is vacuously true.
+	if !empty.ContainsAll() {
+		t.Errorf("Expected empty deque ContainsAll() to be true")
+	}
+}
+
+func TestDequeContainsAnyAllInterface(t *testing.T) {
+	// V=any holding uncomparable dynamic values must not panic (DeepEqual path).
+	dq := g.NewDeque[any]()
+	dq.PushBack([]int{1, 2, 3})
+	dq.PushBack(map[string]int{"a": 1})
+	dq.PushBack(42)
+
+	if !dq.ContainsAny([]int{1, 2, 3}, 99) {
+		t.Errorf("Expected ContainsAny to find slice via deep equality")
+	}
+	if !dq.ContainsAll([]int{1, 2, 3}, 42) {
+		t.Errorf("Expected ContainsAll to match slice and int via deep equality")
+	}
+	if dq.ContainsAny([]int{9, 9, 9}) {
+		t.Errorf("Expected ContainsAny not to match a different slice")
+	}
+}
+
+func TestDequeWrapAroundTraversal(t *testing.T) {
+	// Build a deque whose live region wraps around the ring buffer:
+	// capacity 4, then pop the front twice and push to back so front index > 0
+	// and the logical region spans the buffer boundary.
+	dq := g.NewDeque[int](4)
+	for i := 0; i < 4; i++ {
+		dq.PushBack(i) // buffer: [0,1,2,3], front=0
+	}
+	dq.PopFront()  // removes 0, front=1
+	dq.PopFront()  // removes 1, front=2
+	dq.PushBack(4) // wraps: stored at index 0
+	dq.PushBack(5) // stored at index 1; logical [2,3,4,5], front=2 -> wraps
+
+	expected := []int{2, 3, 4, 5}
+
+	// Iter must traverse the wrapped region in logical order.
+	var collected []int
+	dq.Iter()(func(v int) bool {
+		collected = append(collected, v)
+		return true
+	})
+	if len(collected) != len(expected) {
+		t.Fatalf("wrap Iter: expected %v, got %v", expected, collected)
+	}
+	for i, exp := range expected {
+		if collected[i] != exp {
+			t.Errorf("wrap Iter at %d: expected %d, got %d", i, exp, collected[i])
+		}
+	}
+
+	// String must render the wrapped region in logical order.
+	if got := dq.String(); got != "Deque[2, 3, 4, 5]" {
+		t.Errorf("wrap String: expected 'Deque[2, 3, 4, 5]', got %q", got)
+	}
+
+	// Contains must find every element across the wrap boundary.
+	for _, v := range expected {
+		if !dq.Contains(v) {
+			t.Errorf("wrap Contains: expected to contain %d", v)
+		}
+	}
+	if dq.Contains(0) || dq.Contains(1) {
+		t.Errorf("wrap Contains: should not contain popped elements 0 or 1")
+	}
+
+	// Iter early-stop on a wrapped deque must not over-yield.
+	collected = nil
+	dq.Iter()(func(v int) bool {
+		collected = append(collected, v)
+		return v != 4 // stop right after yielding 4 (in the wrapped second part)
+	})
+	wantStop := []int{2, 3, 4}
+	if len(collected) != len(wantStop) {
+		t.Errorf("wrap Iter early-stop: expected %v, got %v", wantStop, collected)
 	}
 }

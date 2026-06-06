@@ -6,6 +6,10 @@ import "sync"
 // It allows multiple readers or a single writer at any point in time.
 // Unlike sync.RWMutex, it binds the protected data to the lock itself,
 // making it impossible to access the data without holding the lock.
+//
+// An RwLock must not be copied after first use: it embeds a sync.RWMutex and a
+// copy would protect a different value than the original (go vet's copylocks
+// analyzer flags such copies). Always pass an *RwLock, never an RwLock by value.
 type RwLock[T any] struct {
 	mu  sync.RWMutex
 	val T
@@ -13,6 +17,10 @@ type RwLock[T any] struct {
 
 // RwLockReadGuard provides read-only access to the value protected by an RwLock.
 // Multiple read guards can exist simultaneously.
+//
+// A guard holds pointers into its owning RwLock; copying the guard and calling
+// Unlock on more than one copy releases the same read lock twice, which panics.
+// Use each guard exactly once and do not copy it.
 type RwLockReadGuard[T any] struct {
 	mu  *sync.RWMutex
 	val *T
@@ -20,6 +28,10 @@ type RwLockReadGuard[T any] struct {
 
 // RwLockWriteGuard provides exclusive read-write access to the value protected by an RwLock.
 // Only one write guard can exist at a time, and no read guards can coexist with it.
+//
+// A guard holds pointers into its owning RwLock; copying the guard and calling
+// Unlock on more than one copy releases the same write lock twice, which panics.
+// Use each guard exactly once and do not copy it.
 type RwLockWriteGuard[T any] struct {
 	mu  *sync.RWMutex
 	val *T

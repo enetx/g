@@ -62,6 +62,25 @@ func TransformOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
 	return None[U]()
 }
 
+// MapOption applies the given function to the value inside the Option, producing a new Option
+// holding the transformed value.
+// If the input Option is None, the output Option is also None.
+// Unlike TransformOption, fn returns a plain U (always Some on a Some input) rather than an Option[U].
+// Parameters:
+//   - o: The input Option to map over.
+//   - fn: The function applied to the value inside the Option.
+//
+// Returns:
+//
+//	A new Option holding the transformed value, or None if the input was None.
+func MapOption[T, U any](o Option[T], fn func(T) U) Option[U] {
+	if o.isSome {
+		return Some(fn(o.v))
+	}
+
+	return None[U]()
+}
+
 // Some returns the contained value of the Option.
 //
 // WARNING: If the Option is None, this method will return the zero value
@@ -75,20 +94,27 @@ func (o Option[T]) IsSome() bool { return o.isSome }
 // IsNone returns true if the Option represents no value.
 func (o Option[T]) IsNone() bool { return !o.isSome }
 
+// optionPanic prints caller information for msg to stderr and then panics with msg.
+// skip is the number of stack frames between the original caller and runtime.Caller,
+// so that the reported file:line and function point at the user's call site rather
+// than at this helper.
+func optionPanic(skip int, msg string) {
+	if pc, file, line, ok := runtime.Caller(skip); ok {
+		out := fmt.Sprintf("[%s:%d] [%s] %s", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), msg)
+		fmt.Fprintln(os.Stderr, out)
+	}
+
+	panic(msg)
+}
+
 // Unwrap returns the value held in the Option. If the Option is None, it panics.
 func (o Option[T]) Unwrap() T {
 	if o.isSome {
 		return o.v
 	}
 
-	const panicMsg = "called Option.Unwrap() on a None value"
-
-	if pc, file, line, ok := runtime.Caller(1); ok {
-		out := fmt.Sprintf("[%s:%d] [%s] %s", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), panicMsg)
-		fmt.Fprintln(os.Stderr, out)
-	}
-
-	panic(panicMsg)
+	optionPanic(2, "called Option.Unwrap() on a None value")
+	panic("unreachable")
 }
 
 // UnwrapOr returns the value held in the Option. If the Option is None, it returns the provided default value.
@@ -116,9 +142,8 @@ func (o Option[T]) Expect(msg string) T {
 		return o.v
 	}
 
-	out := fmt.Sprintf("Expect() failed: %s", msg)
-	fmt.Fprintln(os.Stderr, out)
-	panic(out)
+	optionPanic(2, fmt.Sprintf("Expect() failed: %s", msg))
+	panic("unreachable")
 }
 
 // Then applies the function fn to the value inside the Option and returns a new Option.
@@ -126,6 +151,17 @@ func (o Option[T]) Expect(msg string) T {
 func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
 	if o.isSome {
 		return fn(o.v)
+	}
+
+	return o
+}
+
+// Inspect calls fn with the contained value if the Option is Some, then returns
+// the Option unchanged. If the Option is None, fn is not called. It is intended
+// for side effects (logging, debugging) within a chain and never mutates the Option.
+func (o Option[T]) Inspect(fn func(T)) Option[T] {
+	if o.isSome {
+		fn(o.v)
 	}
 
 	return o
@@ -262,13 +298,9 @@ func (o Option[T]) Ptr() *T {
 // Result converts an Option into a Result.
 // If the Option is Some, it returns an Ok Result with the value.
 // If the Option is None, it returns an Err Result with the provided error.
-func (o Option[T]) Result(err error) Result[T] {
-	if o.isSome {
-		return Ok(o.v)
-	}
-
-	return Err[T](err)
-}
+//
+// Result is an alias for OkOr; both are kept for naming convenience.
+func (o Option[T]) Result(err error) Result[T] { return o.OkOr(err) }
 
 func (o Option[T]) Option() (T, bool) {
 	if o.IsSome() {

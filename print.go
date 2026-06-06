@@ -136,6 +136,9 @@ func Errorf[T ~string](format T, args ...any) error {
 // Notes:
 //   - If a placeholder cannot resolve a value (e.g., missing key or out-of-range index), it remains unchanged in the output.
 //   - Method invocation supports any type with accessible methods. If the method or its parameters are invalid, the value remains unmodified.
+//   - Only a single `Named` map is used for named placeholders. If multiple `Named`
+//     maps are passed in args, the last one silently wins; merge them into one map
+//     beforehand if you need keys from several sources.
 //
 // Usage:
 //

@@ -137,7 +137,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 		return true
 	}
 
-	comparable := f.IsComparable[V]()
+	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
 
 	for k, value := range m {
 		ovalue, ok := other[k]

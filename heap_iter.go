@@ -265,7 +265,7 @@ func (seq SeqHeap[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqHeap[V]) Dedup() SeqHeap[V] {
-	if f.IsComparable[V]() {
+	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
 		return SeqHeap[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
 			return any(a) == any(b)
 		}))

@@ -5,6 +5,10 @@ import "sync"
 // Mutex is a mutual exclusion lock that protects a value of type T.
 // Unlike sync.Mutex, it binds the protected data to the lock itself,
 // making it impossible to access the data without holding the lock.
+//
+// A Mutex must not be copied after first use: it embeds a sync.Mutex and a
+// copy would protect a different value than the original (go vet's copylocks
+// analyzer flags such copies). Always pass a *Mutex, never a Mutex by value.
 type Mutex[T any] struct {
 	mu  sync.Mutex
 	val T
@@ -12,6 +16,10 @@ type Mutex[T any] struct {
 
 // MutexGuard provides access to the value protected by a Mutex.
 // The guard must be explicitly unlocked when done.
+//
+// A guard holds pointers into its owning Mutex; copying the guard and calling
+// Unlock on more than one copy unlocks the same underlying lock twice, which
+// panics. Use each guard exactly once and do not copy it.
 type MutexGuard[T any] struct {
 	mu  *sync.Mutex
 	val *T

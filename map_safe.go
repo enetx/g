@@ -18,6 +18,11 @@ type MapSafe[K comparable, V any] struct {
 // NewMapSafe creates a new instance of MapSafe.
 func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} }
 
+// Transform applies a transformation function to the MapSafe and returns the result.
+func (ms *MapSafe[K, V]) Transform(fn func(*MapSafe[K, V]) *MapSafe[K, V]) *MapSafe[K, V] {
+	return fn(ms)
+}
+
 // Iter provides a thread-safe iterator over the MapSafe's key-value pairs.
 func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
 	return func(yield func(K, V) bool) {
@@ -93,6 +98,39 @@ func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 	})
 }
 
+// Map converts the MapSafe to a standard Map by taking a snapshot of its
+// current key-value pairs.
+//
+// The returned Map is an independent, non-thread-safe copy; subsequent
+// mutations to the MapSafe are not reflected in it.
+func (ms *MapSafe[K, V]) Map() Map[K, V] {
+	m := NewMap[K, V](ms.Len())
+
+	ms.data.Range(func(key, value any) bool {
+		m[key.(K)] = *(value.(*V))
+		return true
+	})
+
+	return m
+}
+
+// Ordered converts the MapSafe to an ordered Map by taking a snapshot of its
+// current key-value pairs.
+//
+// Because MapSafe does not track insertion order, the order of the returned
+// MapOrd is unspecified. The returned MapOrd is an independent, non-thread-safe
+// copy; subsequent mutations to the MapSafe are not reflected in it.
+func (ms *MapSafe[K, V]) Ordered() MapOrd[K, V] {
+	mo := NewMapOrd[K, V](ms.Len())
+
+	ms.data.Range(func(key, value any) bool {
+		mo = append(mo, Pair[K, V]{Key: key.(K), Value: *(value.(*V))})
+		return true
+	})
+
+	return mo
+}
+
 // Remove removes the specified key from the MapSafe and returns the removed value.
 func (ms *MapSafe[K, V]) Remove(key K) Option[V] {
 	if v, loaded := ms.data.LoadAndDelete(key); loaded {
@@ -114,7 +152,7 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 		return true
 	}
 
-	comparable := f.IsComparable[V]()
+	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
 	equal := true
 
 	ms.data.Range(func(key, value any) bool {

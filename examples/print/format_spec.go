@@ -40,9 +40,9 @@ func main() {
 
 	// --- Precision ---
 	// For floats: number of decimal places. For strings: truncate.
-	Println("{:.2}", 3.14159) // 3.14
-	Println("{:.0}", 3.14159) // 3
-	Println("{:.3}", "hello") // hel
+	Println("{:.2}", Float(3.14159)) // 3.14
+	Println("{:.0}", 3.14159)        // 3
+	Println("{:.3}", "hello")        // hel
 
 	// --- Sign ---
 	// + always show sign, ' ' (space) adds space for positive numbers.

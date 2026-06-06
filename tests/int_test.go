@@ -760,3 +760,59 @@ func TestIntValue(t *testing.T) {
 		t.Fatalf("Expected 0, got %v", val2)
 	}
 }
+
+func TestIntIsPositiveZero(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       Int
+		positive bool
+		negative bool
+	}{
+		{"positive", Int(5), true, false},
+		{"zero", Int(0), true, false},
+		{"negative", Int(-5), false, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.in.IsPositive(); got != tc.positive {
+				t.Errorf("IsPositive(%d) = %v, want %v", tc.in, got, tc.positive)
+			}
+			if got := tc.in.IsNonNegative(); got != tc.positive {
+				t.Errorf("IsNonNegative(%d) = %v, want %v", tc.in, got, tc.positive)
+			}
+			if got := tc.in.IsNegative(); got != tc.negative {
+				t.Errorf("IsNegative(%d) = %v, want %v", tc.in, got, tc.negative)
+			}
+		})
+	}
+}
+
+func TestIntDivByZeroPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Int.Div(0) should panic on division by zero")
+		}
+	}()
+
+	_ = Int(10).Div(0)
+}
+
+func TestIntRemByZeroPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Int.Rem(0) should panic on division by zero")
+		}
+	}()
+
+	_ = Int(10).Rem(0)
+}
+
+func TestIntDivRemNonZero(t *testing.T) {
+	if got := Int(10).Div(3); got != 3 {
+		t.Errorf("Int(10).Div(3) = %d, want 3", got)
+	}
+	if got := Int(10).Rem(3); got != 1 {
+		t.Errorf("Int(10).Rem(3) = %d, want 1", got)
+	}
+}

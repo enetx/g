@@ -102,6 +102,10 @@ func (d bdecode) Hex() Result[Bytes] {
 }
 
 // XOR encodes the wrapped Bytes using XOR cipher with the given key.
+//
+// Warning: a repeating-key XOR cipher is not a security primitive and provides
+// no real confidentiality. Use it only for lightweight obfuscation, never to
+// protect secrets.
 func (e bencode) XOR(key Bytes) Bytes {
 	if len(key) == 0 {
 		return e.bytes.Clone()

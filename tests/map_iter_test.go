@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/enetx/g"
@@ -427,4 +428,73 @@ func TestSeqMapNext(t *testing.T) {
 			t.Errorf("Expected empty map, got length %d", remaining.Len())
 		}
 	})
+}
+
+func TestMap_Iter_TakeOverflowClamp(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+
+	// A huge n would overflow int(n) to a negative value without the clamp,
+	// causing Take to yield nothing. With the clamp it must yield all elements.
+	taken := m.Iter().Take(uint(math.MaxUint64)).Collect()
+	if taken.Len() != 3 {
+		t.Errorf("Expected all 3 entries with clamped Take, got %d", taken.Len())
+	}
+}
+
+func TestMap_Iter_Skip(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Insert("one", 1)
+	m.Insert("two", 2)
+	m.Insert("three", 3)
+	m.Insert("four", 4)
+
+	skipped := m.Iter().Skip(2).Collect()
+	if skipped.Len() != 2 {
+		t.Errorf("Expected 2 entries after Skip(2), got %d", skipped.Len())
+	}
+
+	none := m.Iter().Skip(100).Collect()
+	if none.Len() != 0 {
+		t.Errorf("Expected empty map after Skip(100), got %d", none.Len())
+	}
+}
+
+func TestMap_Iter_StepBy(t *testing.T) {
+	m := g.NewMap[int, int]()
+	for i := range 6 {
+		m.Insert(i, i*i)
+	}
+
+	stepped := m.Iter().StepBy(2).Collect()
+	if stepped.Len() != 3 {
+		t.Errorf("Expected 3 entries after StepBy(2), got %d", stepped.Len())
+	}
+
+	// Every produced pair must be a member of the original map.
+	stepped.Iter().ForEach(func(k, v int) {
+		if got := m.Get(k); !got.IsSome() || got.Some() != v {
+			t.Errorf("StepBy produced pair (%d,%d) not in original map", k, v)
+		}
+	})
+}
+
+func TestMap_Iter_First(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Insert("solo", 7)
+
+	first := m.Iter().First()
+	if !first.IsSome() {
+		t.Fatal("Expected Some for non-empty map First()")
+	}
+	if first.Some().Key != "solo" || first.Some().Value != 7 {
+		t.Errorf("Expected (solo,7), got (%v,%v)", first.Some().Key, first.Some().Value)
+	}
+
+	empty := g.NewMap[string, int]()
+	if empty.Iter().First().IsSome() {
+		t.Error("Expected None for empty map First()")
+	}
 }

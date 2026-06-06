@@ -469,3 +469,77 @@ func TestOptionFromPtr(t *testing.T) {
 		t.Error("FromPtr(nil) should be None")
 	}
 }
+
+func TestOptionInspect(t *testing.T) {
+	t.Run("Some calls fn and returns unchanged", func(t *testing.T) {
+		called := 0
+		var seen int
+		out := Some(42).Inspect(func(v int) {
+			called++
+			seen = v
+		})
+
+		if called != 1 {
+			t.Errorf("Inspect should call fn once on Some, called %d times", called)
+		}
+		if seen != 42 {
+			t.Errorf("Inspect fn received %d, want 42", seen)
+		}
+		if out.IsNone() || out.Some() != 42 {
+			t.Errorf("Inspect should return the Option unchanged, got %v", out)
+		}
+	})
+
+	t.Run("None does not call fn", func(t *testing.T) {
+		called := 0
+		out := None[int]().Inspect(func(int) { called++ })
+
+		if called != 0 {
+			t.Errorf("Inspect should not call fn on None, called %d times", called)
+		}
+		if out.IsSome() {
+			t.Errorf("Inspect on None should remain None, got %v", out)
+		}
+	})
+}
+
+func TestMapOption(t *testing.T) {
+	t.Run("Some maps the value", func(t *testing.T) {
+		out := MapOption(Some(21), func(v int) string {
+			return fmt.Sprintf("v=%d", v*2)
+		})
+
+		if out.IsNone() {
+			t.Fatal("MapOption(Some) should be Some")
+		}
+		if out.Some() != "v=42" {
+			t.Errorf("MapOption got %q, want %q", out.Some(), "v=42")
+		}
+	})
+
+	t.Run("None stays None", func(t *testing.T) {
+		out := MapOption(None[int](), func(v int) string { return fmt.Sprintf("%d", v) })
+		if out.IsSome() {
+			t.Errorf("MapOption(None) should be None, got %v", out)
+		}
+	})
+}
+
+func TestOptionResultEqualsOkOr(t *testing.T) {
+	err := errors.New("boom")
+
+	some := Some(7)
+	if !reflect.DeepEqual(some.Result(err), some.OkOr(err)) {
+		t.Error("Some.Result(err) should equal Some.OkOr(err)")
+	}
+
+	none := None[int]()
+	r1 := none.Result(err)
+	r2 := none.OkOr(err)
+	if r1.IsOk() || r2.IsOk() {
+		t.Error("None.Result/OkOr should both be Err")
+	}
+	if r1.Err() != r2.Err() {
+		t.Error("None.Result(err) and None.OkOr(err) should carry the same error")
+	}
+}

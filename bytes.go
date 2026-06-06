@@ -45,6 +45,12 @@ func NewBytes(size ...Int) Bytes {
 // Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
 
+// Min returns the minimum of Bytes.
+func (bs Bytes) Min(b ...Bytes) Bytes { return cmp.MinBy(Bytes.Cmp, append(b, bs)...) }
+
+// Max returns the maximum of Bytes.
+func (bs Bytes) Max(b ...Bytes) Bytes { return cmp.MaxBy(Bytes.Cmp, append(b, bs)...) }
+
 // Reverse reverses bytes for ASCII or invalid UTF-8 for valid UTF-8 it reverses by runes.
 func (bs Bytes) Reverse() Bytes {
 	n := len(bs)
@@ -138,12 +144,14 @@ func intFromBytes(bs Bytes, order binary.ByteOrder) Int {
 }
 
 // IntBE interprets the Bytes as a signed 64-bit integer in BigEndian order.
-// If the Bytes length is less than 8, it is padded with leading zeros.
+// If the Bytes length is less than 8, the value is sign-extended to 64 bits
+// (the most-significant byte's high bit determines the sign).
 // If the Bytes length is greater than 8, only the last 8 bytes are used.
 func (bs Bytes) IntBE() Int { return intFromBytes(bs, binary.BigEndian) }
 
 // IntLE interprets the Bytes as a signed 64-bit integer in LittleEndian order.
-// If the Bytes length is less than 8, it is padded with trailing zeros.
+// If the Bytes length is less than 8, the value is sign-extended to 64 bits
+// (the most-significant byte's high bit determines the sign).
 // If the Bytes length is greater than 8, only the first 8 bytes are used.
 func (bs Bytes) IntLE() Int { return intFromBytes(bs, binary.LittleEndian) }
 
@@ -177,6 +185,42 @@ func (bs Bytes) StripPrefix(cutset Bytes) Bytes { return bytes.TrimPrefix(bs, cu
 // StripSuffix trims the specified Bytes suffix from the Bytes.
 func (bs Bytes) StripSuffix(cutset Bytes) Bytes { return bytes.TrimSuffix(bs, cutset) }
 
+// StartsWith checks if the Bytes starts with the specified prefix.
+func (bs Bytes) StartsWith(prefix Bytes) bool { return bytes.HasPrefix(bs, prefix) }
+
+// StartsWithAny checks if the Bytes starts with any of the provided prefixes.
+// The method accepts a variable number of arguments, allowing for checking against multiple
+// prefixes at once. It iterates over the provided prefixes and uses the HasPrefix function from
+// the bytes package to check if the Bytes starts with each prefix.
+// The function returns true if the Bytes starts with any of the prefixes, and false otherwise.
+func (bs Bytes) StartsWithAny(prefixes ...Bytes) bool {
+	for _, prefix := range prefixes {
+		if bytes.HasPrefix(bs, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// EndsWith checks if the Bytes ends with the specified suffix.
+func (bs Bytes) EndsWith(suffix Bytes) bool { return bytes.HasSuffix(bs, suffix) }
+
+// EndsWithAny checks if the Bytes ends with any of the provided suffixes.
+// The method accepts a variable number of arguments, allowing for checking against multiple
+// suffixes at once. It iterates over the provided suffixes and uses the HasSuffix function from
+// the bytes package to check if the Bytes ends with each suffix.
+// The function returns true if the Bytes ends with any of the suffixes, and false otherwise.
+func (bs Bytes) EndsWithAny(suffixes ...Bytes) bool {
+	for _, suffix := range suffixes {
+		if bytes.HasSuffix(bs, suffix) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Split splits the Bytes by the specified separator and returns the iterator.
 func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
 	return transformSeq(
@@ -188,6 +232,20 @@ func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
 // SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
 func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
 	return transformSeq(bytes.SplitAfterSeq(bs, sep), func(b []byte) Bytes { return Bytes(b) })
+}
+
+// SplitN splits the Bytes into substrings using the provided separator and returns an Slice[Bytes] of the results.
+// The n parameter controls the number of substrings to return:
+// - If n is negative, there is no limit on the number of substrings returned.
+// - If n is zero, an empty Slice[Bytes] is returned.
+// - If n is positive, at most n substrings are returned.
+func (bs Bytes) SplitN(sep Bytes, n Int) Slice[Bytes] {
+	return TransformSlice(bytes.SplitN(bs, sep, n.Std()), func(b []byte) Bytes { return Bytes(b) })
+}
+
+// Lines splits the Bytes by lines and returns the iterator.
+func (bs Bytes) Lines() SeqSlice[Bytes] {
+	return transformSeq(bytes.Lines(bs), func(b []byte) Bytes { return Bytes(b) }).Map(Bytes.TrimEnd)
 }
 
 // Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
@@ -202,6 +260,11 @@ func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
 }
 
 // Append appends the given Bytes to the current Bytes.
+//
+// Warning: like the builtin append, this may reuse and mutate the receiver's
+// backing array when it has spare capacity, so the returned Bytes can alias bs.
+// This is asymmetric with Prepend (which always copies) and with the immutable
+// String.Append. Clone the receiver first if it must remain unchanged.
 func (bs Bytes) Append(obs Bytes) Bytes { return append(bs, obs...) }
 
 // Prepend prepends the given Bytes to the current Bytes.
@@ -264,7 +327,7 @@ func (bs Bytes) ContainsRune(r rune) bool { return bytes.ContainsRune(bs, r) }
 // Count counts the number of occurrences of the specified Bytes in the Bytes.
 func (bs Bytes) Count(obs Bytes) Int { return Int(bytes.Count(bs, obs)) }
 
-// Empty checks if the Bytes is empty.
+// IsEmpty checks if the Bytes is empty.
 func (bs Bytes) IsEmpty() bool { return len(bs) == 0 }
 
 // Eq checks if the Bytes is equal to another Bytes.
@@ -276,15 +339,18 @@ func (bs Bytes) EqFold(obs Bytes) bool { return bytes.EqualFold(bs, obs) }
 // Gt checks if the Bytes is greater than another Bytes.
 func (bs Bytes) Gt(obs Bytes) bool { return bs.Cmp(obs).IsGt() }
 
+// Gte checks if the Bytes is greater than or equal to another Bytes.
+func (bs Bytes) Gte(obs Bytes) bool { return !bs.Cmp(obs).IsLt() }
+
 // String returns the Bytes as an String.
 func (bs Bytes) String() String { return String(bs) }
 
 // StringUnsafe converts the Bytes into a String without copying memory.
 // Warning: the resulting String shares the same underlying memory as the original Bytes.
 // If the Bytes is modified later, the String will reflect those changes and may cause undefined behavior.
-func (bs Bytes) StringUnsafe() String { return String(*(*string)(unsafe.Pointer(&bs))) }
+func (bs Bytes) StringUnsafe() String { return String(unsafe.String(unsafe.SliceData(bs), len(bs))) }
 
-// Index returns the index of the first instance of obs in bs, or -1 if bs is not present in obs.
+// Index returns the index of the first instance of obs in bs, or -1 if obs is not present in bs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }
 
 // LastIndex returns the index of the last instance of obs in bs, or -1 if obs is not present in bs.
@@ -310,6 +376,9 @@ func (bs Bytes) LenRunes() Int { return Int(utf8.RuneCount(bs)) }
 
 // Lt checks if the Bytes is less than another Bytes.
 func (bs Bytes) Lt(obs Bytes) bool { return bs.Cmp(obs).IsLt() }
+
+// Lte checks if the Bytes is less than or equal to another Bytes.
+func (bs Bytes) Lte(obs Bytes) bool { return !bs.Cmp(obs).IsGt() }
 
 // Map applies a function to each rune in the Bytes and returns the modified Bytes.
 func (bs Bytes) Map(fn func(rune) rune) Bytes { return bytes.Map(fn, bs) }
@@ -509,7 +578,8 @@ func (bs Bytes) Println() Bytes { fmt.Println(bs); return bs }
 //
 // Behavior:
 //   - If src is nil, the Bytes slice is set to nil (SQL NULL).
-//   - If src is a []byte, it is assigned directly.
+//   - If src is a []byte, a copy is stored (database/sql may reuse the driver's
+//     buffer on the next row, so the bytes must not be retained by reference).
 //   - Otherwise, an error is returned.
 //
 // Supported SQL types (common):
@@ -524,7 +594,7 @@ func (bs *Bytes) Scan(src any) error {
 	}
 
 	if b, ok := src.([]byte); ok {
-		*bs = Bytes(b)
+		*bs = append(Bytes(nil), b...)
 		return nil
 	}
 

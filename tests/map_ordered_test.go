@@ -1580,3 +1580,62 @@ func TestMapOrdToSafe(t *testing.T) {
 		t.Error("expected empty MapSafe from empty MapOrd")
 	}
 }
+
+func TestMapOrdEqInterfaceUncomparable(t *testing.T) {
+	// V is an interface type holding uncomparable dynamic values; Eq must fall
+	// back to reflect.DeepEqual and not panic on the comparable fast-path.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("MapOrd.Eq[any] panicked on uncomparable dynamic values: %v", r)
+		}
+	}()
+
+	mo1 := NewMapOrd[string, any]()
+	mo1.Insert("a", []int{1, 2})
+	mo1.Insert("b", map[string]int{"x": 1})
+
+	mo2 := NewMapOrd[string, any]()
+	mo2.Insert("a", []int{1, 2})
+	mo2.Insert("b", map[string]int{"x": 1})
+
+	if !mo1.Eq(mo2) {
+		t.Error("expected ordered maps with equal uncomparable values to be Eq")
+	}
+
+	mo3 := NewMapOrd[string, any]()
+	mo3.Insert("a", []int{9, 9})
+	mo3.Insert("b", map[string]int{"x": 1})
+	if mo1.Eq(mo3) {
+		t.Error("expected ordered maps with differing uncomparable values to be Ne")
+	}
+}
+
+func TestMapOrdRemoveZeroesTail(t *testing.T) {
+	// Remove must zero the vacated backing slot so it no longer pins the
+	// removed value's references (slices.Delete semantics).
+	mo := NewMapOrd[string, []int]()
+	mo.Insert("a", []int{1})
+	mo.Insert("b", []int{2})
+	mo.Insert("c", []int{3})
+
+	removed := mo.Remove("b")
+	if removed.IsNone() {
+		t.Fatal("expected Remove to return Some")
+	}
+
+	if mo.Len() != 2 {
+		t.Fatalf("expected len 2 after Remove, got %d", mo.Len())
+	}
+
+	// Inspect the slot just past the new length: it must be the zero Pair, not
+	// a retained copy of the moved tail element.
+	full := mo[:3]
+	if full[2].Value != nil {
+		t.Errorf("vacated tail slot should be zeroed, got %v", full[2].Value)
+	}
+
+	// Remaining order is preserved.
+	if mo[0].Key != "a" || mo[1].Key != "c" {
+		t.Errorf("unexpected order after Remove: %v", mo)
+	}
+}

@@ -1780,3 +1780,87 @@ func TestFile_Append_WithOpenFile(t *testing.T) {
 		t.Log("Append to open file succeeded")
 	}
 }
+
+// TestFile_OpenFile_ReopenClosesPriorFd verifies the H5 fix: OpenFile on an
+// already-open File must release the previous descriptor before reassigning,
+// otherwise the old fd leaks. Best-effort check (no go test run): capture the
+// first handle, re-open, and assert the old handle was closed while the new one
+// is usable.
+func TestFile_OpenFile_ReopenClosesPriorFd(t *testing.T) {
+	tempFile := createTempFile(t)
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	if r := file.OpenFile(os.O_RDWR, 0o644); r.IsErr() {
+		t.Fatalf("First OpenFile failed: %v", r.Err())
+	}
+
+	first := file.Std()
+	if first == nil {
+		t.Fatal("Expected a non-nil *os.File after first OpenFile")
+	}
+
+	// Re-open the same File without closing it first.
+	if r := file.OpenFile(os.O_RDWR, 0o644); r.IsErr() {
+		t.Fatalf("Second OpenFile failed: %v", r.Err())
+	}
+	defer file.Close()
+
+	second := file.Std()
+	if second == nil {
+		t.Fatal("Expected a non-nil *os.File after second OpenFile")
+	}
+
+	// The prior descriptor must have been closed by OpenFile; operations on it fail.
+	if _, err := first.Write([]byte("x")); err == nil {
+		t.Error("TestFile_OpenFile_ReopenClosesPriorFd: prior fd should be closed after re-open (leak)")
+	}
+
+	// The current handle must be a fresh, usable descriptor.
+	if first == second {
+		t.Error("TestFile_OpenFile_ReopenClosesPriorFd: expected a new descriptor after re-open")
+	}
+
+	if _, err := second.Write([]byte("y")); err != nil {
+		t.Errorf("TestFile_OpenFile_ReopenClosesPriorFd: current fd should be usable: %v", err)
+	}
+}
+
+// TestFile_WriteFromReader_OnOpenHandle verifies H5 at the WriteFromReader/Write
+// layer: writing to an already-open File (which routes through OpenFile) must not
+// leak the previously held descriptor.
+func TestFile_WriteFromReader_OnOpenHandle(t *testing.T) {
+	tempFile := createTempFile(t)
+	defer os.Remove(tempFile)
+
+	file := NewFile(String(tempFile))
+
+	if r := file.OpenFile(os.O_RDWR, 0o644); r.IsErr() {
+		t.Fatalf("OpenFile failed: %v", r.Err())
+	}
+
+	prior := file.Std()
+	if prior == nil {
+		t.Fatal("Expected a non-nil *os.File after OpenFile")
+	}
+
+	if r := file.WriteFromReader(bytes.NewBufferString("payload")); r.IsErr() {
+		t.Fatalf("WriteFromReader on open handle failed: %v", r.Err())
+	}
+
+	// WriteFromReader defers Close, so the File is closed now; the prior
+	// descriptor it superseded must also have been closed (not leaked).
+	if _, err := prior.Write([]byte("x")); err == nil {
+		t.Error("TestFile_WriteFromReader_OnOpenHandle: prior fd should be closed (leak)")
+	}
+
+	content := file.Read()
+	if content.IsErr() {
+		t.Fatalf("Read after WriteFromReader failed: %v", content.Err())
+	}
+
+	if content.Ok().Std() != "payload" {
+		t.Errorf("TestFile_WriteFromReader_OnOpenHandle: expected 'payload', got %q", content.Ok().Std())
+	}
+}

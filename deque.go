@@ -201,18 +201,19 @@ func (dq *Deque[T]) Get(index Int) Option[T] {
 	return Some(dq.data[realIdx])
 }
 
-// Set sets the element at the specified index.
+// Set sets the element at the specified index, returning the old value as an Option.
 // Index 0 represents the front of the Deque.
-// Returns true if the index is valid, false otherwise.
-func (dq *Deque[T]) Set(index Int, value T) bool {
+// Returns None if the index is out of bounds.
+func (dq *Deque[T]) Set(index Int, value T) Option[T] {
 	if index < 0 || index >= dq.len {
-		return false
+		return None[T]()
 	}
 
 	realIdx := dq.realIndex(index)
+	old := dq.data[realIdx]
 	dq.data[realIdx] = value
 
-	return true
+	return Some(old)
 }
 
 // Insert inserts an element at the specified index.
@@ -482,7 +483,7 @@ func (dq *Deque[T]) Contains(value T) bool {
 
 	cap := Int(len(dq.data))
 
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		target := any(value)
 		if dq.front+dq.len <= cap {
 			for _, v := range dq.data[dq.front : dq.front+dq.len] {
@@ -514,10 +515,44 @@ func (dq *Deque[T]) Contains(value T) bool {
 	return false
 }
 
+// ContainsAny checks if the Deque contains any element from the provided values.
+func (dq *Deque[T]) ContainsAny(values ...T) bool {
+	if dq.len == 0 || len(values) == 0 {
+		return false
+	}
+
+	for _, v := range values {
+		if dq.Contains(v) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ContainsAll checks if the Deque contains all of the provided values.
+func (dq *Deque[T]) ContainsAll(values ...T) bool {
+	if len(values) == 0 {
+		return true
+	}
+
+	if dq.len == 0 {
+		return false
+	}
+
+	for _, v := range values {
+		if !dq.Contains(v) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Index returns the index of the first occurrence of the specified value,
 // or -1 if not found.
 func (dq *Deque[T]) Index(value T) Int {
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		target := any(value)
 		for i := Int(0); i < dq.len; i++ {
 			if any(dq.data[dq.realIndex(i)]) == target {
@@ -566,8 +601,11 @@ func (dq *Deque[T]) Slice() Slice[T] {
 	return result
 }
 
+// Transform applies a transformation function to the Deque and returns the result.
+func (dq *Deque[T]) Transform(fn func(*Deque[T]) *Deque[T]) *Deque[T] { return fn(dq) }
+
 // String returns a string representation of the Deque.
-func (dq Deque[T]) String() string {
+func (dq *Deque[T]) String() string {
 	if dq.IsEmpty() {
 		return "Deque[]"
 	}
@@ -608,11 +646,19 @@ func (dq Deque[T]) String() string {
 
 // Eq checks if two Deques are equal.
 func (dq *Deque[T]) Eq(other *Deque[T]) bool {
+	if dq == other {
+		return true
+	}
+
+	if dq == nil || other == nil {
+		return false
+	}
+
 	if dq.len != other.len {
 		return false
 	}
 
-	if f.IsComparable[T]() {
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
 		for i := Int(0); i < dq.len; i++ {
 			if any(dq.data[dq.realIndex(i)]) != any(other.data[other.realIndex(i)]) {
 				return false
@@ -630,6 +676,9 @@ func (dq *Deque[T]) Eq(other *Deque[T]) bool {
 
 	return true
 }
+
+// Ne checks if two Deques are not equal.
+func (dq *Deque[T]) Ne(other *Deque[T]) bool { return !dq.Eq(other) }
 
 // Retain keeps only the elements specified by the predicate.
 func (dq *Deque[T]) Retain(predicate func(T) bool) {

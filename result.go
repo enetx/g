@@ -57,11 +57,18 @@ func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
 	return Err[U](r.err)
 }
 
+// MapResult applies the given function to the contained Ok value, producing a new Result
+// holding the transformed value. If the input Result is Err, the error is propagated.
+// It is the cross-type plain-map free function for Result, mirroring MapOption for Option;
+// it is an alias for TransformResult.
+func MapResult[T, U any](r Result[T], fn func(T) U) Result[U] { return TransformResult(r, fn) }
+
 // Ok returns the value held in the Result.
 //
 // WARNING: If the Result contains an error, this method will return the zero value
-// for type T. Always check IsOk() before calling this method, or use safer alternatives
-// like Result(), Unwrap(), or UnwrapOr().
+// for type T. Always check IsOk() before calling this method, or use safer
+// alternatives like Result(), UnwrapOr(), or UnwrapOrDefault(). (Unwrap() and
+// Expect() are NOT safe alternatives — they panic on an Err value.)
 func (r Result[T]) Ok() T { return r.v }
 
 // Err returns the error held in the Result. If the result is Ok, it returns nil.
@@ -133,6 +140,17 @@ func (r Result[T]) Expect(msg string) T {
 func (r Result[T]) Then(fn func(T) Result[T]) Result[T] {
 	if r.IsOk() {
 		return fn(r.v)
+	}
+
+	return r
+}
+
+// Inspect calls fn with the contained value if the Result is Ok, then returns
+// the Result unchanged. If the Result is Err, fn is not called. It is intended
+// for side effects (logging, debugging) within a chain and never mutates the Result.
+func (r Result[T]) Inspect(fn func(T)) Result[T] {
+	if r.IsOk() {
+		fn(r.v)
 	}
 
 	return r

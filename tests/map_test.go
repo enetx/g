@@ -819,3 +819,33 @@ func TestMapPrintln(t *testing.T) {
 		t.Errorf("Println() should return original map unchanged")
 	}
 }
+
+func TestMapEqInterfaceUncomparable(t *testing.T) {
+	// V is an interface type (any) holding uncomparable dynamic values
+	// (slices, maps). The comparable fast-path must be skipped for interface
+	// kinds, falling back to reflect.DeepEqual instead of panicking on the
+	// `any(a) != any(b)` comparison.
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Map.Eq[any] panicked on uncomparable dynamic values: %v", r)
+		}
+	}()
+
+	m1 := Map[string, any]{"a": []int{1, 2, 3}, "b": map[string]int{"x": 1}}
+	m2 := Map[string, any]{"a": []int{1, 2, 3}, "b": map[string]int{"x": 1}}
+	if !m1.Eq(m2) {
+		t.Error("expected maps with equal uncomparable values to be Eq")
+	}
+
+	m3 := Map[string, any]{"a": []int{1, 2, 3}, "b": map[string]int{"x": 2}}
+	if m1.Eq(m3) {
+		t.Error("expected maps with differing uncomparable values to be Ne")
+	}
+
+	// Mixed: some comparable, some not.
+	m4 := Map[string, any]{"n": 5, "s": []string{"x"}}
+	m5 := Map[string, any]{"n": 5, "s": []string{"x"}}
+	if m4.Ne(m5) {
+		t.Error("expected mixed comparable/uncomparable maps to be Eq")
+	}
+}

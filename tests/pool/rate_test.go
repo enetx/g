@@ -3,6 +3,7 @@ package g_test
 import (
 	"context"
 	"errors"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -712,5 +713,73 @@ func TestRate_Wait_MinuteRate(t *testing.T) {
 	elapsed := time.Since(start)
 	if elapsed < 800*time.Millisecond {
 		t.Errorf("expected ~1s for second task at 60/min, got %s", elapsed)
+	}
+}
+
+// --- Rate refill goroutine lifecycle (lazy start, no leak) ---
+
+func TestRate_NeverConsumed_NoGoroutineLeak(t *testing.T) {
+	// A rate-configured pool that is never consumed (no Wait/Stream/Go) must not
+	// leak the refill goroutine: it is started lazily on the first task start.
+	runtime.GC()
+	time.Sleep(20 * time.Millisecond)
+	before := runtime.NumGoroutine()
+
+	for range 50 {
+		_ = pool.New[int]().Rate(1000, time.Second, 10)
+	}
+
+	runtime.GC()
+	time.Sleep(20 * time.Millisecond)
+	after := runtime.NumGoroutine()
+
+	// Allow a small slack for scheduler noise; without lazy start this would be ~50.
+	if after-before > 10 {
+		t.Errorf("rate-configured but unused pools leaked goroutines: before=%d after=%d", before, after)
+	}
+}
+
+func TestRate_CancelStopsRefillGoroutine(t *testing.T) {
+	// After Cancel, the refill goroutine must exit. Start it (via a task), then
+	// cancel and verify the goroutine count settles back.
+	runtime.GC()
+	time.Sleep(20 * time.Millisecond)
+	before := runtime.NumGoroutine()
+
+	p := pool.New[int]().Rate(1000, time.Second, 1000)
+	p.Go(func() Result[int] { return Ok(1) })
+	p.Wait() // Wait cancels the pool, which stops the limiter.
+
+	runtime.GC()
+	time.Sleep(50 * time.Millisecond)
+	after := runtime.NumGoroutine()
+
+	if after-before > 5 {
+		t.Errorf("refill goroutine not stopped after Wait/Cancel: before=%d after=%d", before, after)
+	}
+}
+
+// --- Rate interval clamp / multi-token tick ---
+
+func TestRate_HighRate_MultiTokenTick(t *testing.T) {
+	// 10,000,000/sec would clamp the tick interval to 1µs. Without multi-token
+	// ticks that caps throughput at ~1 token/µs (1M/sec). With multi-token ticks
+	// the effective rate matches the request, so a modest batch completes fast.
+	p := pool.New[int]().Rate(10_000_000, time.Second, 1)
+
+	start := time.Now()
+	for i := range 2000 {
+		p.Go(func() Result[int] { return Ok(i) })
+	}
+	results := p.Wait().Collect()
+
+	if len(results) != 2000 {
+		t.Fatalf("expected 2000 results, got %d", len(results))
+	}
+
+	// At 10M/sec the steady-state cost of 2000 tokens is well under 100ms even
+	// with the 1µs tick clamp, because each tick adds ~10 tokens.
+	if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
+		t.Errorf("high-rate batch took %s, expected fast completion (multi-token tick)", elapsed)
 	}
 }

@@ -165,16 +165,19 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 			return Err[*Dir](destpath.err)
 		}
 
+		// Skip every symlink (file or directory) when not following links;
+		// a symlink to a regular file is not an IsDir entry, so the skip must
+		// happen before the IsDir branch to avoid dereferencing the link.
+		if !follow && f.IsLink() {
+			continue
+		}
+
 		stat := f.Stat()
 		if stat.IsErr() {
 			return Err[*Dir](stat.err)
 		}
 
 		if stat.v.IsDir() {
-			if !follow && f.IsLink() {
-				continue
-			}
-
 			if r := NewDir(destpath.v).CreateAll(stat.v.Mode()); r.IsErr() {
 				return r
 			}
@@ -470,8 +473,17 @@ func (d *Dir) Glob() SeqResult[*File] {
 func (d *Dir) Walk() SeqResult[*File] {
 	return func(yield func(Result[*File]) bool) {
 		stack := SliceOf(d)
+		stopped := false
 
-		for !stack.IsEmpty() {
+		// Track resolved directory paths already scheduled for traversal so a
+		// symlink (or hardlinked dir) pointing back into an ancestor does not
+		// drive the stack into unbounded recursion.
+		visited := NewSet[String]()
+		if root := d.Path(); root.IsOk() {
+			visited.Insert(root.v)
+		}
+
+		for !stack.IsEmpty() && !stopped {
 			current := stack.Pop()
 			if current.IsNone() {
 				break
@@ -479,30 +491,59 @@ func (d *Dir) Walk() SeqResult[*File] {
 
 			current.v.Read().Range(func(r Result[*File]) bool {
 				if r.IsErr() {
-					return yield(r)
+					if !yield(r) {
+						stopped = true
+						return false
+					}
+					return true
 				}
 
 				file := r.v
 				if !yield(Ok(file)) {
+					stopped = true
 					return false
 				}
 
-				stat := file.Stat()
-				if stat.IsErr() {
-					return yield(Err[*File](stat.err))
+				// Use Lstat so that a symbolic link to a directory is reported
+				// but not descended into; following it (via Stat) is what makes
+				// symlink cycles loop forever.
+				lstat := file.Lstat()
+				if lstat.IsErr() {
+					if !yield(Err[*File](lstat.err)) {
+						stopped = true
+						return false
+					}
+					return true
 				}
 
-				if stat.v.IsDir() {
+				if lstat.v.Mode()&os.ModeSymlink != 0 {
+					return true
+				}
+
+				if lstat.v.IsDir() {
 					path := file.Path()
 					if path.IsErr() {
-						return yield(Err[*File](path.err))
+						if !yield(Err[*File](path.err)) {
+							stopped = true
+							return false
+						}
+						return true
 					}
 
+					if visited.Contains(path.v) {
+						return true
+					}
+
+					visited.Insert(path.v)
 					stack.Push(NewDir(path.v))
 				}
 
 				return true
 			})
+
+			if stopped {
+				return
+			}
 		}
 	}
 }
