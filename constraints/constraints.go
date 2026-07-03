@@ -1,3 +1,5 @@
+// Package constraints defines generic type constraints (Signed, Unsigned, Integer, Float, ...)
+// shared across the g library.
 package constraints
 
 // Signed is a constraint that permits any signed integer type.

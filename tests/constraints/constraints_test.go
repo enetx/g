@@ -68,10 +68,10 @@ func TestIntegerGeneric(t *testing.T) {
 }
 
 // Generic helpers exercising the remaining constraints.
-func testSignedGeneric[T constraints.Signed](v T) T   { return v - 1 }
+func testSignedGeneric[T constraints.Signed](v T) T     { return v - 1 }
 func testUnsignedGeneric[T constraints.Unsigned](v T) T { return v + 1 }
-func testComplexGeneric[T constraints.Complex](v T) T  { return v * 2 }
-func testNumberGeneric[T constraints.Number](v T) T    { return v + 1 }
+func testComplexGeneric[T constraints.Complex](v T) T   { return v * 2 }
+func testNumberGeneric[T constraints.Number](v T) T     { return v + 1 }
 
 func testOrderedGeneric[T constraints.Ordered](a, b T) bool { return a < b }
 

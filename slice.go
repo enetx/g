@@ -53,19 +53,10 @@ func NewSlice[T any](size ...Int) Slice[T] {
 	return make(Slice[T], length, capacity)
 }
 
-// TransformSlice applies the given function to each element of a Slice and returns a new Slice
-// containing the transformed values.
-//
-// Parameters:
-//
-// - sl: The input Slice.
-//
-// - fn: The function to apply to each element of the input Slice.
-//
-// Returns:
-//
-// A new Slice containing the results of applying the function to each element of the input Slice.
-func TransformSlice[T, U any](sl Slice[T], fn func(T) U) Slice[U] {
+// transformSlice is an internal eager map for conversions where the result size is
+// known up front (e.g. wrapping regexp/strings results); the public transformation
+// API is Iter().Map().Collect().
+func transformSlice[T, U any](sl []T, fn func(T) U) Slice[U] {
 	if len(sl) == 0 {
 		return NewSlice[U]()
 	}
@@ -99,9 +90,12 @@ func SliceOf[T any](slice ...T) Slice[T] { return slice }
 //
 // Time complexity: O(n)
 // Space complexity: O(n) - creates a copy of the slice
+//
+// Heap panics if compareFn is nil, mirroring NewHeap, since a nil
+// comparison function would otherwise nil-deref on the first Push.
 func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
 	if compareFn == nil {
-		panic("compareFn cannot be nil")
+		panic("g.Slice.Heap: compareFn cannot be nil")
 	}
 
 	h := &Heap[T]{
@@ -116,7 +110,7 @@ func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
 }
 
 // Transform applies a transformation function to the Slice and returns the result.
-func (sl Slice[T]) Transform(fn func(Slice[T]) Slice[T]) Slice[T] { return fn(sl) }
+func (sl Slice[T]) Transform[U any](fn func(Slice[T]) U) U { return fn(sl) }
 
 // Iter returns an iterator (SeqSlice[T]) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
@@ -159,24 +153,6 @@ func (sl Slice[T]) Iter() SeqSlice[T] { return SeqSlice[T](iter.FromSlice(sl)) }
 // The 'IterReverse' method enhances the functionality of the Slice by providing an alternative
 // way to iterate through its elements, enhancing flexibility in how data within a Slice is accessed and manipulated.
 func (sl Slice[T]) IterReverse() SeqSlice[T] { return SeqSlice[T](iter.FromSliceReverse(sl)) }
-
-// AsAny converts each element of the slice to the 'any' type.
-// It returns a new slice containing the elements as 'any' g.Slice[any].
-//
-// Note: AsAny is useful when you want to work with a slice of a specific type as a slice of 'any'.
-// It can be particularly handy in conjunction with Flatten to work with nested slices of different types.
-func (sl Slice[T]) AsAny() Slice[any] {
-	if sl.IsEmpty() {
-		return NewSlice[any]()
-	}
-
-	result := make(Slice[any], len(sl))
-	for i, v := range sl {
-		result[i] = any(v)
-	}
-
-	return result
-}
 
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same
@@ -321,6 +297,9 @@ func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
 
 // Insert inserts values at the specified index in the slice and modifies the original
 // slice.
+//
+// Panics if the index is out of range. A negative index counts from the end of
+// the slice; i == Len() appends at the end.
 //
 // Parameters:
 //
@@ -536,7 +515,7 @@ func (sl Slice[T]) Join(sep ...T) String {
 			separator, _ = any(sep[0]).(Bytes)
 		}
 
-		return String(bytes.Join(TransformSlice(s, func(b Bytes) []byte { return b }), separator))
+		return String(bytes.Join(transformSlice(s, func(b Bytes) []byte { return b }), separator))
 	}
 
 	if s, ok := any(sl).(Slice[String]); ok {
@@ -588,10 +567,9 @@ func (sl Slice[T]) Join(sep ...T) String {
 
 // SubSlice returns a new slice containing elements from the current slice between the specified start
 // and end indices, with an optional step parameter to define the increment between elements.
-// The function checks if the start and end indices are within the bounds of the original slice.
-// If the end index is negative, it represents the position from the end of the slice.
-// If the start index is negative, it represents the position from the end of the slice counted
-// from the start index.
+// Negative start or end indices count from the end of the slice.
+//
+// Panics if start or end is out of range after negative-index resolution.
 //
 // Parameters:
 //
@@ -635,6 +613,13 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	}
 
 	start, end = ii, jj
+
+	// For a negative step the iteration starts AT start and moves down, so a
+	// start clamped to len(sl) must begin at the last element (Python slicing
+	// semantics: s[100:0:-1] starts at the final index, not one past it).
+	if _step < 0 && start == sl.Len() {
+		start--
+	}
 
 	if _step == 1 {
 		if start >= end {
@@ -989,8 +974,10 @@ func (sl *Slice[T]) Pop() Option[T] {
 	return Some(last)
 }
 
-// Set sets the value at the specified index in the slice and returns the modified slice.
-// This method modifies the original slice in place.
+// Set sets the value at the specified index in the slice and returns the previous
+// value wrapped in Some. If the index is out of bounds, the slice is left unchanged
+// and None is returned, mirroring Deque.Set.
+// This method modifies the original slice in place. Negative indices count from the end.
 //
 // Parameters:
 //
@@ -999,22 +986,25 @@ func (sl *Slice[T]) Pop() Option[T] {
 //
 // Returns:
 //
-// - Slice[T]: The modified slice with the new value set at the specified index.
+// - Option[T]: The previous value at the index, or None if the index is out of bounds.
 //
 // Example usage:
 //
 // slice := g.Slice[int]{1, 2, 3, 4, 5}
-// slice.Set(2, 99)
+// old := slice.Set(2, 99) // Some(3)
 // fmt.Println(slice)
 //
 // Output: [1 2 99 4 5].
-func (sl Slice[T]) Set(index Int, val T) {
+func (sl Slice[T]) Set(index Int, val T) Option[T] {
 	i, ok := sl.bound(index)
 	if !ok {
-		boundpanic(index, len(sl))
+		return None[T]()
 	}
 
+	old := sl[i]
 	sl[i] = val
+
+	return Some(old)
 }
 
 // Len returns the length of the slice.
@@ -1022,6 +1012,9 @@ func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 
 // Swap swaps the elements at the specified indices in the slice.
 // This method modifies the original slice in place.
+//
+// Panics if either index is out of range. A negative index counts
+// from the end of the slice.
 //
 // Parameters:
 //
@@ -1097,36 +1090,6 @@ func (sl Slice[T]) Unpack(vars ...*T) {
 		}
 	}
 }
-
-// MaxBy returns the maximum value in the slice according to the provided comparison function fn.
-// It applies fn pairwise to the elements of the slice until it finds the maximum value.
-// It returns the maximum value found.
-//
-// If the slice is empty, the zero value of type T is returned. Callers that must
-// distinguish "no maximum" from a legitimate zero element should use the iterator
-// form via sl.Iter().MaxBy, which returns Option[T].
-//
-// Example:
-//
-//	s := Slice[int]{3, 1, 4, 2, 5}
-//	maxInt := s.MaxBy(cmp.Cmp)
-//	fmt.Println(maxInt) // Output: 5
-func (sl Slice[T]) MaxBy(fn func(a, b T) cmp.Ordering) T { return cmp.MaxBy(fn, sl...) }
-
-// MinBy returns the minimum value in the slice according to the provided comparison function fn.
-// It applies fn pairwise to the elements of the slice until it finds the minimum value.
-// It returns the minimum value found.
-//
-// If the slice is empty, the zero value of type T is returned. Callers that must
-// distinguish "no minimum" from a legitimate zero element should use the iterator
-// form via sl.Iter().MinBy, which returns Option[T].
-//
-// Example:
-//
-//	s := Slice[int]{3, 1, 4, 2, 5}
-//	minInt := s.MinBy(cmp.Cmp)
-//	fmt.Println(minInt) // Output: 1
-func (sl Slice[T]) MinBy(fn func(a, b T) cmp.Ordering) T { return cmp.MinBy(fn, sl...) }
 
 func (sl Slice[T]) bound(i Int) (Int, bool) {
 	n := sl.Len()

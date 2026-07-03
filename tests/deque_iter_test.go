@@ -108,8 +108,8 @@ func TestSeqDeque_Counter(t *testing.T) {
 	deque := g.DequeOf(1, 2, 1, 3, 2, 1)
 	counts := make(map[int]g.Int)
 
-	deque.Iter().Counter().ForEach(func(k any, v g.Int) {
-		counts[k.(int)] = v
+	deque.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+		counts[k] = v
 	})
 
 	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
@@ -322,9 +322,9 @@ func TestSeqDeque_Zip(t *testing.T) {
 	deque1 := g.DequeOf(1, 2, 3)
 	deque2 := g.DequeOf(4, 5, 6)
 
-	pairs := make([][2]any, 0)
-	deque1.Iter().Zip(deque2.Iter()).ForEach(func(a, b any) {
-		pairs = append(pairs, [2]any{a, b})
+	pairs := make([][2]int, 0)
+	deque1.Iter().Zip(deque2.Iter()).ForEach(func(a, b int) {
+		pairs = append(pairs, [2]int{a, b})
 	})
 
 	expected := [][2]int{{1, 4}, {2, 5}, {3, 6}}
@@ -539,9 +539,9 @@ func TestSeqDeque_Flatten(t *testing.T) {
 	}
 }
 
-func TestSeqDeque_GroupBy(t *testing.T) {
+func TestSeqDeque_ChunkBy(t *testing.T) {
 	deque := g.DequeOf(1, 1, 2, 3, 2, 3, 4)
-	groups := deque.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+	groups := deque.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
 
 	if len(groups) == 0 {
 		t.Error("Expected at least one group")
@@ -653,8 +653,8 @@ func TestSeqDeque_CounterEdgeCases(t *testing.T) {
 	empty := g.NewDeque[int]()
 	counts := make(map[int]g.Int)
 
-	empty.Iter().Counter().ForEach(func(k any, v g.Int) {
-		counts[k.(int)] = v
+	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+		counts[k] = v
 	})
 
 	if len(counts) != 0 {

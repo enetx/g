@@ -33,43 +33,32 @@ func ErrSeq[V any](err error) SeqResult[V] {
 	return func(yield func(Result[V]) bool) { yield(Err[V](err)) }
 }
 
-// FlattenResult flattens SeqResult[E] where E is a slice type into SeqResult[T].
-func FlattenResult[T any, E ~[]T](seq SeqResult[E]) SeqResult[T] {
-	return func(yield func(Result[T]) bool) {
-		seq(func(v Result[E]) bool {
-			if v.IsErr() {
-				if !yield(Err[T](v.err)) {
-					return false
-				}
-				return true
-			}
-			for _, item := range v.v {
-				if !yield(Ok(item)) {
-					return false
-				}
-			}
-			return true
-		})
-	}
-}
-
-// MapSeqResult transforms each Ok value of a SeqResult[V] into a SeqResult[U] using the given function.
+// FlatMap transforms each Ok value into a sequence and flattens the results,
+// wrapping each produced element in Ok. The element type may differ from the
+// input type. If an Err is encountered, it is passed downstream as-is and ends
+// the iteration, matching Map.
 //
-// It is the iterator-level cross-type plain-map free function for SeqResult, mirroring TransformResult
-// for a single Result: fn returns a plain U (always Ok on an Ok input) rather than a Result[U].
-// If an Err is encountered, it is propagated downstream as-is and ends the iteration (yield returns false),
-// matching the same-type SeqResult.Map method.
+// Example:
 //
-// Because Go does not allow type parameters on methods, this type-changing map is provided as a free function;
-// SeqResult.Map remains the V→V method variant.
-func MapSeqResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
+//	seq.FlatMap(Slice[Int].Iter) // SeqResult[Slice[Int]] -> SeqResult[Int]
+func (seq SeqResult[V]) FlatMap[U any](fn func(V) SeqSlice[U]) SeqResult[U] {
 	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				yield(Err[U](v.err))
 				return false
 			}
-			return yield(Ok(fn(v.v)))
+
+			cont := true
+			fn(v.v)(func(u U) bool {
+				if !yield(Ok(u)) {
+					cont = false
+					return false
+				}
+				return true
+			})
+
+			return cont
 		})
 	}
 }
@@ -86,7 +75,7 @@ func MapSeqResult[V, U any](seq SeqResult[V], fn func(V) U) SeqResult[U] {
 //
 // It is an error to call next or stop from multiple goroutines simultaneously.
 func (seq SeqResult[V]) Pull() (func() (Result[V], bool), func()) {
-	return iter.Pull(iter.Seq[Result[V]](seq))
+	return iter.Seq[Result[V]](seq).Pull()
 }
 
 // All checks whether all Ok values in the sequence satisfy the provided condition.
@@ -137,12 +126,43 @@ func (seq SeqResult[V]) Any(fn func(v V) bool) Result[bool] {
 	return result
 }
 
-// Collect gathers all Ok values from the iterator into a Slice.
-// If any value is Err, the first such Err is returned immediately.
-func (seq SeqResult[V]) Collect() Slice[Result[V]] { return iter.ToSlice(iter.Seq[Result[V]](seq)) }
+// Collect gathers all elements from the iterator into a Slice of Result values.
+// Both Ok and Err elements are collected as-is; encountering an Err does not stop the collection.
+func (seq SeqResult[V]) Collect() Slice[Result[V]] { return iter.Seq[Result[V]](seq).ToSlice() }
 
-// Count consumes the entire sequence, counting how many times the yield function is invoked.
-// Err elements do not stop the count but are still passed to the yield function (which returns false immediately, stopping iteration).
+// TryCollect gathers the Ok values from the sequence into a Slice, mirroring
+// Rust's try_collect: the first Err short-circuits — iteration stops
+// immediately, elements after it are not consumed — and that error is
+// returned as Err. An empty sequence yields Ok of an empty Slice.
+//
+// Unlike Collect, which gathers every element (Ok and Err alike) into a
+// Slice[Result[V]], TryCollect returns Result[Slice[V]]: either all the
+// unwrapped Ok values, or the first error encountered.
+func (seq SeqResult[V]) TryCollect() Result[Slice[V]] {
+	collection := NewSlice[V]()
+
+	var err error
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			err = v.err
+			return false
+		}
+
+		collection = append(collection, v.v)
+
+		return true
+	})
+
+	if err != nil {
+		return Err[Slice[V]](err)
+	}
+
+	return Ok(collection)
+}
+
+// Count consumes the entire sequence, counting the number of elements it yields.
+// Err elements are counted like Ok elements and do not stop the count.
 func (seq SeqResult[V]) Count() Int {
 	var counter Int
 	seq(func(Result[V]) bool {
@@ -154,13 +174,14 @@ func (seq SeqResult[V]) Count() Int {
 }
 
 // Map transforms each Ok value in the sequence using the given function, returning a new sequence of Result.
+// The result type may differ from the input type.
 //
 // If an Err is encountered, it is passed downstream as-is and ends the iteration (yield returns false).
-func (seq SeqResult[V]) Map(transform func(V) V) SeqResult[V] {
-	return func(yield func(Result[V]) bool) {
+func (seq SeqResult[V]) Map[U any](transform func(V) U) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
+				yield(Err[U](v.err))
 				return false
 			}
 			return yield(Ok(transform(v.v)))
@@ -259,8 +280,9 @@ func (seq SeqResult[V]) Unique() SeqResult[V] {
 					return false
 				}
 
-				if !seen.Contains(v.v) {
-					seen.Insert(v.v)
+				k := any(v.v)
+				if _, ok := seen[k]; !ok {
+					seen[k] = Unit{}
 					return yield(v)
 				}
 
@@ -574,7 +596,7 @@ func (seq SeqResult[V]) Last() Result[Option[V]] {
 // Returns:
 // - Option[Result[V]]: Some(Result[V]) if an element exists, None if the iterator is exhausted.
 func (seq *SeqResult[V]) Next() Option[Result[V]] {
-	if value, remaining, ok := iter.Next(iter.Seq[Result[V]](*seq)); ok {
+	if value, remaining, ok := iter.Seq[Result[V]](*seq).Next(); ok {
 		*seq = SeqResult[V](remaining)
 		return Some(value)
 	}
@@ -669,4 +691,85 @@ func (seq SeqResult[V]) FirstErr() Option[error] {
 //	fmt.Printf("Successful: %d, Failed: %d\n", successful.Len(), failed.Len())
 func FromResultChan[V any](ch <-chan Result[V]) SeqResult[V] {
 	return SeqResult[V](iter.FromChan(ch))
+}
+
+// Fold reduces the sequence to a single value using an accumulator.
+// The accumulator type may differ from the element type. The first Err
+// short-circuits the iteration and is returned as Err.
+func (seq SeqResult[V]) Fold[A any](init A, fn func(acc A, val V) A) Result[A] {
+	acc := init
+	var err error
+
+	seq(func(r Result[V]) bool {
+		if r.IsErr() {
+			err = r.err
+			return false
+		}
+
+		acc = fn(acc, r.v)
+
+		return true
+	})
+
+	if err != nil {
+		return Err[A](err)
+	}
+
+	return Ok(acc)
+}
+
+// Reduce aggregates Ok values using the provided function, mirroring Rust's try_reduce:
+// the first Err short-circuits and is returned as Err; an empty sequence yields Ok(None);
+// otherwise Ok(Some(accumulated)).
+func (seq SeqResult[V]) Reduce(fn func(a, b V) V) Result[Option[V]] {
+	var (
+		acc   V
+		first = true
+		err   error
+	)
+
+	seq(func(r Result[V]) bool {
+		if r.IsErr() {
+			err = r.err
+			return false
+		}
+
+		if first {
+			acc, first = r.v, false
+		} else {
+			acc = fn(acc, r.v)
+		}
+
+		return true
+	})
+
+	if err != nil {
+		return Err[Option[V]](err)
+	}
+
+	return Ok(OptionOf(acc, !first))
+}
+
+// Scan accumulates Ok values, yielding the initial value followed by every
+// intermediate accumulator state. The accumulator type may differ from the
+// element type. An Err is passed downstream as-is and ends the iteration.
+func (seq SeqResult[V]) Scan[A any](init A, fn func(acc A, val V) A) SeqResult[A] {
+	return func(yield func(Result[A]) bool) {
+		if !yield(Ok(init)) {
+			return
+		}
+
+		acc := init
+
+		seq(func(r Result[V]) bool {
+			if r.IsErr() {
+				yield(Err[A](r.err))
+				return false
+			}
+
+			acc = fn(acc, r.v)
+
+			return yield(Ok(acc))
+		})
+	}
 }

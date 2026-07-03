@@ -688,3 +688,106 @@ func TestHeap_Fix(t *testing.T) {
 		}
 	}
 }
+
+func TestHeapEq(t *testing.T) {
+	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1.Push(1, 2, 3)
+
+	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2.Push(3, 1, 2) // same contents, different insertion order
+
+	// Test equal heaps
+	if !heap1.Eq(heap2) {
+		t.Errorf("Equal heaps should be equal")
+	}
+
+	// Test self-equality
+	if !heap1.Eq(heap1) {
+		t.Errorf("A heap should be equal to itself")
+	}
+
+	// Eq must not consume either heap
+	if heap1.Len() != 3 || heap2.Len() != 3 {
+		t.Errorf("Eq should not consume the heaps")
+	}
+
+	// Test unequal heaps (different elements)
+	heap3 := g.NewHeap(cmp.Cmp[int])
+	heap3.Push(1, 2, 4)
+
+	if heap1.Eq(heap3) {
+		t.Errorf("Heaps with different elements should not be equal")
+	}
+
+	// Test unequal heaps (different lengths)
+	heap4 := g.NewHeap(cmp.Cmp[int])
+	heap4.Push(1, 2, 3, 4)
+
+	if heap1.Eq(heap4) {
+		t.Errorf("Heaps with different lengths should not be equal")
+	}
+
+	// Test empty heaps
+	heap5 := g.NewHeap(cmp.Cmp[int])
+	heap6 := g.NewHeap(cmp.Cmp[int])
+
+	if !heap5.Eq(heap6) {
+		t.Errorf("Empty heaps should be equal")
+	}
+
+	// Test nil receiver/argument
+	var nilHeap *g.Heap[int]
+
+	if !nilHeap.Eq(nil) {
+		t.Errorf("Two nil heaps should be equal")
+	}
+
+	if heap1.Eq(nil) {
+		t.Errorf("A non-nil heap should not be equal to nil")
+	}
+
+	if nilHeap.Eq(heap1) {
+		t.Errorf("A nil heap should not be equal to a non-nil heap")
+	}
+}
+
+func TestHeapEqUncomparable(t *testing.T) {
+	cmpSlices := func(a, b []int) cmp.Ordering { return cmp.Cmp(a[0], b[0]) }
+
+	heap1 := g.NewHeap(cmpSlices)
+	heap1.Push([]int{1, 2}, []int{3, 4})
+
+	heap2 := g.NewHeap(cmpSlices)
+	heap2.Push([]int{3, 4}, []int{1, 2})
+
+	// Uncomparable element types fall back to reflect.DeepEqual
+	if !heap1.Eq(heap2) {
+		t.Errorf("Heaps with deeply equal uncomparable elements should be equal")
+	}
+
+	heap3 := g.NewHeap(cmpSlices)
+	heap3.Push([]int{1, 2}, []int{3, 5})
+
+	if heap1.Eq(heap3) {
+		t.Errorf("Heaps with different uncomparable elements should not be equal")
+	}
+}
+
+func TestHeapNe(t *testing.T) {
+	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1.Push(1, 2, 3)
+
+	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2.Push(1, 2, 3)
+
+	if heap1.Ne(heap2) {
+		t.Errorf("Equal heaps should not be Ne")
+	}
+
+	heap3 := g.NewHeap(cmp.Cmp[int])
+	heap3.Push(1, 2, 4)
+
+	if !heap1.Ne(heap3) {
+		t.Errorf("Heaps with different elements should be Ne")
+	}
+}

@@ -2010,8 +2010,21 @@ func TestStringToBigInt(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := tc.input.TryBigInt()
-			if result.UnwrapOrDefault().Cmp(tc.expected) != 0 {
-				t.Errorf("Failed %s: expected %v, got %v", tc.name, tc.expected, result)
+
+			if tc.expected == nil {
+				if result.IsOk() {
+					t.Errorf("TryBigInt(%q) = Ok(%v), want Err", tc.input, result.Ok())
+				}
+				return
+			}
+
+			if result.IsErr() {
+				t.Errorf("TryBigInt(%q) = Err(%v), want Ok(%v)", tc.input, result.Err(), tc.expected)
+				return
+			}
+
+			if result.Ok().Cmp(tc.expected) != 0 {
+				t.Errorf("TryBigInt(%q) = %v, want %v", tc.input, result.Ok(), tc.expected)
 			}
 		})
 	}

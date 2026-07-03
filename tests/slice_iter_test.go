@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,9 +25,9 @@ func assertGroupsInt(t *testing.T, got []Slice[int], want [][]int) {
 	}
 }
 
-func TestSliceIterGroupBy_EqualRuns(t *testing.T) {
+func TestSliceIterChunkBy_EqualRuns(t *testing.T) {
 	in := SliceOf(1, 1, 1, 3, 3, 2, 2, 2)
-	got := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
 
 	want := [][]int{
 		{1, 1, 1},
@@ -36,9 +37,9 @@ func TestSliceIterGroupBy_EqualRuns(t *testing.T) {
 	assertGroupsInt(t, got, want)
 }
 
-func TestSliceIterGroupBy_LessEqRuns(t *testing.T) {
+func TestSliceIterChunkBy_LessEqRuns(t *testing.T) {
 	in := SliceOf(1, 1, 2, 3, 2, 3, 2, 3, 4)
-	got := in.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
 
 	want := [][]int{
 		{1, 1, 2, 3},
@@ -48,33 +49,33 @@ func TestSliceIterGroupBy_LessEqRuns(t *testing.T) {
 	assertGroupsInt(t, got, want)
 }
 
-func TestSliceIterGroupBy_Empty(t *testing.T) {
+func TestSliceIterChunkBy_Empty(t *testing.T) {
 	in := Slice[int]{}
-	got := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
 	if len(got) != 0 {
 		t.Fatalf("expected 0 groups, got %d: %v", len(got), got)
 	}
 }
 
-func TestSliceIterGroupBy_AlwaysTrue(t *testing.T) {
+func TestSliceIterChunkBy_AlwaysTrue(t *testing.T) {
 	in := SliceOf(7, 8, 9)
-	got := in.Iter().GroupBy(func(a, b int) bool { return true }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return true }).Collect()
 	want := [][]int{{7, 8, 9}}
 	assertGroupsInt(t, got, want)
 }
 
-func TestSliceIterGroupBy_AlwaysFalse(t *testing.T) {
+func TestSliceIterChunkBy_AlwaysFalse(t *testing.T) {
 	in := SliceOf(7, 8, 9)
-	got := in.Iter().GroupBy(func(a, b int) bool { return false }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return false }).Collect()
 	want := [][]int{{7}, {8}, {9}}
 	assertGroupsInt(t, got, want)
 }
 
-func TestSliceIterGroupBy_GroupsAreCopies(t *testing.T) {
+func TestSliceIterChunkBy_GroupsAreCopies(t *testing.T) {
 	in := SliceOf(1, 1, 2, 2)
 	orig := append([]int(nil), []int(in)...)
 
-	groups := in.Iter().GroupBy(func(a, b int) bool { return a == b }).Collect()
+	groups := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
 	if len(groups) != 2 {
 		t.Fatalf("expected 2 groups, got %d: %v", len(groups), groups)
 	}
@@ -97,9 +98,9 @@ func TestSliceIterGroupBy_GroupsAreCopies(t *testing.T) {
 	}
 }
 
-func TestSliceIterGroupBy_Strings(t *testing.T) {
+func TestSliceIterChunkBy_Strings(t *testing.T) {
 	in := SliceOf("a", "a", "b", "bb", "bb", "a")
-	got := in.Iter().GroupBy(func(a, b string) bool { return len(a) == len(b) }).Collect()
+	got := in.Iter().ChunkBy(func(a, b string) bool { return len(a) == len(b) }).Collect()
 
 	want := [][]string{
 		{"a", "a", "b"},
@@ -783,12 +784,8 @@ func TestSliceIterForEach(t *testing.T) {
 func TestSliceIterZip(t *testing.T) {
 	s1 := SliceOf(1, 2, 3, 4)
 	s2 := SliceOf(5, 6, 7, 8)
-	expected := NewMapOrd[any, any]()
-	expected.Insert(1, 5)
-	expected.Insert(2, 6)
-	expected.Insert(3, 7)
-	expected.Insert(4, 8)
 	result := s1.Iter().Zip(s2.Iter()).Collect()
+	expected := []Pair[int, int]{{Key: 1, Value: 5}, {Key: 2, Value: 6}, {Key: 3, Value: 7}, {Key: 4, Value: 8}}
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v) = %v, expected %v", s1, s2, result, expected)
@@ -796,13 +793,36 @@ func TestSliceIterZip(t *testing.T) {
 
 	s3 := SliceOf(1, 2, 3)
 	s4 := SliceOf(4, 5)
-	expected = NewMapOrd[any, any]()
-	expected.Insert(1, 4)
-	expected.Insert(2, 5)
 	result = s3.Iter().Zip(s4.Iter()).Collect()
+	expected = []Pair[int, int]{{Key: 1, Value: 4}, {Key: 2, Value: 5}}
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Zip(%v, %v) = %v, expected %v", s3, s4, result, expected)
+	}
+}
+
+func TestSliceIterZipCrossType(t *testing.T) {
+	s1 := SliceOf(1, 2, 3)
+	s2 := SliceOf("a", "b", "c")
+
+	pairs := s1.Iter().Zip(s2.Iter()).Collect()
+	expected := []Pair[int, string]{{Key: 1, Value: "a"}, {Key: 2, Value: "b"}, {Key: 3, Value: "c"}}
+
+	if !reflect.DeepEqual(pairs, expected) {
+		t.Errorf("Zip cross-type = %v, expected %v", pairs, expected)
+	}
+
+	keys, values := s1.Iter().Zip(s2.Iter()).Unzip()
+	if !reflect.DeepEqual(keys, SliceOf(1, 2, 3)) || !reflect.DeepEqual(values, SliceOf("a", "b", "c")) {
+		t.Errorf("Unzip = %v, %v", keys, values)
+	}
+
+	joined := s1.Iter().Zip(s2.Iter()).Map(func(n int, s string) string {
+		return fmt.Sprintf("%d%s", n, s)
+	}).Collect()
+
+	if !reflect.DeepEqual(joined, SliceOf("1a", "2b", "3c")) {
+		t.Errorf("Zip().Map() = %v", joined)
 	}
 }
 
@@ -1099,32 +1119,45 @@ func TestSliceIterCounter(t *testing.T) {
 	sl1 := Slice[int]{1, 2, 3, 2, 1, 4, 5, 4, 4}
 	sl2 := Slice[string]{"apple", "banana", "orange", "apple", "apple", "orange", "grape"}
 
-	expected1 := NewMapOrd[any, Int]()
-	expected1.Insert(3, 1)
-	expected1.Insert(5, 1)
+	// Identity counting via CounterBy: fully typed keys, first-seen order.
+	expected1 := NewMapOrd[int, Int]()
 	expected1.Insert(1, 2)
 	expected1.Insert(2, 2)
+	expected1.Insert(3, 1)
 	expected1.Insert(4, 3)
-	expected1.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(int), b.(int)) })
+	expected1.Insert(5, 1)
 
-	result1 := sl1.Iter().Counter().Collect()
-	result1.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(int), b.(int)) })
+	result1 := sl1.Iter().CounterBy(func(v int) int { return v }).Collect()
+	result1.SortByKey(cmp.Cmp)
 	if !result1.Eq(expected1) {
-		t.Errorf("Counter() returned %v, expected %v", result1, expected1)
+		t.Errorf("CounterBy() returned %v, expected %v", result1, expected1)
 	}
 
 	// Test with string values
-	expected2 := NewMapOrd[any, Int]()
+	expected2 := NewMapOrd[string, Int]()
+	expected2.Insert("apple", 3)
 	expected2.Insert("banana", 1)
 	expected2.Insert("grape", 1)
 	expected2.Insert("orange", 2)
-	expected2.Insert("apple", 3)
-	expected2.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(string), b.(string)) })
 
-	result2 := sl2.Iter().Counter().Collect()
-	result2.SortByKey(func(a, b any) cmp.Ordering { return cmp.Cmp(a.(string), b.(string)) })
+	result2 := sl2.Iter().CounterBy(func(v string) string { return v }).Collect()
+	result2.SortByKey(cmp.Cmp)
 	if !result2.Eq(expected2) {
-		t.Errorf("Counter() returned %v, expected %v", result2, expected2)
+		t.Errorf("CounterBy() returned %v, expected %v", result2, expected2)
+	}
+}
+
+func TestSliceIterCounterBy(t *testing.T) {
+	words := SliceOf[String]("alpha", "beta", "gamma", "delta")
+
+	byLen := words.Iter().CounterBy(func(w String) Int { return w.Len() }).Collect()
+
+	expected := NewMapOrd[Int, Int]()
+	expected.Insert(5, 3) // alpha, gamma, delta
+	expected.Insert(4, 1) // beta
+
+	if !byLen.Eq(expected) {
+		t.Errorf("CounterBy() returned %v, expected %v (first-seen key order)", byLen, expected)
 	}
 }
 
@@ -2021,4 +2054,54 @@ func TestSeqSlicesFilterEarlyStop(t *testing.T) {
 		Filter(func(c Slice[int]) bool { return true }).
 		Collect()
 	assertGroupsInt(t, got, [][]int{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
+}
+
+func TestSliceIterCrossTypeChains(t *testing.T) {
+	// Map to a different element type mid-chain
+	strs := SliceOf(1, 2, 3).Iter().Map(func(n int) String { return Int(n).String() }).Collect()
+	if !reflect.DeepEqual(strs, SliceOf[String]("1", "2", "3")) {
+		t.Errorf("Map cross-type = %v", strs)
+	}
+
+	// Fold into a different accumulator type
+	total := SliceOf[String]("a", "bb", "ccc").Iter().Fold(0, func(acc int, s String) int { return acc + len(s) })
+	if total != 6 {
+		t.Errorf("Fold cross-type = %d, want 6", total)
+	}
+
+	// FilterMap into a different element type
+	ints := SliceOf[String]("1", "x", "3").Iter().FilterMap(func(s String) Option[Int] {
+		return s.TryInt().Option()
+	}).Collect()
+	if !reflect.DeepEqual(ints, SliceOf[Int](1, 3)) {
+		t.Errorf("FilterMap cross-type = %v", ints)
+	}
+
+	// FlatMap into a different element type
+	chars := SliceOf[String]("ab", "c").Iter().FlatMap(func(s String) SeqSlice[string] {
+		return s.Chars().Map(String.Std)
+	}).Collect()
+	if !reflect.DeepEqual(chars, SliceOf("a", "b", "c")) {
+		t.Errorf("FlatMap cross-type = %v", chars)
+	}
+
+	// Scan with a different accumulator type
+	sums := SliceOf(1, 2, 3).Iter().Scan(Int(0), func(acc Int, n int) Int { return acc + Int(n) }).Collect()
+	if !reflect.DeepEqual(sums, SliceOf[Int](0, 1, 3, 6)) {
+		t.Errorf("Scan cross-type = %v", sums)
+	}
+}
+
+func TestSliceIterWhileAdapters(t *testing.T) {
+	s := SliceOf(1, 2, 3, 10, 4)
+
+	taken := s.Iter().TakeWhile(func(v int) bool { return v < 5 }).Collect()
+	if !reflect.DeepEqual(taken, SliceOf(1, 2, 3)) {
+		t.Errorf("TakeWhile = %v", taken)
+	}
+
+	skipped := s.Iter().SkipWhile(func(v int) bool { return v < 5 }).Collect()
+	if !reflect.DeepEqual(skipped, SliceOf(10, 4)) {
+		t.Errorf("SkipWhile = %v", skipped)
+	}
 }

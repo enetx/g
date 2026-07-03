@@ -517,3 +517,24 @@ func TestFilterRxMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestId(t *testing.T) {
+	if got := f.Id(42); got != 42 {
+		t.Errorf("f.Id(42) = %v, want 42", got)
+	}
+
+	words := g.SliceOf[g.String]("go", "rust", "go", "zig", "go")
+	counts := words.Iter().CounterBy(f.Id).Collect()
+
+	if got := counts.Get("go"); got.IsNone() || got.Unwrap() != 3 {
+		t.Errorf("CounterBy(f.Id) for \"go\" = %v, want Some(3)", got)
+	}
+
+	if got := counts.Get("rust"); got.IsNone() || got.Unwrap() != 1 {
+		t.Errorf("CounterBy(f.Id) for \"rust\" = %v, want Some(1)", got)
+	}
+
+	if got := counts.Get("zig"); got.IsNone() || got.Unwrap() != 1 {
+		t.Errorf("CounterBy(f.Id) for \"zig\" = %v, want Some(1)", got)
+	}
+}

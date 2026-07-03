@@ -19,7 +19,7 @@ type MapSafe[K comparable, V any] struct {
 func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} }
 
 // Transform applies a transformation function to the MapSafe and returns the result.
-func (ms *MapSafe[K, V]) Transform(fn func(*MapSafe[K, V]) *MapSafe[K, V]) *MapSafe[K, V] {
+func (ms *MapSafe[K, V]) Transform[U any](fn func(*MapSafe[K, V]) U) U {
 	return fn(ms)
 }
 

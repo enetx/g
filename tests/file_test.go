@@ -36,7 +36,7 @@ func TestFile_Dir_Success(t *testing.T) {
 	}
 }
 
-func TestFile_Exist_Success(t *testing.T) {
+func TestFile_Exists_Success(t *testing.T) {
 	// Create a temporary file for testing
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
@@ -45,11 +45,11 @@ func TestFile_Exist_Success(t *testing.T) {
 	file := NewFile(String(tempFile))
 
 	// Check if the file exists
-	exists := file.Exist()
+	exists := file.Exists()
 
 	// Check if the existence check is correct
 	if !exists {
-		t.Errorf("TestFile_Exist_Success: File should exist, but it doesn't.")
+		t.Errorf("TestFile_Exists_Success: File should exist, but it doesn't.")
 	}
 }
 
@@ -379,12 +379,12 @@ func TestFile_Rename_Success(t *testing.T) {
 	}
 
 	// Verify if the file exists at the new path
-	if !newPath.Exist() {
+	if !newPath.Exists() {
 		t.Fatalf("TestFile_Rename_Success: File does not exist at the new path: %s", newPath.Path().Ok().Std())
 	}
 
 	// Verify if the original file does not exist
-	if file.Exist() {
+	if file.Exists() {
 		t.Fatalf("TestFile_Rename_Success: Original file still exists after renaming: %s", file.Path().Ok().Std())
 	}
 }
@@ -918,7 +918,7 @@ func TestFile_Copy(t *testing.T) {
 	}
 
 	// Verify that the destination file exists
-	if !dest.Exist() {
+	if !dest.Exists() {
 		t.Fatalf("TestFile_Copy: Destination file does not exist after copy")
 	}
 }

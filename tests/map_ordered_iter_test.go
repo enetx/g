@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/f"
 )
 
 func TestMapOrdered_Iter_Keys(t *testing.T) {
@@ -540,4 +541,30 @@ func TestSeqMapOrdNext(t *testing.T) {
 			t.Errorf("Expected empty map, got length %d", remaining.Len())
 		}
 	})
+}
+
+func TestMapOrdered_Iter_FilterByKey(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	keys := m.Iter().FilterByKey(f.Eq("b")).Keys().Collect()
+
+	if !keys.Eq(g.SliceOf("b")) {
+		t.Errorf("FilterByKey(f.Eq(\"b\")): expected keys [b], got %v", keys)
+	}
+}
+
+func TestMapOrdered_Iter_FilterByValue(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	keys := m.Iter().FilterByValue(f.Gt(1)).Keys().Collect()
+
+	if !keys.Eq(g.SliceOf("b", "c")) {
+		t.Errorf("FilterByValue(f.Gt(1)): expected keys [b c] in order, got %v", keys)
+	}
 }

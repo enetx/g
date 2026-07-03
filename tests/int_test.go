@@ -160,7 +160,7 @@ func TestIntIsPositive(t *testing.T) {
 	}{
 		{"positive", 1, true},
 		{"negative", -1, false},
-		{"zero", 0, true},
+		{"zero", 0, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -769,7 +769,7 @@ func TestIntIsPositiveZero(t *testing.T) {
 		negative bool
 	}{
 		{"positive", Int(5), true, false},
-		{"zero", Int(0), true, false},
+		{"zero", Int(0), false, false},
 		{"negative", Int(-5), false, true},
 	}
 
@@ -778,11 +778,30 @@ func TestIntIsPositiveZero(t *testing.T) {
 			if got := tc.in.IsPositive(); got != tc.positive {
 				t.Errorf("IsPositive(%d) = %v, want %v", tc.in, got, tc.positive)
 			}
-			if got := tc.in.IsNonNegative(); got != tc.positive {
-				t.Errorf("IsNonNegative(%d) = %v, want %v", tc.in, got, tc.positive)
-			}
 			if got := tc.in.IsNegative(); got != tc.negative {
 				t.Errorf("IsNegative(%d) = %v, want %v", tc.in, got, tc.negative)
+			}
+		})
+	}
+}
+
+func TestIntSignum(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Int
+		want Int
+	}{
+		{"positive", Int(42), 1},
+		{"zero", Int(0), 0},
+		{"negative", Int(-42), -1},
+		{"min", Int(math.MinInt), -1},
+		{"max", Int(math.MaxInt), 1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.in.Signum(); got != tc.want {
+				t.Errorf("Signum(%d) = %v, want %v", tc.in, got, tc.want)
 			}
 		})
 	}

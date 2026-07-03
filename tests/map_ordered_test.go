@@ -27,7 +27,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 				m.Insert(1, 100)
 				return m
 			},
-			expected: []Pair[int, int]{{1, 100}},
+			expected: []Pair[int, int]{{Key: 1, Value: 100}},
 		},
 		{
 			name: "multiple elements",
@@ -37,7 +37,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 				m.Insert(3, 300)
 				return m
 			},
-			expected: []Pair[int, int]{{3, 300}, {2, 200}, {1, 100}},
+			expected: []Pair[int, int]{{Key: 3, Value: 300}, {Key: 2, Value: 200}, {Key: 1, Value: 100}},
 		},
 	}
 
@@ -48,7 +48,7 @@ func TestMapOrdIterReverse(t *testing.T) {
 			iterator := mapOrd.IterReverse()
 			var result []Pair[int, int]
 			iterator.ForEach(func(k, v int) {
-				result = append(result, Pair[int, int]{k, v})
+				result = append(result, Pair[int, int]{Key: k, Value: v})
 			})
 
 			if !reflect.DeepEqual(result, tt.expected) {
@@ -635,9 +635,9 @@ func TestMapOrdFromMap(t *testing.T) {
 	mapOrd.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []Pair[string, int]{
-		{"a", 1},
-		{"b", 2},
-		{"c", 3},
+		{Key: "a", Value: 1},
+		{Key: "b", Value: 2},
+		{Key: "c", Value: 3},
 	}
 
 	i := 0
@@ -876,7 +876,7 @@ func TestMapOrdIterFind(t *testing.T) {
 	}).Some()
 
 	// Verify the found element
-	expected := Pair[int, int]{2, 2}
+	expected := Pair[int, int]{Key: 2, Value: 2}
 
 	if !reflect.DeepEqual(found, expected) {
 		t.Errorf("Expected %v, but got %v", expected, found)
@@ -984,13 +984,13 @@ func TestMapOrdIterUnzip(t *testing.T) {
 
 	// Verify the keys
 	expectedKeys := SliceOf("a", "b", "c")
-	if keys.Collect().Ne(expectedKeys) {
+	if keys.Ne(expectedKeys) {
 		t.Errorf("Expected keys %v, but got %v", expectedKeys, keys)
 	}
 
 	// Verify the values
 	expectedValues := SliceOf(1, 2, 3)
-	if values.Collect().Ne(expectedValues) {
+	if values.Ne(expectedValues) {
 		t.Errorf("Expected values %v, but got %v", expectedValues, values)
 	}
 }
@@ -1637,5 +1637,31 @@ func TestMapOrdRemoveZeroesTail(t *testing.T) {
 	// Remaining order is preserved.
 	if mo[0].Key != "a" || mo[1].Key != "c" {
 		t.Errorf("unexpected order after Remove: %v", mo)
+	}
+}
+
+func TestPairOf(t *testing.T) {
+	p := PairOf("answer", 42)
+
+	if p.Key != "answer" {
+		t.Errorf("PairOf key = %v, want %q", p.Key, "answer")
+	}
+
+	if p.Value != 42 {
+		t.Errorf("PairOf value = %v, want %d", p.Value, 42)
+	}
+
+	mo := MapOrdOf(PairOf("a", 1), PairOf("b", 2))
+
+	if mo.Len() != 2 {
+		t.Fatalf("MapOrdOf(PairOf...) length = %d, want 2", mo.Len())
+	}
+
+	if v := mo.Get("a"); v.IsNone() || v.Unwrap() != 1 {
+		t.Errorf("mo.Get(\"a\") = %v, want Some(1)", v)
+	}
+
+	if v := mo.Get("b"); v.IsNone() || v.Unwrap() != 2 {
+		t.Errorf("mo.Get(\"b\") = %v, want Some(2)", v)
 	}
 }

@@ -140,6 +140,13 @@ func Errorf[T ~string](format T, args ...any) error {
 //     maps are passed in args, the last one silently wins; merge them into one map
 //     beforehand if you need keys from several sources.
 //
+// Security:
+//   - Templates can invoke arbitrary exported methods on the supplied arguments via
+//     reflection (e.g. `{key.MethodName(...)}`). A template must therefore be treated
+//     as code: never pass untrusted or user-controlled input as the template string.
+//     Untrusted data is safe only as an argument VALUE (a positional argument or a
+//     `Named` map value), never as the template itself.
+//
 // Usage:
 //
 //	// Example 1: Numeric placeholders
@@ -258,14 +265,14 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any], 
 		fall    String
 	)
 
-	if idx := placeholder.Index("."); idx.IsPositive() {
+	if idx := placeholder.Index("."); !idx.IsNegative() {
 		keyfall = placeholder[:idx]
 		mods = placeholder[idx+1:]
 	} else {
 		keyfall = placeholder
 	}
 
-	if idx := keyfall.Index("?"); idx.IsPositive() {
+	if idx := keyfall.Index("?"); !idx.IsNegative() {
 		key = keyfall[:idx]
 		fall = keyfall[idx+1:]
 	} else {
@@ -479,6 +486,13 @@ func resolveIndirect(targetType reflect.Value) reflect.Value {
 
 func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 	methodType := method.Type()
+
+	// Methods without return values would be invoked purely for their side
+	// effects while leaving the placeholder empty; never call them.
+	if methodType.NumOut() == 0 {
+		return None[any]()
+	}
+
 	numIn := methodType.NumIn()
 	isVariadic := methodType.IsVariadic()
 
@@ -525,7 +539,10 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 func applyMod(value any, name String, params Slice[String]) any {
 	current := reflect.ValueOf(value)
 
-	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
+	// Methods with no return values are treated as not found: calling them
+	// would execute side effects without producing a replacement value.
+	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func &&
+		method.Type().NumOut() > 0 {
 		if result := callMethod(method, params); result.IsSome() {
 			return result.v
 		}
@@ -539,7 +556,8 @@ func applyMod(value any, name String, params Slice[String]) any {
 		current = current.Elem()
 	}
 
-	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func {
+	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func &&
+		method.Type().NumOut() > 0 {
 		if result := callMethod(method, params); result.IsSome() {
 			return result.v
 		}

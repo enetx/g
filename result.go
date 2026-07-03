@@ -37,26 +37,6 @@ func ResultOf[T any](value T, err error) Result[T] {
 	return Ok(value)
 }
 
-// TransformResult applies a function to the contained Ok value, returning a new Result.
-// If the input Result is Err, the error is propagated.
-func TransformResult[T, U any](r Result[T], fn func(T) U) Result[U] {
-	if r.IsOk() {
-		return Ok(fn(r.v))
-	}
-
-	return Err[U](r.err)
-}
-
-// TransformResultOf applies a function that returns a (value, error) tuple to the contained Ok value.
-// If the input Result is Err, the error is propagated.
-func TransformResultOf[T, U any](r Result[T], fn func(T) (U, error)) Result[U] {
-	if r.IsOk() {
-		return ResultOf(fn(r.v))
-	}
-
-	return Err[U](r.err)
-}
-
 // Ok returns the value held in the Result.
 //
 // WARNING: If the Result contains an error, this method will return the zero value
@@ -84,19 +64,27 @@ func (r Result[T]) Result() (T, error) {
 	return zero, r.err
 }
 
+// resultPanic prints caller information for msg to stderr and then panics with v.
+// skip is the number of stack frames between the original caller and runtime.Caller,
+// so that the reported file:line and function point at the user's call site rather
+// than at this helper.
+func resultPanic(skip int, msg string, v any) {
+	if pc, file, line, ok := runtime.Caller(skip); ok {
+		out := fmt.Sprintf("[%s:%d] [%s] %s", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), msg)
+		fmt.Fprintln(os.Stderr, out)
+	}
+
+	panic(v)
+}
+
 // Unwrap returns the value held in the Result. If the Result is Err, it panics.
 func (r Result[T]) Unwrap() T {
 	if r.IsOk() {
 		return r.v
 	}
 
-	if pc, file, line, ok := runtime.Caller(1); ok {
-		out := fmt.Sprintf(
-			"[%s:%d] [%s] unwrapped an Err value: %v", filepath.Base(file), line, runtime.FuncForPC(pc).Name(), r.err)
-		fmt.Fprintln(os.Stderr, out)
-	}
-
-	panic(r.err)
+	resultPanic(2, fmt.Sprintf("called Result.Unwrap() on an Err value: %v", r.err), r.err)
+	panic("unreachable")
 }
 
 // UnwrapOr returns the value held in the Result. If the Result is Err, it returns the provided default value.
@@ -125,18 +113,50 @@ func (r Result[T]) Expect(msg string) T {
 	}
 
 	out := fmt.Sprintf("Expect() failed: %s: %v", msg, r.err)
-	fmt.Fprintln(os.Stderr, out)
-	panic(out)
+	resultPanic(2, out, out)
+	panic("unreachable")
 }
 
-// Then applies a function to the contained value (if Ok) and returns the result.
-// If the Result is Err, it returns the same Err without applying the function.
-func (r Result[T]) Then(fn func(T) Result[T]) Result[T] {
+// Then applies a function to the contained value (if Ok) and returns the resulting Result.
+// If the Result is Err, fn is not called and the error is propagated.
+// The result type may differ from the input type.
+func (r Result[T]) Then[U any](fn func(T) Result[U]) Result[U] {
 	if r.IsOk() {
 		return fn(r.v)
 	}
 
-	return r
+	return Err[U](r.err)
+}
+
+// Map applies a function to the contained value (if Ok) and returns a new Result
+// holding the transformed value. If the Result is Err, fn is not called and the
+// error is propagated. Unlike Then, fn returns a plain U rather than a Result[U].
+func (r Result[T]) Map[U any](fn func(T) U) Result[U] {
+	if r.IsOk() {
+		return Ok(fn(r.v))
+	}
+
+	return Err[U](r.err)
+}
+
+// MapOr applies fn to the contained value if Ok and returns the result;
+// otherwise returns the provided default value.
+func (r Result[T]) MapOr[U any](def U, fn func(T) U) U {
+	if r.IsOk() {
+		return fn(r.v)
+	}
+
+	return def
+}
+
+// MapOrElse applies fn to the contained value if Ok and returns the result;
+// otherwise computes the default from the error via defFn.
+func (r Result[T]) MapOrElse[U any](defFn func(error) U, fn func(T) U) U {
+	if r.IsOk() {
+		return fn(r.v)
+	}
+
+	return defFn(r.err)
 }
 
 // Inspect calls fn with the contained value if the Result is Ok, then returns
@@ -151,13 +171,14 @@ func (r Result[T]) Inspect(fn func(T)) Result[T] {
 }
 
 // ThenOf applies a function to the contained value (if Ok) and returns a new Result
-// based on the returned (T, error) tuple.
-func (r Result[T]) ThenOf(fn func(T) (T, error)) Result[T] {
+// based on the returned (U, error) tuple. If the Result is Err, fn is not called
+// and the error is propagated.
+func (r Result[T]) ThenOf[U any](fn func(T) (U, error)) Result[U] {
 	if r.IsOk() {
 		return ResultOf(fn(r.v))
 	}
 
-	return r
+	return Err[U](r.err)
 }
 
 // MapErr transforms the error in an Err Result by applying a function to it.
@@ -219,4 +240,53 @@ func (r Result[T]) Wrap(err error) Result[T] {
 	}
 
 	return r
+}
+
+// Or returns the Result if it is Ok, otherwise returns the provided alternative Result.
+func (r Result[T]) Or(other Result[T]) Result[T] {
+	if r.IsOk() {
+		return r
+	}
+
+	return other
+}
+
+// OrElse returns the Result if it is Ok, otherwise calls fn with the error and returns its result.
+func (r Result[T]) OrElse(fn func(error) Result[T]) Result[T] {
+	if r.IsOk() {
+		return r
+	}
+
+	return fn(r.err)
+}
+
+// IsOkAnd returns true if the Result is Ok and the predicate returns true for the contained value.
+func (r Result[T]) IsOkAnd(pred func(T) bool) bool {
+	return r.IsOk() && pred(r.v)
+}
+
+// IsErrAnd returns true if the Result is Err and the predicate returns true for the contained error.
+func (r Result[T]) IsErrAnd(pred func(error) bool) bool {
+	return r.IsErr() && pred(r.err)
+}
+
+// InspectErr calls fn with the contained error if the Result is Err, then returns
+// the Result unchanged. It is the error-side counterpart of Inspect.
+func (r Result[T]) InspectErr(fn func(error)) Result[T] {
+	if r.IsErr() {
+		fn(r.err)
+	}
+
+	return r
+}
+
+// UnwrapErr returns the contained error. If the Result is Ok, it panics.
+func (r Result[T]) UnwrapErr() error {
+	if r.IsErr() {
+		return r.err
+	}
+
+	out := fmt.Sprintf("called Result.UnwrapErr() on an Ok value: %v", r.v)
+	resultPanic(2, out, out)
+	panic("unreachable")
 }

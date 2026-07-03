@@ -104,7 +104,7 @@ func TestSeqHeap_Collect(t *testing.T) {
 
 	expected := []int{5, 4, 3, 1, 1} // max heap order
 	if len(result) != len(expected) {
-		t.Errorf("CollectWith: expected %v, got %v", expected, result)
+		t.Errorf("Collect: expected %v, got %v", expected, result)
 	}
 }
 
@@ -123,8 +123,8 @@ func TestSeqHeap_Counter(t *testing.T) {
 	heap.Push(1, 2, 1, 3, 2, 1)
 
 	counts := make(map[int]g.Int)
-	heap.Iter().Counter().ForEach(func(k any, v g.Int) {
-		counts[k.(int)] = v
+	heap.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+		counts[k] = v
 	})
 
 	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
@@ -399,9 +399,9 @@ func TestSeqHeap_Zip(t *testing.T) {
 	heap2 := g.NewHeap(cmp.Cmp[int])
 	heap2.Push(4, 5, 6)
 
-	pairs := make([][2]any, 0)
-	heap1.Iter().Zip(heap2.Iter()).ForEach(func(a, b any) {
-		pairs = append(pairs, [2]any{a, b})
+	pairs := make([][2]int, 0)
+	heap1.Iter().Zip(heap2.Iter()).ForEach(func(a, b int) {
+		pairs = append(pairs, [2]int{a, b})
 	})
 
 	expected := [][2]int{{1, 4}, {2, 5}, {3, 6}}
@@ -520,7 +520,7 @@ func TestSeqHeap_Partition(t *testing.T) {
 
 	evens, odds := heap.Iter().Partition(
 		func(v int) bool { return v%2 == 0 },
-		cmp.Cmp[int], // min heap for evens
+		cmp.Cmp[int],                                         // min heap for evens
 		func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }, // max heap for odds
 	)
 
@@ -663,8 +663,8 @@ func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 	empty := g.NewHeap(cmp.Cmp[int])
 	counts := make(map[int]g.Int)
 
-	empty.Iter().Counter().ForEach(func(k any, v g.Int) {
-		counts[k.(int)] = v
+	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+		counts[k] = v
 	})
 
 	if len(counts) != 0 {
@@ -672,11 +672,11 @@ func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 	}
 }
 
-func TestSeqHeap_GroupBy(t *testing.T) {
+func TestSeqHeap_ChunkBy(t *testing.T) {
 	heap := g.NewHeap(cmp.Cmp[int])
 	heap.Push(1, 1, 2, 3, 2, 3, 4)
 
-	groups := heap.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+	groups := heap.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
 
 	if len(groups) == 0 {
 		t.Error("Expected at least one group")
@@ -771,43 +771,6 @@ func TestSeqHeap_Range(t *testing.T) {
 	expected := []int{1, 2, 3} // Should include the 3 that triggers the stop
 	if len(result) != len(expected) {
 		t.Errorf("Range: expected %v, got %v", expected, result)
-	}
-}
-
-func TestSeqHeapEq(t *testing.T) {
-	heap1 := g.NewHeap(cmp.Cmp[int])
-	heap1.Push(1, 2, 3)
-
-	heap2 := g.NewHeap(cmp.Cmp[int])
-	heap2.Push(1, 2, 3)
-
-	// Test equal heaps
-	if !heap1.Iter().Eq(heap2.Iter()) {
-		t.Errorf("Equal heaps should be equal")
-	}
-
-	// Test unequal heaps (different elements)
-	heap3 := g.NewHeap(cmp.Cmp[int])
-	heap3.Push(1, 2, 4)
-
-	if heap1.Iter().Eq(heap3.Iter()) {
-		t.Errorf("Heaps with different elements should not be equal")
-	}
-
-	// Test unequal heaps (different lengths)
-	heap4 := g.NewHeap(cmp.Cmp[int])
-	heap4.Push(1, 2, 3, 4)
-
-	if heap1.Iter().Eq(heap4.Iter()) {
-		t.Errorf("Heaps with different lengths should not be equal")
-	}
-
-	// Test empty heaps
-	heap5 := g.NewHeap(cmp.Cmp[int])
-	heap6 := g.NewHeap(cmp.Cmp[int])
-
-	if !heap5.Iter().Eq(heap6.Iter()) {
-		t.Errorf("Empty heaps should be equal")
 	}
 }
 

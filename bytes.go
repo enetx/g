@@ -43,7 +43,7 @@ func NewBytes(size ...Int) Bytes {
 }
 
 // Transform applies a transformation function to the Bytes and returns the result.
-func (bs Bytes) Transform(fn func(Bytes) Bytes) Bytes { return fn(bs) }
+func (bs Bytes) Transform[U any](fn func(Bytes) U) U { return fn(bs) }
 
 // Min returns the minimum of Bytes.
 func (bs Bytes) Min(b ...Bytes) Bytes { return cmp.MinBy(Bytes.Cmp, append(b, bs)...) }
@@ -222,16 +222,15 @@ func (bs Bytes) EndsWithAny(suffixes ...Bytes) bool {
 }
 
 // Split splits the Bytes by the specified separator and returns the iterator.
-func (bs Bytes) Split(sep ...Bytes) SeqSlice[Bytes] {
-	return transformSeq(
-		bytes.SplitSeq(bs, Slice[Bytes](sep).Get(0).UnwrapOrDefault()),
-		func(b []byte) Bytes { return Bytes(b) },
-	)
+// If sep is empty, the Bytes are split after each UTF-8 rune; Chars is the
+// canonical way to iterate runes.
+func (bs Bytes) Split(sep Bytes) SeqSlice[Bytes] {
+	return SeqSlice[[]byte](bytes.SplitSeq(bs, sep)).Map(func(b []byte) Bytes { return Bytes(b) })
 }
 
 // SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
 func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
-	return transformSeq(bytes.SplitAfterSeq(bs, sep), func(b []byte) Bytes { return Bytes(b) })
+	return SeqSlice[[]byte](bytes.SplitAfterSeq(bs, sep)).Map(func(b []byte) Bytes { return Bytes(b) })
 }
 
 // SplitN splits the Bytes into substrings using the provided separator and returns an Slice[Bytes] of the results.
@@ -240,23 +239,23 @@ func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
 // - If n is zero, an empty Slice[Bytes] is returned.
 // - If n is positive, at most n substrings are returned.
 func (bs Bytes) SplitN(sep Bytes, n Int) Slice[Bytes] {
-	return TransformSlice(bytes.SplitN(bs, sep, n.Std()), func(b []byte) Bytes { return Bytes(b) })
+	return transformSlice(bytes.SplitN(bs, sep, n.Std()), func(b []byte) Bytes { return Bytes(b) })
 }
 
 // Lines splits the Bytes by lines and returns the iterator.
 func (bs Bytes) Lines() SeqSlice[Bytes] {
-	return transformSeq(bytes.Lines(bs), func(b []byte) Bytes { return Bytes(b) }).Map(Bytes.TrimEnd)
+	return SeqSlice[[]byte](bytes.Lines(bs)).Map(func(b []byte) Bytes { return Bytes(b) }).Map(Bytes.TrimEnd)
 }
 
 // Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
 func (bs Bytes) Fields() SeqSlice[Bytes] {
-	return transformSeq(bytes.FieldsSeq(bs), func(b []byte) Bytes { return Bytes(b) })
+	return SeqSlice[[]byte](bytes.FieldsSeq(bs)).Map(func(b []byte) Bytes { return Bytes(b) })
 }
 
 // FieldsBy splits the Bytes into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
 func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
-	return transformSeq(bytes.FieldsFuncSeq(bs, fn), func(b []byte) Bytes { return Bytes(b) })
+	return SeqSlice[[]byte](bytes.FieldsFuncSeq(bs, fn)).Map(func(b []byte) Bytes { return Bytes(b) })
 }
 
 // Append appends the given Bytes to the current Bytes.
@@ -399,7 +398,12 @@ func (bs Bytes) Repeat(count Int) Bytes { return bytes.Repeat(bs, count.Std()) }
 func (bs *Bytes) Reset() { *bs = (*bs)[:0] }
 
 // Runes returns the Bytes as a slice of runes.
-func (bs Bytes) Runes() []rune { return bytes.Runes(bs) }
+func (bs Bytes) Runes() Slice[rune] { return bytes.Runes(bs) }
+
+// Chars splits the Bytes into individual UTF-8 characters and returns the iterator.
+// It is the canonical way to iterate runes of Bytes, equivalent to bs.Split(Bytes(""))
+// and mirrors String.Chars.
+func (bs Bytes) Chars() SeqSlice[Bytes] { return bs.Split(Bytes("")) }
 
 // Title converts the Bytes to title case.
 func (bs Bytes) Title() Bytes { return title.Bytes(bs) }

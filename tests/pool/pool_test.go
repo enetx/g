@@ -249,28 +249,41 @@ func TestPoolCancelOnError(t *testing.T) {
 func TestPoolResetWithActiveTasks(t *testing.T) {
 	p := pool.New[int]().Limit(1)
 
-	// Add a task but don't wait for it to complete
+	started := make(chan struct{})
+	release := make(chan struct{})
+
+	// Add a task that blocks until released, guaranteeing it is active.
 	p.Go(func() Result[int] {
+		close(started)
+		<-release
 		return Ok(1)
 	})
 
-	// Try to reset while tasks might be active
-	// This should return an error since tasks are running
-	if p.ActiveTasks() > 0 {
-		err := p.Reset()
-		if err == nil {
-			t.Error("Expected error when resetting with active tasks")
-		}
-	}
+	<-started
+
+	// Reset must panic while tasks are running.
+	func() {
+		defer func() {
+			r := recover()
+			if r == nil {
+				t.Error("Expected panic when resetting with active tasks")
+				return
+			}
+
+			if s, ok := r.(string); !ok || !strings.Contains(s, "cannot reset while tasks are running") {
+				t.Errorf("Expected reset panic message, got: %v", r)
+			}
+		}()
+
+		p.Reset()
+	}()
 
 	// Clean up
+	close(release)
 	p.Wait()
 
-	// Now reset should work
-	err := p.Reset()
-	if err != nil {
-		t.Errorf("Expected no error when resetting after wait, got: %v", err)
-	}
+	// Now reset must not panic
+	p.Reset()
 }
 
 func TestPoolLimitPanic(t *testing.T) {
@@ -342,9 +355,11 @@ func TestPoolEpanicTypes(t *testing.T) {
 			expectStr: "panic: 123",
 		},
 		{
-			name:      "nil panic",
-			panicVal:  nil,
-			expectStr: "panic: panic called with nil argument",
+			name:     "nil panic",
+			panicVal: nil,
+			// Go 1.27 formats panic(nil) as a runtime error, earlier versions as a plain
+			// message; match the version-independent tail.
+			expectStr: "panic called with nil argument",
 		},
 	}
 
@@ -730,10 +745,7 @@ func TestPoolStream_ResetAfterStream(t *testing.T) {
 	for range ch {
 	}
 
-	err := p.Reset()
-	if err != nil {
-		t.Errorf("Expected no error resetting after stream drained, got: %v", err)
-	}
+	p.Reset()
 
 	p.Go(func() Result[int] { return Ok(2) })
 

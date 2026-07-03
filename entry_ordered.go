@@ -44,12 +44,14 @@ type OrdEntry[K comparable, V any] interface {
 // It is typically obtained from MapOrd.Entry(key) when the key already exists.
 // OccupiedOrdEntry provides access to the key and the value stored in the
 // underlying ordered slice, allowing inspection, modification, replacement, or
-// removal. Each operation re-resolves the key's current position, so the entry
-// stays correct even if the MapOrd is structurally mutated (Remove, SortBy,
-// Shuffle) while the entry is held.
+// removal. The key's position is resolved once, when the entry is created,
+// and reused directly by every operation. The entry is therefore only valid
+// as long as the MapOrd is not structurally mutated (Remove, SortBy, Shuffle,
+// Clear) between creation and use; obtain a fresh entry after such mutations.
 type OccupiedOrdEntry[K comparable, V any] struct {
 	mo  *MapOrd[K, V]
 	key K
+	idx int
 }
 
 // sealed prevents external implementations of the OrdEntry interface.
@@ -60,51 +62,31 @@ func (e OccupiedOrdEntry[K, V]) Key() K { return e.key }
 
 // Get returns the current value associated with the key.
 //
-// The value is returned by copy. If the key has since been removed from the
-// ordered map, the zero value of V is returned.
-func (e OccupiedOrdEntry[K, V]) Get() V {
-	if i := e.mo.index(e.key); i != -1 {
-		return (*e.mo)[i].Value
-	}
+// The value is returned by copy.
+func (e OccupiedOrdEntry[K, V]) Get() V { return (*e.mo)[e.idx].Value }
 
-	var zero V
-	return zero
-}
-
-// Insert replaces the value at the key's current position with the provided
-// value and returns the previously stored value.
+// Insert replaces the value at the entry's position with the provided value
+// and returns the previously stored value.
 //
-// The position of the entry in the ordered map is preserved. If the key has
-// since been removed, it is re-inserted at the end and the zero value of V is
-// returned as the previous value.
+// The position of the entry in the ordered map is preserved.
 func (e OccupiedOrdEntry[K, V]) Insert(value V) V {
-	if i := e.mo.index(e.key); i != -1 {
-		old := (*e.mo)[i].Value
-		(*e.mo)[i].Value = value
-		return old
-	}
+	old := (*e.mo)[e.idx].Value
+	(*e.mo)[e.idx].Value = value
 
-	*e.mo = append(*e.mo, Pair[K, V]{Key: e.key, Value: value})
-
-	var zero V
-	return zero
+	return old
 }
 
 // Remove removes the entry from the ordered map and returns the previously
 // stored value.
 //
 // This operation preserves the relative order of the remaining entries.
-// After this call, the key is no longer present in the map. If the key was
-// already absent, the zero value of V is returned.
+// After this call, the key is no longer present in the map and the entry
+// must not be used again.
 func (e OccupiedOrdEntry[K, V]) Remove() V {
-	if i := e.mo.index(e.key); i != -1 {
-		v := (*e.mo)[i].Value
-		*e.mo = slices.Delete(*e.mo, i, i+1)
-		return v
-	}
+	v := (*e.mo)[e.idx].Value
+	*e.mo = slices.Delete(*e.mo, e.idx, e.idx+1)
 
-	var zero V
-	return zero
+	return v
 }
 
 // OrInsert returns the existing value without modifying the map.
@@ -127,21 +109,17 @@ func (e OccupiedOrdEntry[K, V]) OrInsertWithKey(fn func(K) V) V { return e.Get()
 // For OccupiedOrdEntry, this is equivalent to Get since the key already exists.
 func (e OccupiedOrdEntry[K, V]) OrDefault() V { return e.Get() }
 
-// AndModify applies the provided function to the value stored at the key's
-// current position and returns the entry for method chaining.
+// AndModify applies the provided function to the value stored at the entry's
+// position and returns the entry for method chaining.
 //
 // The function receives a pointer to the actual value stored in the ordered map,
-// allowing in-place modification. If the key has since been removed, the
-// function is not called.
+// allowing in-place modification.
 //
 // Example:
 //
 //	m.Entry("count").AndModify(func(v *int) { *v++ }).OrInsert(1)
 func (e OccupiedOrdEntry[K, V]) AndModify(fn func(*V)) OrdEntry[K, V] {
-	if i := e.mo.index(e.key); i != -1 {
-		fn(&(*e.mo)[i].Value)
-	}
-
+	fn(&(*e.mo)[e.idx].Value)
 	return e
 }
 

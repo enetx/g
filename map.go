@@ -22,7 +22,7 @@ func NewMap[K comparable, V any](size ...Int) Map[K, V] {
 }
 
 // Transform applies a transformation function to the Map and returns the result.
-func (m Map[K, V]) Transform(fn func(Map[K, V]) Map[K, V]) Map[K, V] { return fn(m) }
+func (m Map[K, V]) Transform[U any](fn func(Map[K, V]) U) U { return fn(m) }
 
 // Entry returns an Entry for the given key.
 func (m Map[K, V]) Entry(key K) Entry[K, V] {
@@ -225,3 +225,17 @@ func (m Map[K, V]) Print() Map[K, V] { fmt.Print(m); return m }
 // Println writes the key-value pairs of the Map to the standard output (console) with a newline
 // and returns the Map unchanged.
 func (m Map[K, V]) Println() Map[K, V] { fmt.Println(m); return m }
+
+// MapOf creates a Map from the provided key-value pairs.
+//
+// Example:
+//
+//	m := g.MapOf(g.PairOf("a", 1), g.PairOf("b", 2))
+func MapOf[K comparable, V any](pairs ...Pair[K, V]) Map[K, V] {
+	m := NewMap[K, V](Int(len(pairs)))
+	for _, p := range pairs {
+		m[p.Key] = p.Value
+	}
+
+	return m
+}

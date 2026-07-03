@@ -13,6 +13,10 @@ import (
 	"github.com/enetx/g/internal/filelock"
 )
 
+// errChunkSize is the shared error yielded by File.Chunks and File.ChunksRaw
+// when the requested chunk size is not positive.
+var errChunkSize = errors.New("chunk size must be > 0")
+
 // File is a struct that represents a file along with an iterator for reading lines.
 type File struct {
 	file  *os.File // Underlying os.File.
@@ -152,7 +156,7 @@ func (f *File) LinesRaw() SeqResult[Bytes] {
 func (f *File) Chunks(size Int) SeqResult[String] {
 	return func(yield func(Result[String]) bool) {
 		if size.Lte(0) {
-			yield(Err[String](errors.New("chunk size must be > 0")))
+			yield(Err[String](errChunkSize))
 			return
 		}
 
@@ -216,7 +220,7 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
 	return func(yield func(Result[Bytes]) bool) {
 		if size.Lte(0) {
-			yield(Err[Bytes](errors.New("chunk size must be > 0")))
+			yield(Err[Bytes](errChunkSize))
 			return
 		}
 
@@ -403,8 +407,8 @@ func (f *File) Dir() Result[*Dir] {
 	return Ok(NewDir(dirPath.v))
 }
 
-// Exist checks if the file exists.
-func (f *File) Exist() bool {
+// Exists checks if the file exists.
+func (f *File) Exists() bool {
 	if f.dirPath().IsOk() {
 		filePath := f.filePath()
 		if filePath.IsOk() {
@@ -569,7 +573,7 @@ func (f *File) Remove() Result[*File] {
 
 // Rename renames the file to the specified new path.
 func (f *File) Rename(newpath String) Result[*File] {
-	if !f.Exist() {
+	if !f.Exists() {
 		return Err[*File](&ErrFileNotExist{f.name.Std()})
 	}
 
@@ -773,7 +777,7 @@ func (f *File) createAll() Result[*File] {
 		return Err[*File](dirPath.err)
 	}
 
-	if !f.Exist() {
+	if !f.Exists() {
 		if err := os.MkdirAll(dirPath.v.Std(), DirDefault); err != nil {
 			return Err[*File](err)
 		}

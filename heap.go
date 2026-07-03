@@ -2,8 +2,10 @@ package g
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/f"
 )
 
 // Heap is a generic binary heap data structure that maintains elements in heap order.
@@ -23,7 +25,7 @@ type Heap[T any] struct {
 // comparison function would otherwise nil-deref on the first Push.
 func NewHeap[T any](compareFn func(T, T) cmp.Ordering) *Heap[T] {
 	if compareFn == nil {
-		panic("compareFn cannot be nil")
+		panic("g.NewHeap: compareFn cannot be nil")
 	}
 
 	return &Heap[T]{
@@ -33,7 +35,7 @@ func NewHeap[T any](compareFn func(T, T) cmp.Ordering) *Heap[T] {
 }
 
 // Transform applies a transformation function to the Heap and returns the result.
-func (h *Heap[T]) Transform(fn func(*Heap[T]) *Heap[T]) *Heap[T] { return fn(h) }
+func (h *Heap[T]) Transform[U any](fn func(*Heap[T]) U) U { return fn(h) }
 
 // Iter returns a non-consuming iterator that yields elements in sorted order.
 //
@@ -62,10 +64,11 @@ func (h *Heap[T]) Transform(fn func(*Heap[T]) *Heap[T]) *Heap[T] { return fn(h) 
 //	fmt.Printf("Heap still has %d elements\n", heap.Len()) // Output: 5
 //
 //	// Can be used with other iterator methods
-//	firstThree := heap.Iter().Take(3).Collect() // [1, 5, 8]
+//	// (Collect requires a comparison function to build the new heap)
+//	firstThree := heap.Iter().Take(3).Collect(cmp.Cmp[int]) // [1, 5, 8]
 //	evenNumbers := heap.Iter().Filter(func(x int) bool {
 //		return x%2 == 0
-//	}).Collect() // [8, 10]
+//	}).Collect(cmp.Cmp[int]) // [8, 10]
 func (h *Heap[T]) Iter() SeqHeap[T] {
 	return func(yield func(T) bool) {
 		clone := h.Clone()
@@ -100,7 +103,8 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //	heap.Push(10, 5, 15, 1, 8)
 //
 //	// Consume the heap while iterating
-//	result := heap.IntoIter().Collect() // [1, 5, 8, 10, 15]
+//	// (Collect requires a comparison function to build the new heap)
+//	result := heap.IntoIter().Collect(cmp.Cmp[int]) // [1, 5, 8, 10, 15]
 //
 //	fmt.Printf("Heap now has %d elements\n", heap.Len()) // Output: 0
 //
@@ -250,6 +254,47 @@ func (h *Heap[T]) Clone() *Heap[T] {
 	}
 }
 
+// Eq checks if two Heaps are equal.
+//
+// Heaps are considered equal if they yield the same elements in the same
+// iteration order (the sorted order produced by Iter), regardless of the
+// internal layout of their backing storage. The comparison functions
+// themselves are not compared; each heap is drained using its own ordering.
+func (h *Heap[T]) Eq(other *Heap[T]) bool {
+	if h == other {
+		return true
+	}
+
+	if h == nil || other == nil {
+		return false
+	}
+
+	if h.Len() != other.Len() {
+		return false
+	}
+
+	a, b := h.Clone(), other.Clone()
+
+	if f.IsComparable[T]() && reflect.TypeFor[T]().Kind() != reflect.Interface {
+		for !a.IsEmpty() {
+			if any(a.Pop().Some()) != any(b.Pop().Some()) {
+				return false
+			}
+		}
+	} else {
+		for !a.IsEmpty() {
+			if !reflect.DeepEqual(a.Pop().Some(), b.Pop().Some()) {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+// Ne checks if two Heaps are not equal.
+func (h *Heap[T]) Ne(other *Heap[T]) bool { return !h.Eq(other) }
+
 // heapify transforms the entire data slice into a valid heap.
 func (h *Heap[T]) heapify() {
 	for i := len(h.data)/2 - 1; i >= 0; i-- {
@@ -325,3 +370,11 @@ func (h *Heap[T]) Print() *Heap[T] { fmt.Print(h); return h }
 // Println writes the elements of the Heap to the standard output (console) with a newline
 // and returns the Heap unchanged.
 func (h *Heap[T]) Println() *Heap[T] { fmt.Println(h); return h }
+
+// HeapOf creates a new Heap with the given comparison function containing the provided elements.
+func HeapOf[T any](compareFn func(T, T) cmp.Ordering, values ...T) *Heap[T] {
+	h := NewHeap(compareFn)
+	h.Push(values...)
+
+	return h
+}

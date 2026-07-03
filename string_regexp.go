@@ -59,7 +59,7 @@ func (r regexps) MatchAll(patterns ...*regexp.Regexp) bool {
 // Split splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
 // The regular expression pattern is provided as a regexp.Regexp parameter.
 func (r regexps) Split(pattern *regexp.Regexp) Slice[String] {
-	return TransformSlice(pattern.Split(r.str.Std(), -1), NewString)
+	return transformSlice(pattern.Split(r.str.Std(), -1), NewString)
 }
 
 // SplitN splits the String into substrings using the provided regular expression pattern and returns an Slice[String] of the results.
@@ -69,7 +69,7 @@ func (r regexps) Split(pattern *regexp.Regexp) Slice[String] {
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (r regexps) SplitN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
-	result := TransformSlice(pattern.Split(r.str.Std(), n.Std()), NewString)
+	result := transformSlice(pattern.Split(r.str.Std(), n.Std()), NewString)
 	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
@@ -77,11 +77,11 @@ func (r regexps) SplitN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 	return Some(result)
 }
 
-// RxIndex searches for the first occurrence of the regular expression pattern in the String.
+// Index searches for the first occurrence of the regular expression pattern in the String.
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (r regexps) Index(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := TransformSlice(pattern.FindStringIndex(r.str.Std()), NewInt)
+	result := transformSlice(pattern.FindStringIndex(r.str.Std()), NewInt)
 	if result.IsEmpty() {
 		return None[Slice[Int]]()
 	}
@@ -101,7 +101,7 @@ func (r regexps) FindAll(pattern *regexp.Regexp) Option[Slice[String]] {
 // If no matches are found, the Option[Slice[String]] will be None.
 // If n is negative, all occurrences will be returned.
 func (r regexps) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
-	result := TransformSlice(pattern.FindAllString(r.str.Std(), n.Std()), NewString)
+	result := transformSlice(pattern.FindAllString(r.str.Std(), n.Std()), NewString)
 	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
@@ -114,7 +114,7 @@ func (r regexps) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[String]] {
 // The Option will contain an Slice[String] with the full match at index 0, followed by any captured submatches.
 // If no match is found, it returns None.
 func (r regexps) FindSubmatch(pattern *regexp.Regexp) Option[Slice[String]] {
-	result := TransformSlice(pattern.FindStringSubmatch(r.str.Std()), NewString)
+	result := transformSlice(pattern.FindStringSubmatch(r.str.Std()), NewString)
 	if result.IsEmpty() {
 		return None[Slice[String]]()
 	}
@@ -142,7 +142,7 @@ func (r regexps) FindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Sl
 	var result Slice[Slice[String]]
 
 	for _, v := range pattern.FindAllStringSubmatch(r.str.Std(), n.Std()) {
-		result = append(result, TransformSlice(v, NewString))
+		result = append(result, transformSlice(v, NewString))
 	}
 
 	if result.IsEmpty() {

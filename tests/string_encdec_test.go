@@ -41,6 +41,15 @@ func TestDecodeJSONError(t *testing.T) {
 	}
 }
 
+func TestEncodeJSONInvalidUTF8(t *testing.T) {
+	// encoding/json/v2 rejects invalid UTF-8 instead of replacing it with U+FFFD.
+	input := String([]byte{0x66, 0x6f, 0x6f, 0xff, 0xfe})
+	result := input.Encode().JSON()
+	if !result.IsErr() {
+		t.Fatalf("Expected Err for invalid UTF-8 input, got %q", result.Ok())
+	}
+}
+
 func TestStringBase64Encode(t *testing.T) {
 	tests := []struct {
 		name string
@@ -200,8 +209,10 @@ func TestGzFlateEncode(t *testing.T) {
 		input    String
 		expected String
 	}{
-		{"Empty input", "", "AAAA//8BAAD//w=="},
-		{"Valid input", "Hello, GzFlate!", "8kjNycnXUXCvcstJLElVBAAAAP//AQAA//8="},
+		// Go 1.27 compress/flate: Close() emits the compact final block (03 00)
+		// instead of an empty stored block (01 00 00 ff ff).
+		{"Empty input", "", "AAAA//8DAA=="},
+		{"Valid input", "Hello, GzFlate!", "8kjNycnXUXCvcstJLElVBAAAAP//AwA="},
 	}
 
 	for _, tc := range testCases {
@@ -420,9 +431,9 @@ func TestStringOctalDecOutOfRange(t *testing.T) {
 		name  string
 		input String
 	}{
-		{"above MaxRune", "77777777777"},   // > 0x10FFFF
-		{"surrogate", "154000"},            // 0xD800 in octal == 154000
-		{"invalid token", "999"},           // 9 is not an octal digit
+		{"above MaxRune", "77777777777"}, // > 0x10FFFF
+		{"surrogate", "154000"},          // 0xD800 in octal == 154000
+		{"invalid token", "999"},         // 9 is not an octal digit
 	}
 
 	for _, tt := range tests {

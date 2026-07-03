@@ -19,7 +19,7 @@ type Float float64
 func NewFloat[T constraints.Float | constraints.Integer](float T) Float { return Float(float) }
 
 // Transform applies a transformation function to the Float and returns the result.
-func (f Float) Transform(fn func(Float) Float) Float { return fn(f) }
+func (f Float) Transform[U any](fn func(Float) U) U { return fn(f) }
 
 // BytesBE returns the IEEE-754 representation of the Float as Bytes in BigEndian order.
 // The Float is converted to its 64-bit IEEE-754 binary representation.
@@ -88,6 +88,9 @@ func (f Float) Mod(b Float) Float { return Float(math.Mod(f.Std(), b.Std())) }
 
 // Abs returns the absolute value of the Float.
 func (f Float) Abs() Float { return Float(math.Abs(f.Std())) }
+
+// Neg returns the Float with its sign inverted.
+func (f Float) Neg() Float { return -f }
 
 // Add adds two Floats and returns the result.
 func (f Float) Add(b Float) Float { return f + b }

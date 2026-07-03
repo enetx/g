@@ -48,12 +48,12 @@ func NewMapOrd[K comparable, V any](size ...Int) MapOrd[K, V] {
 }
 
 // Transform applies a transformation function to the MapOrd and returns the result.
-func (mo MapOrd[K, V]) Transform(fn func(MapOrd[K, V]) MapOrd[K, V]) MapOrd[K, V] { return fn(mo) }
+func (mo MapOrd[K, V]) Transform[U any](fn func(MapOrd[K, V]) U) U { return fn(mo) }
 
 // Entry returns an OrdEntry for the given key.
 func (mo *MapOrd[K, V]) Entry(key K) OrdEntry[K, V] {
-	if mo.index(key) != -1 {
-		return OccupiedOrdEntry[K, V]{mo: mo, key: key}
+	if i := mo.index(key); i != -1 {
+		return OccupiedOrdEntry[K, V]{mo: mo, key: key, idx: i}
 	}
 
 	return VacantOrdEntry[K, V]{mo: mo, key: key}
@@ -498,4 +498,36 @@ func (mo MapOrd[K, V]) indexMap() map[K]int {
 	}
 
 	return idx
+}
+
+// PairOf creates a Pair from the provided key and value.
+//
+// Example:
+//
+//	p := g.PairOf("answer", 42) // Pair[string, int]
+func PairOf[K, V any](key K, value V) Pair[K, V] { return Pair[K, V]{Key: key, Value: value} }
+
+// MapOrdOf creates a MapOrd from the provided key-value pairs, preserving their order.
+//
+// Duplicate keys keep their first-seen position, while the value is updated
+// to the most recent one (last-write-wins).
+//
+// Example:
+//
+//	mo := g.MapOrdOf(g.PairOf("a", 1), g.PairOf("b", 2))
+func MapOrdOf[K comparable, V any](pairs ...Pair[K, V]) MapOrd[K, V] {
+	mo := NewMapOrd[K, V](Int(len(pairs)))
+	idx := make(map[K]int, len(pairs))
+
+	for _, p := range pairs {
+		if i, ok := idx[p.Key]; ok {
+			mo[i].Value = p.Value
+			continue
+		}
+
+		idx[p.Key] = len(mo)
+		mo = append(mo, p)
+	}
+
+	return mo
 }

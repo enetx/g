@@ -435,11 +435,11 @@ func TestSetUnion(t *testing.T) {
 	}
 }
 
-func TestTransformSet(t *testing.T) {
+func TestSetMap(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := SetOf(1, 2, 3)
 	expected := SetOf("1", "2", "3")
-	setMap := TransformSet(set1, func(val int) string { return fmt.Sprintf("%d", val) })
+	setMap := set1.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect()
 	if len(setMap) != len(expected) {
 		t.Errorf("Expected SetMap to have length %d, got %d", len(expected), len(setMap))
 	}
@@ -451,7 +451,7 @@ func TestTransformSet(t *testing.T) {
 
 	// Test case 2: Empty Set
 	set2 := NewSet[int]()
-	setMap = TransformSet(set2, func(val int) string { return fmt.Sprintf("%d", val) })
+	setMap = set2.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect()
 	if len(setMap) != 0 {
 		t.Errorf("Expected SetMap of an empty set to be empty")
 	}
@@ -772,5 +772,14 @@ func TestSetClone(t *testing.T) {
 	set.Insert(5)
 	if clone.Contains(5) {
 		t.Errorf("Modifying original should not affect clone")
+	}
+}
+
+func TestSetDisjoint(t *testing.T) {
+	if !SetOf(1, 2).Disjoint(SetOf(3, 4)) {
+		t.Error("Disjoint sets reported as overlapping")
+	}
+	if SetOf(1, 2).Disjoint(SetOf(2, 3)) {
+		t.Error("Overlapping sets reported as disjoint")
 	}
 }

@@ -190,8 +190,8 @@ func convertToT[T any](src any) (T, bool) {
 //
 // Supported conversions:
 //   - int, int8, int16, int32 → int64
-//   - uint, uint8, uint16, uint32 → int64
-//   - uint64 → int64 (only if <= math.MaxInt64)
+//   - uint8, uint16, uint32 → int64
+//   - uint, uint64 → int64 (only if <= math.MaxInt64)
 //   - float32 → float64
 //
 // Returns the converted value and true on success, otherwise nil and false.
@@ -206,7 +206,9 @@ func convertToDriverValue(val any) (driver.Value, bool) {
 	case int32:
 		return int64(v), true
 	case uint:
-		return int64(v), true
+		if uint64(v) <= math.MaxInt64 {
+			return int64(v), true
+		}
 	case uint8:
 		return int64(v), true
 	case uint16:

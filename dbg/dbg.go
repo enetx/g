@@ -1,3 +1,5 @@
+// Package dbg provides debugging helpers that print an expression together with
+// its source file, line and enclosing function (dbg.Dbg, dbg.CallerInfo).
 package dbg
 
 import (

@@ -45,42 +45,6 @@ func OptionFromPtr[T any](ptr *T) Option[T] {
 	return Some(*ptr)
 }
 
-// TransformOption applies the given function to the value inside the Option, producing a new Option with the transformed value.
-// If the input Option is None, the output Option will also be None.
-// Parameters:
-//   - o: The input Option to map over.
-//   - fn: The function that returns an Option to apply to the value inside the Option.
-//
-// Returns:
-//
-//	A new Option with the transformed value, or None if the input was None.
-func TransformOption[T, U any](o Option[T], fn func(T) Option[U]) Option[U] {
-	if o.isSome {
-		return fn(o.v)
-	}
-
-	return None[U]()
-}
-
-// MapOption applies the given function to the value inside the Option, producing a new Option
-// holding the transformed value.
-// If the input Option is None, the output Option is also None.
-// Unlike TransformOption, fn returns a plain U (always Some on a Some input) rather than an Option[U].
-// Parameters:
-//   - o: The input Option to map over.
-//   - fn: The function applied to the value inside the Option.
-//
-// Returns:
-//
-//	A new Option holding the transformed value, or None if the input was None.
-func MapOption[T, U any](o Option[T], fn func(T) U) Option[U] {
-	if o.isSome {
-		return Some(fn(o.v))
-	}
-
-	return None[U]()
-}
-
 // Some returns the contained value of the Option.
 //
 // WARNING: If the Option is None, this method will return the zero value
@@ -146,14 +110,58 @@ func (o Option[T]) Expect(msg string) T {
 	panic("unreachable")
 }
 
-// Then applies the function fn to the value inside the Option and returns a new Option.
-// If the Option is None, it returns the same Option without applying fn.
-func (o Option[T]) Then(fn func(T) Option[T]) Option[T] {
+// Then applies the function fn to the value inside the Option and returns the resulting Option.
+// If the Option is None, fn is not called and None is returned.
+// The result type may differ from the input type.
+func (o Option[T]) Then[U any](fn func(T) Option[U]) Option[U] {
 	if o.isSome {
 		return fn(o.v)
 	}
 
-	return o
+	return None[U]()
+}
+
+// ThenOf applies fn to the value inside the Option and returns a new Option based
+// on the returned (U, bool) comma-ok tuple: ok=true yields Some(value), ok=false
+// yields None. If the Option is None, fn is not called and None is returned.
+// It mirrors Result.ThenOf for the comma-ok idiom.
+func (o Option[T]) ThenOf[U any](fn func(T) (U, bool)) Option[U] {
+	if o.isSome {
+		return OptionOf(fn(o.v))
+	}
+
+	return None[U]()
+}
+
+// Map applies the function fn to the value inside the Option and returns a new Option
+// holding the transformed value. If the Option is None, fn is not called and None is returned.
+// Unlike Then, fn returns a plain U (always Some on a Some input) rather than an Option[U].
+func (o Option[T]) Map[U any](fn func(T) U) Option[U] {
+	if o.isSome {
+		return Some(fn(o.v))
+	}
+
+	return None[U]()
+}
+
+// MapOr applies fn to the contained value if Some and returns the result;
+// otherwise returns the provided default value.
+func (o Option[T]) MapOr[U any](def U, fn func(T) U) U {
+	if o.isSome {
+		return fn(o.v)
+	}
+
+	return def
+}
+
+// MapOrElse applies fn to the contained value if Some and returns the result;
+// otherwise computes and returns the default lazily via defFn.
+func (o Option[T]) MapOrElse[U any](defFn func() U, fn func(T) U) U {
+	if o.isSome {
+		return fn(o.v)
+	}
+
+	return defFn()
 }
 
 // Inspect calls fn with the contained value if the Option is Some, then returns
@@ -295,13 +303,9 @@ func (o Option[T]) Ptr() *T {
 	return nil
 }
 
-// Result converts an Option into a Result.
-// If the Option is Some, it returns an Ok Result with the value.
-// If the Option is None, it returns an Err Result with the provided error.
-//
-// Result is an alias for OkOr; both are kept for naming convenience.
-func (o Option[T]) Result(err error) Result[T] { return o.OkOr(err) }
-
+// Option returns the contained value and a boolean reporting whether the Option is Some,
+// conforming to the standard Go comma-ok pattern.
+// If the Option is None, it returns the zero value for T and false.
 func (o Option[T]) Option() (T, bool) {
 	if o.IsSome() {
 		return o.Some(), true
@@ -309,6 +313,12 @@ func (o Option[T]) Option() (T, bool) {
 
 	var zero T
 	return zero, false
+}
+
+// IsNoneOr returns true if the Option is None or the predicate returns true
+// for the contained value. It is the complement of IsSomeAnd.
+func (o Option[T]) IsNoneOr(pred func(T) bool) bool {
+	return !o.isSome || pred(o.v)
 }
 
 // String returns a string representation of the Option.

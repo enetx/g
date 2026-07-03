@@ -141,32 +141,72 @@ func TestOptionThen(t *testing.T) {
 // 	option2.Unwrap()
 // }
 
-func TestTransformOption(t *testing.T) {
-	// Test 1: Mapping over Some value
+func TestOptionThenCrossType(t *testing.T) {
+	// Test 1: Then to a different type over Some value
 	option1 := Some(5)
 
-	fn1 := func(x int) Option[int] {
-		return Some(x * 2)
+	fn1 := func(x int) Option[string] {
+		return Some(fmt.Sprintf("v=%d", x*2))
 	}
 
-	result1 := TransformOption(option1, fn1)
-	expected1 := Some(10)
+	result1 := option1.Then(fn1)
+	expected1 := Some("v=10")
 
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test 1: Expected %v, got %v", expected1, result1)
 	}
 
-	// Test 2: Mapping over None value
+	// Test 2: Then to a different type over None value
 	option2 := None[int]()
 
-	fn2 := func(x int) Option[int] {
-		return Some(x * 2)
+	fn2 := func(x int) Option[string] {
+		return Some(fmt.Sprintf("v=%d", x*2))
 	}
 
-	result2 := TransformOption(option2, fn2)
+	result2 := option2.Then(fn2)
 
 	if result2.IsSome() {
 		t.Errorf("Test 2: Expected None, got Some")
+	}
+}
+
+func TestOptionThenOf(t *testing.T) {
+	parse := func(s string) (int, bool) {
+		switch s {
+		case "5":
+			return 5, true
+		default:
+			return 0, false
+		}
+	}
+
+	// Test 1: Some + ok=true yields Some of the new type
+	result1 := Some("5").ThenOf(parse)
+	expected1 := Some(5)
+
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test 1: Expected %v, got %v", expected1, result1)
+	}
+
+	// Test 2: Some + ok=false yields None
+	result2 := Some("nope").ThenOf(parse)
+
+	if result2.IsSome() {
+		t.Errorf("Test 2: Expected None, got Some")
+	}
+
+	// Test 3: None short-circuits, fn is not called
+	called := false
+	result3 := None[string]().ThenOf(func(s string) (int, bool) {
+		called = true
+		return len(s), true
+	})
+
+	if result3.IsSome() {
+		t.Errorf("Test 3: Expected None, got Some")
+	}
+	if called {
+		t.Errorf("Test 3: fn must not be called on None")
 	}
 }
 
@@ -213,7 +253,7 @@ func TestOptionExpect(t *testing.T) {
 func TestOptionResult(t *testing.T) {
 	// Test Some to Result
 	some := Some(42)
-	result := some.Result(errors.New("error message"))
+	result := some.OkOr(errors.New("error message"))
 	if result.IsErr() {
 		t.Error("Some should convert to Ok Result")
 	}
@@ -223,7 +263,7 @@ func TestOptionResult(t *testing.T) {
 
 	// Test None to Result
 	none := None[int]()
-	result2 := none.Result(errors.New("test error"))
+	result2 := none.OkOr(errors.New("test error"))
 	if result2.IsOk() {
 		t.Error("None should convert to Err Result")
 	}
@@ -503,43 +543,45 @@ func TestOptionInspect(t *testing.T) {
 	})
 }
 
-func TestMapOption(t *testing.T) {
+func TestOptionMap(t *testing.T) {
 	t.Run("Some maps the value", func(t *testing.T) {
-		out := MapOption(Some(21), func(v int) string {
+		out := Some(21).Map(func(v int) string {
 			return fmt.Sprintf("v=%d", v*2)
 		})
 
 		if out.IsNone() {
-			t.Fatal("MapOption(Some) should be Some")
+			t.Fatal("Map(Some) should be Some")
 		}
 		if out.Some() != "v=42" {
-			t.Errorf("MapOption got %q, want %q", out.Some(), "v=42")
+			t.Errorf("Map got %q, want %q", out.Some(), "v=42")
 		}
 	})
 
 	t.Run("None stays None", func(t *testing.T) {
-		out := MapOption(None[int](), func(v int) string { return fmt.Sprintf("%d", v) })
+		out := None[int]().Map(func(v int) string { return fmt.Sprintf("%d", v) })
 		if out.IsSome() {
-			t.Errorf("MapOption(None) should be None, got %v", out)
+			t.Errorf("Map(None) should be None, got %v", out)
 		}
 	})
 }
 
-func TestOptionResultEqualsOkOr(t *testing.T) {
-	err := errors.New("boom")
-
-	some := Some(7)
-	if !reflect.DeepEqual(some.Result(err), some.OkOr(err)) {
-		t.Error("Some.Result(err) should equal Some.OkOr(err)")
+func TestOptionMapOrIsNoneOr(t *testing.T) {
+	if got := Some(2).MapOr("def", func(v int) string { return fmt.Sprintf("v%d", v) }); got != "v2" {
+		t.Errorf("MapOr(Some) = %q", got)
 	}
-
-	none := None[int]()
-	r1 := none.Result(err)
-	r2 := none.OkOr(err)
-	if r1.IsOk() || r2.IsOk() {
-		t.Error("None.Result/OkOr should both be Err")
+	if got := None[int]().MapOr("def", func(v int) string { return "x" }); got != "def" {
+		t.Errorf("MapOr(None) = %q", got)
 	}
-	if r1.Err() != r2.Err() {
-		t.Error("None.Result(err) and None.OkOr(err) should carry the same error")
+	if got := None[int]().MapOrElse(func() string { return "lazy" }, func(int) string { return "x" }); got != "lazy" {
+		t.Errorf("MapOrElse(None) = %q", got)
+	}
+	if !None[int]().IsNoneOr(func(int) bool { return false }) {
+		t.Error("IsNoneOr(None) should be true")
+	}
+	if !Some(4).IsNoneOr(func(v int) bool { return v%2 == 0 }) {
+		t.Error("IsNoneOr(Some even) should be true")
+	}
+	if Some(3).IsNoneOr(func(v int) bool { return v%2 == 0 }) {
+		t.Error("IsNoneOr(Some odd) should be false")
 	}
 }

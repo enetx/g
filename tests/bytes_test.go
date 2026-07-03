@@ -273,6 +273,27 @@ func TestBytesSplit(t *testing.T) {
 	}
 }
 
+func TestBytesChars(t *testing.T) {
+	// ASCII characters
+	ascii := Bytes("abc").Chars().Collect()
+	expectedASCII := SliceOf(Bytes("a"), Bytes("b"), Bytes("c"))
+	if !reflect.DeepEqual(ascii, expectedASCII) {
+		t.Errorf("Chars failed. Expected: %v, Got: %v", expectedASCII, ascii)
+	}
+
+	// Multibyte UTF-8 characters are yielded rune-wise, mirroring String.Chars
+	unicode := Bytes("héй世").Chars().Collect()
+	expectedUnicode := SliceOf(Bytes("h"), Bytes("é"), Bytes("й"), Bytes("世"))
+	if !reflect.DeepEqual(unicode, expectedUnicode) {
+		t.Errorf("Chars failed. Expected: %v, Got: %v", expectedUnicode, unicode)
+	}
+
+	// Empty Bytes yields nothing
+	if got := Bytes("").Chars().Collect(); got.Len() != 0 {
+		t.Errorf("Chars on empty Bytes: expected empty, got %v", got)
+	}
+}
+
 func TestBytesAppend(t *testing.T) {
 	// Test case where bytes are added
 	bs1 := Bytes("hello")
@@ -795,7 +816,7 @@ func TestToRunes(t *testing.T) {
 	// Test case where the Bytes are converted to runes
 	bs := Bytes("hello")
 	runes := bs.Runes()
-	expected := []rune{'h', 'e', 'l', 'l', 'o'}
+	expected := Slice[rune]{'h', 'e', 'l', 'l', 'o'}
 	if !reflect.DeepEqual(runes, expected) {
 		t.Errorf("ToRunes failed. Expected: %v, Got: %v", expected, runes)
 	}

@@ -36,34 +36,30 @@ func TestResultOf(t *testing.T) {
 	}
 }
 
-func TestTransformResult(t *testing.T) {
-	// Test 1: Mapping over a Result with a value
+func TestResultMap(t *testing.T) {
+	// Test 1: Mapping over a Result with a value, changing the type
 	result1 := Ok(5)
 
-	fn1 := func(x int) int {
-		return x * 2
+	fn1 := func(x int) string {
+		return fmt.Sprintf("v=%d", x*2)
 	}
 
-	mappedResult1 := TransformResult(result1, fn1)
+	mappedResult1 := result1.Map(fn1)
 
 	if mappedResult1.IsErr() {
 		t.Errorf("Test 1: Expected Ok, got error")
 	}
 
-	expectedValue1 := 10
+	expectedValue1 := "v=10"
 	if mappedResult1.Unwrap() != expectedValue1 {
-		t.Errorf("Test 1: Expected %d, got %d", expectedValue1, mappedResult1.Unwrap())
+		t.Errorf("Test 1: Expected %q, got %q", expectedValue1, mappedResult1.Unwrap())
 	}
 
 	// Test 2: Mapping over a Result with an error
 	err2 := errors.New("some error")
 	result2 := Err[int](err2)
 
-	fn2 := func(x int) Result[int] {
-		return Ok(x * 2)
-	}
-
-	mappedResult2 := TransformResult(result2, fn2)
+	mappedResult2 := result2.Map(func(x int) string { return fmt.Sprintf("%d", x*2) })
 
 	if mappedResult2.IsOk() {
 		t.Errorf("Test 2: Expected error, got Ok")
@@ -78,19 +74,19 @@ func TestResultOfMap(t *testing.T) {
 	// Test 1: Mapping over a Result with a value
 	result1 := Ok(5)
 
-	fn1 := func(x int) (int, error) {
-		return x * 2, nil
+	fn1 := func(x int) (string, error) {
+		return fmt.Sprintf("v=%d", x*2), nil
 	}
 
-	mappedResult1 := TransformResultOf(result1, fn1)
+	mappedResult1 := result1.ThenOf(fn1)
 
 	if mappedResult1.IsErr() {
 		t.Errorf("Test 1: Expected Ok, got error")
 	}
 
-	expectedValue1 := 10
+	expectedValue1 := "v=10"
 	if mappedResult1.Unwrap() != expectedValue1 {
-		t.Errorf("Test 1: Expected %d, got %d", expectedValue1, mappedResult1.Unwrap())
+		t.Errorf("Test 1: Expected %q, got %q", expectedValue1, mappedResult1.Unwrap())
 	}
 
 	// Test 2: Mapping over a Result with an error
@@ -101,7 +97,7 @@ func TestResultOfMap(t *testing.T) {
 		return x * 2, nil
 	}
 
-	mappedResult2 := TransformResultOf(result2, fn2)
+	mappedResult2 := result2.ThenOf(fn2)
 
 	if mappedResult2.IsOk() {
 		t.Errorf("Test 2: Expected error, got Ok")
@@ -550,4 +546,43 @@ func TestResultInspect(t *testing.T) {
 			t.Errorf("Inspect on Err should remain Err, got %v", out)
 		}
 	})
+}
+
+func TestResultCombinators127(t *testing.T) {
+	boom := errors.New("boom")
+	ok := Ok(1)
+	bad := Err[int](boom)
+
+	if got := bad.Or(ok); got.IsErr() || got.Ok() != 1 {
+		t.Errorf("Or = %v", got)
+	}
+	if got := ok.Or(Err[int](boom)); got.IsErr() {
+		t.Errorf("Or on Ok = %v", got)
+	}
+	if got := bad.OrElse(func(err error) Result[int] { return Ok(42) }); got.Ok() != 42 {
+		t.Errorf("OrElse = %v", got)
+	}
+	if !ok.IsOkAnd(func(v int) bool { return v == 1 }) || bad.IsOkAnd(func(int) bool { return true }) {
+		t.Error("IsOkAnd misbehaves")
+	}
+	if !bad.IsErrAnd(func(err error) bool { return errors.Is(err, boom) }) || ok.IsErrAnd(func(error) bool { return true }) {
+		t.Error("IsErrAnd misbehaves")
+	}
+
+	var seen error
+	bad.InspectErr(func(err error) { seen = err })
+	if !errors.Is(seen, boom) {
+		t.Errorf("InspectErr saw %v", seen)
+	}
+
+	if got := bad.UnwrapErr(); !errors.Is(got, boom) {
+		t.Errorf("UnwrapErr = %v", got)
+	}
+
+	if got := ok.MapOr("def", func(v int) string { return fmt.Sprintf("v%d", v) }); got != "v1" {
+		t.Errorf("MapOr = %q", got)
+	}
+	if got := bad.MapOrElse(func(err error) string { return err.Error() }, func(int) string { return "x" }); got != "boom" {
+		t.Errorf("MapOrElse = %q", got)
+	}
 }

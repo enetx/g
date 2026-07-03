@@ -3,6 +3,7 @@ package g_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -3178,7 +3179,7 @@ func TestFromResultChan(t *testing.T) {
 	})
 }
 
-func TestMapSeqResult(t *testing.T) {
+func TestSeqResultMapCrossType(t *testing.T) {
 	t.Run("all Ok, type changing", func(t *testing.T) {
 		seq := SeqResult[int](func(yield func(Result[int]) bool) {
 			yield(Ok(1))
@@ -3187,7 +3188,7 @@ func TestMapSeqResult(t *testing.T) {
 		})
 
 		// int -> string, demonstrating the cross-type map
-		mapped := MapSeqResult(seq, func(v int) String { return Int(v).String() })
+		mapped := seq.Map(func(v int) String { return Int(v).String() })
 
 		firstErr := mapped.FirstErr()
 		if firstErr.IsSome() {
@@ -3211,7 +3212,7 @@ func TestMapSeqResult(t *testing.T) {
 			// no items
 		})
 
-		mapped := MapSeqResult(seq, func(v int) int { return v * 2 })
+		mapped := seq.Map(func(v int) int { return v * 2 })
 
 		firstErr := mapped.FirstErr()
 		if firstErr.IsSome() {
@@ -3232,7 +3233,7 @@ func TestMapSeqResult(t *testing.T) {
 			yield(Ok(30)) // never reached, iteration stops on Err
 		})
 
-		mapped := MapSeqResult(seq, func(v int) int { return v + 1 })
+		mapped := seq.Map(func(v int) int { return v + 1 })
 
 		firstErr := mapped.FirstErr()
 		if firstErr.IsNone() {
@@ -3252,7 +3253,7 @@ func TestMapSeqResult(t *testing.T) {
 			yield(Ok(99)) // never reached
 		})
 
-		mapped := MapSeqResult(seq, func(v int) int { return v + 1 })
+		mapped := seq.Map(func(v int) int { return v + 1 })
 
 		firstErr := mapped.FirstErr()
 		if firstErr.IsNone() {
@@ -3276,7 +3277,7 @@ func TestMapSeqResult(t *testing.T) {
 		})
 
 		// Take(1) downstream of the map must stop the source after the first Ok.
-		collected := MapSeqResult(seq, func(v int) int { return v * 10 }).Take(1).Ok().Collect()
+		collected := seq.Map(func(v int) int { return v * 10 }).Take(1).Ok().Collect()
 
 		if len(collected) != 1 || collected[0] != 10 {
 			t.Errorf("expected [10], got %v", collected)
@@ -3371,6 +3372,136 @@ func TestSeqResultStepByZero(t *testing.T) {
 		// The guard returns before touching the source, so nothing is produced.
 		if produced != 0 {
 			t.Errorf("expected source untouched by StepBy(0), but produced %d items", produced)
+		}
+	})
+}
+
+func TestSeqResultFlatMap(t *testing.T) {
+	t.Run("flattens ok slices", func(t *testing.T) {
+		seq := SeqResult[Slice[int]](SliceOf(SliceOf(1, 2), SliceOf(3)).Iter().Map(Ok))
+		got := seq.FlatMap(Slice[int].Iter).Ok().Collect()
+		if !reflect.DeepEqual(got, SliceOf(1, 2, 3)) {
+			t.Errorf("FlatMap = %v, want [1 2 3]", got)
+		}
+	})
+
+	t.Run("cross-type with err propagation", func(t *testing.T) {
+		boom := errors.New("boom")
+		seq := SeqResult[String](func(yield func(Result[String]) bool) {
+			if !yield(Ok[String]("ab")) {
+				return
+			}
+			if !yield(Err[String](boom)) {
+				return
+			}
+			yield(Ok[String]("never"))
+		})
+
+		var vals []String
+		var errs []error
+		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
+			if r.IsErr() {
+				errs = append(errs, r.Err())
+			} else {
+				vals = append(vals, r.Ok())
+			}
+			return true
+		})
+
+		if !reflect.DeepEqual(vals, []String{"a", "b"}) {
+			t.Errorf("values = %v, want [a b]", vals)
+		}
+		if len(errs) != 1 || !errors.Is(errs[0], boom) {
+			t.Errorf("errs = %v, want [boom]", errs)
+		}
+	})
+}
+
+func TestSeqResultFoldReduceScan(t *testing.T) {
+	boom := errors.New("boom")
+
+	okSeq := SeqResult[int](SliceOf(1, 2, 3).Iter().Map(Ok))
+
+	if got := okSeq.Fold(Int(0), func(acc Int, v int) Int { return acc + Int(v) }); got.IsErr() || got.Ok() != 6 {
+		t.Errorf("Fold = %v, want Ok(6)", got)
+	}
+
+	errSeq := SeqResult[int](func(yield func(Result[int]) bool) {
+		_ = yield(Ok(1)) && yield(Err[int](boom)) && yield(Ok(100))
+	})
+	if got := errSeq.Fold(0, func(acc, v int) int { return acc + v }); !got.ErrIs(boom) {
+		t.Errorf("Fold with err = %v, want Err(boom)", got)
+	}
+
+	if got := okSeq.Reduce(func(a, b int) int { return a * b }); got.Unwrap().Some() != 6 {
+		t.Errorf("Reduce = %v, want Ok(Some(6))", got)
+	}
+	if got := SeqResult[int](func(func(Result[int]) bool) {}).Reduce(func(a, b int) int { return a }); got.Unwrap().IsSome() {
+		t.Errorf("Reduce empty = %v, want Ok(None)", got)
+	}
+	if got := errSeq.Reduce(func(a, b int) int { return a + b }); !got.ErrIs(boom) {
+		t.Errorf("Reduce err = %v, want Err(boom)", got)
+	}
+
+	sums := okSeq.Scan(Int(0), func(acc Int, v int) Int { return acc + Int(v) }).Ok().Collect()
+	if !reflect.DeepEqual(sums, SliceOf[Int](0, 1, 3, 6)) {
+		t.Errorf("Scan = %v, want [0 1 3 6]", sums)
+	}
+}
+
+func TestSeqResultTryCollect(t *testing.T) {
+	t.Run("success collects all Ok values", func(t *testing.T) {
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			for i := 1; i <= 3; i++ {
+				if !yield(Ok(i)) {
+					return
+				}
+			}
+		})
+
+		result := seq.TryCollect()
+		if result.IsErr() {
+			t.Fatalf("TryCollect = Err(%v), want Ok", result.Err())
+		}
+		if got := result.Ok(); !reflect.DeepEqual(got, SliceOf(1, 2, 3)) {
+			t.Errorf("TryCollect = %v, want [1 2 3]", got)
+		}
+	})
+
+	t.Run("first Err short-circuits without consuming later elements", func(t *testing.T) {
+		boom := errors.New("boom")
+		consumed := 0
+
+		seq := SeqResult[int](func(yield func(Result[int]) bool) {
+			for _, r := range []Result[int]{Ok(1), Err[int](boom), Ok(2), Ok(3)} {
+				consumed++
+				if !yield(r) {
+					return
+				}
+			}
+		})
+
+		result := seq.TryCollect()
+		if result.IsOk() {
+			t.Fatalf("TryCollect = Ok(%v), want Err", result.Ok())
+		}
+		if !errors.Is(result.Err(), boom) {
+			t.Errorf("TryCollect error = %v, want %v", result.Err(), boom)
+		}
+		if consumed != 2 {
+			t.Errorf("consumed %d elements, want 2 (Ok(1) and the Err; elements after Err must not be consumed)", consumed)
+		}
+	})
+
+	t.Run("empty sequence yields Ok of empty Slice", func(t *testing.T) {
+		seq := SeqResult[int](func(func(Result[int]) bool) {})
+
+		result := seq.TryCollect()
+		if result.IsErr() {
+			t.Fatalf("TryCollect = Err(%v), want Ok", result.Err())
+		}
+		if got := result.Ok(); got.Len() != 0 {
+			t.Errorf("TryCollect = %v, want empty Slice", got)
 		}
 	})
 }

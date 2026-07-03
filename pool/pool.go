@@ -1,3 +1,5 @@
+// Package pool provides a generic goroutine pool with concurrency limits, rate limiting,
+// cancellation and Result-based error collection, in Wait and Stream modes.
 package pool
 
 import (
@@ -83,6 +85,7 @@ func New[T any]() *Pool[T] {
 //
 // Zero or negative n removes the rate limit.
 // Cannot be changed while tasks are running.
+// Panics if called after tasks have been submitted.
 //
 // The refill goroutine backing the limiter is started lazily on the first task
 // start, so configuring a rate on a pool that is never consumed leaks nothing.
@@ -98,7 +101,7 @@ func New[T any]() *Pool[T] {
 //	p.Limit(10).Rate(5, time.Second)  // max 10 concurrent, max 5 starts/sec
 func (p *Pool[T]) Rate(n int, d time.Duration, burst ...int) *Pool[T] {
 	if atomic.LoadInt32(&p.totalTasks) > 0 {
-		panic("cannot change rate limit while tasks are running")
+		panic("pool: cannot change rate limit while tasks are running")
 	}
 
 	if p.rl != nil {
@@ -331,6 +334,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 // subsequent results may be dropped after cancellation.
 //
 // Stream and Wait are mutually exclusive.
+// Panics if called after tasks have been submitted.
 //
 // Example:
 //
@@ -346,7 +350,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 //	}
 func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 	if atomic.LoadInt32(&p.totalTasks) > 0 {
-		panic("Stream must be called before submitting tasks with Go")
+		panic("pool: Stream must be called before submitting tasks with Go")
 	}
 
 	buf := 0
@@ -421,12 +425,13 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 // Zero or negative values remove the limit (unlimited in Wait mode,
 // GOMAXPROCS workers in Stream mode).
 // Cannot be changed while tasks are running.
+// Panics if called after tasks have been submitted.
 //
 // On non-Windows systems, the limit is capped by the process open-file-descriptor
 // limit (RLIMIT_NOFILE) when the requested worker count would exceed it.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
 	if atomic.LoadInt32(&p.totalTasks) > 0 {
-		panic("cannot change semaphore limit while tasks are running")
+		panic("pool: cannot change semaphore limit while tasks are running")
 	}
 
 	if workers <= 0 {
@@ -453,6 +458,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 // The predicate is evaluated for every completed task (both successful and failed).
 // If it returns true, the pool immediately cancels all remaining tasks.
 // The triggering result is guaranteed to be delivered before cancellation.
+// Panics if called after tasks have been submitted.
 //
 // Common patterns:
 //
@@ -482,7 +488,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 //	})
 func (p *Pool[T]) CancelOn(predicate func(Result[T]) bool) *Pool[T] {
 	if atomic.LoadInt32(&p.totalTasks) > 0 {
-		panic("cannot set cancellation predicate while tasks are running")
+		panic("pool: cannot set cancellation predicate while tasks are running")
 	}
 
 	p.cancelPredicate = predicate
@@ -569,7 +575,7 @@ func (p *Pool[T]) Cancel(err ...error) {
 func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 
 // Reset restores the pool to its initial state for reuse.
-// Returns an error if tasks are still running.
+// Panics if tasks are still running.
 //
 // Example:
 //
@@ -577,9 +583,9 @@ func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 //	p.Reset()
 //	p.Go(func() Result[int] { return Ok(1) })
 //	p.Wait()
-func (p *Pool[T]) Reset() error {
+func (p *Pool[T]) Reset() {
 	if p.ActiveTasks() > 0 {
-		return errors.New("cannot reset while tasks are running")
+		panic("pool: cannot reset while tasks are running")
 	}
 
 	p.Cancel()
@@ -593,8 +599,6 @@ func (p *Pool[T]) Reset() error {
 	p.streaming.Store(false)
 	p.cancelPredicate = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
-
-	return nil
 }
 
 // ClearMetrics resets total and failed task counters to zero.

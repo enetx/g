@@ -82,6 +82,11 @@ func TestSubSliceWithStep(t *testing.T) {
 		{-1, -10, -1, SliceOf(9, 8, 7, 6, 5, 4, 3, 2, 1)},
 		{-5, -1, -1, Slice[int]{}},
 		{-1, -5, -1, SliceOf(9, 8, 7, 6)},
+		// regression: start == len(sl) with negative step must begin at the last
+		// element (Python s[len::-1] semantics), not read sl[len]. Out-of-range
+		// start (e.g. 100) still panics by contract; clamping to len happens in
+		// String.SubString / Bytes.SubBytes.
+		{9, 0, -1, SliceOf(9, 8, 7, 6, 5, 4, 3, 2)},
 	}
 
 	for _, tc := range testCases {
@@ -465,7 +470,7 @@ func TestSliceIsSorted(t *testing.T) {
 }
 
 func TestSliceJoin(t *testing.T) {
-	sl := String("12345").Split().Collect()
+	sl := String("12345").Chars().Collect()
 	str := sl.Join(",")
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
@@ -474,7 +479,7 @@ func TestSliceJoin(t *testing.T) {
 }
 
 func TestSliceJoinBytes(t *testing.T) {
-	sl := Bytes("12345").Split().Collect()
+	sl := Bytes("12345").Chars().Collect()
 	str := sl.Join(Bytes(","))
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
@@ -1088,23 +1093,17 @@ func testPushUnique[T comparable](t *testing.T, sl Slice[T], elems, expected []T
 	}
 }
 
-func TestSliceAsAny(t *testing.T) {
-	// Test cases for Int
-	testSliceAsAny(t, SliceOf(1, 2, 3), []any{1, 2, 3})
-
-	// Test cases for Float
-	testSliceAsAny(t, SliceOf(1.1, 2.2, 3.3), []any{1.1, 2.2, 3.3})
-
-	// Test cases for String
-	testSliceAsAny(t, SliceOf("apple", "banana", "orange"), []any{"apple", "banana", "orange"})
-
-	// Add more test cases for other types as needed
+func TestSliceIterMapToAny(t *testing.T) {
+	// Cross-type Map to any via generic methods.
+	testSliceMapToAny(t, SliceOf(1, 2, 3), []any{1, 2, 3})
+	testSliceMapToAny(t, SliceOf(1.1, 2.2, 3.3), []any{1.1, 2.2, 3.3})
+	testSliceMapToAny(t, SliceOf("apple", "banana", "orange"), []any{"apple", "banana", "orange"})
 }
 
-func testSliceAsAny[T any](t *testing.T, sl Slice[T], expected []any) {
-	result := sl.AsAny()
+func testSliceMapToAny[T any](t *testing.T, sl Slice[T], expected []any) {
+	result := sl.Iter().Map(func(v T) any { return v }).Collect()
 	if !result.Eq(SliceOf(expected...)) {
-		t.Errorf("Slice AsAny method failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
+		t.Errorf("Map to any failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
 	}
 }
 
@@ -1290,20 +1289,20 @@ func TestSliceSwap_Panic(t *testing.T) {
 func TestSliceMaxBy(t *testing.T) {
 	// Test case 1: Maximum integer
 	s := Slice[int]{3, 1, 4, 2, 5}
-	maxInt := s.MaxBy(cmp.Cmp)
+	maxInt := s.Iter().MaxBy(cmp.Cmp).UnwrapOr(0)
 	expectedMaxInt := 5
 	if maxInt != expectedMaxInt {
-		t.Errorf("s.MaxBy(IntCompare) = %d; want %d", maxInt, expectedMaxInt)
+		t.Errorf("s.Iter().MaxBy(cmp.Cmp) = %d; want %d", maxInt, expectedMaxInt)
 	}
 }
 
 func TestSliceMinBy(t *testing.T) {
 	// Test case 1: Minimum integer
 	s := Slice[int]{3, 1, 4, 2, 5}
-	minInt := s.MinBy(cmp.Cmp)
+	minInt := s.Iter().MinBy(cmp.Cmp).UnwrapOr(0)
 	expectedMinInt := 1
 	if minInt != expectedMinInt {
-		t.Errorf("s.MinBy(IntCompare) = %d; want %d", minInt, expectedMinInt)
+		t.Errorf("s.Iter().MinBy(cmp.Cmp) = %d; want %d", minInt, expectedMinInt)
 	}
 }
 
@@ -1706,17 +1705,40 @@ func TestSliceSubSliceEmptyReturnsFreshSlice(t *testing.T) {
 }
 
 func TestSliceMaxByEmpty(t *testing.T) {
-	// Documented behavior: MaxBy on empty returns the zero value of T.
+	// Iter().MaxBy on an empty slice yields None; UnwrapOr supplies the fallback.
 	var s Slice[int]
-	if got := s.MaxBy(cmp.Cmp); got != 0 {
-		t.Errorf("MaxBy(empty) = %d; want 0 (zero value)", got)
+	if got := s.Iter().MaxBy(cmp.Cmp); got.IsSome() {
+		t.Errorf("Iter().MaxBy(empty) = %v; want None", got)
+	}
+	if got := s.Iter().MaxBy(cmp.Cmp).UnwrapOr(-1); got != -1 {
+		t.Errorf("Iter().MaxBy(empty).UnwrapOr(-1) = %d; want -1", got)
 	}
 }
 
 func TestSliceMinByEmpty(t *testing.T) {
-	// Documented behavior: MinBy on empty returns the zero value of T.
+	// Iter().MinBy on an empty slice yields None; UnwrapOr supplies the fallback.
 	var s Slice[int]
-	if got := s.MinBy(cmp.Cmp); got != 0 {
-		t.Errorf("MinBy(empty) = %d; want 0 (zero value)", got)
+	if got := s.Iter().MinBy(cmp.Cmp); got.IsSome() {
+		t.Errorf("Iter().MinBy(empty) = %v; want None", got)
+	}
+	if got := s.Iter().MinBy(cmp.Cmp).UnwrapOr(-1); got != -1 {
+		t.Errorf("Iter().MinBy(empty).UnwrapOr(-1) = %d; want -1", got)
+	}
+}
+
+func TestSliceSetReturnsPrevious(t *testing.T) {
+	sl := SliceOf(1, 2, 3)
+
+	if old := sl.Set(1, 20); old.IsNone() || old.Some() != 2 {
+		t.Errorf("Set(1, 20) = %v, want Some(2)", old)
+	}
+	if old := sl.Set(-1, 30); old.IsNone() || old.Some() != 3 {
+		t.Errorf("Set(-1, 30) = %v, want Some(3)", old)
+	}
+	if old := sl.Set(10, 99); old.IsSome() {
+		t.Errorf("Set out of bounds = %v, want None", old)
+	}
+	if !reflect.DeepEqual(sl, SliceOf(1, 20, 30)) {
+		t.Errorf("slice after Set = %v", sl)
 	}
 }

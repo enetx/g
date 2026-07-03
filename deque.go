@@ -218,10 +218,10 @@ func (dq *Deque[T]) Set(index Int, value T) Option[T] {
 
 // Insert inserts an element at the specified index.
 // Index 0 represents the front of the Deque.
-// Panics if the index is out of bounds.
+// Panics if the index is out of bounds (index < 0 or index > Len()).
 func (dq *Deque[T]) Insert(index Int, value T) {
 	if index < 0 || index > dq.len {
-		panic(fmt.Sprintf("index out of bounds: %d", index))
+		panic(fmt.Sprintf("runtime error: deque index out of range [%d] with length %d", index, dq.len))
 	}
 
 	if index == 0 {
@@ -311,8 +311,12 @@ func (dq *Deque[T]) Clear() {
 // Swap swaps the elements at indices i and j.
 // Panics if either index is out of bounds.
 func (dq *Deque[T]) Swap(i, j Int) {
-	if i < 0 || i >= dq.len || j < 0 || j >= dq.len {
-		panic("index out of bounds")
+	if i < 0 || i >= dq.len {
+		panic(fmt.Sprintf("runtime error: deque index out of range [%d] with length %d", i, dq.len))
+	}
+
+	if j < 0 || j >= dq.len {
+		panic(fmt.Sprintf("runtime error: deque index out of range [%d] with length %d", j, dq.len))
 	}
 
 	realI := dq.realIndex(i)
@@ -602,7 +606,7 @@ func (dq *Deque[T]) Slice() Slice[T] {
 }
 
 // Transform applies a transformation function to the Deque and returns the result.
-func (dq *Deque[T]) Transform(fn func(*Deque[T]) *Deque[T]) *Deque[T] { return fn(dq) }
+func (dq *Deque[T]) Transform[U any](fn func(*Deque[T]) U) U { return fn(dq) }
 
 // String returns a string representation of the Deque.
 func (dq *Deque[T]) String() string {

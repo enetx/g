@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/f"
 )
 
 func TestMap_Iter_Keys(t *testing.T) {
@@ -496,5 +497,211 @@ func TestMap_Iter_First(t *testing.T) {
 	empty := g.NewMap[string, int]()
 	if empty.Iter().First().IsSome() {
 		t.Error("Expected None for empty map First()")
+	}
+}
+
+func TestSeqMapLastChanFold(t *testing.T) {
+	m := g.Map[string, int]{"a": 1}
+
+	last := m.Iter().Last()
+	if last.IsNone() || last.Some().Key != "a" || last.Some().Value != 1 {
+		t.Errorf("Last = %v", last)
+	}
+	if empty := g.NewMap[string, int]().Iter().Last(); empty.IsSome() {
+		t.Errorf("Last on empty = %v, want None", empty)
+	}
+
+	total := g.Map[string, int]{"a": 1, "b": 2}.Iter().
+		Fold("", func(acc string, k string, v int) string { return acc + k })
+	if len(total) != 2 {
+		t.Errorf("Fold = %q, want 2 keys concatenated", total)
+	}
+
+	var sum int
+	mm := g.Map[string, int]{"x": 5, "y": 7}
+	for p := range mm.Iter().Chan() {
+		sum += p.Value
+	}
+	if sum != 12 {
+		t.Errorf("Chan sum = %d, want 12", sum)
+	}
+}
+
+func TestMap_Iter_All(t *testing.T) {
+	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+
+	if !m.Iter().All(func(_ string, v int) bool { return v > 0 }) {
+		t.Error("Expected All to be true for positive values")
+	}
+
+	if m.Iter().All(func(_ string, v int) bool { return v > 1 }) {
+		t.Error("Expected All to be false when a value fails the predicate")
+	}
+
+	if !g.NewMap[string, int]().Iter().All(func(string, int) bool { return false }) {
+		t.Error("Expected All to be true for an empty map")
+	}
+}
+
+func TestMap_Iter_Any(t *testing.T) {
+	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+
+	if !m.Iter().Any(func(k string, v int) bool { return k == "b" && v == 2 }) {
+		t.Error("Expected Any to be true for pair (b, 2)")
+	}
+
+	if m.Iter().Any(func(_ string, v int) bool { return v > 10 }) {
+		t.Error("Expected Any to be false when no pair matches")
+	}
+
+	if g.NewMap[string, int]().Iter().Any(func(string, int) bool { return true }) {
+		t.Error("Expected Any to be false for an empty map")
+	}
+}
+
+func TestMap_Iter_TakeWhile(t *testing.T) {
+	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+
+	// Map iteration order is not deterministic, so use order-independent predicates.
+	all := m.Iter().TakeWhile(func(string, int) bool { return true }).Collect()
+	if all.Len() != 3 {
+		t.Errorf("Expected all 3 pairs, got %v", all)
+	}
+
+	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect()
+	if none.Len() != 0 {
+		t.Errorf("Expected no pairs, got %v", none)
+	}
+
+	single := g.Map[string, int]{"a": 1}.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	if single.Len() != 1 || single.Get("a").UnwrapOr(0) != 1 {
+		t.Errorf("Expected Map{a:1}, got %v", single)
+	}
+}
+
+func TestMap_Iter_SkipWhile(t *testing.T) {
+	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+
+	// Map iteration order is not deterministic, so use order-independent predicates.
+	none := m.Iter().SkipWhile(func(string, int) bool { return true }).Collect()
+	if none.Len() != 0 {
+		t.Errorf("Expected no pairs, got %v", none)
+	}
+
+	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect()
+	if all.Len() != 3 {
+		t.Errorf("Expected all 3 pairs, got %v", all)
+	}
+
+	single := g.Map[string, int]{"a": 1}.Iter().SkipWhile(func(_ string, v int) bool { return v > 1 }).Collect()
+	if single.Len() != 1 || single.Get("a").UnwrapOr(0) != 1 {
+		t.Errorf("Expected Map{a:1}, got %v", single)
+	}
+}
+
+func TestMapOrd_Iter_All(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	if !m.Iter().All(func(_ string, v int) bool { return v > 0 }) {
+		t.Error("Expected All to be true for positive values")
+	}
+
+	if m.Iter().All(func(_ string, v int) bool { return v > 1 }) {
+		t.Error("Expected All to be false when a value fails the predicate")
+	}
+
+	empty := g.NewMapOrd[string, int]()
+	if !empty.Iter().All(func(string, int) bool { return false }) {
+		t.Error("Expected All to be true for an empty ordered map")
+	}
+}
+
+func TestMapOrd_Iter_Any(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	if !m.Iter().Any(func(k string, v int) bool { return k == "b" && v == 2 }) {
+		t.Error("Expected Any to be true for pair (b, 2)")
+	}
+
+	if m.Iter().Any(func(_ string, v int) bool { return v > 10 }) {
+		t.Error("Expected Any to be false when no pair matches")
+	}
+
+	empty := g.NewMapOrd[string, int]()
+	if empty.Iter().Any(func(string, int) bool { return true }) {
+		t.Error("Expected Any to be false for an empty ordered map")
+	}
+}
+
+func TestMapOrd_Iter_TakeWhile(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 1)
+
+	head := m.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	if head.Len() != 1 || head.Get("a").UnwrapOr(0) != 1 {
+		t.Errorf("Expected MapOrd{a:1}, got %v", head)
+	}
+
+	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect()
+	if none.Len() != 0 {
+		t.Errorf("Expected no pairs, got %v", none)
+	}
+}
+
+func TestMapOrd_Iter_SkipWhile(t *testing.T) {
+	m := g.NewMapOrd[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 1)
+
+	// Once the predicate fails at (b, 2), the trailing (c, 1) is still yielded.
+	tail := m.Iter().SkipWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	if tail.Len() != 2 || tail.Get("b").UnwrapOr(0) != 2 || tail.Get("c").UnwrapOr(0) != 1 {
+		t.Errorf("Expected MapOrd{b:2, c:1}, got %v", tail)
+	}
+
+	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect()
+	if all.Len() != 3 {
+		t.Errorf("Expected all 3 pairs, got %v", all)
+	}
+}
+
+func TestMap_Iter_FilterByKey(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	got := m.Iter().FilterByKey(f.Eq("b")).Collect()
+
+	if len(got) != 1 {
+		t.Fatalf("FilterByKey(f.Eq(\"b\")): expected 1 pair, got %d: %v", len(got), got)
+	}
+	if got["b"] != 2 {
+		t.Errorf("FilterByKey(f.Eq(\"b\")): expected {b:2}, got %v", got)
+	}
+}
+
+func TestMap_Iter_FilterByValue(t *testing.T) {
+	m := g.NewMap[string, int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+
+	got := m.Iter().FilterByValue(f.Gt(1)).Collect()
+
+	if len(got) != 2 {
+		t.Fatalf("FilterByValue(f.Gt(1)): expected 2 pairs, got %d: %v", len(got), got)
+	}
+	if got["b"] != 2 || got["c"] != 3 {
+		t.Errorf("FilterByValue(f.Gt(1)): expected {b:2, c:3}, got %v", got)
 	}
 }

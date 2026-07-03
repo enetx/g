@@ -6,8 +6,10 @@ import (
 )
 
 var (
+	// ErrInvalidBinaryLength is returned by binary decoding when the input length is not a multiple of 8.
 	ErrInvalidBinaryLength = errors.New("binary string length must be multiple of 8")
-	ErrInvalidBinaryDigit  = errors.New("binary string must contain only '0' and '1'")
+	// ErrInvalidBinaryDigit is returned by binary decoding when the input contains characters other than '0' and '1'.
+	ErrInvalidBinaryDigit = errors.New("binary string must contain only '0' and '1'")
 )
 
 // ErrFileNotExist represents an error for when a file does not exist.

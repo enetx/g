@@ -47,7 +47,7 @@ func (r regexpb) MatchAll(patterns ...*regexp.Regexp) bool {
 // If a match is found, it returns an Option containing an Slice with the start and end indices of the match.
 // If no match is found, it returns None.
 func (r regexpb) Index(pattern *regexp.Regexp) Option[Slice[Int]] {
-	result := TransformSlice(pattern.FindIndex(r.bytes), NewInt)
+	result := transformSlice(pattern.FindIndex(r.bytes), NewInt)
 	if result.IsEmpty() {
 		return None[Slice[Int]]()
 	}
@@ -67,7 +67,7 @@ func (r regexpb) FindAll(pattern *regexp.Regexp) Option[Slice[Bytes]] {
 // If no matches are found, the Option[Slice[Bytes]] will be None.
 // If n is negative, all occurrences will be returned.
 func (r regexpb) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
-	result := TransformSlice(pattern.FindAll(r.bytes, n.Std()), func(bs []byte) Bytes { return Bytes(bs) })
+	result := transformSlice(pattern.FindAll(r.bytes, n.Std()), func(bs []byte) Bytes { return Bytes(bs) })
 	if result.IsEmpty() {
 		return None[Slice[Bytes]]()
 	}
@@ -81,7 +81,7 @@ func (r regexpb) FindAllN(pattern *regexp.Regexp, n Int) Option[Slice[Bytes]] {
 // where each Slice[Bytes] will contain the full match at index 0, followed by any captured submatches.
 // If no match is found, the Option[Slice[Bytes]] will be None.
 func (r regexpb) FindSubmatch(pattern *regexp.Regexp) Option[Slice[Bytes]] {
-	result := TransformSlice(pattern.FindSubmatch(r.bytes), func(bs []byte) Bytes { return Bytes(bs) })
+	result := transformSlice(pattern.FindSubmatch(r.bytes), func(bs []byte) Bytes { return Bytes(bs) })
 	if result.IsEmpty() {
 		return None[Slice[Bytes]]()
 	}
@@ -109,7 +109,7 @@ func (r regexpb) FindAllSubmatchN(pattern *regexp.Regexp, n Int) Option[Slice[Sl
 	var result Slice[Slice[Bytes]]
 
 	for _, v := range pattern.FindAllSubmatch(r.bytes, n.Std()) {
-		result = append(result, TransformSlice(v, func(bs []byte) Bytes { return Bytes(bs) }))
+		result = append(result, transformSlice(v, func(bs []byte) Bytes { return Bytes(bs) }))
 	}
 
 	if result.IsEmpty() {

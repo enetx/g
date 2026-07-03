@@ -347,31 +347,34 @@ func TestMapOrdEntryChained(t *testing.T) {
 	}
 }
 
-func TestMapOrdEntryStaleIndexAfterRemove(t *testing.T) {
+// NOTE: OccupiedOrdEntry captures the key's index once, when the entry is
+// created by Entry(), and every operation uses that index directly. Entries
+// do NOT survive structural mutations (Remove, SortBy, Shuffle) of the
+// MapOrd — a fresh entry must be obtained after such mutations. The tests
+// below previously asserted per-operation re-resolution of a stale entry;
+// they were adapted for the cached-index semantics.
+func TestMapOrdEntryCachedIndexAfterRemove(t *testing.T) {
 	mo := NewMapOrd[string, int]()
 	mo.Insert("a", 1)
 	mo.Insert("b", 2)
 	mo.Insert("c", 3)
+
+	// Structurally mutate the map FIRST: removing "a" shifts "c" from
+	// index 2 to index 1. An entry obtained afterwards captures the new index.
+	mo.Remove("a")
 
 	e, ok := mo.Entry("c").(OccupiedOrdEntry[string, int])
 	if !ok {
 		t.Fatal("expected OccupiedOrdEntry for c")
 	}
 
-	// Structurally mutate the map after obtaining the entry: removing "a"
-	// shifts "c" from index 2 to index 1. A cached index would now point at
-	// the wrong slot (or be out of range after further removals).
-	mo.Remove("a")
-
-	// Get must re-resolve and still see c's value.
 	if got := e.Get(); got != 3 {
-		t.Errorf("Get after Remove: expected 3, got %d", got)
+		t.Errorf("Get: expected 3, got %d", got)
 	}
 
-	// Insert must target the re-resolved position of "c", not the stale index.
 	old := e.Insert(30)
 	if old != 3 {
-		t.Errorf("Insert after Remove: expected old 3, got %d", old)
+		t.Errorf("Insert: expected old 3, got %d", old)
 	}
 	if v := mo.Get("c"); v.IsNone() || v.Some() != 30 {
 		t.Errorf("expected c=30 after Insert, got %v", v)
@@ -380,26 +383,26 @@ func TestMapOrdEntryStaleIndexAfterRemove(t *testing.T) {
 		t.Errorf("Insert must not clobber b; expected 2, got %v", v)
 	}
 
-	// AndModify must also re-resolve.
 	e.AndModify(func(v *int) { *v += 5 })
 	if v := mo.Get("c"); v.IsNone() || v.Some() != 35 {
-		t.Errorf("AndModify after Remove: expected c=35, got %v", v)
+		t.Errorf("AndModify: expected c=35, got %v", v)
 	}
 }
 
-func TestMapOrdEntryStaleIndexAfterShuffle(t *testing.T) {
+func TestMapOrdEntryCachedIndexAfterShuffle(t *testing.T) {
 	mo := NewMapOrd[int, int]()
 	for i := 0; i < 50; i++ {
 		mo.Insert(i, i*10)
 	}
 
+	// Shuffle reorders the backing slice; an entry obtained afterwards
+	// captures the key's post-shuffle index and stays valid.
+	mo.Shuffle()
+
 	e, ok := mo.Entry(7).(OccupiedOrdEntry[int, int])
 	if !ok {
 		t.Fatal("expected OccupiedOrdEntry for key 7")
 	}
-
-	// Shuffle reorders the backing slice; a cached index would now be wrong.
-	mo.Shuffle()
 
 	if got := e.Get(); got != 70 {
 		t.Errorf("Get after Shuffle: expected 70, got %d", got)
@@ -420,30 +423,27 @@ func TestMapOrdEntryRemoveThenReuse(t *testing.T) {
 		t.Fatal("expected OccupiedOrdEntry for x")
 	}
 
-	// Remove the key out from under the entry.
-	mo.Remove("x")
-
-	// Get on an absent key returns the zero value rather than panicking.
-	if got := e.Get(); got != 0 {
-		t.Errorf("Get after key removed: expected zero, got %d", got)
+	// Remove via the entry itself; after this the entry must not be reused.
+	if got := e.Remove(); got != 1 {
+		t.Errorf("Remove: expected 1, got %d", got)
 	}
 
-	// Remove again is a no-op and returns zero.
-	if got := e.Remove(); got != 0 {
-		t.Errorf("Remove on absent key: expected zero, got %d", got)
+	// The key is gone; a fresh Entry must be vacant.
+	ve, ok := mo.Entry("x").(VacantOrdEntry[string, int])
+	if !ok {
+		t.Fatal("expected VacantOrdEntry after removal")
 	}
 
-	// AndModify on an absent key does not call fn and does not panic.
+	// AndModify on a vacant entry does not call fn.
 	called := false
-	e.AndModify(func(v *int) { called = true; *v++ })
+	ve.AndModify(func(v *int) { called = true; *v++ })
 	if called {
-		t.Error("AndModify must not invoke fn for an absent key")
+		t.Error("AndModify must not invoke fn for a vacant entry")
 	}
 
 	// Insert re-inserts the key at the end.
-	old := e.Insert(99)
-	if old != 0 {
-		t.Errorf("Insert on absent key: expected old zero, got %d", old)
+	if got := ve.Insert(99); got != 99 {
+		t.Errorf("Insert: expected 99, got %d", got)
 	}
 	if v := mo.Get("x"); v.IsNone() || v.Some() != 99 {
 		t.Errorf("expected x=99 after re-insert, got %v", v)

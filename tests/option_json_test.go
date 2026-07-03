@@ -2,6 +2,8 @@ package g_test
 
 import (
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
+	"errors"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -457,6 +459,128 @@ func TestOptionJSON_RoundTripStruct(t *testing.T) {
 	tags := decoded.Tags.Some()
 	if tags.Len() != 2 || tags[0] != "web" || tags[1] != "api" {
 		t.Errorf("Tags: got %v, want [web, api]", tags)
+	}
+}
+
+func TestOptionJSONV2_MarshalSome(t *testing.T) {
+	data, err := jsonv2.Marshal(Some(42))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if string(data) != "42" {
+		t.Errorf("got %s, want 42", data)
+	}
+}
+
+func TestOptionJSONV2_MarshalNone(t *testing.T) {
+	data, err := jsonv2.Marshal(None[int]())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if string(data) != "null" {
+		t.Errorf("got %s, want null", data)
+	}
+}
+
+func TestOptionJSONV2_MarshalSomeNilSlice(t *testing.T) {
+	// v2 semantics: a nil slice marshals as [], not null, so Some(nil slice)
+	// stays distinguishable from None.
+	data, err := jsonv2.Marshal(Some[[]int](nil))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if string(data) != "[]" {
+		t.Errorf("got %s, want []", data)
+	}
+}
+
+func TestOptionJSONV2_UnmarshalValue(t *testing.T) {
+	var opt Option[int]
+	if err := jsonv2.Unmarshal([]byte("7"), &opt); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if opt.IsNone() || opt.Some() != 7 {
+		t.Errorf("got %v, want Some(7)", opt)
+	}
+}
+
+func TestOptionJSONV2_UnmarshalNullResetsValue(t *testing.T) {
+	opt := Some(99)
+	if err := jsonv2.Unmarshal([]byte("null"), &opt); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if opt.IsSome() {
+		t.Errorf("expected None after null, got Some(%d)", opt.Some())
+	}
+}
+
+func TestOptionJSONV2_UnmarshalDuplicateKeysInValue(t *testing.T) {
+	// v2 strictness: duplicate object keys inside the wrapped value are rejected.
+	var opt Option[map[string]int]
+	if err := jsonv2.Unmarshal([]byte(`{"a":1,"a":2}`), &opt); err == nil {
+		t.Fatal("expected error for duplicate keys in wrapped value")
+	}
+}
+
+func TestOptionJSONV2_RoundTripOptionResult(t *testing.T) {
+	someOk := Some(Ok(5))
+	data, err := jsonv2.Marshal(someOk)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	if string(data) != `{"ok":5}` {
+		t.Errorf("got %s, want {\"ok\":5}", data)
+	}
+
+	var decoded Option[Result[int]]
+	if err := jsonv2.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if decoded.IsNone() || decoded.Some().IsErr() || decoded.Some().Ok() != 5 {
+		t.Errorf("got %v, want Some(Ok(5))", decoded)
+	}
+
+	someErr := Some(Err[int](errors.New("boom")))
+	data, err = jsonv2.Marshal(someErr)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	if string(data) != `{"err":"boom"}` {
+		t.Errorf("got %s, want {\"err\":\"boom\"}", data)
+	}
+
+	if err := jsonv2.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if decoded.IsNone() || decoded.Some().IsOk() || decoded.Some().Err().Error() != "boom" {
+		t.Errorf("got %v, want Some(Err(boom))", decoded)
+	}
+
+	data, err = jsonv2.Marshal(None[Result[int]]())
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+
+	if string(data) != "null" {
+		t.Errorf("got %s, want null", data)
+	}
+
+	decoded = Some(Ok(1))
+	if err := jsonv2.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+
+	if decoded.IsSome() {
+		t.Errorf("expected None, got %v", decoded)
 	}
 }
 

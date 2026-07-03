@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 )
 
 func TestSet_Iter_Collect(t *testing.T) {
@@ -550,5 +551,188 @@ func TestSet_Iter_FilterMap(t *testing.T) {
 
 	if !result.Contains(20) || !result.Contains(40) {
 		t.Errorf("Expected {20, 40}, got %v", result)
+	}
+}
+
+func TestSeqSetConsistency127(t *testing.T) {
+	s := g.SetOf(1, 2, 3, 4, 5)
+
+	// Fold with a foreign accumulator type
+	joined := s.Iter().Fold("", func(acc string, v int) string { return acc + "x" })
+	if len(joined) != 5 {
+		t.Errorf("Fold cross-type = %q, want 5 x's", joined)
+	}
+
+	// Difference / Intersection on the iterator
+	if got := s.Iter().Difference(g.SetOf(1, 2, 3, 4)).Collect(); !got.Eq(g.SetOf(5)) {
+		t.Errorf("Difference = %v, want Set{5}", got)
+	}
+	if got := s.Iter().Intersection(g.SetOf(4, 5, 6)).Collect(); !got.Eq(g.SetOf(4, 5)) {
+		t.Errorf("Intersection = %v, want Set{4, 5}", got)
+	}
+
+	// Partition
+	even, odd := s.Iter().Partition(func(v int) bool { return v%2 == 0 })
+	if !even.Eq(g.SetOf(2, 4)) || !odd.Eq(g.SetOf(1, 3, 5)) {
+		t.Errorf("Partition = %v / %v", even, odd)
+	}
+}
+
+func TestSet_Iter_CounterBy(t *testing.T) {
+	set := g.SetOf("a", "bb", "cc", "d", "eee")
+
+	counts := set.Iter().CounterBy(func(s string) int { return len(s) }).Collect()
+
+	if counts.Len() != 3 {
+		t.Fatalf("Expected 3 buckets, got %d: %v", counts.Len(), counts)
+	}
+
+	if got := counts.Get(1); got.IsNone() || got.Some() != 2 {
+		t.Errorf("Expected 2 one-char elements, got %v", got)
+	}
+
+	if got := counts.Get(2); got.IsNone() || got.Some() != 2 {
+		t.Errorf("Expected 2 two-char elements, got %v", got)
+	}
+
+	if got := counts.Get(3); got.IsNone() || got.Some() != 1 {
+		t.Errorf("Expected 1 three-char element, got %v", got)
+	}
+
+	// Identity counting: a set has no duplicates, so every count is 1.
+	identity := g.SetOf(1, 2, 3).Iter().CounterBy(func(v int) int { return v }).Collect()
+	identity.Iter().ForEach(func(k int, count g.Int) {
+		if count != 1 {
+			t.Errorf("Expected count 1 for key %d, got %d", k, count)
+		}
+	})
+}
+
+func TestSet_Iter_Chan(t *testing.T) {
+	set := g.SetOf(1, 2, 3)
+
+	collected := g.NewSet[int]()
+	for v := range set.Iter().Chan() {
+		collected.Insert(v)
+	}
+
+	if !collected.Eq(set) {
+		t.Errorf("Expected %v from channel, got %v", set, collected)
+	}
+
+	// A cancelled context stops the stream early.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	count := 0
+	for range set.Iter().Chan(ctx) {
+		count++
+	}
+
+	if count == 3 {
+		t.Error("Expected cancelled context to stop the channel before all elements")
+	}
+}
+
+func TestSet_Iter_MaxBy(t *testing.T) {
+	max := g.SetOf(3, 1, 4, 1, 5).Iter().MaxBy(cmp.Cmp[int])
+	if max.IsNone() || max.Some() != 5 {
+		t.Errorf("Expected Some(5), got %v", max)
+	}
+
+	empty := g.NewSet[int]().Iter().MaxBy(cmp.Cmp[int])
+	if empty.IsSome() {
+		t.Errorf("Expected None for empty set, got %v", empty)
+	}
+}
+
+func TestSet_Iter_MinBy(t *testing.T) {
+	min := g.SetOf(3, 1, 4, 5).Iter().MinBy(cmp.Cmp[int])
+	if min.IsNone() || min.Some() != 1 {
+		t.Errorf("Expected Some(1), got %v", min)
+	}
+
+	empty := g.NewSet[int]().Iter().MinBy(cmp.Cmp[int])
+	if empty.IsSome() {
+		t.Errorf("Expected None for empty set, got %v", empty)
+	}
+}
+
+func TestSet_Iter_First(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	// Iteration order is nondeterministic, so First may yield any element of the set.
+	first := set.Iter().First()
+	if first.IsNone() {
+		t.Fatal("Expected Some for non-empty set, got None")
+	}
+
+	if !set.Contains(first.Some()) {
+		t.Errorf("Expected First to yield an element of the set, got %v", first.Some())
+	}
+
+	single := g.SetOf(42).Iter().First()
+	if single.IsNone() || single.Some() != 42 {
+		t.Errorf("Expected Some(42), got %v", single)
+	}
+
+	empty := g.NewSet[int]().Iter().First()
+	if empty.IsSome() {
+		t.Errorf("Expected None for empty set, got %v", empty)
+	}
+}
+
+func TestSet_Iter_Last(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	// Iteration order is nondeterministic, so Last may yield any element of the set.
+	last := set.Iter().Last()
+	if last.IsNone() {
+		t.Fatal("Expected Some for non-empty set, got None")
+	}
+
+	if !set.Contains(last.Some()) {
+		t.Errorf("Expected Last to yield an element of the set, got %v", last.Some())
+	}
+
+	single := g.SetOf(42).Iter().Last()
+	if single.IsNone() || single.Some() != 42 {
+		t.Errorf("Expected Some(42), got %v", single)
+	}
+
+	empty := g.NewSet[int]().Iter().Last()
+	if empty.IsSome() {
+		t.Errorf("Expected None for empty set, got %v", empty)
+	}
+}
+
+func TestSet_Iter_StepBy(t *testing.T) {
+	set := g.SetOf(1, 2, 3, 4, 5)
+
+	// Step 1 yields every element.
+	all := set.Iter().StepBy(1).Collect()
+	if all.Ne(set) {
+		t.Errorf("Expected StepBy(1) to yield all elements, got %v", all)
+	}
+
+	// Step 2 over 5 elements yields 3 of them; which ones depends on iteration order.
+	stepped := set.Iter().StepBy(2).Collect()
+	if stepped.Len() != 3 {
+		t.Errorf("Expected 3 elements from StepBy(2), got %d", stepped.Len())
+	}
+
+	if !stepped.Iter().All(set.Contains) {
+		t.Errorf("Expected StepBy(2) to yield elements of the set, got %v", stepped)
+	}
+
+	// Step larger than the set yields only the first element.
+	one := set.Iter().StepBy(10).Collect()
+	if one.Len() != 1 {
+		t.Errorf("Expected 1 element from StepBy(10), got %d", one.Len())
+	}
+
+	empty := g.NewSet[int]().Iter().StepBy(2).Collect()
+	if !empty.IsEmpty() {
+		t.Errorf("Expected empty result for empty set, got %v", empty)
 	}
 }

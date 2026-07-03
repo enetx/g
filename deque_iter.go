@@ -31,7 +31,7 @@ type SeqDeque[V any] iter.Seq[V]
 //
 // It is an error to call next or stop from multiple goroutines
 // simultaneously.
-func (seq SeqDeque[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
+func (seq SeqDeque[V]) Pull() (func() (V, bool), func()) { return iter.Seq[V](seq).Pull() }
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator
@@ -51,7 +51,7 @@ func (seq SeqDeque[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter
 //	allPositive := deque.Iter().All(isPositive)
 //
 // The resulting allPositive will be true if all elements returned by the iterator are positive.
-func (seq SeqDeque[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V](seq), fn) }
+func (seq SeqDeque[V]) All(fn func(v V) bool) bool { return iter.Seq[V](seq).All(fn) }
 
 // Any checks whether any element in the iterator satisfies the provided condition.
 // This function is useful when you want to determine if at least one element in an iterator
@@ -71,7 +71,7 @@ func (seq SeqDeque[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V]
 //	anyEven := deque.Iter().Any(isEven)
 //
 // The resulting anyEven will be true if at least one element returned by the iterator is even.
-func (seq SeqDeque[V]) Any(fn func(V) bool) bool { return iter.Any(iter.Seq[V](seq), fn) }
+func (seq SeqDeque[V]) Any(fn func(V) bool) bool { return iter.Seq[V](seq).Any(fn) }
 
 // Chain concatenates the current iterator with other iterators, returning a new iterator.
 //
@@ -101,7 +101,7 @@ func (seq SeqDeque[V]) Chain(seqs ...SeqDeque[V]) SeqDeque[V] {
 		iterSeqs[i] = iter.Seq[V](s)
 	}
 
-	return SeqDeque[V](iter.Chain(iter.Seq[V](seq), iterSeqs...))
+	return SeqDeque[V](iter.Seq[V](seq).Chain(iterSeqs...))
 }
 
 // Chunks returns an iterator that yields chunks of elements of the specified size.
@@ -140,63 +140,71 @@ func (seq SeqDeque[V]) Collect() *Deque[V] {
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqDeque[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
+func (seq SeqDeque[V]) Count() Int { return Int(iter.Seq[V](seq).Count()) }
 
-// Counter returns a map where each key is a unique element
-// from the deque and each value is the count of how many times that element appears.
-//
-// The function counts the occurrences of each element in the deque
-// and returns a map representing the unique elements and their respective counts.
-// This method uses iter.Counter from the iter package.
-//
-// Returns:
-//
-// - SeqMapOrd[V, Int]: with keys representing the unique elements in the deque
-// and values representing the counts of those elements.
+// CounterBy consumes the sequence and returns an ordered map from fn(element) to
+// the number of elements that produced that key: fn is applied to every element,
+// and elements whose keys collide are merged into one bucket with their counts
+// summed. Key order is first-seen. The key type must be comparable; for identity
+// counting pass the identity function (func(v V) V { return v }).
 //
 // Example usage:
 //
-//	deque := g.DequeOf(1, 2, 3, 1, 2, 1)
-//	counts := deque.Iter().Counter()
-//	// The counts map will contain:
-//	// 1 -> 3 (since 1 appears three times)
-//	// 2 -> 2 (since 2 appears two times)
-//	// 3 -> 1 (since 3 appears once)
-func (seq SeqDeque[V]) Counter() SeqMapOrd[any, Int] {
-	return func(yield func(any, Int) bool) {
-		for k, v := range iter.Counter(iter.Seq[V](seq)) {
-			if !yield(k, Int(v)) {
+//	words.Iter().CounterBy(func(w String) Int { return w.Len() })
+//	// MapOrd{5:2, 4:1} — counts by word length, in first-seen order
+func (seq SeqDeque[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
+	return func(yield func(K, Int) bool) {
+		var order Slice[K]
+
+		counts := NewMap[K, Int]()
+
+		seq(func(v V) bool {
+			k := fn(v)
+			if !counts.Contains(k) {
+				order.Push(k)
+			}
+
+			counts[k]++
+
+			return true
+		})
+
+		for _, k := range order {
+			if !yield(k, counts[k]) {
 				return
 			}
 		}
 	}
 }
 
-// GroupBy groups consecutive elements of the sequence based on a custom equality function.
+// ChunkBy groups CONSECUTIVE elements of the sequence into chunks based on a
+// custom equality function, mirroring Rust's chunk_by. It is not an SQL-style
+// GroupBy: elements are never reordered or bucketed by key, so equal elements
+// that are not adjacent end up in different chunks.
 //
 // The provided function `fn` takes two consecutive elements `a` and `b` and returns `true`
-// if they belong to the same group, or `false` if a new group should start.
-// The function returns a `SeqSlices[V]`, where each `[]V` represents a group of consecutive
+// if they belong to the same chunk, or `false` if a new chunk should start.
+// The function returns a `SeqSlices[V]`, where each `[]V` represents a run of consecutive
 // elements that satisfy the provided equality condition.
 //
 // Notes:
-//   - Each group is returned as a copy of the elements, since `SeqDeque` does not guarantee
+//   - Each chunk is returned as a copy of the elements, since `SeqDeque` does not guarantee
 //     that elements share the same backing array.
 //
 // Parameters:
-//   - fn (func(a, b V) bool): Function that determines whether two consecutive elements belong to the same group.
+//   - fn (func(a, b V) bool): Function that determines whether two consecutive elements belong to the same chunk.
 //
 // Returns:
-//   - SeqSlices[V]: An iterator yielding slices, each containing one group.
+//   - SeqSlices[V]: An iterator yielding slices, each containing one chunk.
 //
 // Example usage:
 //
 //	deque := g.DequeOf(1, 1, 2, 3, 2, 3, 4)
-//	groups := deque.Iter().GroupBy(func(a, b int) bool { return a <= b }).Collect()
+//	chunks := deque.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
 //	// Output: [Slice[1, 1, 2, 3] Slice[2, 3, 4]]
 //
-// The resulting iterator will yield groups of consecutive elements according to the provided function.
-func (seq SeqDeque[V]) GroupBy(fn func(a, b V) bool) SeqSlices[V] {
+// The resulting iterator will yield runs of consecutive elements according to the provided function.
+func (seq SeqDeque[V]) ChunkBy(fn func(a, b V) bool) SeqSlices[V] {
 	return SeqSlices[V](iter.GroupByAdjacent(iter.Seq[V](seq), fn))
 }
 
@@ -207,7 +215,7 @@ func (seq SeqDeque[V]) Combinations(size Int) SeqSlices[V] {
 
 // Cycle returns an iterator that endlessly repeats the elements of the current sequence.
 func (seq SeqDeque[V]) Cycle() SeqDeque[V] {
-	return SeqDeque[V](iter.Cycle(iter.Seq[V](seq)))
+	return SeqDeque[V](iter.Seq[V](seq).Cycle())
 }
 
 // Enumerate adds an index to each element in the iterator.
@@ -230,7 +238,7 @@ func (seq SeqDeque[V]) Cycle() SeqDeque[V] {
 // Output: MapOrd{0:bbb, 1:ddd, 2:xxx, 3:aaa, 4:ccc}
 func (seq SeqDeque[V]) Enumerate() SeqMapOrd[Int, V] {
 	return func(yield func(Int, V) bool) {
-		iterEnum := iter.Enumerate(iter.Seq[V](seq), 0)
+		iterEnum := iter.Seq[V](seq).Enumerate(0)
 		iterEnum(func(i int, v V) bool {
 			return yield(Int(i), v)
 		})
@@ -258,12 +266,12 @@ func (seq SeqDeque[V]) Enumerate() SeqMapOrd[Int, V] {
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqDeque[V]) Dedup() SeqDeque[V] {
 	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
-		return SeqDeque[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
+		return SeqDeque[V](iter.Seq[V](seq).DedupBy(func(a, b V) bool {
 			return any(a) == any(b)
 		}))
 	}
 
-	return SeqDeque[V](iter.DedupBy(iter.Seq[V](seq), func(a, b V) bool {
+	return SeqDeque[V](iter.Seq[V](seq).DedupBy(func(a, b V) bool {
 		return reflect.DeepEqual(a, b)
 	}))
 }
@@ -297,7 +305,7 @@ func (seq SeqDeque[V]) Dedup() SeqDeque[V] {
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (seq SeqDeque[V]) Filter(fn func(V) bool) SeqDeque[V] {
-	return SeqDeque[V](iter.Filter(iter.Seq[V](seq), fn))
+	return SeqDeque[V](iter.Seq[V](seq).Filter(fn))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -329,7 +337,7 @@ func (seq SeqDeque[V]) Filter(fn func(V) bool) SeqDeque[V] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (seq SeqDeque[V]) Exclude(fn func(V) bool) SeqDeque[V] {
-	return SeqDeque[V](iter.Exclude(iter.Seq[V](seq), fn))
+	return SeqDeque[V](iter.Seq[V](seq).Exclude(fn))
 }
 
 // Fold accumulates values in the iterator using a function.
@@ -360,8 +368,8 @@ func (seq SeqDeque[V]) Exclude(fn func(V) bool) SeqDeque[V] {
 // Output: 15.
 //
 // The resulting value will be the accumulation of elements based on the provided function.
-func (seq SeqDeque[V]) Fold(init V, fn func(acc, val V) V) V {
-	return iter.Fold(iter.Seq[V](seq), init, fn)
+func (seq SeqDeque[V]) Fold[A any](init A, fn func(acc A, val V) A) A {
+	return iter.Seq[V](seq).Fold(init, fn)
 }
 
 // Reduce aggregates elements of the sequence using the provided function.
@@ -384,7 +392,7 @@ func (seq SeqDeque[V]) Fold(init V, fn func(acc, val V) V) V {
 //	    fmt.Println("empty")
 //	}
 func (seq SeqDeque[V]) Reduce(fn func(a, b V) V) Option[V] {
-	return OptionOf(iter.Reduce(iter.Seq[V](seq), fn))
+	return OptionOf(iter.Seq[V](seq).Reduce(fn))
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -398,12 +406,12 @@ func (seq SeqDeque[V]) Reduce(fn func(a, b V) V) Option[V] {
 // Example usage:
 //
 //	iter := g.DequeOf(1, 2, 3, 4, 5).Iter()
-//	iter.ForEach(func(val V) {
+//	func(val V) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
-//	})
+//	}.ForEach()
 //
 // The provided function will be applied to each element in the iterator.
-func (seq SeqDeque[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) }
+func (seq SeqDeque[V]) ForEach(fn func(v V)) { iter.Seq[V](seq).ForEach(fn) }
 
 // Flatten flattens an iterator containing slices into a single iterator.
 //
@@ -460,7 +468,7 @@ func (seq SeqDeque[V]) Flatten() SeqDeque[V] {
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (seq SeqDeque[V]) Inspect(fn func(v V)) SeqDeque[V] {
-	return SeqDeque[V](iter.Inspect(iter.Seq[V](seq), fn))
+	return SeqDeque[V](iter.Seq[V](seq).Inspect(fn))
 }
 
 // Intersperse inserts the provided separator between elements of the iterator.
@@ -488,7 +496,7 @@ func (seq SeqDeque[V]) Inspect(fn func(v V)) SeqDeque[V] {
 //
 // The resulting iterator will contain elements with the separator interspersed.
 func (seq SeqDeque[V]) Intersperse(sep V) SeqDeque[V] {
-	return SeqDeque[V](iter.Intersperse(iter.Seq[V](seq), sep))
+	return SeqDeque[V](iter.Seq[V](seq).Intersperse(sep))
 }
 
 // Map transforms each element in the iterator using the given function.
@@ -519,8 +527,8 @@ func (seq SeqDeque[V]) Intersperse(sep V) SeqDeque[V] {
 // Output: Deque[2, 4, 6].
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqDeque[V]) Map(transform func(V) V) SeqDeque[V] {
-	return SeqDeque[V](iter.Map(iter.Seq[V](seq), transform))
+func (seq SeqDeque[V]) Map[U any](transform func(V) U) SeqDeque[U] {
+	return SeqDeque[U](iter.Seq[V](seq).Map(transform))
 }
 
 // Partition divides the elements of the iterator into two separate deques based on a given predicate function.
@@ -611,13 +619,13 @@ func (seq SeqDeque[V]) Permutations() SeqSlices[V] {
 // Example usage:
 //
 //	iter := g.DequeOf(1, 2, 3, 4, 5).Iter()
-//	iter.Range(func(val int) bool {
+//	func(val int) bool {
 //	    fmt.Println(val) // Replace this with the function logic you need.
 //	    return val < 5 // Replace this with the condition for continuing iteration.
-//	})
+//	}.Range()
 //
 // The iteration will stop when the provided function returns false for an element.
-func (seq SeqDeque[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn) }
+func (seq SeqDeque[V]) Range(fn func(v V) bool) { iter.Seq[V](seq).Range(fn) }
 
 // Skip returns a new iterator skipping the first n elements.
 //
@@ -635,13 +643,13 @@ func (seq SeqDeque[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), f
 // Example usage:
 //
 //	iter := g.DequeOf(1, 2, 3, 4, 5, 6).Iter()
-//	iter.Skip(3).Collect().Print()
+//	3.Skip().Collect().Print()
 //
 // Output: Deque[4, 5, 6]
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (seq SeqDeque[V]) Skip(n uint) SeqDeque[V] {
-	return SeqDeque[V](iter.Skip(iter.Seq[V](seq), int(n)))
+	return SeqDeque[V](iter.Seq[V](seq).Skip(int(n)))
 }
 
 // StepBy creates a new iterator that iterates over every N-th element of the original iterator.
@@ -664,7 +672,7 @@ func (seq SeqDeque[V]) Skip(n uint) SeqDeque[V] {
 //
 // The resulting iterator will produce elements from the original iterator with a step size of N.
 func (seq SeqDeque[V]) StepBy(n uint) SeqDeque[V] {
-	return SeqDeque[V](iter.StepBy(iter.Seq[V](seq), int(n)))
+	return SeqDeque[V](iter.Seq[V](seq).StepBy(int(n)))
 }
 
 // SortBy applies a custom sorting function to the elements in the iterator
@@ -686,28 +694,28 @@ func (seq SeqDeque[V]) StepBy(n uint) SeqDeque[V] {
 // The returned iterator is of type SeqDeque[V], which implements the iterator
 // interface for further iteration over the sorted elements.
 func (seq SeqDeque[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqDeque[V] {
-	return SeqDeque[V](iter.SortBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
+	return SeqDeque[V](iter.Seq[V](seq).SortBy(func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
 func (seq SeqDeque[V]) Take(n uint) SeqDeque[V] {
-	return SeqDeque[V](iter.Take(iter.Seq[V](seq), int(n)))
+	return SeqDeque[V](iter.Seq[V](seq).Take(int(n)))
 }
 
 // First returns the first element from the sequence.
 func (seq SeqDeque[V]) First() Option[V] {
-	return OptionOf(iter.First(iter.Seq[V](seq)))
+	return OptionOf(iter.Seq[V](seq).First())
 }
 
 // Last returns the last element from the sequence.
 func (seq SeqDeque[V]) Last() Option[V] {
-	return OptionOf(iter.Last(iter.Seq[V](seq)))
+	return OptionOf(iter.Seq[V](seq).Last())
 }
 
 // Nth returns the nth element (0-indexed) in the sequence.
 func (seq SeqDeque[V]) Nth(n Int) Option[V] {
-	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
+	return OptionOf(iter.Seq[V](seq).Nth(int(n)))
 }
 
 // Chan converts the iterator into a channel, optionally with context(s).
@@ -745,7 +753,7 @@ func (seq SeqDeque[V]) Chan(ctxs ...context.Context) chan V {
 		ctx = ctxs[0]
 	}
 
-	return iter.ToChan(iter.Seq[V](seq), ctx)
+	return iter.Seq[V](seq).ToChan(ctx)
 }
 
 // Unique returns an iterator with only unique elements.
@@ -766,18 +774,14 @@ func (seq SeqDeque[V]) Chan(ctxs ...context.Context) chan V {
 //
 // The resulting iterator will contain only unique elements from the original iterator.
 func (seq SeqDeque[V]) Unique() SeqDeque[V] {
-	return SeqDeque[V](iter.Unique(iter.Seq[V](seq)))
+	return SeqDeque[V](iter.Seq[V](seq).Unique())
 }
 
-// Zip combines elements from the current sequence and another sequence into pairs,
-// creating an ordered map with identical keys and values of type V.
-func (seq SeqDeque[V]) Zip(two SeqDeque[V]) SeqMapOrd[any, any] {
-	return func(yield func(any, any) bool) {
-		zipSeq := iter.Zip(iter.Seq[V](seq), iter.Seq[V](two))
-		zipSeq(func(a, b V) bool {
-			return yield(a, b)
-		})
-	}
+// Zip combines elements from the current sequence and another sequence into pairs.
+// The element types of the two sequences may differ. Iteration stops when either
+// sequence is exhausted.
+func (seq SeqDeque[V]) Zip[U any](two SeqDeque[U]) SeqPairs[V, U] {
+	return SeqPairs[V, U](iter.Seq[V](seq).Zip(iter.Seq[U](two)))
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -797,10 +801,9 @@ func (seq SeqDeque[V]) Zip(two SeqDeque[V]) SeqMapOrd[any, any] {
 //
 //	iter := g.DequeOf(1, 2, 3, 4, 5).Iter()
 //
-//	found := iter.Find(
-//		func(i int) bool {
+//	found := //		func(i int) bool {
 //			return i == 2
-//		})
+//		}.Find()
 //
 //	if found.IsSome() {
 //		fmt.Println("Found:", found.Some())
@@ -810,7 +813,7 @@ func (seq SeqDeque[V]) Zip(two SeqDeque[V]) SeqMapOrd[any, any] {
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
 func (seq SeqDeque[V]) Find(fn func(v V) bool) Option[V] {
-	return OptionOf(iter.Find(iter.Seq[V](seq), fn))
+	return OptionOf(iter.Seq[V](seq).Find(fn))
 }
 
 // Windows returns an iterator that yields sliding windows of elements of the specified size.
@@ -840,17 +843,17 @@ func (seq SeqDeque[V]) Windows(n Int) SeqSlices[V] {
 
 // Context allows the iteration to be controlled with a context.Context.
 func (seq SeqDeque[V]) Context(ctx context.Context) SeqDeque[V] {
-	return SeqDeque[V](iter.Context(iter.Seq[V](seq), ctx))
+	return SeqDeque[V](iter.Seq[V](seq).Context(ctx))
 }
 
 // MaxBy returns the maximum element in the sequence using the provided comparison function.
 func (seq SeqDeque[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
-	return OptionOf(iter.MaxBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
+	return OptionOf(iter.Seq[V](seq).MaxBy(func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // MinBy returns the minimum element in the sequence using the provided comparison function.
 func (seq SeqDeque[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
-	return OptionOf(iter.MinBy(iter.Seq[V](seq), func(a, b V) bool { return fn(a, b) == cmp.Less }))
+	return OptionOf(iter.Seq[V](seq).MinBy(func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // FlatMap applies a function to each element and flattens the results into a single sequence.
@@ -873,11 +876,11 @@ func (seq SeqDeque[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
 //		return g.DequeOf(n, n*10).Iter()
 //	}).Collect()
 //	result.Print() // Deque[1, 10, 2, 20, 3, 30]
-func (seq SeqDeque[V]) FlatMap(fn func(V) SeqDeque[V]) SeqDeque[V] {
-	mapped := iter.MapTo(iter.Seq[V](seq), func(v V) iter.Seq[V] {
-		return iter.Seq[V](fn(v))
+func (seq SeqDeque[V]) FlatMap[U any](fn func(V) SeqDeque[U]) SeqDeque[U] {
+	mapped := iter.Seq[V](seq).Map(func(v V) iter.Seq[U] {
+		return iter.Seq[U](fn(v))
 	})
-	return SeqDeque[V](iter.FlattenSeq(mapped))
+	return SeqDeque[U](iter.FlattenSeq(mapped))
 }
 
 // FilterMap applies a function to each element and filters out None results.
@@ -905,8 +908,8 @@ func (seq SeqDeque[V]) FlatMap(fn func(V) SeqDeque[V]) SeqDeque[V] {
 //		return g.None[int]()
 //	}).Collect()
 //	result.Print() // Deque[20, 40]
-func (seq SeqDeque[V]) FilterMap(fn func(V) Option[V]) SeqDeque[V] {
-	return SeqDeque[V](iter.FilterMap(iter.Seq[V](seq), func(v V) (V, bool) {
+func (seq SeqDeque[V]) FilterMap[U any](fn func(V) Option[U]) SeqDeque[U] {
+	return SeqDeque[U](iter.Seq[V](seq).FilterMap(func(v V) (U, bool) {
 		return fn(v).Option()
 	}))
 }
@@ -933,12 +936,13 @@ func (seq SeqDeque[V]) FilterMap(fn func(V) Option[V]) SeqDeque[V] {
 //		return acc + val
 //	}).Collect()
 //	result.Print() // Deque[0, 1, 3, 6, 10, 15]
-func (seq SeqDeque[V]) Scan(init V, fn func(acc, val V) V) SeqDeque[V] {
-	return func(yield func(V) bool) {
+func (seq SeqDeque[V]) Scan[A any](init A, fn func(acc A, val V) A) SeqDeque[A] {
+	return func(yield func(A) bool) {
 		if !yield(init) {
 			return
 		}
-		iter.Scan(iter.Seq[V](seq), init, fn)(yield)
+
+		iter.Seq[V](seq).Scan(init, fn)(yield)
 	}
 }
 
@@ -950,10 +954,20 @@ func (seq SeqDeque[V]) Scan(init V, fn func(acc, val V) V) SeqDeque[V] {
 // Returns:
 // - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
 func (seq *SeqDeque[V]) Next() Option[V] {
-	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
+	if value, remaining, ok := iter.Seq[V](*seq).Next(); ok {
 		*seq = SeqDeque[V](remaining)
 		return Some(value)
 	}
 
 	return None[V]()
+}
+
+// TakeWhile yields elements while the predicate returns true, stopping at the first false.
+func (seq SeqDeque[V]) TakeWhile(fn func(V) bool) SeqDeque[V] {
+	return SeqDeque[V](iter.Seq[V](seq).TakeWhile(fn))
+}
+
+// SkipWhile skips elements while the predicate returns true, then yields the rest.
+func (seq SeqDeque[V]) SkipWhile(fn func(V) bool) SeqDeque[V] {
+	return SeqDeque[V](iter.Seq[V](seq).SkipWhile(fn))
 }

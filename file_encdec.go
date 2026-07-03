@@ -2,7 +2,8 @@ package g
 
 import (
 	"encoding/gob"
-	"encoding/json"
+
+	json "encoding/json/v2"
 )
 
 type (
@@ -79,10 +80,16 @@ func (fd fdecode) Gob(data any) Result[*File] {
 	return r
 }
 
-// JSON encodes the provided data using the encoding/json package and writes it to the file.
+// JSON encodes the provided data using the encoding/json/v2 package and writes it to the file.
 // It returns a Result[*File] indicating the success or failure of the encoding operation.
 //
 // If the encoding operation is successful, the created file is closed automatically.
+//
+// Breaking changes (v2 semantics) compared to the previous encoding/json v1 implementation:
+//   - nil slices are marshaled as [] and nil maps as {} (v1 emitted null for both);
+//   - strings containing invalid UTF-8 yield Err (v1 replaced invalid sequences with U+FFFD);
+//   - no trailing newline is written after the JSON value (v1's Encoder.Encode appended '\n');
+//   - '<', '>', '&' and U+2028/U+2029 are emitted raw (v1's Encoder HTML-escaped them).
 //
 // Usage:
 //
@@ -102,17 +109,24 @@ func (fe fencode) JSON(data any) Result[*File] {
 
 	defer r.v.Close()
 
-	if err := json.NewEncoder(r.v.Std()).Encode(data); err != nil {
+	if err := json.MarshalWrite(r.v.Std(), data); err != nil {
 		return Err[*File](err)
 	}
 
 	return r
 }
 
-// JSON decodes data from the file using the encoding/json package and populates the provided data structure.
+// JSON decodes data from the file using the encoding/json/v2 package and populates the provided data structure.
 // It returns a Result[*File] indicating the success or failure of the decoding operation.
 //
 // If the decoding operation is successful, the file is closed automatically.
+//
+// Breaking changes (v2 semantics) compared to the previous encoding/json v1 implementation:
+//   - duplicate object member names yield Err (v1 silently kept the last value);
+//   - struct field name matching is case-sensitive (v1 fell back to case-insensitive matching);
+//   - JSON strings containing invalid UTF-8 yield Err (v1 decoded them with U+FFFD replacements);
+//   - the file must contain exactly one JSON value: non-whitespace data after the
+//     top-level value yields Err (v1's Decoder.Decode read one value and ignored the rest).
 //
 // Usage:
 //
@@ -132,7 +146,7 @@ func (fd fdecode) JSON(data any) Result[*File] {
 
 	defer r.v.Close()
 
-	if err := json.NewDecoder(r.v.Std()).Decode(data); err != nil {
+	if err := json.UnmarshalRead(r.v.Std(), data); err != nil {
 		return Err[*File](err)
 	}
 

@@ -19,7 +19,7 @@ type Int int
 func NewInt[T constraints.Integer | rune | byte](i T) Int { return Int(i) }
 
 // Transform applies a transformation function to the Int and returns the result.
-func (i Int) Transform(fn func(Int) Int) Int { return fn(i) }
+func (i Int) Transform[U any](fn func(Int) U) U { return fn(i) }
 
 // Min returns the minimum of Ints.
 func (i Int) Min(b ...Int) Int { return cmp.Min(append(b, i)...) }
@@ -59,6 +59,8 @@ func (i Int) RandomRange(to Int) Int {
 }
 
 // Abs returns the absolute value of the Int.
+// Like Go's native arithmetic it wraps on overflow: Abs of math.MinInt is math.MinInt.
+// Use CheckedAbs for a guarded variant.
 func (i Int) Abs() Int {
 	if i < 0 {
 		return -i
@@ -68,7 +70,27 @@ func (i Int) Abs() Int {
 }
 
 // Add adds two Ints and returns the result.
+// Like Go's native arithmetic it wraps on overflow (two's complement).
+// Use CheckedAdd, SaturatingAdd or OverflowingAdd for guarded variants.
 func (i Int) Add(b Int) Int { return i + b }
+
+// Neg returns the Int with its sign inverted.
+// Like Go's native arithmetic it wraps on overflow: Neg of math.MinInt is math.MinInt.
+// Use CheckedNeg for a guarded variant.
+func (i Int) Neg() Int { return -i }
+
+// Signum returns the sign of the Int following Rust i64::signum semantics:
+// -1 if the Int is negative, 0 if it is zero, and 1 if it is positive.
+func (i Int) Signum() Int {
+	switch {
+	case i < 0:
+		return -1
+	case i > 0:
+		return 1
+	default:
+		return 0
+	}
+}
 
 // BigInt returns the Int as a *big.Int.
 func (i Int) BigInt() *big.Int { return big.NewInt(i.Int64()) }
@@ -120,16 +142,11 @@ func (i Int) IsZero() bool { return i == 0 }
 // IsNegative checks if the Int is negative.
 func (i Int) IsNegative() bool { return i < 0 }
 
-// IsPositive reports whether the Int is non-negative (greater than or equal to 0).
-//
-// Note: zero is reported as positive (i >= 0), so this is the logical complement
-// of IsNegative rather than a strict "greater than zero" test. For a strict
-// positivity check use i.Gt(0); for clarity prefer the IsNonNegative alias.
-func (i Int) IsPositive() bool { return i >= 0 }
-
-// IsNonNegative reports whether the Int is greater than or equal to 0.
-// It is an alias for IsPositive with a name that makes the inclusion of zero explicit.
-func (i Int) IsNonNegative() bool { return i >= 0 }
+// IsPositive reports whether the Int is strictly greater than zero, mirroring
+// Rust's i64::is_positive. Zero is neither positive nor negative: both
+// Int(0).IsPositive() and Int(0).IsNegative() return false. For a
+// non-negative check use !i.IsNegative().
+func (i Int) IsPositive() bool { return i > 0 }
 
 // Lt checks if the Int is less than the specified Int.
 func (i Int) Lt(b Int) bool { return i < b }
@@ -138,6 +155,8 @@ func (i Int) Lt(b Int) bool { return i < b }
 func (i Int) Lte(b Int) bool { return i <= b }
 
 // Mul multiplies two Ints and returns the result.
+// Like Go's native arithmetic it wraps on overflow (two's complement).
+// Use CheckedMul, SaturatingMul or OverflowingMul for guarded variants.
 func (i Int) Mul(b Int) Int { return i * b }
 
 // Ne checks if two Ints are not equal.
@@ -160,6 +179,8 @@ func (i Int) Random() Int {
 func (i Int) Rem(b Int) Int { return i % b }
 
 // Sub subtracts two Ints and returns the result.
+// Like Go's native arithmetic it wraps on overflow (two's complement).
+// Use CheckedSub, SaturatingSub or OverflowingSub for guarded variants.
 func (i Int) Sub(b Int) Int { return i - b }
 
 // Binary returns the Int as a binary string.

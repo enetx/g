@@ -14,30 +14,6 @@ func NewSet[T comparable](size ...Int) Set[T] {
 	return make(Set[T])
 }
 
-// TransformSet applies the given function to each element of a Set and returns a new Set
-// containing the transformed values.
-//
-// Parameters:
-//
-// - s: The input Set.
-// - fn: The function to apply to each element of the input Set.
-//
-// Returns:
-//
-// A new Set containing the results of applying the function to each element of the input Set.
-func TransformSet[T, U comparable](s Set[T], fn func(T) U) Set[U] {
-	if len(s) == 0 {
-		return NewSet[U]()
-	}
-
-	result := make(Set[U], len(s))
-	for v := range s {
-		result[fn(v)] = Unit{}
-	}
-
-	return result
-}
-
 // SetOf creates a new generic set containing the provided elements.
 func SetOf[T comparable](values ...T) Set[T] {
 	set := make(Set[T], len(values))
@@ -49,7 +25,7 @@ func SetOf[T comparable](values ...T) Set[T] {
 }
 
 // Transform applies a transformation function to the Set and returns the result.
-func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
+func (s Set[T]) Transform[U any](fn func(Set[T]) U) U { return fn(s) }
 
 // Iter returns an iterator (SeqSet[T]) for the Set, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
@@ -62,13 +38,12 @@ func (s Set[T]) Transform(fn func(Set[T]) Set[T]) Set[T] { return fn(s) }
 // Example usage:
 //
 //	iter := g.SetOf(1, 2, 3).Iter()
-//	iter.ForEach(func(val T) {
+//	func(val T) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
-//	})
+//	}.ForEach()
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Set
 // in a functional style, enabling operations like mapping or filtering.
-// func (s Set[T]) Iter() SeqSet[T] { return seqSet(s) }
 func (s Set[T]) Iter() SeqSet[T] {
 	return func(yield func(T) bool) {
 		for v := range s {
@@ -350,6 +325,10 @@ func (s Set[T]) String() string {
 
 	return b.String().Std()
 }
+
+// Disjoint reports whether the set has no elements in common with other.
+// It is the complement of ContainsAny.
+func (s Set[T]) Disjoint(other Set[T]) bool { return !s.ContainsAny(other) }
 
 // Print writes the elements of the Set to the standard output (console)
 // and returns the Set unchanged.

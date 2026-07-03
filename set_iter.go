@@ -3,6 +3,7 @@ package g
 import (
 	"context"
 
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/iter"
 )
 
@@ -28,7 +29,7 @@ type SeqSet[V comparable] iter.Seq[V]
 //
 // It is an error to call next or stop from multiple goroutines
 // simultaneously.
-func (seq SeqSet[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.Seq[V](seq)) }
+func (seq SeqSet[V]) Pull() (func() (V, bool), func()) { return iter.Seq[V](seq).Pull() }
 
 // All checks whether all elements in the iterator satisfy the provided condition.
 // This function is useful when you want to determine if all elements in an iterator
@@ -48,7 +49,7 @@ func (seq SeqSet[V]) Pull() (func() (V, bool), func()) { return iter.Pull(iter.S
 //	allPositive := set.Iter().All(isPositive)
 //
 // The resulting allPositive will be true if all elements returned by the iterator are positive.
-func (seq SeqSet[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V](seq), fn) }
+func (seq SeqSet[V]) All(fn func(v V) bool) bool { return iter.Seq[V](seq).All(fn) }
 
 // Any checks whether any element in the iterator satisfies the provided condition.
 // This function is useful when you want to determine if at least one element in an iterator
@@ -68,12 +69,12 @@ func (seq SeqSet[V]) All(fn func(v V) bool) bool { return iter.All(iter.Seq[V](s
 //	anyEven := set.Iter().Any(isEven)
 //
 // The resulting anyEven will be true if at least one element returned by the iterator is even.
-func (seq SeqSet[V]) Any(fn func(V) bool) bool { return iter.Any(iter.Seq[V](seq), fn) }
+func (seq SeqSet[V]) Any(fn func(V) bool) bool { return iter.Seq[V](seq).Any(fn) }
 
 // Inspect creates a new iterator that wraps around the current iterator
 // and allows inspecting each element as it passes through.
 func (seq SeqSet[V]) Inspect(fn func(v V)) SeqSet[V] {
-	return SeqSet[V](iter.Inspect(iter.Seq[V](seq), fn))
+	return SeqSet[V](iter.Seq[V](seq).Inspect(fn))
 }
 
 // Collect gathers all elements from the iterator into a Set.
@@ -116,11 +117,46 @@ func (seq SeqSet[V]) Chain(seqs ...SeqSet[V]) SeqSet[V] {
 		iterSeqs[i] = iter.Seq[V](s)
 	}
 
-	return SeqSet[V](iter.Chain(iter.Seq[V](seq), iterSeqs...))
+	return SeqSet[V](iter.Seq[V](seq).Chain(iterSeqs...))
 }
 
 // Count consumes the iterator, counting the number of iterations and returning it.
-func (seq SeqSet[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
+func (seq SeqSet[V]) Count() Int { return Int(iter.Seq[V](seq).Count()) }
+
+// CounterBy consumes the sequence and returns an ordered map from fn(element) to
+// the number of elements that produced that key: fn is applied to every element,
+// and elements whose keys collide are merged into one bucket with their counts
+// summed. Key order is first-seen. The key type must be comparable; for identity
+// counting pass the identity function (func(v V) V { return v }).
+//
+// Example usage:
+//
+//	words.Iter().CounterBy(func(w String) Int { return w.Len() })
+//	// MapOrd{5:2, 4:1} — counts by word length, in first-seen order
+func (seq SeqSet[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
+	return func(yield func(K, Int) bool) {
+		var order Slice[K]
+
+		counts := NewMap[K, Int]()
+
+		seq(func(v V) bool {
+			k := fn(v)
+			if !counts.Contains(k) {
+				order.Push(k)
+			}
+
+			counts[k]++
+
+			return true
+		})
+
+		for _, k := range order {
+			if !yield(k, counts[k]) {
+				return
+			}
+		}
+	}
+}
 
 // Fold accumulates values in the iterator using a function.
 //
@@ -150,8 +186,8 @@ func (seq SeqSet[V]) Count() Int { return Int(iter.Count(iter.Seq[V](seq))) }
 // Output: 15.
 //
 // The resulting value will be the accumulation of elements based on the provided function.
-func (seq SeqSet[V]) Fold(init V, fn func(acc, val V) V) V {
-	return iter.Fold(iter.Seq[V](seq), init, fn)
+func (seq SeqSet[V]) Fold[A any](init A, fn func(acc A, val V) A) A {
+	return iter.Seq[V](seq).Fold(init, fn)
 }
 
 // Reduce aggregates elements of the sequence using the provided function.
@@ -174,7 +210,7 @@ func (seq SeqSet[V]) Fold(init V, fn func(acc, val V) V) V {
 //	    fmt.Println("empty")
 //	}
 func (seq SeqSet[V]) Reduce(fn func(a, b V) V) Option[V] {
-	return OptionOf(iter.Reduce(iter.Seq[V](seq), fn))
+	return OptionOf(iter.Seq[V](seq).Reduce(fn))
 }
 
 // ForEach iterates through all elements and applies the given function to each.
@@ -188,12 +224,12 @@ func (seq SeqSet[V]) Reduce(fn func(a, b V) V) Option[V] {
 // Example usage:
 //
 //	iter := g.SetOf(1, 2, 3).Iter()
-//	iter.ForEach(func(val V) {
+//	func(val V) {
 //	    fmt.Println(val) // Replace this with the function logic you need.
-//	})
+//	}.ForEach()
 //
 // The provided function will be applied to each element in the iterator.
-func (seq SeqSet[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) }
+func (seq SeqSet[V]) ForEach(fn func(v V)) { iter.Seq[V](seq).ForEach(fn) }
 
 // Range iterates through elements until the given function returns false.
 //
@@ -207,14 +243,14 @@ func (seq SeqSet[V]) ForEach(fn func(v V)) { iter.ForEach(iter.Seq[V](seq), fn) 
 //
 // iter := g.SetOf(1, 2, 2, 3, 4, 5).Iter()
 //
-//	iter.Range(func(v int) bool {
+//	func(v int) bool {
 //	    if v == 3 {
 //	        return false
 //	    }
 //	    print(v)
 //	    return true
-//	})
-func (seq SeqSet[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn) }
+//	}.Range()
+func (seq SeqSet[V]) Range(fn func(v V) bool) { iter.Seq[V](seq).Range(fn) }
 
 // Filter returns a new iterator containing only the elements that satisfy the provided function.
 //
@@ -245,7 +281,7 @@ func (seq SeqSet[V]) Range(fn func(v V) bool) { iter.Range(iter.Seq[V](seq), fn)
 //
 // The resulting iterator will contain only the elements that satisfy the provided function.
 func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] {
-	return SeqSet[V](iter.Filter(iter.Seq[V](seq), fn))
+	return SeqSet[V](iter.Seq[V](seq).Filter(fn))
 }
 
 // Exclude returns a new iterator excluding elements that satisfy the provided function.
@@ -277,7 +313,7 @@ func (seq SeqSet[V]) Filter(fn func(V) bool) SeqSet[V] {
 //
 // The resulting iterator will contain only the elements that do not satisfy the provided function.
 func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
-	return SeqSet[V](iter.Exclude(iter.Seq[V](seq), fn))
+	return SeqSet[V](iter.Seq[V](seq).Exclude(fn))
 }
 
 // FilterMap applies a function to each element and filters out None results.
@@ -305,8 +341,8 @@ func (seq SeqSet[V]) Exclude(fn func(V) bool) SeqSet[V] {
 //		return g.None[int]()
 //	}).Collect()
 //	// result contains only even numbers multiplied by 10
-func (seq SeqSet[V]) FilterMap(fn func(V) Option[V]) SeqSet[V] {
-	return SeqSet[V](iter.FilterMap(iter.Seq[V](seq), func(v V) (V, bool) {
+func (seq SeqSet[V]) FilterMap[U comparable](fn func(V) Option[U]) SeqSet[U] {
+	return SeqSet[U](iter.Seq[V](seq).FilterMap(func(v V) (U, bool) {
 		return fn(v).Option()
 	}))
 }
@@ -318,11 +354,12 @@ func (seq SeqSet[V]) FilterMap(fn func(V) Option[V]) SeqSet[V] {
 //
 // Params:
 //
-// - fn (func(V) V): The function used to transform elements.
+//   - fn (func(V) U): The function used to transform elements. The result type may differ
+//     from the element type but must be comparable.
 //
 // Returns:
 //
-// - SeqSet[V]: A new iterator containing elements transformed by the provided function.
+// - SeqSet[U]: A new iterator containing elements transformed by the provided function.
 //
 // Example usage:
 //
@@ -338,8 +375,8 @@ func (seq SeqSet[V]) FilterMap(fn func(V) Option[V]) SeqSet[V] {
 // Output: Set{2, 4, 6} // The output order may vary as the Set type is not ordered.
 //
 // The resulting iterator will contain elements transformed by the provided function.
-func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
-	return SeqSet[V](iter.Map(iter.Seq[V](seq), transform))
+func (seq SeqSet[V]) Map[U comparable](transform func(V) U) SeqSet[U] {
+	return SeqSet[U](iter.Seq[V](seq).Map(transform))
 }
 
 // Find searches for an element in the iterator that satisfies the provided function.
@@ -359,10 +396,9 @@ func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
 //
 //	iter := g.SetOf(1, 2, 3, 4, 5).Iter()
 //
-//	found := iter.Find(
-//		func(i int) bool {
+//	found := //		func(i int) bool {
 //			return i == 2
-//		})
+//		}.Find()
 //
 //	if found.IsSome() {
 //		fmt.Println("Found:", found.Some())
@@ -372,12 +408,55 @@ func (seq SeqSet[V]) Map(transform func(V) V) SeqSet[V] {
 //
 // The resulting Option may contain the first element that satisfies the condition, or None if not found.
 func (seq SeqSet[V]) Find(fn func(v V) bool) Option[V] {
-	return OptionOf(iter.Find(iter.Seq[V](seq), fn))
+	return OptionOf(iter.Seq[V](seq).Find(fn))
 }
 
 // Context allows the iteration to be controlled with a context.Context.
 func (seq SeqSet[V]) Context(ctx context.Context) SeqSet[V] {
-	return SeqSet[V](iter.Context(iter.Seq[V](seq), ctx))
+	return SeqSet[V](iter.Seq[V](seq).Context(ctx))
+}
+
+// Chan converts the iterator into a channel, optionally with context(s).
+//
+// The function converts the elements of the iterator into a channel for streaming purposes.
+// Optionally, it accepts context(s) to handle cancellation or timeout scenarios.
+//
+// Params:
+//
+// - ctxs (context.Context): Optional context(s) to control the channel behavior (e.g., cancellation).
+//
+// Returns:
+//
+// - chan V: A channel containing the elements from the iterator.
+//
+// Example usage:
+//
+//	set := g.SetOf(1, 2, 3)
+//	ctx, cancel := context.WithCancel(context.Background())
+//	defer cancel() // Ensure cancellation to avoid goroutine leaks.
+//	ch := set.Iter().Chan(ctx)
+//	for val := range ch {
+//	    fmt.Println(val)
+//	}
+//
+// The resulting channel allows streaming elements from the iterator with optional context handling.
+func (seq SeqSet[V]) Chan(ctxs ...context.Context) chan V {
+	ctx := context.Background()
+	if len(ctxs) > 0 {
+		ctx = ctxs[0]
+	}
+
+	return iter.Seq[V](seq).ToChan(ctx)
+}
+
+// MaxBy returns the maximum element in the sequence using the provided comparison function.
+func (seq SeqSet[V]) MaxBy(fn func(V, V) cmp.Ordering) Option[V] {
+	return OptionOf(iter.Seq[V](seq).MaxBy(func(a, b V) bool { return fn(a, b) == cmp.Less }))
+}
+
+// MinBy returns the minimum element in the sequence using the provided comparison function.
+func (seq SeqSet[V]) MinBy(fn func(V, V) cmp.Ordering) Option[V] {
+	return OptionOf(iter.Seq[V](seq).MinBy(func(a, b V) bool { return fn(a, b) == cmp.Less }))
 }
 
 // Skip returns a new iterator skipping the first n elements.
@@ -400,16 +479,48 @@ func (seq SeqSet[V]) Context(ctx context.Context) SeqSet[V] {
 //
 // The resulting iterator will start after skipping the specified number of elements.
 func (seq SeqSet[V]) Skip(n uint) SeqSet[V] {
-	return SeqSet[V](iter.Skip(iter.Seq[V](seq), int(n)))
+	return SeqSet[V](iter.Seq[V](seq).Skip(int(n)))
+}
+
+// StepBy creates a new iterator that iterates over every N-th element of the original iterator.
+// This function is useful when you want to skip a specific number of elements between each iteration.
+// Note: for an unordered Set, which elements are selected depends on iteration order.
+//
+// Parameters:
+// - n uint: The step size, indicating how many elements to skip between each iteration.
+//
+// Returns:
+// - SeqSet[V]: A new iterator that produces elements from the original iterator with a step size of N.
+//
+// Example usage:
+//
+//	set := g.SetOf(1, 2, 3, 4, 5, 6)
+//	set.Iter().StepBy(2).Collect().Print()
+//
+// The resulting iterator will produce elements from the original iterator with a step size of N.
+func (seq SeqSet[V]) StepBy(n uint) SeqSet[V] {
+	return SeqSet[V](iter.Seq[V](seq).StepBy(int(n)))
+}
+
+// First returns the first element from the sequence.
+// Note: for an unordered Set the notion of "first" depends on iteration order.
+func (seq SeqSet[V]) First() Option[V] {
+	return OptionOf(iter.Seq[V](seq).First())
+}
+
+// Last returns the final element of the sequence, or None if it is empty.
+// Note: for an unordered Set the notion of "last" depends on iteration order.
+func (seq SeqSet[V]) Last() Option[V] {
+	return OptionOf(iter.Seq[V](seq).Last())
 }
 
 // Take returns a new iterator with the first n elements.
 // The function creates a new iterator containing the first n elements from the original iterator.
-func (seq SeqSet[V]) Take(n uint) SeqSet[V] { return SeqSet[V](iter.Take(iter.Seq[V](seq), int(n))) }
+func (seq SeqSet[V]) Take(n uint) SeqSet[V] { return SeqSet[V](iter.Seq[V](seq).Take(int(n))) }
 
 // Nth returns the nth element (0-indexed) in the sequence.
 func (seq SeqSet[V]) Nth(n Int) Option[V] {
-	return OptionOf(iter.Nth(iter.Seq[V](seq), int(n)))
+	return OptionOf(iter.Seq[V](seq).Nth(int(n)))
 }
 
 func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
@@ -431,7 +542,7 @@ func difference[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 // Returns:
 // - Option[V]: Some(value) if an element exists, None if the iterator is exhausted.
 func (seq *SeqSet[V]) Next() Option[V] {
-	if value, remaining, ok := iter.Next(iter.Seq[V](*seq)); ok {
+	if value, remaining, ok := iter.Seq[V](*seq).Next(); ok {
 		*seq = SeqSet[V](remaining)
 		return Some(value)
 	}
@@ -448,4 +559,41 @@ func intersection[V comparable](seq SeqSet[V], other Set[V]) SeqSet[V] {
 			return true
 		})
 	}
+}
+
+// Difference returns a sequence containing the elements of the sequence
+// that are not present in the other set.
+func (seq SeqSet[V]) Difference(other Set[V]) SeqSet[V] { return difference(seq, other) }
+
+// Intersection returns a sequence containing only the elements of the sequence
+// that are also present in the other set.
+func (seq SeqSet[V]) Intersection(other Set[V]) SeqSet[V] { return intersection(seq, other) }
+
+// Partition consumes the sequence and splits its elements into two sets based on
+// the predicate: elements for which fn returns true go into the first set, the
+// rest into the second.
+func (seq SeqSet[V]) Partition(fn func(V) bool) (Set[V], Set[V]) {
+	left, right := NewSet[V](), NewSet[V]()
+
+	seq(func(v V) bool {
+		if fn(v) {
+			left.Insert(v)
+		} else {
+			right.Insert(v)
+		}
+
+		return true
+	})
+
+	return left, right
+}
+
+// TakeWhile yields elements while the predicate returns true, stopping at the first false.
+func (seq SeqSet[V]) TakeWhile(fn func(V) bool) SeqSet[V] {
+	return SeqSet[V](iter.Seq[V](seq).TakeWhile(fn))
+}
+
+// SkipWhile skips elements while the predicate returns true, then yields the rest.
+func (seq SeqSet[V]) SkipWhile(fn func(V) bool) SeqSet[V] {
+	return SeqSet[V](iter.Seq[V](seq).SkipWhile(fn))
 }

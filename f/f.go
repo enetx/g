@@ -1,3 +1,5 @@
+// Package f provides predicate helpers and combinators (f.Eq, f.Gt, f.Contains, ...)
+// for use with iterator methods such as Filter and Exclude.
 package f
 
 import (
@@ -8,6 +10,13 @@ import (
 
 	"github.com/enetx/g/constraints"
 )
+
+// Id returns its argument unchanged. It is the identity function, useful
+// wherever a transform is required but the value should pass through as-is;
+// it pairs with CounterBy for occurrence counting:
+//
+//	words.Iter().CounterBy(f.Id)
+func Id[T any](t T) T { return t }
 
 // IsComparable reports whether the type T is comparable at the type level.
 // It uses reflect.TypeFor[T]() without requiring a value, making it suitable

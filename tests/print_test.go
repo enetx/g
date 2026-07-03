@@ -1578,3 +1578,29 @@ func TestFormatMultipleNamedLastWins(t *testing.T) {
 		t.Errorf("last Named map should win: expected 'second', got %q", got)
 	}
 }
+
+// voidModType is a fixture for TestFormatVoidMethodNotCalled: Touch has no
+// return values and must never be invoked by the format engine.
+type voidModType struct {
+	called bool
+}
+
+func (v *voidModType) Touch()         { v.called = true }
+func (v *voidModType) String() string { return "voidmod" }
+
+// TestFormatVoidMethodNotCalled verifies that a method with NumOut()==0 is
+// treated as "method not found": it is not called (no side effects) and the
+// placeholder falls back to rendering the value unchanged.
+func TestFormatVoidMethodNotCalled(t *testing.T) {
+	v := &voidModType{}
+
+	got := Format("{1.Touch}", v).Std()
+
+	if v.called {
+		t.Error("void method Touch was called by the format engine; NumOut()==0 methods must not be invoked")
+	}
+
+	if got != "voidmod" {
+		t.Errorf("placeholder fallback: expected %q, got %q", "voidmod", got)
+	}
+}

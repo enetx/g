@@ -732,7 +732,7 @@ func TestMapIterInspect(t *testing.T) {
 	}
 }
 
-func TestMapTransformMap(t *testing.T) {
+func TestMapTransform(t *testing.T) {
 	original := Map[string, int]{"a": 1, "b": 2}
 
 	addEntry := func(m Map[string, int]) Map[string, int] {
@@ -847,5 +847,22 @@ func TestMapEqInterfaceUncomparable(t *testing.T) {
 	m5 := Map[string, any]{"n": 5, "s": []string{"x"}}
 	if m4.Ne(m5) {
 		t.Error("expected mixed comparable/uncomparable maps to be Eq")
+	}
+}
+
+func TestMapOfHeapOfMapOrdOf(t *testing.T) {
+	m := MapOf(Pair[string, int]{Key: "a", Value: 1}, Pair[string, int]{Key: "b", Value: 2})
+	if m.Len() != 2 || m.Get("b").UnwrapOr(0) != 2 {
+		t.Errorf("MapOf = %v", m)
+	}
+
+	mo := MapOrdOf(Pair[string, int]{Key: "z", Value: 26}, Pair[string, int]{Key: "a", Value: 1})
+	if k, _ := mo.Iter().First().Some().Key, 0; k != "z" {
+		t.Errorf("MapOrdOf order broken: first key %v", k)
+	}
+
+	h := HeapOf(cmp.Cmp[int], 5, 1, 3)
+	if h.Peek().Some() != 1 {
+		t.Errorf("HeapOf min = %v, want 1", h.Peek())
 	}
 }

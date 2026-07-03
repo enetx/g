@@ -47,7 +47,7 @@ func (d *Dir) IsLink() bool {
 	return stat.IsOk() && stat.v.Mode()&os.ModeSymlink != 0
 }
 
-// CreateTemp creates a new temporary directory in the specified directory with the
+// CreateTempDir creates a new temporary directory in the specified directory with the
 // specified name pattern and returns a Result, which contains a pointer to the Dir
 // or an error if the operation fails.
 // If no directory is specified, the default directory for temporary directories is used.
@@ -64,11 +64,10 @@ func (d *Dir) IsLink() bool {
 //
 // Example usage:
 //
-// d := g.NewDir("")
-// tmpdir := d.CreateTemp()                     // Creates a temporary directory with default settings
-// tmpdirWithDir := d.CreateTemp("mydir")       // Creates a temporary directory in "mydir" directory
-// tmpdirWithPattern := d.CreateTemp("", "tmp") // Creates a temporary directory with "tmp" pattern
-func (*Dir) CreateTemp(args ...String) Result[*Dir] {
+// tmpdir := g.CreateTempDir()                     // Creates a temporary directory with default settings
+// tmpdirWithDir := g.CreateTempDir("mydir")       // Creates a temporary directory in "mydir" directory
+// tmpdirWithPattern := g.CreateTempDir("", "tmp") // Creates a temporary directory with "tmp" pattern
+func CreateTempDir(args ...String) Result[*Dir] {
 	dir := ""
 	pattern := "*"
 
@@ -88,7 +87,7 @@ func (*Dir) CreateTemp(args ...String) Result[*Dir] {
 	return Ok(NewDir(String(tmpDir)))
 }
 
-// Temp returns the default directory to use for temporary files.
+// TempDir returns the default directory to use for temporary files.
 //
 // On Unix systems, it returns $TMPDIR if non-empty, else /tmp.
 // On Windows, it uses GetTempPath, returning the first non-empty
@@ -97,7 +96,7 @@ func (*Dir) CreateTemp(args ...String) Result[*Dir] {
 //
 // The directory is neither guaranteed to exist nor have accessible
 // permissions.
-func (*Dir) Temp() *Dir { return NewDir(String(os.TempDir())) }
+func TempDir() *Dir { return NewDir(String(os.TempDir())) }
 
 // Remove attempts to delete the directory and its contents.
 // It returns a Result, which contains either the *Dir or an error.
@@ -241,7 +240,7 @@ func (d *Dir) Join(elem ...String) Result[String] {
 	se := SliceOf(elem...)
 	se.Insert(0, path.v)
 
-	return Ok(String(filepath.Join(TransformSlice(se, String.Std)...)))
+	return Ok(String(filepath.Join(transformSlice(se, String.Std)...)))
 }
 
 // SetPath sets the path of the current directory.
@@ -280,7 +279,7 @@ func (d *Dir) SetPath(path String) *Dir {
 //	dir.CreateAll()
 //	dir.CreateAll(0755)
 func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
-	if d.Exist() {
+	if d.Exists() {
 		return Ok(d)
 	}
 
@@ -356,7 +355,7 @@ func (d *Dir) Path() Result[String] {
 	return Ok(String(path))
 }
 
-// Exist checks if the current directory exists.
+// Exists checks if the current directory exists.
 //
 // Returns:
 //
@@ -365,8 +364,8 @@ func (d *Dir) Path() Result[String] {
 // Example usage:
 //
 //	dir := g.NewDir("path/to/directory")
-//	exists := dir.Exist()
-func (d *Dir) Exist() bool {
+//	exists := dir.Exists()
+func (d *Dir) Exists() bool {
 	path := d.Path()
 	if path.IsErr() {
 		return false

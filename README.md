@@ -15,7 +15,7 @@
 go get github.com/enetx/g
 ```
 
-Requires **Go 1.24+**
+Requires **Go 1.27+** (generic methods: `Map`, `Then`, `Fold`, `Zip` and friends change element types right in the chain — no more package-level `Transform*` workarounds)
 
 ---
 
@@ -95,18 +95,22 @@ g.Some(5).Then(func(x int) g.Option[int] {
 
 | Method | Description |
 |--------|-------------|
-| `IsSome()` | Returns true if contains value |
-| `IsNone()` | Returns true if empty |
-| `Some()` | Returns value (same as Unwrap) |
-| `Unwrap()` | Returns value, panics if None |
-| `UnwrapOr(default)` | Returns value or default |
-| `UnwrapOrDefault()` | Returns value or zero value |
-| `UnwrapOrElse(fn)` | Returns value or result of fn |
-| `Expect(msg)` | Returns value, panics with msg if None |
-| `Then(fn)` | Transforms value if Some |
+| `IsSome()` / `IsNone()` | Presence checks |
+| `IsSomeAnd(pred)` / `IsNoneOr(pred)` | Presence combined with a predicate |
+| `Some()` | Returns value (zero value if None — check first) |
+| `Unwrap()` / `Expect(msg)` | Returns value, panics if None |
+| `UnwrapOr(default)` / `UnwrapOrDefault()` | Returns value or fallback |
+| `Map(fn)` | Transforms the value, may change its type |
+| `MapOr(def, fn)` / `MapOrElse(defFn, fn)` | Map or fall back to a default |
+| `Then(fn)` | Chains a fallible transformation (and_then) |
+| `Filter(pred)` | Returns None if predicate fails |
+| `Or(other)` / `OrElse(fn)` | Fallback Option |
+| `Inspect(fn)` | Side effect on Some, returns self |
+| `OkOr(err)` / `OkOrElse(fn)` | Converts to Result |
+| `Take()` / `Replace(v)` / `Insert(v)` | In-place mutation |
 | `Option()` | Returns (value, bool) |
-| `Take()` | Takes value, leaves None |
-| `Filter(fn)` | Returns None if predicate fails |
+
+JSON: `Some(v)` ⇄ value, `None` ⇄ `null` (encoding/json/v2 native, v1 compatible).
 
 </details>
 
@@ -142,20 +146,22 @@ opt := result.Option()      // Some(42)
 
 | Method | Description |
 |--------|-------------|
-| `IsOk()` | Returns true if success |
-| `IsErr()` | Returns true if error |
-| `Ok()` | Returns value (same as Unwrap) |
-| `Err()` | Returns error |
-| `Unwrap()` | Returns value, panics if Err |
-| `UnwrapOr(default)` | Returns value or default |
-| `UnwrapOrDefault()` | Returns value or zero value |
-| `UnwrapOrElse(fn)` | Returns value or result of fn |
-| `Expect(msg)` | Returns value, panics with msg |
-| `Then(fn)` | Chains operation if Ok |
-| `ThenOf(fn)` | Chains (T, error) function |
-| `MapErr(fn)` | Transforms error if Err |
-| `Option()` | Converts to Option |
-| `Result()` | Returns (value, error) |
+| `IsOk()` / `IsErr()` | State checks |
+| `IsOkAnd(pred)` / `IsErrAnd(pred)` | State combined with a predicate |
+| `Ok()` / `Err()` | Returns value / error (zero if the other state) |
+| `Unwrap()` / `Expect(msg)` | Returns value, panics if Err |
+| `UnwrapErr()` | Returns error, panics if Ok |
+| `UnwrapOr(default)` / `UnwrapOrDefault()` | Returns value or fallback |
+| `Map(fn)` | Transforms the value, may change its type |
+| `MapOr(def, fn)` / `MapOrElse(defFn, fn)` | Map or fall back |
+| `Then(fn)` / `ThenOf(fn)` | Chains Result / (T, error) functions |
+| `Or(other)` / `OrElse(fn)` | Fallback Result |
+| `MapErr(fn)` / `Wrap(err)` | Transforms / wraps the error |
+| `Inspect(fn)` / `InspectErr(fn)` | Side effects, return self |
+| `ErrIs(target)` / `ErrAs(target)` | errors.Is / errors.As integration |
+| `Option()` / `Result()` | Converts to Option / (value, error) |
+
+JSON: `Ok(v)` ⇄ `{"ok": v}`, `Err(e)` ⇄ `{"err": "msg"}` (externally tagged, like serde; duplicate keys rejected).
 
 </details>
 
@@ -167,7 +173,7 @@ Extended slice with 90+ methods.
 
 ```go
 s := g.SliceOf(1, 2, 3, 4, 5)
-s := g.NewSlice[int](10)        // with capacity
+s := g.NewSlice[int](0, 10)     // empty, with capacity 10 (one arg sets len AND cap)
 
 s.Len()                         // Int(5)
 s.Get(0)                        // Some(1)
@@ -207,6 +213,7 @@ Extended map with Entry API.
 
 ```go
 m := g.NewMap[string, int]()
+// or from pairs: g.MapOf(g.Pair[string, int]{"a", 1}, g.Pair[string, int]{"b", 2})
 
 m.Insert("a", 1)                // insert value
 m.Get("a")                      // Some(1)
@@ -273,6 +280,13 @@ s := g.SetOf(1, 2, 3)
 s.Insert(4)                     // add
 s.Remove(1)                     // remove
 s.Contains(2)                   // true
+
+// Set algebra (lazy sequences)
+s.Union(other)                  // A ∪ B
+s.Intersection(other)           // A ∩ B
+s.Difference(other)             // A \ B
+s.SymmetricDifference(other)    // A △ B
+s.Disjoint(other)               // no common elements?
 ```
 
 ### Set Operations
@@ -302,6 +316,7 @@ import "github.com/enetx/g/cmp"
 // Min-heap (smallest first)
 h := g.NewHeap(cmp.Cmp[int])
 h.Push(5, 3, 8, 1, 9)
+// or in one go: g.HeapOf(cmp.Cmp[int], 5, 3, 8, 1, 9)
 
 h.Peek()                        // Some(1)
 h.Pop()                         // Some(1)
@@ -356,6 +371,30 @@ g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10).
 // [4, 16, 36]
 ```
 
+Thanks to generic methods (Go 1.27+), transformations can change the element type
+right in the chain — just like Rust iterators:
+
+```go
+g.SliceOf(1, 2, 3).
+    Iter().
+    Map(func(x int) g.String { return g.Int(x).String() }). // SeqSlice[int] -> SeqSlice[g.String]
+    Collect().
+    Join(", ").
+    Println() // 1, 2, 3
+
+// Fold into any accumulator type
+words := g.SliceOf[g.String]("a", "bb", "ccc")
+total := words.Iter().Fold(g.Int(0), func(acc g.Int, w g.String) g.Int { return acc + w.Len() })
+// 6
+
+// Typed Zip — pairs keep their real types
+nums := g.SliceOf(1, 2, 3)
+names := g.SliceOf("one", "two", "three")
+nums.Iter().Zip(names.Iter()).ForEach(func(n int, s string) {
+    fmt.Println(n, s)
+})
+```
+
 ### Common Patterns
 
 ```go
@@ -388,11 +427,12 @@ g.SliceOf("", "a", "").Iter().Exclude(f.IsZero).Collect()       // ["a"]
 | `Filter` | `Skip` | `Zip` | `Fold` | `Any` | `Inspect` |
 | `Exclude` | `StepBy` | `Enumerate` | `Reduce` | `All` | `Range` |
 | `FilterMap` | `First` | `Intersperse` | `Count` | `MaxBy` | `Scan` |
-| `FlatMap` | `Last` | `Cycle` | `Counter` | `MinBy` | `Combinations` |
+| `FlatMap` | `Last` | `Cycle` | `CounterBy` | `MinBy` | `Combinations` |
 | `Flatten` | `Nth` | | `Partition` | | `Permutations` |
-| `Dedup` | `Chunks` | | `GroupBy` | | `Context` |
+| `Dedup` | `Chunks` | | `ChunkBy` | | `Context` |
 | `Unique` | `Windows` | | | | `Chan` |
-| `SortBy` | | | | | `Parallel` |
+| `SortBy` | `TakeWhile` | | | | |
+| | `SkipWhile` | | | | |
 
 </details>
 
@@ -585,11 +625,28 @@ i.IsNegative()                  // false
 i.Binary()                      // binary string
 i.Hex()                         // hex string
 
+// Checked arithmetic — overflow becomes None instead of a silent wraparound
+g.Int(math.MaxInt).CheckedAdd(1)   // None
+g.Int(10).CheckedDiv(0)            // None — no division panic
+g.Int(2).CheckedPow(62)            // Some(4611686018427387904)
+
+// Saturating / Overflowing variants
+g.Int(math.MaxInt).SaturatingAdd(1)   // MaxInt (clamped)
+v, overflowed := g.Int(math.MaxInt).OverflowingAdd(1) // MinInt, true
+
 // Float
 f := g.Float(3.14159)
 f.Round()                       // Int(3)
 f.RoundDecimal(2)               // Float(3.14)
 f.Sqrt()                        // square root
+
+// Float math & classification (Rust f64 parity)
+g.Float(1).Div(0).IsInf()       // true
+g.Float(-3.75).Fract()          // -0.75
+g.Float(2.5).Clamp(0, 2)        // 2
+g.Float(math.Pi).ToDegrees()    // 180
+g.Float(0.1).MulAdd(10, -1)     // true FMA — single rounding
+// plus Exp/Ln/Log2/Log10, Sin..Atanh, Signum, Copysign, Hypot, Cbrt...
 
 // Compare
 i.Cmp(g.Int(50))                // cmp.Less
@@ -648,7 +705,7 @@ g.NewFile("text.txt").
 
 // Properties
 f := g.NewFile("test.txt")
-f.Exist()                       // check existence
+f.Exists()                       // check existence
 f.Stat()                        // file info
 f.Copy("backup.txt")            // copy
 f.Rename("new.txt")             // rename

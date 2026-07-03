@@ -32,7 +32,7 @@ func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { retu
 func (s String) Clone() String { return String(strings.Clone(s.Std())) }
 
 // Transform applies a transformation function to the String and returns the result.
-func (s String) Transform(fn func(String) String) String { return fn(s) }
+func (s String) Transform[U any](fn func(String) U) U { return fn(s) }
 
 // Builder returns a new Builder initialized with the content of the String.
 func (s String) Builder() *Builder {
@@ -52,7 +52,7 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 // is excluded unless explicitly provided.
 //
 // Parameters:
-// - count (Int): Length of the random String to generate.
+// - length (Int): Length of the random String to generate.
 // - letters (...String): Additional character sets to consider for generating the random String (optional).
 //
 // Returns:
@@ -63,7 +63,7 @@ func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
 //
 // Example usage:
 //
-//	randomString := g.String.Random(10)
+//	randomString := g.String("").Random(10)
 //	randomString contains a random String with 10 characters.
 func (String) Random(length Int, letters ...String) String {
 	if length <= 0 {
@@ -93,12 +93,12 @@ func (String) Random(length Int, letters ...String) String {
 
 	const charset = ASCII_LETTERS + DIGITS
 	n := len(charset)
-	buf := make([]byte, length)
+	buf := make(Bytes, length)
 	for i := range buf {
 		buf[i] = charset[rand.N(n)]
 	}
 
-	return String(buf)
+	return buf.StringUnsafe()
 }
 
 // IsASCII checks if all characters in the String are ASCII bytes.
@@ -137,26 +137,26 @@ func (s String) TryInt() Result[Int] {
 	return Ok(Int(hint))
 }
 
-// TryBigInt attempts to convert the String receiver into an Option containing a *big.Int.
+// TryBigInt attempts to convert the String receiver into a Result containing a *big.Int.
 // This function assumes the string represents a numerical value, which can be in decimal,
 // hexadecimal (prefixed with "0x"), or octal (prefixed with "0") format. The function
 // leverages the SetString method of the math/big package, automatically detecting the
 // numeric base when set to 0.
 //
 // If the string is correctly formatted and represents a valid number, TryBigInt returns
-// a Some containing the *big.Int parsed from the string. If the string is empty, contains
+// an Ok containing the *big.Int parsed from the string. If the string is empty, contains
 // invalid characters, or does not conform to a recognizable numeric format, TryBigInt
-// returns a None, indicating that the conversion was unsuccessful.
+// returns an Err describing the invalid input.
 //
 // Returns:
-//   - An Option[*big.Int] encapsulating the conversion result. It returns Some[*big.Int]
-//     with the parsed value if successful, otherwise None[*big.Int] if the parsing fails.
-func (s String) TryBigInt() Option[*big.Int] {
+//   - A Result[*big.Int] encapsulating the conversion result. It returns Ok[*big.Int]
+//     with the parsed value if successful, otherwise Err[*big.Int] if the parsing fails.
+func (s String) TryBigInt() Result[*big.Int] {
 	if bigInt, ok := new(big.Int).SetString(s.Std(), 0); ok {
-		return Some(bigInt)
+		return Ok(bigInt)
 	}
 
-	return None[*big.Int]()
+	return Err[*big.Int](fmt.Errorf("invalid big integer: %q", s.Std()))
 }
 
 // TryFloat tries to parse the String as a float64 and returns an Float.
@@ -401,33 +401,30 @@ func (s String) EndsWithAny(suffixes ...String) bool {
 
 // Lines splits the String by lines and returns the iterator.
 func (s String) Lines() SeqSlice[String] {
-	return transformSeq(strings.Lines(s.Std()), NewString).Map(String.TrimEnd)
+	return SeqSlice[string](strings.Lines(s.Std())).Map(NewString).Map(String.TrimEnd)
 }
 
 // Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
 func (s String) Fields() SeqSlice[String] {
-	return transformSeq(strings.FieldsSeq(s.Std()), NewString)
+	return SeqSlice[string](strings.FieldsSeq(s.Std())).Map(NewString)
 }
 
 // FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
 // and returns the iterator.
 func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] {
-	return transformSeq(strings.FieldsFuncSeq(s.Std(), fn), NewString)
+	return SeqSlice[string](strings.FieldsFuncSeq(s.Std(), fn)).Map(NewString)
 }
 
 // Split splits the String by the specified separator and returns the iterator.
-func (s String) Split(sep ...String) SeqSlice[String] {
-	var separator String
-	if len(sep) != 0 {
-		separator = sep[0]
-	}
-
-	return transformSeq(strings.SplitSeq(s.Std(), separator.Std()), NewString)
+// If sep is empty, the String is split after each UTF-8 rune; Chars is the
+// canonical way to iterate runes.
+func (s String) Split(sep String) SeqSlice[String] {
+	return SeqSlice[string](strings.SplitSeq(s.Std(), sep.Std())).Map(NewString)
 }
 
 // SplitAfter splits the String after each instance of the specified separator and returns the iterator.
 func (s String) SplitAfter(sep String) SeqSlice[String] {
-	return transformSeq(strings.SplitAfterSeq(s.Std(), sep.Std()), NewString)
+	return SeqSlice[string](strings.SplitAfterSeq(s.Std(), sep.Std())).Map(NewString)
 }
 
 // SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
@@ -436,7 +433,7 @@ func (s String) SplitAfter(sep String) SeqSlice[String] {
 // - If n is zero, an empty Slice[String] is returned.
 // - If n is positive, at most n substrings are returned.
 func (s String) SplitN(sep String, n Int) Slice[String] {
-	return TransformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
+	return transformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
 }
 
 // Chunks splits the String into chunks of the specified size.
@@ -561,8 +558,7 @@ func (s String) Cut(start, end String, rmtags ...bool) (String, String) {
 	cut := s[startEnd : startEnd+endIndex]
 
 	if len(rmtags) == 0 || !rmtags[0] {
-		startEnd += end.Len()
-		return s[:startIndex] + s[startIndex:startEnd+endIndex] + s[startEnd+endIndex:], cut
+		return s, cut
 	}
 
 	return s[:startIndex] + s[startEnd+endIndex+end.Len():], cut
@@ -712,8 +708,9 @@ func (s String) Reverse() String { return s.BytesUnsafe().Reverse().StringUnsafe
 // Runes returns the String as a slice of runes.
 func (s String) Runes() Slice[rune] { return []rune(s) }
 
-// Chars splits the String into individual characters and returns the iterator.
-func (s String) Chars() SeqSlice[String] { return s.Split() }
+// Chars splits the String into individual UTF-8 characters and returns the iterator.
+// It is the canonical way to iterate runes of a String, equivalent to s.Split("").
+func (s String) Chars() SeqSlice[String] { return s.Split("") }
 
 // SubString extracts a substring from the String starting at the 'start' index and ending before the 'end' index.
 // The function also supports an optional 'step' parameter to define the increment between indices in the substring.
@@ -907,8 +904,8 @@ func (s String) Center(length Int, pad String) String {
 // It repeats the padding String as necessary and appends any remaining runes from the padding
 // String.
 func writePadding(b *Builder, pad String, padlen, remains Int) {
-	if repeats := remains / padlen; repeats > 0 {
-		_, _ = b.WriteString(pad.Repeat(repeats))
+	for range remains / padlen {
+		_, _ = b.WriteString(pad)
 	}
 
 	rem := remains % padlen

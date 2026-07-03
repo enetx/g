@@ -235,108 +235,97 @@ func TestDir_Lstat_IsLink_NotLink(t *testing.T) {
 	}
 }
 
-func TestDir_CreateTemp_Success(t *testing.T) {
-	// Create a Dir instance representing the default directory for temporary directories
-	dir := NewDir("")
-
-	// Create a temporary directory using CreateTemp
-	result := dir.CreateTemp()
+func TestCreateTempDir_Success(t *testing.T) {
+	// Create a temporary directory using CreateTempDir
+	result := CreateTempDir()
 
 	// Check if the operation succeeded
 	if result.IsErr() {
-		t.Errorf("TestDir_CreateTemp_Success: Unexpected error: %s", result.Err().Error())
+		t.Errorf("TestCreateTempDir_Success: Unexpected error: %s", result.Err().Error())
 	}
 
 	// Check if the temporary directory exists
 	tmpDir := result.Ok().Path().Ok().Std()
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		t.Errorf("TestDir_CreateTemp_Success: Temporary directory not created")
+		t.Errorf("TestCreateTempDir_Success: Temporary directory not created")
 	}
 }
 
-func TestDir_CreateTemp_WithCustomDir(t *testing.T) {
+func TestCreateTempDir_WithCustomDir(t *testing.T) {
 	// Create a temporary directory to use as the parent
 	parentDir := createTempDir(t)
 	defer os.RemoveAll(parentDir)
 
-	// Create a Dir instance
-	dir := NewDir("")
-
 	// Create a temporary directory with custom parent directory
-	result := dir.CreateTemp(String(parentDir))
+	result := CreateTempDir(String(parentDir))
 
 	// Check if the operation succeeded
 	if result.IsErr() {
-		t.Errorf("TestDir_CreateTemp_WithCustomDir: Unexpected error: %s", result.Err().Error())
+		t.Errorf("TestCreateTempDir_WithCustomDir: Unexpected error: %s", result.Err().Error())
 	}
 
 	// Check if the temporary directory exists and is in the specified parent
 	tmpDir := result.Ok().Path().Ok().Std()
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		t.Errorf("TestDir_CreateTemp_WithCustomDir: Temporary directory not created")
+		t.Errorf("TestCreateTempDir_WithCustomDir: Temporary directory not created")
 	}
 
 	// Verify it's in the correct parent directory
 	if !filepath.HasPrefix(tmpDir, parentDir) {
-		t.Errorf("TestDir_CreateTemp_WithCustomDir: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
+		t.Errorf("TestCreateTempDir_WithCustomDir: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
 	}
 }
 
-func TestDir_CreateTemp_WithDirAndPattern(t *testing.T) {
+func TestCreateTempDir_WithDirAndPattern(t *testing.T) {
 	// Create a temporary directory to use as the parent
 	parentDir := createTempDir(t)
 	defer os.RemoveAll(parentDir)
 
-	// Create a Dir instance
-	dir := NewDir("")
 	pattern := String("testpattern")
 
 	// Create a temporary directory with custom parent directory and pattern
-	result := dir.CreateTemp(String(parentDir), pattern)
+	result := CreateTempDir(String(parentDir), pattern)
 
 	// Check if the operation succeeded
 	if result.IsErr() {
-		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Unexpected error: %s", result.Err().Error())
+		t.Errorf("TestCreateTempDir_WithDirAndPattern: Unexpected error: %s", result.Err().Error())
 	}
 
 	// Check if the temporary directory exists and is in the specified parent
 	tmpDir := result.Ok().Path().Ok().Std()
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Temporary directory not created")
+		t.Errorf("TestCreateTempDir_WithDirAndPattern: Temporary directory not created")
 	}
 
 	// Verify it's in the correct parent directory
 	if !filepath.HasPrefix(tmpDir, parentDir) {
-		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
+		t.Errorf("TestCreateTempDir_WithDirAndPattern: Expected temp dir to be in %s, got %s", parentDir, tmpDir)
 	}
 
 	// Verify the pattern is used in the directory name
 	dirName := filepath.Base(tmpDir)
 	if !filepath.HasPrefix(dirName, "testpattern") {
-		t.Errorf("TestDir_CreateTemp_WithDirAndPattern: Expected dir name to start with 'testpattern', got %s", dirName)
+		t.Errorf("TestCreateTempDir_WithDirAndPattern: Expected dir name to start with 'testpattern', got %s", dirName)
 	}
 }
 
-func TestDir_CreateTemp_InvalidDirectory(t *testing.T) {
-	// Create a Dir instance
-	dir := NewDir("")
-
+func TestCreateTempDir_InvalidDirectory(t *testing.T) {
 	// Try to create a temporary directory in a non-existent parent directory
-	result := dir.CreateTemp(String("/nonexistent/invalid/path"))
+	result := CreateTempDir(String("/nonexistent/invalid/path"))
 
 	// Check if the operation failed as expected
 	if result.IsOk() {
-		t.Errorf("TestDir_CreateTemp_InvalidDirectory: Expected error for invalid directory, but operation succeeded")
+		t.Errorf("TestCreateTempDir_InvalidDirectory: Expected error for invalid directory, but operation succeeded")
 	}
 }
 
-func TestDir_Temp(t *testing.T) {
-	// Get the default temporary directory using Temp
-	tmpDir := NewDir("").Temp()
+func TestTempDir(t *testing.T) {
+	// Get the default temporary directory using TempDir
+	tmpDir := TempDir()
 
 	// Check if the returned directory exists
 	if _, err := os.Stat(tmpDir.String().Std()); os.IsNotExist(err) {
-		t.Errorf("TestDir_Temp: Temporary directory does not exist")
+		t.Errorf("TestTempDir: Temporary directory does not exist")
 	}
 }
 
@@ -938,12 +927,12 @@ func TestDirMove(t *testing.T) {
 	}
 
 	// Check that destination exists
-	if !destDir.Exist() {
+	if !destDir.Exists() {
 		t.Error("Destination directory should exist after move")
 	}
 
 	// Check that source doesn't exist
-	if srcDir.Exist() {
+	if srcDir.Exists() {
 		t.Error("Source directory should not exist after move")
 	}
 
@@ -953,7 +942,7 @@ func TestDirMove(t *testing.T) {
 		t.Fatalf("Failed to join moved file path: %v", movedFilePath.Err())
 	}
 	movedFile := NewFile(movedFilePath.Ok())
-	if !movedFile.Exist() {
+	if !movedFile.Exists() {
 		t.Error("File should exist in moved directory")
 	}
 }
@@ -1086,17 +1075,17 @@ func TestDir_Join_PathError(t *testing.T) {
 	}
 }
 
-func TestDir_Exist_PathError(t *testing.T) {
-	// Test Exist when Path() returns an error
+func TestDir_Exists_PathError(t *testing.T) {
+	// Test Exists when Path() returns an error
 	dir := NewDir("\x00invalid")
 
-	exists := dir.Exist()
+	exists := dir.Exists()
 
-	// When Path() fails, Exist should return false
+	// When Path() fails, Exists should return false
 	if exists {
-		t.Log("Exist returned true unexpectedly - platform dependent")
+		t.Log("Exists returned true unexpectedly - platform dependent")
 	} else {
-		t.Log("Exist correctly returned false when Path() fails")
+		t.Log("Exists correctly returned false when Path() fails")
 	}
 }
 

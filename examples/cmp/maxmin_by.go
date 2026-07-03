@@ -26,9 +26,9 @@ func main() {
 	maxsis := cmp.MaxBy(ord, [][]Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...)
 	fmt.Printf("maximum []g.Int: %v\n", maxsis)
 
-	maxgis := SliceOf([][]Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...).MaxBy(ord)
+	maxgis := SliceOf([][]Int{{1, 2, 3, 4}, {5, 6, 7, 8}}...).Iter().MaxBy(ord).UnwrapOrDefault()
 	fmt.Printf("maximum []g.Int: %v\n", maxgis)
 
-	maxgsi := SliceOf(1, 2, 3, 4, 5).MaxBy(cmp.Cmp)
+	maxgsi := SliceOf(1, 2, 3, 4, 5).Iter().MaxBy(cmp.Cmp).UnwrapOr(0)
 	fmt.Printf("maximum int: %v\n", maxgsi)
 }

@@ -218,14 +218,14 @@ func TestOrdEntry_Type(t *testing.T) {
 }
 
 func TestMapSafe_Type(t *testing.T) {
-	// Test MapSafe struct
+	// Test MapSafe struct — declared, never copied (MapSafe embeds sync.Map: copylocks)
 	var safeMap MapSafe[string, int]
-	_ = safeMap
+	_ = &safeMap
 
 	// Test that it contains sync.Map
 	// We can't directly access the data field, but we can test that it exists by type
 	var syncMap sync.Map
-	_ = syncMap
+	_ = &syncMap
 }
 
 func TestNamed_Type(t *testing.T) {
