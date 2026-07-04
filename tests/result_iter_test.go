@@ -120,21 +120,39 @@ func TestErrSeq(t *testing.T) {
 		}
 	})
 
-	t.Run("error ends chain iteration across sequences", func(t *testing.T) {
+	t.Run("chain continues past err for a continuing consumer", func(t *testing.T) {
 		errSeq := ErrSeq[int](errors.New("early exit"))
 		seq2 := SeqResult[int](func(yield func(Result[int]) bool) {
 			yield(Ok(1))
 			yield(Ok(2))
 		})
 
-		// An Err ends further iteration: seq2 must not be visited by Chain.
+		// Consumer-driven: Partition keeps iterating, so the Err flows through
+		// as an element and Chain proceeds to seq2.
 		okVals, errVals := errSeq.Chain(seq2).Partition()
 
-		if len(okVals) != 0 {
-			t.Errorf("expected no Ok values (iteration stops on Err), got %v", okVals)
+		if len(okVals) != 2 || okVals[0] != 1 || okVals[1] != 2 {
+			t.Errorf("expected Ok values [1 2] after the Err, got %v", okVals)
 		}
 		if len(errVals) != 1 || errVals[0].Error() != "early exit" {
 			t.Errorf("expected error 'early exit', got %v", errVals)
+		}
+
+		// Fail-fast stays available to the consumer: breaking on the Err keeps
+		// seq2 unvisited.
+		var oks []int
+		var errCount int
+		errSeq.Chain(seq2).Range(func(r Result[int]) bool {
+			if r.IsErr() {
+				errCount++
+				return false
+			}
+			oks = append(oks, r.Ok())
+			return true
+		})
+
+		if len(oks) != 0 || errCount != 1 {
+			t.Errorf("fail-fast: expected no Ok values and 1 err, got %v / %d", oks, errCount)
 		}
 	})
 }
@@ -3394,9 +3412,11 @@ func TestSeqResultFlatMap(t *testing.T) {
 			if !yield(Err[String](boom)) {
 				return
 			}
-			yield(Ok[String]("never"))
+			yield(Ok[String]("cd"))
 		})
 
+		// Consumer keeps iterating: the Err flows through as an element and the
+		// source continues (consumer-driven, Rust iterator semantics).
 		var vals []String
 		var errs []error
 		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
@@ -3408,11 +3428,30 @@ func TestSeqResultFlatMap(t *testing.T) {
 			return true
 		})
 
-		if !reflect.DeepEqual(vals, []String{"a", "b"}) {
-			t.Errorf("values = %v, want [a b]", vals)
+		if !reflect.DeepEqual(vals, []String{"a", "b", "c", "d"}) {
+			t.Errorf("values = %v, want [a b c d]", vals)
 		}
 		if len(errs) != 1 || !errors.Is(errs[0], boom) {
 			t.Errorf("errs = %v, want [boom]", errs)
+		}
+
+		// Consumer breaks on the Err: fail-fast is the consumer's choice and the
+		// source must not be pulled past the Err.
+		vals, errs = nil, nil
+		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
+			if r.IsErr() {
+				errs = append(errs, r.Err())
+				return false
+			}
+			vals = append(vals, r.Ok())
+			return true
+		})
+
+		if !reflect.DeepEqual(vals, []String{"a", "b"}) {
+			t.Errorf("fail-fast values = %v, want [a b]", vals)
+		}
+		if len(errs) != 1 || !errors.Is(errs[0], boom) {
+			t.Errorf("fail-fast errs = %v, want [boom]", errs)
 		}
 	})
 }

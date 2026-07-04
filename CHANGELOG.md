@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** `SeqResult` lazy transformers (`Map`, `Filter`, `Exclude`,
+  `Dedup`, `Unique`, `Skip`, `StepBy`, `Take`, `Chain`, `Intersperse`,
+  `Inspect`, `Scan`, `FlatMap`) are now **consumer-driven on `Err`** (Rust
+  iterator semantics): an `Err` element is yielded downstream like any other
+  item and the source keeps iterating for as long as the consumer keeps
+  accepting values. Previously the first `Err` unconditionally terminated the
+  sequence inside the transformer. Fail-fast remains the consumer's choice:
+  `break` on the `Err` element, or use the short-circuiting terminals
+  (`TryCollect`, `Fold`, `Reduce`, `All`, `Any`, `First`, `Find`, `Nth`),
+  whose behavior is unchanged.
 - **Breaking:** the library now requires **Go 1.27** (currently `1.27.0-rc.1`): the
   whole chain API is built on generic methods.
 - **Breaking:** package-level generic helpers are replaced by generic methods that

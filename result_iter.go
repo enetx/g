@@ -35,8 +35,9 @@ func ErrSeq[V any](err error) SeqResult[V] {
 
 // FlatMap transforms each Ok value into a sequence and flattens the results,
 // wrapping each produced element in Ok. The element type may differ from the
-// input type. If an Err is encountered, it is passed downstream as-is and ends
-// the iteration, matching Map.
+// input type. If an Err is encountered, it is passed downstream as-is;
+// iteration continues for as long as the consumer keeps accepting values
+// (consumer-driven), matching Map.
 //
 // Example:
 //
@@ -45,8 +46,7 @@ func (seq SeqResult[V]) FlatMap[U any](fn func(V) SeqSlice[U]) SeqResult[U] {
 	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(Err[U](v.err))
-				return false
+				return yield(Err[U](v.err))
 			}
 
 			cont := true
@@ -176,13 +176,13 @@ func (seq SeqResult[V]) Count() Int {
 // Map transforms each Ok value in the sequence using the given function, returning a new sequence of Result.
 // The result type may differ from the input type.
 //
-// If an Err is encountered, it is passed downstream as-is and ends the iteration (yield returns false).
+// If an Err is encountered, it is passed downstream as-is; iteration continues
+// for as long as the consumer keeps accepting values (consumer-driven).
 func (seq SeqResult[V]) Map[U any](transform func(V) U) SeqResult[U] {
 	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(Err[U](v.err))
-				return false
+				return yield(Err[U](v.err))
 			}
 			return yield(Ok(transform(v.v)))
 		})
@@ -191,14 +191,14 @@ func (seq SeqResult[V]) Map[U any](transform func(V) U) SeqResult[U] {
 
 // Filter returns a new sequence containing only the Ok elements that satisfy the provided function.
 //
-// If an Err is encountered, it is yielded immediately as Err (and stops further iteration).
+// If an Err is encountered, it is yielded downstream as-is; the consumer decides
+// whether to continue (consumer-driven).
 // Only Ok elements for which fn returns true are yielded downstream as Ok.
 func (seq SeqResult[V]) Filter(fn func(V) bool) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 			if fn(v.v) {
 				return yield(v)
@@ -210,14 +210,13 @@ func (seq SeqResult[V]) Filter(fn func(V) bool) SeqResult[V] {
 
 // Exclude returns a new sequence that excludes Ok elements which satisfy the provided function.
 //
-// If an Err is encountered, it is yielded as Err (and stops iteration).
+// If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // Only Ok elements for which 'fn' returns false are yielded downstream.
 func (seq SeqResult[V]) Exclude(fn func(V) bool) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 			if !fn(v.v) {
 				return yield(v)
@@ -229,7 +228,7 @@ func (seq SeqResult[V]) Exclude(fn func(V) bool) SeqResult[V] {
 
 // Dedup removes consecutive duplicates of Ok values from the sequence, returning a new sequence.
 //
-// If an Err is encountered, it is yielded immediately and iteration stops.
+// If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // Consecutive Ok duplicates (based on equality) are filtered out so only the first occurrence is yielded.
 func (seq SeqResult[V]) Dedup() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -239,8 +238,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 
 			if !hasFirst {
@@ -267,7 +265,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 
 // Unique returns a new sequence that contains only the first occurrence of each distinct Ok value.
 //
-// If an Err is encountered, it is yielded immediately and iteration stops.
+// If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // Future occurrences of a previously seen Ok value are skipped.
 func (seq SeqResult[V]) Unique() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -276,8 +274,7 @@ func (seq SeqResult[V]) Unique() SeqResult[V] {
 
 			seq(func(v Result[V]) bool {
 				if v.IsErr() {
-					yield(v)
-					return false
+					return yield(v)
 				}
 
 				k := any(v.v)
@@ -293,8 +290,7 @@ func (seq SeqResult[V]) Unique() SeqResult[V] {
 
 			seq(func(v Result[V]) bool {
 				if v.IsErr() {
-					yield(v)
-					return false
+					return yield(v)
 				}
 
 				for _, s := range seen {
@@ -331,14 +327,14 @@ func (seq SeqResult[V]) Range(fn func(v Result[V]) bool) {
 
 // Skip returns a new sequence that skips the first n Ok elements.
 //
-// If an Err is encountered, it is yielded as is and iteration stops. Once n Ok elements have been skipped,
+// If an Err is encountered, it is yielded as-is without consuming the skip
+// budget (consumer-driven). Once n Ok elements have been skipped,
 // subsequent elements (Ok or Err) are yielded normally.
 func (seq SeqResult[V]) Skip(n uint) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 			if n > 0 {
 				n--
@@ -351,7 +347,7 @@ func (seq SeqResult[V]) Skip(n uint) SeqResult[V] {
 
 // StepBy creates a new sequence that yields every nth Ok element from the original sequence.
 //
-// If an Err is encountered, it is yielded immediately and stops iteration.
+// If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // For Ok elements, only every n-th element is yielded.
 func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -362,8 +358,7 @@ func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 		i := uint(0)
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 			i++
 			if (i-1)%n == 0 {
@@ -375,7 +370,7 @@ func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 }
 
 // Take returns a new sequence with the first n Ok elements.
-// If an Err is encountered, it is yielded immediately and iteration stops.
+// If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // After n Ok elements are yielded, the sequence ends.
 func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -385,8 +380,7 @@ func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 
 			// Defensive: a source that ignores our stop signal must still not
@@ -444,7 +438,7 @@ func (seq SeqResult[V]) Nth(n Int) Result[Option[V]] {
 // Chain concatenates this sequence with other sequences, returning a new sequence of Result[V].
 //
 // The function yields all elements (Ok or Err) from the current sequence, then from each of the provided sequences in order.
-// If an Err is encountered, it is yielded immediately, ending further iteration.
+// Err elements are yielded like any other element (consumer-driven).
 func (seq SeqResult[V]) Chain(seqs ...SeqResult[V]) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		stopped := false
@@ -452,11 +446,6 @@ func (seq SeqResult[V]) Chain(seqs ...SeqResult[V]) SeqResult[V] {
 		for _, seq := range append([]SeqResult[V]{seq}, seqs...) {
 			seq(func(v Result[V]) bool {
 				if !yield(v) {
-					stopped = true
-					return false
-				}
-
-				if v.IsErr() {
 					stopped = true
 					return false
 				}
@@ -473,7 +462,7 @@ func (seq SeqResult[V]) Chain(seqs ...SeqResult[V]) SeqResult[V] {
 
 // Intersperse inserts the provided Ok separator between each Ok element of the sequence.
 //
-// If an Err is encountered, it is yielded as Err and iteration stops immediately.
+// If an Err is encountered, it is yielded as-is without a separator (consumer-driven).
 // For Ok elements, after the first yield, a separator is inserted before each subsequent Ok value.
 func (seq SeqResult[V]) Intersperse(sep V) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -481,8 +470,7 @@ func (seq SeqResult[V]) Intersperse(sep V) SeqResult[V] {
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 
 			if !first && !yield(Ok(sep)) {
@@ -496,13 +484,12 @@ func (seq SeqResult[V]) Intersperse(sep V) SeqResult[V] {
 }
 
 // Inspect calls fn for every Ok value without changing it.
-// An Err immediately stops iteration by returning false.
+// Err elements are passed through unchanged (consumer-driven).
 func (seq SeqResult[V]) Inspect(fn func(v V)) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
-				yield(v)
-				return false
+				return yield(v)
 			}
 			fn(v.v)
 			return yield(v)
@@ -752,7 +739,9 @@ func (seq SeqResult[V]) Reduce(fn func(a, b V) V) Result[Option[V]] {
 
 // Scan accumulates Ok values, yielding the initial value followed by every
 // intermediate accumulator state. The accumulator type may differ from the
-// element type. An Err is passed downstream as-is and ends the iteration.
+// element type. An Err is passed downstream as-is without touching the
+// accumulator; iteration continues for as long as the consumer keeps
+// accepting values (consumer-driven).
 func (seq SeqResult[V]) Scan[A any](init A, fn func(acc A, val V) A) SeqResult[A] {
 	return func(yield func(Result[A]) bool) {
 		if !yield(Ok(init)) {
@@ -763,8 +752,7 @@ func (seq SeqResult[V]) Scan[A any](init A, fn func(acc A, val V) A) SeqResult[A
 
 		seq(func(r Result[V]) bool {
 			if r.IsErr() {
-				yield(Err[A](r.err))
-				return false
+				return yield(Err[A](r.err))
 			}
 
 			acc = fn(acc, r.v)
