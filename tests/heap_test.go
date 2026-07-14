@@ -808,7 +808,7 @@ func TestHeapFromSlice(t *testing.T) {
 }
 
 func TestHeapBulkPushOnEstablishedHeap(t *testing.T) {
-	heap := NewHeap(cmp.Cmp[int])
+	heap := g.NewHeap(cmp.Cmp[int])
 	for i := range 1024 {
 		heap.Push(i)
 	}

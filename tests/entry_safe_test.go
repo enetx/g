@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	. "github.com/enetx/g"
