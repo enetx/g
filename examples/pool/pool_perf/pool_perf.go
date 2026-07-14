@@ -8,6 +8,7 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/f"
 	"github.com/enetx/g/pool"
 )
 
@@ -58,7 +59,7 @@ func main() {
 
 	results := p.Wait().Ok()
 
-	taskSum := results.Reduce(func(a, b time.Duration) time.Duration { return a + b }).Some()
+	taskSum := results.SumBy(f.Id)
 	taskMin := results.MinBy(cmp.Cmp).Some()
 	taskMax := results.MaxBy(cmp.Cmp).Some()
 	taskAvg := taskSum / TASKS_NUM
