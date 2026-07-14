@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
 )
 
@@ -410,7 +409,7 @@ func (mo MapOrd[K, V]) Eq(other MapOrd[K, V]) bool {
 
 	idx := other.indexMap()
 
-	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
+	comparable := isValueComparable[V]()
 	for i, mp := range mo {
 		j, ok := idx[mp.Key]
 
@@ -460,7 +459,10 @@ func (mo MapOrd[K, V]) String() string {
 }
 
 // Clear removes all key-value pairs from the ordered Map.
-func (mo *MapOrd[K, V]) Clear() { *mo = (*mo)[:0] }
+func (mo *MapOrd[K, V]) Clear() {
+	clear(*mo)
+	*mo = (*mo)[:0]
+}
 
 // Contains checks if the ordered Map contains the specified key.
 func (mo MapOrd[K, V]) Contains(key K) bool { return mo.index(key) != -1 }
@@ -530,4 +532,11 @@ func MapOrdOf[K comparable, V any](pairs ...Pair[K, V]) MapOrd[K, V] {
 	}
 
 	return mo
+}
+
+// MapOrdFromPairs builds a MapOrd from a slice of pairs, preserving order.
+// Unlike the variadic MapOrdOf, it takes the slice directly, so it can be passed
+// as a first-class function — e.g. res.TryCollect().Map(MapOrdFromPairs).
+func MapOrdFromPairs[K comparable, V any](pairs Slice[Pair[K, V]]) MapOrd[K, V] {
+	return MapOrdOf(pairs...)
 }

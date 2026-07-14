@@ -205,6 +205,29 @@ func (o Option[T]) OrElse(fn func() Option[T]) Option[T] {
 	return fn()
 }
 
+// And returns None if the Option is None, otherwise returns other.
+// It is the eager counterpart of Then (which calls a function instead).
+func (o Option[T]) And[U any](other Option[U]) Option[U] {
+	if o.isSome {
+		return other
+	}
+
+	return None[U]()
+}
+
+// Xor returns Some if exactly one of the two Options is Some, otherwise None.
+func (o Option[T]) Xor(other Option[T]) Option[T] {
+	if o.isSome == other.isSome {
+		return None[T]()
+	}
+
+	if o.isSome {
+		return o
+	}
+
+	return other
+}
+
 // IsSomeAnd returns true if the Option is Some
 // and the predicate returns true for the contained value.
 func (o Option[T]) IsSomeAnd(pred func(T) bool) bool {

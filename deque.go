@@ -59,6 +59,11 @@ func DequeOf[T any](elements ...T) *Deque[T] {
 	}
 }
 
+// DequeFromSlice builds a Deque from a slice. Unlike the variadic DequeOf, it
+// takes the slice directly, so it can be passed as a first-class function — e.g.
+// as the collect step after a chain: res.TryCollect().Map(DequeFromSlice).
+func DequeFromSlice[T any](s Slice[T]) *Deque[T] { return DequeOf(s...) }
+
 // Len returns the number of elements in the Deque.
 func (dq *Deque[T]) Len() Int {
 	return dq.len
@@ -132,6 +137,14 @@ func (dq *Deque[T]) PushBack(value T) {
 	backIndex := dq.realIndex(dq.len)
 	dq.data[backIndex] = value
 	dq.len++
+}
+
+// Extend appends the given values to the back of the Deque, in order.
+// It accepts a spread slice too: dq.Extend(sl...).
+func (dq *Deque[T]) Extend(values ...T) {
+	for _, v := range values {
+		dq.PushBack(v)
+	}
 }
 
 // PopFront removes and returns the first element of the Deque.

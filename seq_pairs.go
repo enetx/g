@@ -1,6 +1,9 @@
 package g
 
-import "github.com/enetx/iter"
+import (
+	"github.com/enetx/g/constraints"
+	"github.com/enetx/iter"
+)
 
 // SeqPairs is a lazy sequence of key-value pairs produced by zipping two sequences.
 // Unlike SeqMapOrd, its first type parameter is not required to be comparable, so it can
@@ -191,6 +194,46 @@ func (seq SeqPairs[K, V]) Fold[A any](init A, fn func(acc A, k K, v V) A) A {
 	})
 
 	return init
+}
+
+// SumBy maps each key-value pair to a numeric value via fn and returns the sum of those values.
+// An empty sequence yields the zero value of S.
+func (seq SeqPairs[K, V]) SumBy[S constraints.Number](fn func(K, V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, k K, v V) S { return acc + fn(k, v) })
+}
+
+// ProductBy maps each pair to a numeric value via fn and returns their product.
+// An empty sequence yields the multiplicative identity, one.
+func (seq SeqPairs[K, V]) ProductBy[S constraints.Number](fn func(K, V) S) S {
+	return seq.Fold(S(1), func(acc S, k K, v V) S { return acc * fn(k, v) })
+}
+
+// FindMap applies fn to each pair and returns the first Some result, or None if
+// fn returns None for every pair.
+func (seq SeqPairs[K, V]) FindMap[U any](fn func(K, V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(k K, v V) bool {
+		if o := fn(k, v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// TryMap applies a fallible transform to each pair and enters the Result
+// pipeline, producing a SeqResult[U]. See SeqSlice.TryMap for the full contract.
+func (seq SeqPairs[K, V]) TryMap[U any](fn func(K, V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(k K, v V) bool {
+			return yield(fn(k, v))
+		})
+	}
 }
 
 // All returns true if fn returns true for every pair in the sequence.

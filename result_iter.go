@@ -4,7 +4,8 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/enetx/g/f"
+	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/iter"
 )
 
@@ -130,10 +131,10 @@ func (seq SeqResult[V]) Any(fn func(v V) bool) Result[bool] {
 // Both Ok and Err elements are collected as-is; encountering an Err does not stop the collection.
 func (seq SeqResult[V]) Collect() Slice[Result[V]] { return iter.Seq[Result[V]](seq).ToSlice() }
 
-// TryCollect gathers the Ok values from the sequence into a Slice, mirroring
-// Rust's try_collect: the first Err short-circuits — iteration stops
-// immediately, elements after it are not consumed — and that error is
-// returned as Err. An empty sequence yields Ok of an empty Slice.
+// TryCollect gathers the Ok values from the sequence into a Slice: the first Err
+// short-circuits — iteration stops immediately, elements after it are not
+// consumed — and that error is returned as Err. An empty sequence yields Ok of
+// an empty Slice.
 //
 // Unlike Collect, which gathers every element (Ok and Err alike) into a
 // Slice[Result[V]], TryCollect returns Result[Slice[V]]: either all the
@@ -234,7 +235,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
 		var current V
 		hasFirst := false
-		comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
+		comparable := isValueComparable[V]()
 
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -269,7 +270,7 @@ func (seq SeqResult[V]) Dedup() SeqResult[V] {
 // Future occurrences of a previously seen Ok value are skipped.
 func (seq SeqResult[V]) Unique() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
-		if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
+		if isValueComparable[V]() {
 			seen := NewSet[any]()
 
 			seq(func(v Result[V]) bool {
@@ -379,14 +380,14 @@ func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
 		}
 
 		seq(func(v Result[V]) bool {
-			if v.IsErr() {
-				return yield(v)
-			}
-
-			// Defensive: a source that ignores our stop signal must still not
-			// over-yield past n.
+			// Once n Ok values are taken, stop hard — nothing further (Ok or Err)
+			// is yielded, even if the source ignores our stop signal.
 			if n == 0 {
 				return false
+			}
+
+			if v.IsErr() {
+				return yield(v)
 			}
 
 			if !yield(v) {
@@ -705,7 +706,45 @@ func (seq SeqResult[V]) Fold[A any](init A, fn func(acc A, val V) A) Result[A] {
 	return Ok(acc)
 }
 
-// Reduce aggregates Ok values using the provided function, mirroring Rust's try_reduce:
+// SumBy maps each Ok value to a numeric value via fn and returns their sum wrapped in Ok.
+// The first Err short-circuits: iteration stops and that error is returned as Err[S].
+// An empty (or all-consumed) sequence yields Ok of the zero value of S.
+func (seq SeqResult[V]) SumBy[S constraints.Number](fn func(V) S) Result[S] {
+	var zero S
+	return seq.Fold(zero, func(acc S, v V) S { return acc + fn(v) })
+}
+
+// ProductBy maps each Ok value to a numeric value via fn and returns their product
+// wrapped in Ok. The first Err short-circuits and is returned as Err[S]. An empty
+// (or all-consumed) sequence yields Ok of the multiplicative identity, one.
+func (seq SeqResult[V]) ProductBy[S constraints.Number](fn func(V) S) Result[S] {
+	return seq.Fold(S(1), func(acc S, v V) S { return acc * fn(v) })
+}
+
+// FindMap applies fn to each Ok value and returns the first Some result wrapped in
+// Ok; None if fn returns None for every value. The first Err short-circuits and is
+// returned as Err.
+func (seq SeqResult[V]) FindMap[U any](fn func(V) Option[U]) Result[Option[U]] {
+	result := Ok(None[U]())
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			result = Err[Option[U]](v.err)
+			return false
+		}
+
+		if o := fn(v.v); o.IsSome() {
+			result = Ok(o)
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// Reduce aggregates Ok values using the provided function:
 // the first Err short-circuits and is returned as Err; an empty sequence yields Ok(None);
 // otherwise Ok(Some(accumulated)).
 func (seq SeqResult[V]) Reduce(fn func(a, b V) V) Result[Option[V]] {
@@ -760,4 +799,234 @@ func (seq SeqResult[V]) Scan[A any](init A, fn func(acc A, val V) A) SeqResult[A
 			return yield(Ok(acc))
 		})
 	}
+}
+
+// FilterMap transforms each Ok value with fn and keeps only the Some results,
+// changing the element type from V to U.
+//
+// If an Err is encountered, it is passed downstream as-is (Err[U]); the consumer
+// decides whether to continue (consumer-driven). For an Ok value, fn is applied:
+// Some(u) is yielded as Ok(u), None drops the element.
+func (seq SeqResult[V]) FilterMap[U any](fn func(V) Option[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				return yield(Err[U](v.err))
+			}
+
+			if u, ok := fn(v.v).Option(); ok {
+				return yield(Ok(u))
+			}
+
+			return true
+		})
+	}
+}
+
+// TakeWhile yields Ok values while fn returns true, stopping at the first Ok
+// value for which fn returns false.
+//
+// If an Err is encountered, it is passed downstream as-is and does not stop the
+// taking (consumer-driven); only a failing predicate on an Ok value ends it.
+func (seq SeqResult[V]) TakeWhile(fn func(V) bool) SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				return yield(v)
+			}
+
+			if !fn(v.v) {
+				return false
+			}
+
+			return yield(v)
+		})
+	}
+}
+
+// SkipWhile skips Ok values while fn returns true, then yields every remaining
+// element.
+//
+// If an Err is encountered, it is passed downstream as-is regardless of the
+// skipping phase (consumer-driven); the skipping predicate is evaluated only on
+// Ok values.
+func (seq SeqResult[V]) SkipWhile(fn func(V) bool) SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
+		skipping := true
+
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				return yield(v)
+			}
+
+			if skipping && fn(v.v) {
+				return true
+			}
+
+			skipping = false
+
+			return yield(v)
+		})
+	}
+}
+
+// MaxBy returns the maximum Ok value according to fn, mirroring the short-circuit
+// terminals: the first Err stops iteration and is returned as Err; a sequence with
+// no Ok values yields Ok(None).
+func (seq SeqResult[V]) MaxBy(fn func(V, V) cmp.Ordering) Result[Option[V]] {
+	var best V
+	has := false
+
+	result := Ok(None[V]())
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			result = Err[Option[V]](v.err)
+			return false
+		}
+
+		if !has || fn(best, v.v).IsLt() {
+			best = v.v
+			has = true
+		}
+
+		return true
+	})
+
+	if result.IsErr() {
+		return result
+	}
+
+	if has {
+		return Ok(Some(best))
+	}
+
+	return Ok(None[V]())
+}
+
+// MinBy returns the minimum Ok value according to fn, mirroring the short-circuit
+// terminals: the first Err stops iteration and is returned as Err; a sequence with
+// no Ok values yields Ok(None).
+func (seq SeqResult[V]) MinBy(fn func(V, V) cmp.Ordering) Result[Option[V]] {
+	var best V
+	has := false
+
+	result := Ok(None[V]())
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			result = Err[Option[V]](v.err)
+			return false
+		}
+
+		if !has || fn(v.v, best).IsLt() {
+			best = v.v
+			has = true
+		}
+
+		return true
+	})
+
+	if result.IsErr() {
+		return result
+	}
+
+	if has {
+		return Ok(Some(best))
+	}
+
+	return Ok(None[V]())
+}
+
+// Flatten flattens one or more levels of nested slices/arrays inside each Ok
+// value, yielding the leaf elements as Ok. Err elements are passed downstream
+// as-is (consumer-driven). It mirrors SeqSlice.Flatten and, like it, relies on
+// reflection: only leaves assignable to V are yielded.
+func (seq SeqResult[V]) Flatten() SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
+		emit := func(v V) bool { return yield(Ok(v)) }
+
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				return yield(v)
+			}
+
+			return flattenValue(v.v, emit)
+		})
+	}
+}
+
+// SortBy consumes the sequence, sorts the Ok values with fn, and re-emits them
+// in order as a SeqResult. Being a sort, it is eager: the whole sequence is
+// buffered first. The first Err short-circuits — buffering stops and only that
+// Err is yielded downstream.
+func (seq SeqResult[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqResult[V] {
+	return func(yield func(Result[V]) bool) {
+		items := NewSlice[V]()
+
+		var err error
+
+		seq(func(v Result[V]) bool {
+			if v.IsErr() {
+				err = v.err
+				return false
+			}
+
+			items = append(items, v.v)
+
+			return true
+		})
+
+		if err != nil {
+			yield(Err[V](err))
+			return
+		}
+
+		items.SortBy(fn)
+
+		for _, v := range items {
+			if !yield(Ok(v)) {
+				return
+			}
+		}
+	}
+}
+
+// CounterBy counts how many Ok values map to each key produced by fn, returning
+// the tally as a MapOrd in first-seen key order. It is a short-circuit terminal:
+// the first Err stops the count and is returned as Err. (A lazy SeqResult of the
+// tally is impossible here — it would instantiate SeqResult with a type built
+// from V and hit an instantiation cycle.)
+func (seq SeqResult[V]) CounterBy[K comparable](fn func(V) K) Result[MapOrd[K, Int]] {
+	order := NewSlice[K]()
+	counts := NewMap[K, Int]()
+
+	var err error
+
+	seq(func(v Result[V]) bool {
+		if v.IsErr() {
+			err = v.err
+			return false
+		}
+
+		k := fn(v.v)
+		if !counts.Contains(k) {
+			order.Push(k)
+		}
+
+		counts[k]++
+
+		return true
+	})
+
+	if err != nil {
+		return Err[MapOrd[K, Int]](err)
+	}
+
+	result := NewMapOrd[K, Int](order.Len())
+	for _, k := range order {
+		result.Insert(k, counts[k])
+	}
+
+	return Ok(result)
 }

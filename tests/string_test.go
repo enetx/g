@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"errors"
 	"io"
 	"math/big"
 	"reflect"
@@ -2346,5 +2347,126 @@ func TestStringValue(t *testing.T) {
 	}
 	if v2, ok := val2.(string); !ok || v2 != "" {
 		t.Fatalf("Expected empty string, got %v", val2)
+	}
+}
+
+func TestStringTryBool(t *testing.T) {
+	valid := []struct {
+		input    String
+		expected bool
+	}{
+		{"1", true}, {"t", true}, {"T", true}, {"TRUE", true}, {"true", true}, {"True", true},
+		{"0", false}, {"f", false}, {"F", false}, {"FALSE", false}, {"false", false}, {"False", false},
+	}
+	for _, tc := range valid {
+		result := tc.input.TryBool()
+		if result.IsErr() {
+			t.Errorf("TryBool(%q) unexpected error: %v", tc.input, result.Err())
+			continue
+		}
+		if result.Ok() != tc.expected {
+			t.Errorf("TryBool(%q) = %v, want %v", tc.input, result.Ok(), tc.expected)
+		}
+	}
+
+	invalid := []String{"", " ", "yes", "no", "2", "truee", "abc"}
+	for _, input := range invalid {
+		result := input.TryBool()
+		if result.IsOk() {
+			t.Errorf("TryBool(%q) expected error, got %v", input, result.Ok())
+			continue
+		}
+		if !errors.Is(result.Err(), ErrParseBool) {
+			t.Errorf("TryBool(%q) error = %v, want errors.Is ErrParseBool", input, result.Err())
+		}
+	}
+}
+
+func TestStringTryUint(t *testing.T) {
+	valid := []struct {
+		input    String
+		expected uint
+	}{
+		{"0", 0}, {"255", 255}, {"12", 12}, {"0xff", 255}, {"0o17", 15}, {"0b1010", 10},
+	}
+	for _, tc := range valid {
+		result := tc.input.TryUint()
+		if result.IsErr() {
+			t.Errorf("TryUint(%q) unexpected error: %v", tc.input, result.Err())
+			continue
+		}
+		if result.Ok() != tc.expected {
+			t.Errorf("TryUint(%q) = %v, want %v", tc.input, result.Ok(), tc.expected)
+		}
+	}
+
+	invalid := []String{"", " ", "-1", "1.5", "abc", "12a"}
+	for _, input := range invalid {
+		result := input.TryUint()
+		if result.IsOk() {
+			t.Errorf("TryUint(%q) expected error, got %v", input, result.Ok())
+			continue
+		}
+		if !errors.Is(result.Err(), ErrParseUint) {
+			t.Errorf("TryUint(%q) error = %v, want errors.Is ErrParseUint", input, result.Err())
+		}
+	}
+}
+
+func TestStringTryComplex(t *testing.T) {
+	valid := []struct {
+		input    String
+		expected complex128
+	}{
+		{"1+2i", complex(1, 2)},
+		{"3", complex(3, 0)},
+		{"2i", complex(0, 2)},
+		{"-1-1i", complex(-1, -1)},
+	}
+	for _, tc := range valid {
+		result := tc.input.TryComplex()
+		if result.IsErr() {
+			t.Errorf("TryComplex(%q) unexpected error: %v", tc.input, result.Err())
+			continue
+		}
+		if result.Ok() != tc.expected {
+			t.Errorf("TryComplex(%q) = %v, want %v", tc.input, result.Ok(), tc.expected)
+		}
+	}
+
+	invalid := []String{"", " ", "abc", "1+2", "i i"}
+	for _, input := range invalid {
+		result := input.TryComplex()
+		if result.IsOk() {
+			t.Errorf("TryComplex(%q) expected error, got %v", input, result.Ok())
+			continue
+		}
+		if !errors.Is(result.Err(), ErrParseComplex) {
+			t.Errorf("TryComplex(%q) error = %v, want errors.Is ErrParseComplex", input, result.Err())
+		}
+	}
+}
+
+// The parse errors include the offending input and remain matchable via errors.Is.
+func TestStringParseErrorMessages(t *testing.T) {
+	cases := []struct {
+		got      error
+		sentinel error
+		want     String
+	}{
+		{String("x").TryInt().Err(), ErrParseInt, `invalid integer: "x"`},
+		{String("x").TryUint().Err(), ErrParseUint, `invalid unsigned integer: "x"`},
+		{String("x").TryFloat().Err(), ErrParseFloat, `invalid float: "x"`},
+		{String("x").TryComplex().Err(), ErrParseComplex, `invalid complex number: "x"`},
+		{String("x").TryBool().Err(), ErrParseBool, `invalid bool: "x"`},
+		{String("x").TryBigInt().Err(), ErrParseBigInt, `invalid big integer: "x"`},
+	}
+	for _, tc := range cases {
+		if !errors.Is(tc.got, tc.sentinel) {
+			t.Errorf("errors.Is(%v, %v) = false", tc.got, tc.sentinel)
+		}
+		if got := String(tc.got.Error()); got != tc.want {
+			t.Errorf("message = %q, want %q", got, tc.want)
+		}
 	}
 }

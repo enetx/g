@@ -585,3 +585,27 @@ func TestOptionMapOrIsNoneOr(t *testing.T) {
 		t.Error("IsNoneOr(Some odd) should be false")
 	}
 }
+
+func TestOptionAnd(t *testing.T) {
+	if got := Some(1).And(Some("x")); got.IsNone() || got.Some() != "x" {
+		t.Fatalf("Some.And = %v, want Some(x)", got)
+	}
+	if got := None[int]().And(Some("x")); got.IsSome() {
+		t.Fatalf("None.And = %v, want None", got)
+	}
+}
+
+func TestOptionXor(t *testing.T) {
+	if got := Some(1).Xor(None[int]()); got.IsNone() || got.Some() != 1 {
+		t.Fatalf("Some.Xor(None) = %v, want Some(1)", got)
+	}
+	if got := None[int]().Xor(Some(2)); got.IsNone() || got.Some() != 2 {
+		t.Fatalf("None.Xor(Some) = %v, want Some(2)", got)
+	}
+	if got := Some(1).Xor(Some(2)); got.IsSome() {
+		t.Fatalf("Some.Xor(Some) = %v, want None", got)
+	}
+	if got := None[int]().Xor(None[int]()); got.IsSome() {
+		t.Fatalf("None.Xor(None) = %v, want None", got)
+	}
+}

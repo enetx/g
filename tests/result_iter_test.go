@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/pool"
 )
 
@@ -3416,7 +3417,7 @@ func TestSeqResultFlatMap(t *testing.T) {
 		})
 
 		// Consumer keeps iterating: the Err flows through as an element and the
-		// source continues (consumer-driven, Rust iterator semantics).
+		// source continues (consumer-driven).
 		var vals []String
 		var errs []error
 		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
@@ -3543,4 +3544,225 @@ func TestSeqResultTryCollect(t *testing.T) {
 			t.Errorf("TryCollect = %v, want empty Slice", got)
 		}
 	})
+}
+
+// --- helpers shared by the SeqResult method tests below ---
+
+var errBoom = errors.New("boom")
+
+// okSeqOf builds a SeqResult from Ok values.
+func okSeqOf(vs ...Int) SeqResult[Int] {
+	return func(yield func(Result[Int]) bool) {
+		for _, v := range vs {
+			if !yield(Ok(v)) {
+				return
+			}
+		}
+	}
+}
+
+// okThenErr yields Ok values followed by a trailing Err.
+func okThenErr(err error, vs ...Int) SeqResult[Int] {
+	return func(yield func(Result[Int]) bool) {
+		for _, v := range vs {
+			if !yield(Ok(v)) {
+				return
+			}
+		}
+		yield(Err[Int](err))
+	}
+}
+
+func TestSeqResultSumBy(t *testing.T) {
+	ok := okSeqOf(1, 2, 3)
+	if got := ok.SumBy(func(v Int) Int { return v * 10 }); got.IsErr() || got.Ok() != 60 {
+		t.Errorf("SeqResult.SumBy ok = %v, want Ok(60)", got)
+	}
+
+	bad := okThenErr(errBoom, 1)
+	if got := bad.SumBy(func(v Int) Int { return v }); got.IsOk() {
+		t.Errorf("SeqResult.SumBy err = %v, want Err", got)
+	}
+}
+
+func TestSeqResultFilterMap(t *testing.T) {
+	got := okSeqOf(1, 2, 3, 4).
+		FilterMap(func(v Int) Option[String] {
+			if v%2 == 0 {
+				return Some(v.String())
+			}
+			return None[String]()
+		}).
+		TryCollect()
+
+	if got.IsErr() || got.Ok().Len() != 2 || got.Ok()[0] != "2" || got.Ok()[1] != "4" {
+		t.Fatalf("FilterMap = %v", got)
+	}
+
+	bad := okThenErr(errBoom, 2, 4).
+		FilterMap(func(v Int) Option[String] { return Some(v.String()) }).
+		TryCollect()
+	if bad.IsOk() || !errors.Is(bad.Err(), errBoom) {
+		t.Fatalf("FilterMap err = %v", bad)
+	}
+}
+
+func TestSeqResultTakeWhile(t *testing.T) {
+	got := okSeqOf(1, 2, 3, 4, 1).
+		TakeWhile(func(v Int) bool { return v < 3 }).
+		TryCollect()
+	if got.IsErr() || got.Ok().Len() != 2 {
+		t.Fatalf("TakeWhile = %v, want Ok([1,2])", got)
+	}
+}
+
+func TestSeqResultSkipWhile(t *testing.T) {
+	got := okSeqOf(1, 2, 3, 4, 1).
+		SkipWhile(func(v Int) bool { return v < 3 }).
+		TryCollect()
+	if got.IsErr() || got.Ok().Len() != 3 {
+		t.Fatalf("SkipWhile = %v, want Ok([3,4,1])", got)
+	}
+}
+
+func TestSeqResultMaxByMinBy(t *testing.T) {
+	mx := okSeqOf(3, 1, 4, 1, 5, 9, 2).MaxBy(cmp.Cmp)
+	if mx.IsErr() || mx.Ok().IsNone() || mx.Ok().Some() != 9 {
+		t.Fatalf("MaxBy = %v, want Ok(Some(9))", mx)
+	}
+
+	mn := okSeqOf(3, 1, 4, 1, 5, 9, 2).MinBy(cmp.Cmp)
+	if mn.IsErr() || mn.Ok().IsNone() || mn.Ok().Some() != 1 {
+		t.Fatalf("MinBy = %v, want Ok(Some(1))", mn)
+	}
+
+	empty := okSeqOf().MaxBy(cmp.Cmp)
+	if empty.IsErr() || empty.Ok().IsSome() {
+		t.Fatalf("empty MaxBy = %v, want Ok(None)", empty)
+	}
+
+	bad := okThenErr(errBoom, 1, 2).MaxBy(cmp.Cmp)
+	if bad.IsOk() || !errors.Is(bad.Err(), errBoom) {
+		t.Fatalf("MaxBy err = %v", bad)
+	}
+}
+
+func TestSeqResultFlatten(t *testing.T) {
+	flat := okSeqOf(1, 2, 3).Flatten().TryCollect()
+	if flat.IsErr() || flat.Ok().Len() != 3 {
+		t.Fatalf("Flatten flat = %v", flat)
+	}
+
+	bad := okThenErr(errBoom, 1, 2).Flatten().TryCollect()
+	if bad.IsOk() || !errors.Is(bad.Err(), errBoom) {
+		t.Fatalf("Flatten err = %v", bad)
+	}
+}
+
+func TestSeqResultSortBy(t *testing.T) {
+	got := okSeqOf(3, 1, 4, 1, 5).SortBy(cmp.Cmp).TryCollect()
+	if got.IsErr() {
+		t.Fatalf("err: %v", got.Err())
+	}
+	s := got.Ok()
+	if s.Len() != 5 || s[0] != 1 || s[4] != 5 {
+		t.Fatalf("SortBy = %v", s)
+	}
+
+	bad := okThenErr(errBoom, 3, 1).SortBy(cmp.Cmp).TryCollect()
+	if bad.IsOk() || !errors.Is(bad.Err(), errBoom) {
+		t.Fatalf("SortBy err = %v", bad)
+	}
+}
+
+func TestSeqResultCounterBy(t *testing.T) {
+	got := okSeqOf(1, 2, 2, 3, 3, 3).CounterBy(func(v Int) Int { return v })
+	if got.IsErr() {
+		t.Fatalf("err: %v", got.Err())
+	}
+	m := got.Ok()
+	if m.Get(1).UnwrapOr(0) != 1 || m.Get(2).UnwrapOr(0) != 2 || m.Get(3).UnwrapOr(0) != 3 {
+		t.Fatalf("CounterBy = %v", m)
+	}
+	if m.Len() != 3 {
+		t.Fatalf("len = %d", m.Len())
+	}
+
+	bad := okThenErr(errBoom, 1, 2).CounterBy(func(v Int) Int { return v })
+	if bad.IsOk() || !errors.Is(bad.Err(), errBoom) {
+		t.Fatalf("CounterBy err = %v", bad)
+	}
+}
+
+// SeqResult.Take must not leak a trailing Err past n from a non-cooperative source.
+func TestSeqResultTakeNoTrailingErr(t *testing.T) {
+	rogue := SeqResult[Int](func(yield func(Result[Int]) bool) {
+		yield(Ok[Int](1))
+		yield(Ok[Int](2))
+		yield(Err[Int](errBoom)) // arrives after the 2 Ok values
+		yield(Ok[Int](3))
+	})
+
+	got := rogue.Take(2).Collect()
+	if got.Len() != 2 {
+		t.Fatalf("Take(2) yielded %d (%v), want exactly 2 with no trailing Err", got.Len(), got)
+	}
+	for _, r := range got {
+		if r.IsErr() {
+			t.Fatalf("Take(2) leaked an Err: %v", got)
+		}
+	}
+}
+
+// Take still forwards an Err that appears BEFORE n Ok values are taken.
+func TestSeqResultTakeForwardsEarlyErr(t *testing.T) {
+	seq := SeqResult[Int](func(yield func(Result[Int]) bool) {
+		if !yield(Err[Int](errBoom)) {
+			return
+		}
+		if !yield(Ok[Int](1)) {
+			return
+		}
+		yield(Ok[Int](2))
+	})
+
+	got := seq.Take(2).Collect() // Err, Ok(1), Ok(2)
+	if got.Len() != 3 || !got[0].IsErr() {
+		t.Fatalf("Take(2) with leading Err = %v, want [Err, Ok, Ok]", got)
+	}
+}
+
+func TestSeqResultProductBy(t *testing.T) {
+	if got := okSeqOf(1, 2, 3, 4).ProductBy(func(v Int) Int { return v }); got.IsErr() || got.Ok() != 24 {
+		t.Fatalf("ProductBy = %v, want Ok(24)", got)
+	}
+	// empty -> Ok(1)
+	if got := okSeqOf().ProductBy(func(v Int) Int { return v }); got.IsErr() || got.Ok() != 1 {
+		t.Fatalf("ProductBy empty = %v, want Ok(1)", got)
+	}
+	// first Err short-circuits
+	if got := okThenErr(errBoom, 2, 3).ProductBy(func(v Int) Int { return v }); got.IsOk() {
+		t.Fatalf("ProductBy err = %v, want Err", got)
+	}
+}
+
+func TestSeqResultFindMap(t *testing.T) {
+	pick := func(v Int) Option[Int] {
+		if v == 2 {
+			return Some(v * 10)
+		}
+		return None[Int]()
+	}
+	got := okSeqOf(1, 2, 3).FindMap(pick)
+	if got.IsErr() || got.Ok().IsNone() || got.Ok().Some() != 20 {
+		t.Fatalf("FindMap = %v, want Ok(Some(20))", got)
+	}
+	// no match -> Ok(None)
+	if none := okSeqOf(1, 3).FindMap(pick); none.IsErr() || none.Ok().IsSome() {
+		t.Fatalf("FindMap no match = %v, want Ok(None)", none)
+	}
+	// first Err short-circuits
+	if bad := okThenErr(errBoom, 1).FindMap(pick); bad.IsOk() {
+		t.Fatalf("FindMap err = %v, want Err", bad)
+	}
 }

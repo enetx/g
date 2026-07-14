@@ -79,7 +79,7 @@ func (i Int) Add(b Int) Int { return i + b }
 // Use CheckedNeg for a guarded variant.
 func (i Int) Neg() Int { return -i }
 
-// Signum returns the sign of the Int following Rust i64::signum semantics:
+// Signum returns the sign of the Int:
 // -1 if the Int is negative, 0 if it is zero, and 1 if it is positive.
 func (i Int) Signum() Int {
 	switch {
@@ -142,8 +142,8 @@ func (i Int) IsZero() bool { return i == 0 }
 // IsNegative checks if the Int is negative.
 func (i Int) IsNegative() bool { return i < 0 }
 
-// IsPositive reports whether the Int is strictly greater than zero, mirroring
-// Rust's i64::is_positive. Zero is neither positive nor negative: both
+// IsPositive reports whether the Int is strictly greater than zero.
+// Zero is neither positive nor negative: both
 // Int(0).IsPositive() and Int(0).IsNegative() return false. For a
 // non-negative check use !i.IsNegative().
 func (i Int) IsPositive() bool { return i > 0 }

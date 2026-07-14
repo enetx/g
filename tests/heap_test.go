@@ -791,3 +791,18 @@ func TestHeapNe(t *testing.T) {
 		t.Errorf("Heaps with different elements should be Ne")
 	}
 }
+
+func TestHeapFromSlice(t *testing.T) {
+	h := g.HeapFromSlice(cmp.Cmp[g.Int], g.SliceOf[g.Int](3, 1, 2))
+	if h.Len() != 3 {
+		t.Fatalf("HeapFromSlice len = %d, want 3", h.Len())
+	}
+
+	// curried collector (HeapFromSlice needs the comparator)
+	res := g.SliceOf[g.String]("3", "1", "2").
+		Iter().TryMap(g.String.TryInt).TryCollect().
+		Map(func(s g.Slice[g.Int]) *g.Heap[g.Int] { return g.HeapFromSlice(cmp.Cmp, s) })
+	if res.IsErr() || res.Ok().Len() != 3 {
+		t.Fatalf("HeapFromSlice collector = %v", res)
+	}
+}

@@ -131,7 +131,7 @@ func (s String) IsDigit() bool {
 func (s String) TryInt() Result[Int] {
 	hint, err := strconv.ParseInt(s.Std(), 0, 64)
 	if err != nil {
-		return Err[Int](err)
+		return Err[Int](Errorf("{:w}: \"{}\"", ErrParseInt, s))
 	}
 
 	return Ok(Int(hint))
@@ -156,17 +156,50 @@ func (s String) TryBigInt() Result[*big.Int] {
 		return Ok(bigInt)
 	}
 
-	return Err[*big.Int](fmt.Errorf("invalid big integer: %q", s.Std()))
+	return Err[*big.Int](Errorf("{:w}: \"{}\"", ErrParseBigInt, s))
 }
 
 // TryFloat tries to parse the String as a float64 and returns an Float.
 func (s String) TryFloat() Result[Float] {
 	float, err := strconv.ParseFloat(s.Std(), 64)
 	if err != nil {
-		return Err[Float](err)
+		return Err[Float](Errorf("{:w}: \"{}\"", ErrParseFloat, s))
 	}
 
 	return Ok(Float(float))
+}
+
+// TryBool tries to parse the String as a bool and returns the result.
+// It accepts the values understood by strconv.ParseBool: 1, t, T, TRUE, true,
+// True, 0, f, F, FALSE, false, False.
+func (s String) TryBool() Result[bool] {
+	b, err := strconv.ParseBool(s.Std())
+	if err != nil {
+		return Err[bool](Errorf("{:w}: \"{}\"", ErrParseBool, s))
+	}
+
+	return Ok(b)
+}
+
+// TryUint tries to parse the String as an unsigned integer and returns a uint.
+// The base is inferred from the prefix (0x, 0o/0, 0b), matching TryInt.
+func (s String) TryUint() Result[uint] {
+	u, err := strconv.ParseUint(s.Std(), 0, 64)
+	if err != nil {
+		return Err[uint](Errorf("{:w}: \"{}\"", ErrParseUint, s))
+	}
+
+	return Ok(uint(u))
+}
+
+// TryComplex tries to parse the String as a complex number and returns a complex128.
+func (s String) TryComplex() Result[complex128] {
+	c, err := strconv.ParseComplex(s.Std(), 128)
+	if err != nil {
+		return Err[complex128](Errorf("{:w}: \"{}\"", ErrParseComplex, s))
+	}
+
+	return Ok(c)
 }
 
 // Title converts the String to title case.

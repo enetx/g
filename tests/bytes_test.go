@@ -3,6 +3,7 @@ package g_test
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"io"
 	"math"
 	"reflect"
@@ -2056,5 +2057,38 @@ func TestBytesSplitN(t *testing.T) {
 
 	if got := Bytes("a,b,c").SplitN(Bytes(","), 0); got.Len() != 0 {
 		t.Errorf("SplitN(_, 0) = %v, want empty", got)
+	}
+}
+
+func TestBytesParsers(t *testing.T) {
+	// happy path, one per target type — delegates to the String parsers
+	if got := Bytes("42").TryInt(); got.IsErr() || got.Ok() != 42 {
+		t.Errorf("Bytes.TryInt = %v", got)
+	}
+	if got := Bytes("0xff").TryUint(); got.IsErr() || got.Ok() != 255 {
+		t.Errorf("Bytes.TryUint = %v", got)
+	}
+	if got := Bytes("3.14").TryFloat(); got.IsErr() || got.Ok() != 3.14 {
+		t.Errorf("Bytes.TryFloat = %v", got)
+	}
+	if got := Bytes("true").TryBool(); got.IsErr() || got.Ok() != true {
+		t.Errorf("Bytes.TryBool = %v", got)
+	}
+	if got := Bytes("1+2i").TryComplex(); got.IsErr() || got.Ok() != complex(1, 2) {
+		t.Errorf("Bytes.TryComplex = %v", got)
+	}
+	if got := Bytes("123456789123456789123456789").TryBigInt(); got.IsErr() || got.Ok().String() != "123456789123456789123456789" {
+		t.Errorf("Bytes.TryBigInt = %v", got)
+	}
+
+	// errors carry the same sentinels as the String parsers
+	if e := Bytes("x").TryInt().Err(); !errors.Is(e, ErrParseInt) {
+		t.Errorf("Bytes.TryInt err = %v, want ErrParseInt", e)
+	}
+	if e := Bytes("x").TryFloat().Err(); !errors.Is(e, ErrParseFloat) {
+		t.Errorf("Bytes.TryFloat err = %v, want ErrParseFloat", e)
+	}
+	if e := Bytes("x").TryBool().Err(); !errors.Is(e, ErrParseBool) {
+		t.Errorf("Bytes.TryBool err = %v, want ErrParseBool", e)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/iter"
 )
 
@@ -134,28 +135,7 @@ func (seq SeqSet[V]) Count() Int { return Int(iter.Seq[V](seq).Count()) }
 //	words.Iter().CounterBy(func(w String) Int { return w.Len() })
 //	// MapOrd{5:2, 4:1} — counts by word length, in first-seen order
 func (seq SeqSet[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
-	return func(yield func(K, Int) bool) {
-		var order Slice[K]
-
-		counts := NewMap[K, Int]()
-
-		seq(func(v V) bool {
-			k := fn(v)
-			if !counts.Contains(k) {
-				order.Push(k)
-			}
-
-			counts[k]++
-
-			return true
-		})
-
-		for _, k := range order {
-			if !yield(k, counts[k]) {
-				return
-			}
-		}
-	}
+	return counterBy(iter.Seq[V](seq), fn)
 }
 
 // Fold accumulates values in the iterator using a function.
@@ -188,6 +168,47 @@ func (seq SeqSet[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
 // The resulting value will be the accumulation of elements based on the provided function.
 func (seq SeqSet[V]) Fold[A any](init A, fn func(acc A, val V) A) A {
 	return iter.Seq[V](seq).Fold(init, fn)
+}
+
+// SumBy maps each element to a numeric value via fn and returns the sum of those values.
+// The fold order is undefined, so fn should be free of order-dependent side effects.
+// An empty sequence yields the zero value of S.
+func (seq SeqSet[V]) SumBy[S constraints.Number](fn func(V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, v V) S { return acc + fn(v) })
+}
+
+// ProductBy maps each element to a numeric value via fn and returns their product.
+// An empty sequence yields the multiplicative identity, one.
+func (seq SeqSet[V]) ProductBy[S constraints.Number](fn func(V) S) S {
+	return seq.Fold(S(1), func(acc S, v V) S { return acc * fn(v) })
+}
+
+// FindMap applies fn to each element and returns the first Some result, or None
+// if fn returns None for every element. Iteration order over a set is undefined.
+func (seq SeqSet[V]) FindMap[U any](fn func(V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(v V) bool {
+		if o := fn(v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// TryMap applies a fallible transform to each element and enters the Result
+// pipeline, producing a SeqResult[U]. See SeqSlice.TryMap for the full contract.
+func (seq SeqSet[V]) TryMap[U any](fn func(V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
 }
 
 // Reduce aggregates elements of the sequence using the provided function.

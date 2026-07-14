@@ -1742,3 +1742,45 @@ func TestSliceSetReturnsPrevious(t *testing.T) {
 		t.Errorf("slice after Set = %v", sl)
 	}
 }
+
+func TestSliceBinarySearch(t *testing.T) {
+	sl := SliceOf(1, 3, 5, 7, 9)
+	if got := sl.BinarySearch(5, cmp.Cmp); got.IsNone() || got.Some() != 2 {
+		t.Fatalf("BinarySearch(5) = %v, want Some(2)", got)
+	}
+	// misses return None
+	for _, miss := range []int{6, 0, 10} {
+		if got := sl.BinarySearch(miss, cmp.Cmp); got.IsSome() {
+			t.Fatalf("BinarySearch(%d) = %v, want None", miss, got)
+		}
+	}
+}
+
+func TestSlicePartitionPoint(t *testing.T) {
+	sl := SliceOf(1, 2, 3, 4, 5, 6)
+	if p := sl.PartitionPoint(func(v int) bool { return v < 4 }); p != 3 {
+		t.Fatalf("PartitionPoint = %d, want 3", p)
+	}
+	if p := sl.PartitionPoint(func(v int) bool { return true }); p != 6 {
+		t.Fatalf("all-true PartitionPoint = %d, want 6", p)
+	}
+	if p := sl.PartitionPoint(func(v int) bool { return false }); p != 0 {
+		t.Fatalf("all-false PartitionPoint = %d, want 0", p)
+	}
+}
+
+func TestSliceRetain(t *testing.T) {
+	sl := SliceOf(1, 2, 3, 4, 5, 6)
+	sl.Retain(func(v int) bool { return v%2 == 0 })
+	if sl.Len() != 3 || sl[0] != 2 || sl[1] != 4 || sl[2] != 6 {
+		t.Fatalf("Retain = %v, want [2 4 6]", sl)
+	}
+}
+
+func TestSliceDedupBy(t *testing.T) {
+	sl := SliceOf(1, 1, 2, 2, 2, 3, 1)
+	sl.DedupBy(func(a, b int) bool { return a == b })
+	if sl.Len() != 4 || sl[0] != 1 || sl[1] != 2 || sl[2] != 3 || sl[3] != 1 {
+		t.Fatalf("DedupBy = %v, want [1 2 3 1] (adjacent only)", sl)
+	}
+}

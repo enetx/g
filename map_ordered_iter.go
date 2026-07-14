@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/enetx/g/cmp"
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/iter"
 )
 
@@ -647,6 +648,48 @@ func (seq *SeqMapOrd[K, V]) Next() Option[Pair[K, V]] {
 // The accumulator type may differ from the key and value types.
 func (seq SeqMapOrd[K, V]) Fold[A any](init A, fn func(acc A, k K, v V) A) A {
 	return iter.Seq2[K, V](seq).Fold(init, fn)
+}
+
+// SumBy maps each key-value pair to a numeric value via fn and returns the sum of those values,
+// visiting pairs in insertion order. An empty sequence yields the zero value of S.
+func (seq SeqMapOrd[K, V]) SumBy[S constraints.Number](fn func(K, V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, k K, v V) S { return acc + fn(k, v) })
+}
+
+// ProductBy maps each key-value pair to a numeric value via fn and returns their
+// product, in insertion order. An empty sequence yields the multiplicative
+// identity, one.
+func (seq SeqMapOrd[K, V]) ProductBy[S constraints.Number](fn func(K, V) S) S {
+	return seq.Fold(S(1), func(acc S, k K, v V) S { return acc * fn(k, v) })
+}
+
+// FindMap applies fn to each key-value pair in insertion order and returns the
+// first Some result, or None if fn returns None for every pair.
+func (seq SeqMapOrd[K, V]) FindMap[U any](fn func(K, V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(k K, v V) bool {
+		if o := fn(k, v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// TryMap applies a fallible transform to each key-value pair and enters the
+// Result pipeline, producing a SeqResult[U]. See SeqSlice.TryMap for the full
+// contract.
+func (seq SeqMapOrd[K, V]) TryMap[U any](fn func(K, V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(k K, v V) bool {
+			return yield(fn(k, v))
+		})
+	}
 }
 
 // TakeWhile yields key-value pairs while the predicate returns true, stopping at the first false.

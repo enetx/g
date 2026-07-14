@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/enetx/g/cmp"
-	"github.com/enetx/g/f"
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/iter"
 )
 
@@ -163,32 +163,11 @@ func (seq SeqHeap[V]) Count() Int { return Int(iter.Seq[V](seq).Count()) }
 //	words.Iter().CounterBy(func(w String) Int { return w.Len() })
 //	// MapOrd{5:2, 4:1} — counts by word length, in first-seen order
 func (seq SeqHeap[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
-	return func(yield func(K, Int) bool) {
-		var order Slice[K]
-
-		counts := NewMap[K, Int]()
-
-		seq(func(v V) bool {
-			k := fn(v)
-			if !counts.Contains(k) {
-				order.Push(k)
-			}
-
-			counts[k]++
-
-			return true
-		})
-
-		for _, k := range order {
-			if !yield(k, counts[k]) {
-				return
-			}
-		}
-	}
+	return counterBy(iter.Seq[V](seq), fn)
 }
 
 // ChunkBy groups CONSECUTIVE elements of the sequence into chunks based on a
-// custom equality function, mirroring Rust's chunk_by. It is not an SQL-style
+// custom equality function. It is not an SQL-style
 // GroupBy: elements are never reordered or bucketed by key, so equal elements
 // that are not adjacent end up in different chunks.
 //
@@ -278,7 +257,7 @@ func (seq SeqHeap[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqHeap[V]) Dedup() SeqHeap[V] {
-	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
+	if isValueComparable[V]() {
 		return SeqHeap[V](iter.Seq[V](seq).DedupBy(func(a, b V) bool {
 			return any(a) == any(b)
 		}))
@@ -382,6 +361,46 @@ func (seq SeqHeap[V]) Fold[A any](init A, fn func(acc A, val V) A) A {
 	return iter.Seq[V](seq).Fold(init, fn)
 }
 
+// SumBy maps each element to a numeric value via fn and returns the sum of those values.
+// An empty sequence yields the zero value of S.
+func (seq SeqHeap[V]) SumBy[S constraints.Number](fn func(V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, v V) S { return acc + fn(v) })
+}
+
+// ProductBy maps each element to a numeric value via fn and returns their product.
+// An empty sequence yields the multiplicative identity, one.
+func (seq SeqHeap[V]) ProductBy[S constraints.Number](fn func(V) S) S {
+	return seq.Fold(S(1), func(acc S, v V) S { return acc * fn(v) })
+}
+
+// FindMap applies fn to each element and returns the first Some result, or None
+// if fn returns None for every element.
+func (seq SeqHeap[V]) FindMap[U any](fn func(V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(v V) bool {
+		if o := fn(v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// TryMap applies a fallible transform to each element and enters the Result
+// pipeline, producing a SeqResult[U]. See SeqSlice.TryMap for the full contract.
+func (seq SeqHeap[V]) TryMap[U any](fn func(V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
+}
+
 // Reduce aggregates elements of the sequence using the provided function.
 // The first element of the sequence is used as the initial accumulator value.
 // If the sequence is empty, it returns None[V].
@@ -452,28 +471,8 @@ func (seq SeqHeap[V]) ForEach(fn func(v V)) { iter.Seq[V](seq).ForEach(fn) }
 // The resulting iterator will contain elements from each iterator in sequence.
 func (seq SeqHeap[V]) Flatten() SeqHeap[V] {
 	return func(yield func(V) bool) {
-		var flatten func(item any) bool
-		flatten = func(item any) bool {
-			rv := reflect.ValueOf(item)
-			switch rv.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := range rv.Len() {
-					if !flatten(rv.Index(i).Interface()) {
-						return false
-					}
-				}
-			default:
-				if v, ok := item.(V); ok {
-					if !yield(v) {
-						return false
-					}
-				}
-			}
-			return true
-		}
-
 		seq(func(item V) bool {
-			return flatten(item)
+			return flattenValue(item, yield)
 		})
 	}
 }

@@ -705,3 +705,48 @@ func TestMap_Iter_FilterByValue(t *testing.T) {
 		t.Errorf("FilterByValue(f.Gt(1)): expected {b:2, c:3}, got %v", got)
 	}
 }
+
+// SeqMap.Next advances by exactly one pair and does not drain the source.
+func TestSeqMapNextStepwise(t *testing.T) {
+	m := g.NewMap[g.Int, g.Int]()
+	for i := range g.Int(5) {
+		m.Insert(i, i*10)
+	}
+
+	seq := m.Iter()
+	seen := g.NewMap[g.Int, g.Int]()
+	for {
+		p := seq.Next()
+		if p.IsNone() {
+			break
+		}
+		seen.Insert(p.Some().Key, p.Some().Value)
+	}
+
+	if seen.Len() != 5 {
+		t.Fatalf("Next visited %d pairs, want 5", seen.Len())
+	}
+	for i := range g.Int(5) {
+		if seen.Get(i).UnwrapOr(-1) != i*10 {
+			t.Fatalf("missing/incorrect pair for %d: %v", i, seen)
+		}
+	}
+}
+
+// SeqMap.Next must pull lazily (one step), not drain the whole source at once.
+func TestSeqMapNextIsLazy(t *testing.T) {
+	pulls := 0
+	var src g.SeqMap[g.Int, g.Int] = func(yield func(g.Int, g.Int) bool) {
+		for i := range g.Int(10) {
+			pulls++
+			if !yield(i, i) {
+				return
+			}
+		}
+	}
+
+	_ = src.Next()
+	if pulls > 2 {
+		t.Fatalf("Next drained the source: %d pulls for a single step", pulls)
+	}
+}

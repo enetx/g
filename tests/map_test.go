@@ -866,3 +866,27 @@ func TestMapOfHeapOfMapOrdOf(t *testing.T) {
 		t.Errorf("HeapOf min = %v, want 1", h.Peek())
 	}
 }
+
+// pairsResult builds a fallible pair-stream, shared by the *FromPairs tests
+// across map_test.go / map_ordered_test.go / map_safe_test.go.
+func pairsResult() SeqResult[Pair[String, Int]] {
+	src := NewMapOrd[String, String]()
+	src.Insert("z", "1")
+	src.Insert("a", "2")
+	return src.Iter().TryMap(func(k, v String) Result[Pair[String, Int]] {
+		return v.TryInt().Map(func(n Int) Pair[String, Int] { return PairOf(k, n) })
+	})
+}
+
+func TestMapFromPairs(t *testing.T) {
+	m := MapFromPairs(SliceOf(PairOf[String, Int]("a", 1), PairOf[String, Int]("b", 2)))
+	if m.Len() != 2 || m.Get("a").UnwrapOr(0) != 1 {
+		t.Fatalf("MapFromPairs = %v", m)
+	}
+
+	// passable as a method expression to Result.Map (the whole point)
+	res := pairsResult().TryCollect().Map(MapFromPairs)
+	if res.IsErr() || res.Ok().Len() != 2 {
+		t.Fatalf("Map(MapFromPairs) = %v", res)
+	}
+}

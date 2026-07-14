@@ -783,3 +783,16 @@ func TestSetDisjoint(t *testing.T) {
 		t.Error("Overlapping sets reported as disjoint")
 	}
 }
+
+func TestSetFromSlice(t *testing.T) {
+	s := SetFromSlice(SliceOf(1, 2, 3, 3, 2))
+	if s.Len() != 3 || !s.Contains(1) || !s.Contains(2) || !s.Contains(3) {
+		t.Fatalf("SetFromSlice = %v", s)
+	}
+
+	// usable as a method-expression collector after a fallible chain
+	res := SliceOf[String]("1", "2", "2").Iter().TryMap(String.TryInt).TryCollect().Map(SetFromSlice)
+	if res.IsErr() || res.Ok().Len() != 2 {
+		t.Fatalf("Map(SetFromSlice) = %v", res)
+	}
+}

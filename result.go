@@ -260,6 +260,27 @@ func (r Result[T]) OrElse(fn func(error) Result[T]) Result[T] {
 	return fn(r.err)
 }
 
+// And returns the receiver's error if it is Err, otherwise returns other.
+// It is the eager counterpart of Then (which calls a function instead).
+func (r Result[T]) And[U any](other Result[U]) Result[U] {
+	if r.IsErr() {
+		return Err[U](r.err)
+	}
+
+	return other
+}
+
+// ErrOption returns the contained error as an Option: Some(err) if the Result is
+// Err, or None if it is Ok. It is the error-side counterpart of Option, which
+// returns the Ok value as an Option.
+func (r Result[T]) ErrOption() Option[error] {
+	if r.IsErr() {
+		return Some(r.err)
+	}
+
+	return None[error]()
+}
+
 // IsOkAnd returns true if the Result is Ok and the predicate returns true for the contained value.
 func (r Result[T]) IsOkAnd(pred func(T) bool) bool {
 	return r.IsOk() && pred(r.v)

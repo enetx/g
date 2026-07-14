@@ -568,3 +568,46 @@ func TestMapOrdered_Iter_FilterByValue(t *testing.T) {
 		t.Errorf("FilterByValue(f.Gt(1)): expected keys [b c] in order, got %v", keys)
 	}
 }
+
+func TestSeqMapOrdSumBy(t *testing.T) {
+	m := g.NewMapOrd[g.String, g.Int]()
+	m.Insert("a", 1)
+	m.Insert("b", 2)
+	m.Insert("c", 3)
+	if got := m.Iter().SumBy(func(_ g.String, v g.Int) g.Int { return v }); got != 6 {
+		t.Errorf("SeqMapOrd.SumBy = %d, want 6", got)
+	}
+}
+
+func TestSeqMapOrdTryMap(t *testing.T) {
+	mo := g.NewMapOrd[g.String, g.String]()
+	mo.Insert("a", "10")
+	mo.Insert("b", "20")
+	got := mo.Iter().
+		TryMap(func(_ g.String, v g.String) g.Result[g.Int] { return v.TryInt() }).
+		TryCollect()
+	if got.IsErr() || got.Ok().Len() != 2 {
+		t.Fatalf("MapOrd.TryMap = %v", got)
+	}
+}
+
+func TestSeqMapOrdProductByFindMap(t *testing.T) {
+	m := g.NewMapOrd[g.String, g.Int]()
+	m.Insert("a", 2)
+	m.Insert("b", 3)
+	m.Insert("c", 4)
+
+	if got := m.Iter().ProductBy(func(_ g.String, v g.Int) g.Int { return v }); got != 24 {
+		t.Errorf("ProductBy = %d, want 24", got)
+	}
+
+	got := m.Iter().FindMap(func(k g.String, v g.Int) g.Option[g.String] {
+		if v == 3 {
+			return g.Some(k)
+		}
+		return g.None[g.String]()
+	})
+	if got.IsNone() || got.Some() != "b" {
+		t.Fatalf("FindMap = %v, want Some(b)", got)
+	}
+}

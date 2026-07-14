@@ -11,7 +11,7 @@ import (
 var errResultJSONShape = errors.New("g.Result: expected a JSON object with exactly one of the keys \"ok\" or \"err\"")
 
 // MarshalJSON implements the json.Marshaler interface (encoding/json v1) for Result[T].
-// The encoding is externally tagged, mirroring Rust's serde representation:
+// The encoding is externally tagged:
 // Ok(value) is marshaled as {"ok": <json of value>} and Err(err) is marshaled
 // as {"err": "<err.Error()>"}.
 //

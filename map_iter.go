@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 
+	"github.com/enetx/g/constraints"
 	"github.com/enetx/iter"
 )
 
@@ -478,28 +479,12 @@ func (seq SeqMap[K, V]) Context(ctx context.Context) SeqMap[K, V] {
 // Returns:
 // - Option[Pair[K, V]]: Some(Pair{Key, Value}) if a pair exists, None if the iterator is exhausted.
 func (seq *SeqMap[K, V]) Next() Option[Pair[K, V]] {
-	var pairs []Pair[K, V]
-
-	(*seq)(func(k K, v V) bool {
-		pairs = append(pairs, Pair[K, V]{Key: k, Value: v})
-		return true
-	})
-
-	if len(pairs) == 0 {
-		return None[Pair[K, V]]()
+	if key, value, remaining, ok := iter.Seq2[K, V](*seq).Next(); ok {
+		*seq = SeqMap[K, V](remaining)
+		return Some(Pair[K, V]{Key: key, Value: value})
 	}
 
-	first := Some(pairs[0])
-
-	*seq = func(yield func(K, V) bool) {
-		for _, pair := range pairs[1:] {
-			if !yield(pair.Key, pair.Value) {
-				return
-			}
-		}
-	}
-
-	return first
+	return None[Pair[K, V]]()
 }
 
 // Last returns the final key-value pair of the sequence, or None if it is empty.
@@ -523,6 +508,48 @@ func (seq SeqMap[K, V]) Chan(ctxs ...context.Context) chan Pair[K, V] {
 // The accumulator type may differ from the key and value types.
 func (seq SeqMap[K, V]) Fold[A any](init A, fn func(acc A, k K, v V) A) A {
 	return iter.Seq2[K, V](seq).Fold(init, fn)
+}
+
+// SumBy maps each key-value pair to a numeric value via fn and returns the sum of those values.
+// The fold order is undefined, so fn should be free of order-dependent side effects.
+// An empty sequence yields the zero value of S.
+func (seq SeqMap[K, V]) SumBy[S constraints.Number](fn func(K, V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, k K, v V) S { return acc + fn(k, v) })
+}
+
+// ProductBy maps each key-value pair to a numeric value via fn and returns their
+// product. An empty sequence yields the multiplicative identity, one.
+func (seq SeqMap[K, V]) ProductBy[S constraints.Number](fn func(K, V) S) S {
+	return seq.Fold(S(1), func(acc S, k K, v V) S { return acc * fn(k, v) })
+}
+
+// FindMap applies fn to each key-value pair and returns the first Some result, or
+// None if fn returns None for every pair. Iteration order is undefined.
+func (seq SeqMap[K, V]) FindMap[U any](fn func(K, V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(k K, v V) bool {
+		if o := fn(k, v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
+// TryMap applies a fallible transform to each key-value pair and enters the
+// Result pipeline, producing a SeqResult[U]. See SeqSlice.TryMap for the full
+// contract (lazy, consumer-driven; terminals decide the Err policy).
+func (seq SeqMap[K, V]) TryMap[U any](fn func(K, V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(k K, v V) bool {
+			return yield(fn(k, v))
+		})
+	}
 }
 
 // TakeWhile yields key-value pairs while the predicate returns true, stopping at the first false.

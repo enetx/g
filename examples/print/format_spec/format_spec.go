@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	// --- Format specifiers use {:spec} syntax (Rust-style) ---
+	// --- Format specifiers use {:spec} syntax ---
 	// The colon separates the placeholder from the format spec.
 
 	// --- Integer bases ---

@@ -24,6 +24,11 @@ func SetOf[T comparable](values ...T) Set[T] {
 	return set
 }
 
+// SetFromSlice builds a Set from a slice. Unlike the variadic SetOf, it takes the
+// slice directly, so it can be passed as a first-class function — e.g. as the
+// collect step after a chain: res.TryCollect().Map(SetFromSlice).
+func SetFromSlice[T comparable](s Slice[T]) Set[T] { return SetOf(s...) }
+
 // Transform applies a transformation function to the Set and returns the result.
 func (s Set[T]) Transform[U any](fn func(Set[T]) U) U { return fn(s) }
 

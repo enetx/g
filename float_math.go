@@ -19,7 +19,7 @@ func (f Float) IsNormal() bool {
 	return exp != 0 && exp != 0x7ff
 }
 
-// Signum returns a Float representing the sign of the Float using Rust f64 semantics:
+// Signum returns a Float representing the sign of the Float:
 // 1 if the sign bit is clear (including +0), -1 if the sign bit is set (including -0),
 // and NaN if the Float is NaN.
 func (f Float) Signum() Float {
@@ -30,14 +30,14 @@ func (f Float) Signum() Float {
 	return Float(math.Copysign(1, f.Std()))
 }
 
-// IsSignPositive reports whether the Float has a positive sign bit, mirroring
-// Rust's f64::is_sign_positive. This includes +0.0 and positive infinity.
+// IsSignPositive reports whether the Float has a positive sign bit.
+// This includes +0.0 and positive infinity.
 // Note: NaN carries a sign bit too, so a NaN with a clear sign bit (e.g. math.NaN())
 // is reported as sign-positive; use IsNaN to detect NaN itself.
 func (f Float) IsSignPositive() bool { return !math.Signbit(f.Std()) }
 
-// IsSignNegative reports whether the Float has a negative sign bit, mirroring
-// Rust's f64::is_sign_negative. This includes -0.0 and negative infinity.
+// IsSignNegative reports whether the Float has a negative sign bit.
+// This includes -0.0 and negative infinity.
 // Note: NaN carries a sign bit too, so a NaN with a set sign bit (e.g.
 // math.Copysign(math.NaN(), -1)) is reported as sign-negative; use IsNaN to
 // detect NaN itself.
@@ -58,8 +58,8 @@ func (f Float) Fract() Float { return f - f.Trunc() }
 
 // Clamp restricts the Float to the inclusive range [min, max].
 // If the Float is NaN, NaN is returned.
-// The caller must ensure min <= max and that neither bound is NaN: unlike Rust's
-// clamp, this method does not panic on an invalid range — a NaN bound never
+// The caller must ensure min <= max and that neither bound is NaN: this method
+// does not panic on an invalid range — a NaN bound never
 // compares true, so the corresponding check is silently skipped, and with
 // min > max the lower bound wins.
 func (f Float) Clamp(min, max Float) Float {

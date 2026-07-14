@@ -366,7 +366,7 @@ func (f *File) Close() error {
 	}
 
 	if closeErr := f.file.Close(); closeErr != nil {
-		err = closeErr
+		err = errors.Join(err, closeErr)
 	}
 
 	f.file = nil

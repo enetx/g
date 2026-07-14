@@ -586,3 +586,23 @@ func TestResultCombinators127(t *testing.T) {
 		t.Errorf("MapOrElse = %q", got)
 	}
 }
+
+func TestResultAnd(t *testing.T) {
+	if got := Ok(1).And(Ok("x")); got.IsErr() || got.Ok() != "x" {
+		t.Fatalf("Ok.And = %v, want Ok(x)", got)
+	}
+	boom := errors.New("boom")
+	if got := Err[int](boom).And(Ok("x")); got.IsOk() || !errors.Is(got.Err(), boom) {
+		t.Fatalf("Err.And = %v, want Err", got)
+	}
+}
+
+func TestResultErrOption(t *testing.T) {
+	if got := Ok(1).ErrOption(); got.IsSome() {
+		t.Fatalf("Ok.ErrOption = %v, want None", got)
+	}
+	boom := errors.New("boom")
+	if got := Err[int](boom).ErrOption(); got.IsNone() || !errors.Is(got.Some(), boom) {
+		t.Fatalf("Err.ErrOption = %v, want Some(boom)", got)
+	}
+}

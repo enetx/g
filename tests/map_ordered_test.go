@@ -1665,3 +1665,37 @@ func TestPairOf(t *testing.T) {
 		t.Errorf("mo.Get(\"b\") = %v, want Some(2)", v)
 	}
 }
+
+// MapOrd.Clear must release element references, not just truncate.
+func TestMapOrdClearReleasesElements(t *testing.T) {
+	mo := NewMapOrd[String, Int]()
+	mo.Insert("a", 1)
+	mo.Insert("b", 2)
+
+	mo.Clear()
+
+	if mo.Len() != 0 || !mo.IsEmpty() {
+		t.Fatalf("after Clear: Len=%d IsEmpty=%v", mo.Len(), mo.IsEmpty())
+	}
+
+	// re-grow into the (possibly reused) backing array; stale keys must be gone
+	mo.Insert("c", 3)
+	if mo.Len() != 1 || mo.Get("c").UnwrapOr(0) != 3 {
+		t.Fatalf("reuse after Clear: %v", mo)
+	}
+	if mo.Contains("a") || mo.Contains("b") {
+		t.Fatalf("stale keys survived Clear: %v", mo)
+	}
+}
+
+func TestMapOrdFromPairs(t *testing.T) {
+	// order preserved: z before a
+	res := pairsResult().TryCollect().Map(MapOrdFromPairs)
+	if res.IsErr() {
+		t.Fatalf("err: %v", res.Err())
+	}
+	got := res.Ok()
+	if got.Len() != 2 || got[0].Key != "z" || got[1].Key != "a" {
+		t.Fatalf("MapOrdFromPairs order = %v", got)
+	}
+}

@@ -29,11 +29,12 @@ func main() {
 		// outputs the elements of the slice to the console. Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], Map{1:1}, Map{2:2}]
 
 	// Example 2: Flatten a slice of strings by individual characters
-	words := SliceOf[String]("alpha", "beta", "gamma", "💛💚💙💜", "世界")
+	words := SliceOf("alpha", "beta", "gamma", "💛💚💙💜", "世界")
 
 	// FlatMap maps each string to its characters and flattens the result —
 	// fully typed, no any round-trips (generic methods, Go 1.27).
 	words.Iter().
+		Map(NewString).
 		FlatMap(String.Chars).
 		Map(String.Upper).
 		Collect().

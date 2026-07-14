@@ -106,7 +106,8 @@ func main() {
 		Filter(
 			func(s String) bool {
 				return s != "bbb"
-			}).
+			},
+		).
 		Collect()
 
 	sl.Println()

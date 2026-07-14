@@ -54,7 +54,7 @@ func (i Int) CheckedDiv(b Int) Option[Int] {
 }
 
 // CheckedRem computes the remainder of the Int divided by b, returning None if b is zero
-// or the operation overflows (i == MinInt and b == -1, for parity with Rust's checked_rem).
+// or the operation overflows (i == MinInt and b == -1).
 func (i Int) CheckedRem(b Int) Option[Int] {
 	if b == 0 || (i == math.MinInt && b == -1) {
 		return None[Int]()
@@ -180,7 +180,7 @@ func (i Int) OverflowingMul(b Int) (Int, bool) {
 }
 
 // Clamp restricts the Int to the inclusive range [min, max].
-// The caller must ensure min <= max: unlike Rust's clamp, this method does not
+// The caller must ensure min <= max: this method does not
 // panic on an inverted range — the lower bound is checked first, so the result
 // is unspecified when min > max.
 func (i Int) Clamp(min, max Int) Int {

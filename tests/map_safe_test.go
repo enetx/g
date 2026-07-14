@@ -491,3 +491,43 @@ func TestMapSafeToOrdered(t *testing.T) {
 		t.Error("expected empty MapOrd from empty MapSafe")
 	}
 }
+
+func TestMapSafeOf(t *testing.T) {
+	ms := MapSafeOf(PairOf[String, Int]("a", 1), PairOf[String, Int]("b", 2))
+	if ms.Len() != 2 {
+		t.Fatalf("Len = %d, want 2", ms.Len())
+	}
+	if ms.Get("a").UnwrapOr(0) != 1 || ms.Get("b").UnwrapOr(0) != 2 {
+		t.Fatalf("MapSafeOf contents = %v", ms)
+	}
+
+	// duplicate keys keep the last-written value (parity with MapOf/MapOrdOf)
+	dup := MapSafeOf(PairOf[String, Int]("k", 1), PairOf[String, Int]("k", 9))
+	if dup.Len() != 1 || dup.Get("k").UnwrapOr(0) != 9 {
+		t.Fatalf("dup = %v, want {k:9}", dup)
+	}
+
+	if MapSafeOf[String, Int]().Len() != 0 {
+		t.Fatal("empty MapSafeOf should have Len 0")
+	}
+}
+
+func TestMapSafeFromPairs(t *testing.T) {
+	res := pairsResult().TryCollect().Map(MapSafeFromPairs)
+	if res.IsErr() || res.Ok().Len() != 2 {
+		t.Fatalf("MapSafeFromPairs = %v", res)
+	}
+
+	// error still short-circuits the rebuild
+	src := NewMapOrd[String, String]()
+	src.Insert("a", "x")
+	bad := src.Iter().
+		TryMap(func(k, v String) Result[Pair[String, Int]] {
+			return v.TryInt().Map(func(n Int) Pair[String, Int] { return PairOf(k, n) })
+		}).
+		TryCollect().
+		Map(MapSafeFromPairs)
+	if bad.IsOk() {
+		t.Fatalf("expected Err, got %v", bad.Ok())
+	}
+}

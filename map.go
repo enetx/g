@@ -5,7 +5,6 @@ import (
 	"maps"
 	"reflect"
 
-	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
 )
 
@@ -137,7 +136,7 @@ func (m Map[K, V]) Eq(other Map[K, V]) bool {
 		return true
 	}
 
-	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
+	comparable := isValueComparable[V]()
 
 	for k, value := range m {
 		ovalue, ok := other[k]
@@ -238,4 +237,11 @@ func MapOf[K comparable, V any](pairs ...Pair[K, V]) Map[K, V] {
 	}
 
 	return m
+}
+
+// MapFromPairs builds a Map from a slice of pairs. Unlike the variadic MapOf, it
+// takes the slice directly, so it can be passed as a first-class function — e.g.
+// as the collect step after TryMap: res.TryCollect().Map(MapFromPairs).
+func MapFromPairs[K comparable, V any](pairs Slice[Pair[K, V]]) Map[K, V] {
+	return MapOf(pairs...)
 }

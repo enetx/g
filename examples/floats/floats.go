@@ -16,7 +16,7 @@ func main() {
 	fmt.Println(NewFloat(20).Eq(NewFloat(20.0)))
 	fmt.Println(NewFloat(20).Eq(NewFloat(20.0)))
 
-	// Float math & classification (Rust f64 parity)
+	// Float math & classification
 	fmt.Println(Float(1).Div(0).IsInf())            // true
 	fmt.Println(Float(math.NaN()).Signum().IsNaN()) // true
 	fmt.Println(Float(-3.75).Fract())               // -0.75

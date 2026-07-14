@@ -1426,3 +1426,31 @@ func TestDequeWrapAroundTraversal(t *testing.T) {
 		t.Errorf("wrap Iter early-stop: expected %v, got %v", wantStop, collected)
 	}
 }
+
+func TestDequeFromSlice(t *testing.T) {
+	dq := g.DequeFromSlice(g.SliceOf(1, 2, 3))
+	if dq.Len() != 3 {
+		t.Fatalf("DequeFromSlice len = %d, want 3", dq.Len())
+	}
+
+	// usable as a method-expression collector after a fallible chain
+	res := g.SliceOf[g.String]("1", "2", "3").Iter().TryMap(g.String.TryInt).TryCollect().Map(g.DequeFromSlice)
+	if res.IsErr() || res.Ok().Len() != 3 {
+		t.Fatalf("Map(DequeFromSlice) = %v", res)
+	}
+}
+
+func TestDequeExtend(t *testing.T) {
+	dq := g.NewDeque[int]()
+	dq.Extend(1, 2, 3)
+	dq.Extend([]int{4, 5}...) // spread a slice
+	if dq.Len() != 5 {
+		t.Fatalf("Extend len = %d, want 5", dq.Len())
+	}
+
+	var got []int
+	dq.Iter().ForEach(func(v int) { got = append(got, v) })
+	if len(got) != 5 || got[0] != 1 || got[4] != 5 {
+		t.Fatalf("Extend order = %v, want [1 2 3 4 5]", got)
+	}
+}

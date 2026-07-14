@@ -1011,3 +1011,17 @@ func TestSeqDequeNext(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqDequeTryMap(t *testing.T) {
+	got := g.DequeOf[g.String]("1", "2", "3").Iter().
+		TryMap(g.String.TryInt).
+		SumBy(func(v g.Int) g.Int { return v })
+	if got.IsErr() || got.Ok() != 6 {
+		t.Fatalf("Deque.TryMap = %v", got)
+	}
+
+	bad := g.DequeOf[g.String]("1", "x", "3").Iter().TryMap(g.String.TryInt).TryCollect()
+	if bad.IsOk() {
+		t.Fatalf("Deque.TryMap err = %v, want Err", bad)
+	}
+}

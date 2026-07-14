@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"math/big"
 	"unicode"
 	"unicode/utf8"
 	"unsafe"
@@ -348,6 +349,24 @@ func (bs Bytes) String() String { return String(bs) }
 // Warning: the resulting String shares the same underlying memory as the original Bytes.
 // If the Bytes is modified later, the String will reflect those changes and may cause undefined behavior.
 func (bs Bytes) StringUnsafe() String { return String(unsafe.String(unsafe.SliceData(bs), len(bs))) }
+
+// TryInt parses the Bytes as an integer, mirroring String.TryInt.
+func (bs Bytes) TryInt() Result[Int] { return bs.StringUnsafe().TryInt() }
+
+// TryUint parses the Bytes as an unsigned integer, mirroring String.TryUint.
+func (bs Bytes) TryUint() Result[uint] { return bs.StringUnsafe().TryUint() }
+
+// TryFloat parses the Bytes as a float, mirroring String.TryFloat.
+func (bs Bytes) TryFloat() Result[Float] { return bs.StringUnsafe().TryFloat() }
+
+// TryBool parses the Bytes as a bool, mirroring String.TryBool.
+func (bs Bytes) TryBool() Result[bool] { return bs.StringUnsafe().TryBool() }
+
+// TryComplex parses the Bytes as a complex number, mirroring String.TryComplex.
+func (bs Bytes) TryComplex() Result[complex128] { return bs.StringUnsafe().TryComplex() }
+
+// TryBigInt parses the Bytes as a *big.Int, mirroring String.TryBigInt.
+func (bs Bytes) TryBigInt() Result[*big.Int] { return bs.StringUnsafe().TryBigInt() }
 
 // Index returns the index of the first instance of obs in bs, or -1 if obs is not present in bs.
 func (bs Bytes) Index(obs Bytes) Int { return Int(bytes.Index(bs, obs)) }

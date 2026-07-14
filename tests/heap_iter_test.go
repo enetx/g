@@ -1124,3 +1124,12 @@ func TestSeqHeapNext(t *testing.T) {
 		}
 	})
 }
+
+func TestSeqHeapTryMap(t *testing.T) {
+	got := g.HeapOf(cmp.Cmp[g.String], "1", "2", "3").Iter().
+		TryMap(g.String.TryInt).
+		SumBy(func(v g.Int) g.Int { return v })
+	if got.IsErr() || got.Ok() != 6 {
+		t.Fatalf("Heap.TryMap = %v", got)
+	}
+}

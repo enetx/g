@@ -6,7 +6,6 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/constraints"
-	"github.com/enetx/g/f"
 	"github.com/enetx/iter"
 )
 
@@ -302,31 +301,11 @@ func (seq SeqSlice[V]) Count() Int { return Int(iter.Seq[V](seq).Count()) }
 //	words.Iter().CounterBy(func(w String) Int { return w.Len() })
 //	// MapOrd{5:2, 4:1} — counts by word length, in first-seen order
 func (seq SeqSlice[V]) CounterBy[K comparable](fn func(V) K) SeqMapOrd[K, Int] {
-	return func(yield func(K, Int) bool) {
-		order := NewSlice[K]()
-		counts := NewMap[K, Int]()
-
-		seq(func(v V) bool {
-			k := fn(v)
-			if !counts.Contains(k) {
-				order.Push(k)
-			}
-
-			counts[k]++
-
-			return true
-		})
-
-		for _, k := range order {
-			if !yield(k, counts[k]) {
-				return
-			}
-		}
-	}
+	return counterBy(iter.Seq[V](seq), fn)
 }
 
 // ChunkBy groups CONSECUTIVE elements of the sequence into chunks based on a
-// custom equality function, mirroring Rust's chunk_by. It is not an SQL-style
+// custom equality function. It is not an SQL-style
 // GroupBy: elements are never reordered or bucketed by key, so equal elements
 // that are not adjacent end up in different chunks.
 //
@@ -413,7 +392,7 @@ func (seq SeqSlice[V]) Enumerate() SeqMapOrd[Int, V] {
 //
 // The resulting iterator will contain only unique elements, removing consecutive duplicates.
 func (seq SeqSlice[V]) Dedup() SeqSlice[V] {
-	if f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface {
+	if isValueComparable[V]() {
 		return SeqSlice[V](iter.Seq[V](seq).DedupBy(func(a, b V) bool {
 			return any(a) == any(b)
 		}))
@@ -521,6 +500,49 @@ func (seq SeqSlice[V]) Fold[A any](init A, fn func(acc A, val V) A) A {
 	return iter.Seq[V](seq).Fold(init, fn)
 }
 
+// SumBy maps each element to a numeric value via fn and returns the sum of those values.
+// An empty sequence yields the zero value of S. The result type S is chosen by fn,
+// independent of the element type V.
+//
+// Params:
+//   - fn (func(V) S): Projects an element to the numeric value to be summed.
+//
+// Returns:
+//   - S: The sum of the projected values.
+//
+// Example usage:
+//
+//	words := g.SliceOf[g.String]("a", "bb", "ccc")
+//	total := words.Iter().SumBy(func(s g.String) g.Int { return s.Len() })
+//	fmt.Println(total) // 6
+func (seq SeqSlice[V]) SumBy[S constraints.Number](fn func(V) S) S {
+	var zero S
+	return seq.Fold(zero, func(acc S, v V) S { return acc + fn(v) })
+}
+
+// ProductBy maps each element to a numeric value via fn and returns their product.
+// An empty sequence yields the multiplicative identity, one.
+func (seq SeqSlice[V]) ProductBy[S constraints.Number](fn func(V) S) S {
+	return seq.Fold(S(1), func(acc S, v V) S { return acc * fn(v) })
+}
+
+// FindMap applies fn to each element and returns the first Some result, or None
+// if fn returns None for every element.
+func (seq SeqSlice[V]) FindMap[U any](fn func(V) Option[U]) Option[U] {
+	var result Option[U]
+
+	seq(func(v V) bool {
+		if o := fn(v); o.IsSome() {
+			result = o
+			return false
+		}
+
+		return true
+	})
+
+	return result
+}
+
 // Reduce aggregates elements of the sequence using the provided function.
 // The first element of the sequence is used as the initial accumulator value.
 // If the sequence is empty, it returns None[V].
@@ -588,28 +610,8 @@ func (seq SeqSlice[V]) ForEach(fn func(v V)) { iter.Seq[V](seq).ForEach(fn) }
 // The resulting iterator will contain elements from each iterator in sequence.
 func (seq SeqSlice[V]) Flatten() SeqSlice[V] {
 	return func(yield func(V) bool) {
-		var flatten func(item any) bool
-		flatten = func(item any) bool {
-			rv := reflect.ValueOf(item)
-			switch rv.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := range rv.Len() {
-					if !flatten(rv.Index(i).Interface()) {
-						return false
-					}
-				}
-			default:
-				if v, ok := item.(V); ok {
-					if !yield(v) {
-						return false
-					}
-				}
-			}
-			return true
-		}
-
 		seq(func(item V) bool {
-			return flatten(item)
+			return flattenValue(item, yield)
 		})
 	}
 }
@@ -754,6 +756,36 @@ func (seq SeqSlice[V]) FilterMap[U any](fn func(V) Option[U]) SeqSlice[U] {
 	return SeqSlice[U](iter.Seq[V](seq).FilterMap(func(v V) (U, bool) {
 		return fn(v).Option()
 	}))
+}
+
+// TryMap applies a fallible transform to each element and enters the Result
+// pipeline, producing a SeqResult[U]. It is the bridge from a plain sequence
+// into SeqResult: map each element to a Result[U] and continue with the
+// SeqResult terminals (TryCollect, SumBy, ...), which choose the Err policy.
+//
+// TryMap itself is lazy and consumer-driven: it yields fn(v) for each element
+// and leaves the Err policy to the terminal — TryCollect / Fold / Reduce /
+// SumBy / All / Any / First short-circuit on the first Err, while Collect and
+// Count traverse every element.
+//
+// Example usage:
+//
+//	// "abc" fails to parse -> the whole batch short-circuits
+//	res := g.SliceOf[g.String]("1", "2", "3").
+//		Iter().
+//		TryMap(g.String.TryInt).
+//		TryCollect() // Ok(Slice[1, 2, 3])
+//
+//	sum := g.SliceOf[g.String]("1", "2", "3").
+//		Iter().
+//		TryMap(g.String.TryInt).
+//		SumBy(f.Id) // Ok(6)
+func (seq SeqSlice[V]) TryMap[U any](fn func(V) Result[U]) SeqResult[U] {
+	return func(yield func(Result[U]) bool) {
+		seq(func(v V) bool {
+			return yield(fn(v))
+		})
+	}
 }
 
 // Partition divides the elements of the iterator into two separate slices based on a given predicate function.

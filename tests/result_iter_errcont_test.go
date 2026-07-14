@@ -7,8 +7,8 @@ import (
 	. "github.com/enetx/g"
 )
 
-// Lazy SeqResult transformers must be consumer-driven on Err (Rust iterator
-// semantics): an Err element is yielded downstream like any other item, and
+// Lazy SeqResult transformers must be consumer-driven on Err: an Err element is
+// yielded downstream like any other item, and
 // the source keeps iterating as long as the consumer keeps accepting values.
 // Fail-fast remains the consumer's choice (break / TryCollect / Fold / ...).
 

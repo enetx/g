@@ -378,3 +378,11 @@ func HeapOf[T any](compareFn func(T, T) cmp.Ordering, values ...T) *Heap[T] {
 
 	return h
 }
+
+// HeapFromSlice builds a Heap from a slice using compareFn. Unlike the variadic
+// HeapOf, it takes the slice directly; because it also needs compareFn it must be
+// curried to serve as a collector, e.g.
+// res.TryCollect().Map(func(s Slice[T]) *Heap[T] { return HeapFromSlice(cmp.Cmp, s) }).
+func HeapFromSlice[T any](compareFn func(T, T) cmp.Ordering, s Slice[T]) *Heap[T] {
+	return HeapOf(compareFn, s...)
+}

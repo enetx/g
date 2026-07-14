@@ -10,9 +10,9 @@ import (
 func main() {
 	// convert std slice of strings to g.Slice of g.String
 	strslice := []string{"aa", "bb", "cc"}
-	gs := Slice[string](strslice).Iter().Map(NewString).Collect() // g.Slice[g.String]
+	gs := SliceOf(strslice...).Iter().Map(NewString).Collect() // g.Slice[g.String]
 
-	gs.SortBy(func(a, b String) cmp.Ordering { return a.Cmp(b) })
+	gs.SortBy(func(a, b String) cmp.Ordering { return b.Cmp(a) })
 	fmt.Println(gs)
 
 	// convert std slice of ints to g.Slice of g.Int
@@ -21,7 +21,7 @@ func main() {
 
 	// convert std slice of floats to g.Slice of g.Float
 	floatslice := []float64{1.1, 2.2, 3.3}
-	Slice[float64](floatslice).Iter().Map(NewFloat).Collect() // g.Slice[g.Float]
+	SliceOf(floatslice...).Iter().Map(NewFloat).Collect() // g.Slice[g.Float]
 
 	////////////////////////////////////////////////////////////////////////////
 

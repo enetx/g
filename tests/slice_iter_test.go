@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -2103,5 +2104,104 @@ func TestSliceIterWhileAdapters(t *testing.T) {
 	skipped := s.Iter().SkipWhile(func(v int) bool { return v < 5 }).Collect()
 	if !reflect.DeepEqual(skipped, SliceOf(10, 4)) {
 		t.Errorf("SkipWhile = %v", skipped)
+	}
+}
+
+func TestSeqSliceSumBy(t *testing.T) {
+	words := SliceOf[String]("a", "bb", "ccc")
+	if got := words.Iter().SumBy(func(s String) Int { return s.Len() }); got != 6 {
+		t.Errorf("SeqSlice.SumBy = %d, want 6", got)
+	}
+
+	// element-type-independent result type: Int elements -> Float sum
+	nums := SliceOf[Int](1, 2, 3)
+	if got := nums.Iter().SumBy(func(v Int) Float { return Float(v) * 0.5 }); got != 3.0 {
+		t.Errorf("SeqSlice.SumBy float = %v, want 3", got)
+	}
+
+	// empty -> zero value
+	empty := NewSlice[Int]()
+	if got := empty.Iter().SumBy(func(v Int) Int { return v }); got != 0 {
+		t.Errorf("SeqSlice.SumBy empty = %d, want 0", got)
+	}
+}
+
+func TestSeqSliceTryMapTryCollect(t *testing.T) {
+	ok := SliceOf[String]("1", "2", "3").Iter().TryMap(String.TryInt).TryCollect()
+	if ok.IsErr() {
+		t.Fatalf("unexpected err: %v", ok.Err())
+	}
+	if got := ok.Ok(); got.Len() != 3 || got[0] != 1 || got[2] != 3 {
+		t.Fatalf("TryCollect ok = %v", got)
+	}
+
+	bad := SliceOf[String]("aaa", "22", "ddd").Iter().TryMap(String.TryInt).TryCollect()
+	if bad.IsOk() {
+		t.Fatalf("expected Err, got %v", bad.Ok())
+	}
+	if !errors.Is(bad.Err(), ErrParseInt) {
+		t.Errorf("err = %v, want errors.Is ErrParseInt", bad.Err())
+	}
+}
+
+func TestSeqSliceTryMapSumBy(t *testing.T) {
+	sum := SliceOf[String]("1", "2", "3").Iter().TryMap(String.TryInt).SumBy(f.Id)
+	if sum.IsErr() || sum.Ok() != 6 {
+		t.Fatalf("SumBy = %v, want Ok(6)", sum)
+	}
+
+	bad := SliceOf[String]("1", "x", "3").Iter().TryMap(String.TryInt).SumBy(f.Id)
+	if bad.IsOk() {
+		t.Fatalf("SumBy = %v, want Err", bad)
+	}
+}
+
+func TestSeqSliceTryMapCollectFullTraverse(t *testing.T) {
+	full := SliceOf[String]("aaa", "22", "ddd").Iter().TryMap(String.TryInt).Collect()
+	if full.Len() != 3 {
+		t.Fatalf("Collect len = %d, want 3", full.Len())
+	}
+	if full[0].IsOk() || full[1].IsErr() || full[2].IsOk() {
+		t.Errorf("Collect shape = %v, want [Err, Ok, Err]", full)
+	}
+}
+
+func TestSeqSliceTryMapEmpty(t *testing.T) {
+	empty := NewSlice[String]().Iter().TryMap(String.TryInt).TryCollect()
+	if empty.IsErr() || empty.Ok().Len() != 0 {
+		t.Fatalf("empty TryCollect = %v, want Ok(empty)", empty)
+	}
+}
+
+func TestSeqSliceTryMapLift(t *testing.T) {
+	results := SliceOf[String]("1", "2", "3").Iter().Map(String.TryInt) // SeqSlice[Result[Int]]
+	lifted := results.TryMap(f.Id).TryCollect()                         // -> Result[Slice[Int]]
+	if lifted.IsErr() || lifted.Ok().Len() != 3 {
+		t.Fatalf("lift = %v", lifted)
+	}
+}
+
+func TestSeqSliceProductBy(t *testing.T) {
+	if got := SliceOf[Int](1, 2, 3, 4).Iter().ProductBy(f.Id); got != 24 {
+		t.Errorf("ProductBy = %d, want 24", got)
+	}
+	// empty -> multiplicative identity 1
+	if got := NewSlice[Int]().Iter().ProductBy(f.Id); got != 1 {
+		t.Errorf("ProductBy empty = %d, want 1", got)
+	}
+}
+
+func TestSeqSliceFindMap(t *testing.T) {
+	pick := func(v Int) Option[String] {
+		if v == 3 {
+			return Some(v.String())
+		}
+		return None[String]()
+	}
+	if got := SliceOf[Int](1, 2, 3, 4).Iter().FindMap(pick); got.IsNone() || got.Some() != "3" {
+		t.Fatalf("FindMap = %v, want Some(3)", got)
+	}
+	if got := SliceOf[Int](1, 2, 4).Iter().FindMap(pick); got.IsSome() {
+		t.Fatalf("FindMap = %v, want None", got)
 	}
 }

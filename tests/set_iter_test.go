@@ -736,3 +736,19 @@ func TestSet_Iter_StepBy(t *testing.T) {
 		t.Errorf("Expected empty result for empty set, got %v", empty)
 	}
 }
+
+func TestSeqSetSumBy(t *testing.T) {
+	set := g.SetOf[g.Int](1, 2, 3, 4)
+	if got := set.Iter().SumBy(func(v g.Int) g.Int { return v }); got != 10 {
+		t.Errorf("SeqSet.SumBy = %d, want 10", got)
+	}
+}
+
+func TestSeqSetTryMap(t *testing.T) {
+	got := g.SetOf[g.String]("1", "2", "3").Iter().
+		TryMap(g.String.TryInt).
+		SumBy(func(v g.Int) g.Int { return v })
+	if got.IsErr() || got.Ok() != 6 {
+		t.Fatalf("Set.TryMap = %v", got)
+	}
+}

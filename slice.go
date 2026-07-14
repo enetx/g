@@ -503,6 +503,49 @@ func (sl Slice[T]) IsSortedBy(fn func(a, b T) cmp.Ordering) bool {
 	return true
 }
 
+// BinarySearch searches a sorted slice for value using the comparator fn and
+// returns Some(index) if an equal element is found, or None otherwise. The slice
+// must be sorted in ascending order according to fn (see IsSortedBy).
+func (sl Slice[T]) BinarySearch(value T, fn func(a, b T) cmp.Ordering) Option[Int] {
+	if i, ok := slices.BinarySearchFunc(sl, value, func(a, b T) int { return int(fn(a, b)) }); ok {
+		return Some(Int(i))
+	}
+
+	return None[Int]()
+}
+
+// PartitionPoint returns the index of the first element for which pred returns
+// false, assuming the slice is partitioned so that all elements satisfying pred
+// come first. If pred is true for every element, it returns the slice length.
+// Runs in O(log n).
+func (sl Slice[T]) PartitionPoint(pred func(T) bool) Int {
+	lo, hi := Int(0), sl.Len()
+	for lo < hi {
+		mid := (lo + hi) / 2
+		if pred(sl[mid]) {
+			lo = mid + 1
+		} else {
+			hi = mid
+		}
+	}
+
+	return lo
+}
+
+// Retain keeps only the elements for which fn returns true, removing the rest
+// in place while preserving order. It is the in-place counterpart of Deque.Retain.
+func (sl *Slice[T]) Retain(fn func(T) bool) {
+	*sl = slices.DeleteFunc(*sl, func(v T) bool { return !fn(v) })
+}
+
+// DedupBy removes consecutive elements considered equal by eq, keeping the first
+// of each run, in place. It is the eager, in-place counterpart of the lazy
+// SeqSlice.Dedup. Only adjacent duplicates are removed, so sort first for a
+// global dedup.
+func (sl *Slice[T]) DedupBy(eq func(a, b T) bool) {
+	*sl = slices.CompactFunc(*sl, eq)
+}
+
 // Join joins the elements in the slice into a single String, separated by the provided separator (if any).
 func (sl Slice[T]) Join(sep ...T) String {
 	if sl.IsEmpty() {

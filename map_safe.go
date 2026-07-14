@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
-
-	"github.com/enetx/g/f"
 )
 
 // MapSafe is a concurrent-safe generic map built on sync.Map.
@@ -17,6 +15,24 @@ type MapSafe[K comparable, V any] struct {
 
 // NewMapSafe creates a new instance of MapSafe.
 func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} }
+
+// MapSafeOf creates a new MapSafe from the provided key-value pairs.
+// Duplicate keys keep the last-written value, mirroring MapOf / MapOrdOf.
+func MapSafeOf[K comparable, V any](pairs ...Pair[K, V]) *MapSafe[K, V] {
+	ms := NewMapSafe[K, V]()
+	for _, p := range pairs {
+		ms.Insert(p.Key, p.Value)
+	}
+
+	return ms
+}
+
+// MapSafeFromPairs builds a MapSafe from a slice of pairs. Unlike the variadic
+// MapSafeOf, it takes the slice directly, so it can be passed as a first-class
+// function — e.g. res.TryCollect().Map(MapSafeFromPairs).
+func MapSafeFromPairs[K comparable, V any](pairs Slice[Pair[K, V]]) *MapSafe[K, V] {
+	return MapSafeOf(pairs...)
+}
 
 // Transform applies a transformation function to the MapSafe and returns the result.
 func (ms *MapSafe[K, V]) Transform[U any](fn func(*MapSafe[K, V]) U) U {
@@ -152,7 +168,7 @@ func (ms *MapSafe[K, V]) Eq(other *MapSafe[K, V]) bool {
 		return true
 	}
 
-	comparable := f.IsComparable[V]() && reflect.TypeFor[V]().Kind() != reflect.Interface
+	comparable := isValueComparable[V]()
 	equal := true
 
 	ms.data.Range(func(key, value any) bool {

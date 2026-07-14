@@ -1,4 +1,4 @@
-// Package g provides a Rust-inspired standard library extension for Go:
+// Package g provides an ergonomic standard library extension for Go:
 // monadic error handling, rich generic containers, lazy iterators with
 // type-changing generic methods (Go 1.27+), and ergonomic wrappers for
 // primitive types and the filesystem.
