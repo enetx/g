@@ -1440,6 +1440,31 @@ func TestDequeFromSlice(t *testing.T) {
 	}
 }
 
+func TestDequeWrappedRotateAndBinarySearch(t *testing.T) {
+	deque := NewDeque[int](8)
+	for i := range 8 {
+		deque.PushBack(i)
+	}
+	for range 3 {
+		deque.PopFront()
+	}
+	deque.Extend(8, 9, 10)
+
+	deque.RotateRight(1)
+	if got := deque.Slice(); !got.Eq(SliceOf(10, 3, 4, 5, 6, 7, 8, 9)) {
+		t.Fatalf("unexpected right rotation: %v", got)
+	}
+	deque.RotateLeft(1)
+	if got := deque.Slice(); !got.Eq(SliceOf(3, 4, 5, 6, 7, 8, 9, 10)) {
+		t.Fatalf("unexpected left rotation: %v", got)
+	}
+
+	index, found := deque.BinarySearch(8, cmp.Cmp[int])
+	if !found || index != 5 {
+		t.Fatalf("expected value 8 at index 5, got index=%d found=%v", index, found)
+	}
+}
+
 func TestDequeExtend(t *testing.T) {
 	dq := g.NewDeque[int]()
 	dq.Extend(1, 2, 3)

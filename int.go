@@ -184,7 +184,31 @@ func (i Int) Rem(b Int) Int { return i % b }
 func (i Int) Sub(b Int) Int { return i - b }
 
 // Binary returns the Int as a binary string.
-func (i Int) Binary() String { return String(fmt.Sprintf("%08b", i)) }
+func (i Int) Binary() String {
+	var storage [65]byte
+	digits := strconv.AppendInt(storage[:0], int64(i), 2)
+	if len(digits) >= 8 {
+		return String(digits)
+	}
+
+	var padded [8]byte
+	start := 8 - len(digits)
+	if digits[0] == '-' {
+		padded[0] = '-'
+		start++
+		for j := 1; j < start; j++ {
+			padded[j] = '0'
+		}
+		copy(padded[start:], digits[1:])
+	} else {
+		for j := 0; j < start; j++ {
+			padded[j] = '0'
+		}
+		copy(padded[start:], digits)
+	}
+
+	return String(padded[:])
+}
 
 // Hex returns the Int as a hexadecimal string.
 func (i Int) Hex() String { return String(strconv.FormatInt(int64(i), 16)) }

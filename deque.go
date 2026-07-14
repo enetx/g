@@ -142,6 +142,7 @@ func (dq *Deque[T]) PushBack(value T) {
 // Extend appends the given values to the back of the Deque, in order.
 // It accepts a spread slice too: dq.Extend(sl...).
 func (dq *Deque[T]) Extend(values ...T) {
+	dq.Reserve(Int(len(values)))
 	for _, v := range values {
 		dq.PushBack(v)
 	}
@@ -349,13 +350,16 @@ func (dq *Deque[T]) RotateLeft(mid Int) {
 	if mid == 0 {
 		return
 	}
+	if dq.len == Int(len(dq.data)) {
+		dq.front = dq.realIndex(mid)
+		return
+	}
 
 	contiguous := dq.MakeContiguous()
 
-	temp := make(Slice[T], mid)
-	copy(temp, contiguous[:mid])
-	copy(contiguous, contiguous[mid:])
-	copy(contiguous[dq.len-mid:], temp)
+	reverseDequeSlice(contiguous[:mid])
+	reverseDequeSlice(contiguous[mid:])
+	reverseDequeSlice(contiguous)
 }
 
 // RotateRight rotates the Deque in-place such that the first len - k elements
@@ -590,12 +594,10 @@ func (dq *Deque[T]) Index(value T) Int {
 // BinarySearch searches for a value in a sorted Deque using binary search.
 // Returns the index where the value is found, or where it should be inserted.
 func (dq *Deque[T]) BinarySearch(value T, fn func(T, T) cmp.Ordering) (Int, bool) {
-	contiguous := dq.MakeContiguous()
-
 	left, right := Int(0), dq.len
 	for left < right {
 		mid := (left + right) / 2
-		result := fn(contiguous[mid], value)
+		result := fn(dq.data[dq.realIndex(mid)], value)
 
 		switch result {
 		case cmp.Less:
@@ -608,6 +610,12 @@ func (dq *Deque[T]) BinarySearch(value T, fn func(T, T) cmp.Ordering) (Int, bool
 	}
 
 	return left, false
+}
+
+func reverseDequeSlice[T any](values Slice[T]) {
+	for left, right := 0, len(values)-1; left < right; left, right = left+1, right-1 {
+		values[left], values[right] = values[right], values[left]
+	}
 }
 
 // Slice converts the Deque to a Slice, maintaining element order.

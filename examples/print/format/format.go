@@ -1,10 +1,31 @@
 package main
 
 import (
+	"math"
+	"strconv"
 	"time"
 
 	. "github.com/enetx/g"
 )
+
+// Price demonstrates custom formatting without reflection. FormatValue receives
+// the text after ':'; an empty spec is used by {}.
+type Price float64
+
+func (p Price) FormatValue(spec String) String {
+	value := strconv.FormatFloat(float64(p), 'f', 2, 64)
+
+	switch spec {
+	case "", "decimal":
+		return String(value)
+	case "currency":
+		return "$" + String(value)
+	case "cents":
+		return Int(math.Round(float64(p) * 100)).String()
+	default:
+		return "<unsupported price format: " + spec + ">"
+	}
+}
 
 func main() {
 	// --- Auto-index placeholders ---
@@ -29,7 +50,23 @@ func main() {
 	Println("Hello, {user?guest}!", Named{"guest": "stranger"}) // Hello, stranger!
 
 	// --- Escape literal braces ---
-	Println("template syntax: \\{{value}\\}", Named{"value": "example"}) // template syntax: {example}
+	Println("template syntax: {{{value}}}", Named{"value": "example"}) // template syntax: {example}
+
+	// --- Additional Rust/Go-style representations ---
+	Println("decimal={:d} char={:c} quoted={:q} unicode={:U}", 42, 65, "go\n", 'A')
+
+	// FormatTo appends into an existing reusable builder.
+	var output Builder
+	FormatTo(&output, "{}={:04d}", "answer", 42)
+	output.String().Println()
+
+	// TryFormat validates braces, argument resolution, modifiers, and format specs.
+	TryFormat("value={:d}", 42).Inspect(func(s String) { s.Println() })
+
+	// Formattable gives a type its own format specs without reflection.
+	price := Price(19.95)
+	Println("default={} currency={:currency} cents={:cents}", price, price, price)
+	// default=19.95 currency=$19.95 cents=1995
 
 	// --- Modifier chains ---
 	// Modifiers call methods on the value via reflection — any method works.

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/internal/rlimit"
@@ -284,6 +285,69 @@ func TestPoolResetWithActiveTasks(t *testing.T) {
 
 	// Now reset must not panic
 	p.Reset()
+}
+
+func TestPoolResetWithActiveStreamProducer(t *testing.T) {
+	p := pool.New[int]().Limit(1)
+	started := make(chan struct{})
+	release := make(chan struct{})
+
+	ch := p.Stream(func() {
+		close(started)
+		<-release
+	})
+	<-started
+
+	defer func() {
+		close(release)
+		for range ch {
+		}
+	}()
+
+	defer func() {
+		if recover() == nil {
+			t.Fatal("Reset must panic while the Stream producer is active")
+		}
+	}()
+	p.Reset()
+}
+
+func TestPoolRejectsConfigurationAfterStreamStarts(t *testing.T) {
+	tests := []struct {
+		name string
+		set  func(*pool.Pool[int])
+	}{
+		{"limit", func(p *pool.Pool[int]) { p.Limit(2) }},
+		{"rate", func(p *pool.Pool[int]) { p.Rate(2, time.Second) }},
+		{"cancel predicate", func(p *pool.Pool[int]) { p.CancelOnError() }},
+		{"context", func(p *pool.Pool[int]) { p.Context(context.Background()) }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := pool.New[int]().Limit(1)
+			started := make(chan struct{})
+			release := make(chan struct{})
+			ch := p.Stream(func() {
+				close(started)
+				<-release
+			})
+			<-started
+
+			func() {
+				defer func() {
+					if recover() == nil {
+						t.Error("configuration change must panic after Stream starts")
+					}
+				}()
+				tt.set(p)
+			}()
+
+			close(release)
+			for range ch {
+			}
+		})
+	}
 }
 
 func TestPoolLimitPanic(t *testing.T) {

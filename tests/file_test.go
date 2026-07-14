@@ -12,6 +12,42 @@ import (
 	. "github.com/enetx/g"
 )
 
+func TestFileReaderCloseUpdatesFileState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "reader.txt")
+	if err := os.WriteFile(path, []byte("payload"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	file := NewFile(path).Guard()
+	reader := file.Reader()
+	if reader.IsErr() {
+		t.Fatalf("Reader failed: %v", reader.Err())
+	}
+
+	content, err := io.ReadAll(reader.Ok())
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	if string(content) != "payload" {
+		t.Fatalf("expected payload, got %q", content)
+	}
+	if err := reader.Ok().Close(); err != nil {
+		t.Fatalf("reader Close failed: %v", err)
+	}
+	if file.Std() != nil {
+		t.Fatal("Reader.Close must clear the owning File descriptor")
+	}
+	if got := file.Read(); got.IsErr() || got.Ok() != "payload" {
+		t.Fatalf("File must remain reusable after Reader.Close: %v", got)
+	}
+}
+
+func TestFileExistsReturnsFalseForInvalidPath(t *testing.T) {
+	if NewFile("invalid\x00path").Exists() {
+		t.Fatal("invalid path must not exist")
+	}
+}
+
 func TestFile_Dir_Success(t *testing.T) {
 	// Create a temporary file for testing
 	tempFile := createTempFile(t)

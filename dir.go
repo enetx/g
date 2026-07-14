@@ -2,6 +2,7 @@ package g
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -29,17 +30,25 @@ func (d *Dir) Chown(uid, gid int) Result[*Dir] {
 // Stat retrieves information about the directory represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the directory's metadata.
 func (d *Dir) Stat() Result[fs.FileInfo] {
-	if d.Path().IsErr() {
-		return Err[fs.FileInfo](d.Path().err)
+	path := d.Path()
+	if path.IsErr() {
+		return Err[fs.FileInfo](path.err)
 	}
 
-	return ResultOf(os.Stat(d.Path().v.Std()))
+	return ResultOf(os.Stat(path.v.Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
-func (d *Dir) Lstat() Result[fs.FileInfo] { return ResultOf(os.Lstat(d.Path().v.Std())) }
+func (d *Dir) Lstat() Result[fs.FileInfo] {
+	path := d.Path()
+	if path.IsErr() {
+		return Err[fs.FileInfo](path.err)
+	}
+
+	return ResultOf(os.Lstat(path.v.Std()))
+}
 
 // IsLink checks if the directory is a symbolic link.
 func (d *Dir) IsLink() bool {
@@ -146,7 +155,15 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 		return Err[*Dir](root.err)
 	}
 
-	follow := Slice[bool](followLinks).Get(0).UnwrapOr(true)
+	destRoot := NewDir(dest).Path()
+	if destRoot.IsErr() {
+		return Err[*Dir](destRoot.err)
+	}
+
+	follow := true
+	if len(followLinks) > 0 {
+		follow = followLinks[0]
+	}
 
 	for f := range files.Iter() {
 		path := f.Path()
@@ -159,10 +176,7 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 			return Err[*Dir](err)
 		}
 
-		destpath := NewDir(dest).Join(String(relpath))
-		if destpath.IsErr() {
-			return Err[*Dir](destpath.err)
-		}
+		destpath := String(filepath.Join(destRoot.v.Std(), relpath))
 
 		// Skip every symlink (file or directory) when not following links;
 		// a symlink to a regular file is not an IsDir entry, so the skip must
@@ -177,14 +191,14 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 		}
 
 		if stat.v.IsDir() {
-			if r := NewDir(destpath.v).CreateAll(stat.v.Mode()); r.IsErr() {
+			if r := NewDir(destpath).CreateAll(stat.v.Mode()); r.IsErr() {
 				return r
 			}
 
 			continue
 		}
 
-		if r := f.Copy(destpath.v, stat.v.Mode()); r.IsErr() {
+		if r := f.Copy(destpath, stat.v.Mode()); r.IsErr() {
 			return Err[*Dir](r.err)
 		}
 	}
@@ -208,7 +222,10 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 //	dir := g.NewDir("path/to/directory")
 //	createdDir := dir.Create(0755) // Optional mode argument
 func (d *Dir) Create(mode ...os.FileMode) Result[*Dir] {
-	dmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(DirDefault)
+	dmode := os.FileMode(DirDefault)
+	if len(mode) > 0 {
+		dmode = mode[0]
+	}
 	if err := os.Mkdir(d.path.Std(), dmode); err != nil {
 		return Err[*Dir](err)
 	}
@@ -237,10 +254,13 @@ func (d *Dir) Join(elem ...String) Result[String] {
 		return Err[String](path.err)
 	}
 
-	se := SliceOf(elem...)
-	se.Insert(0, path.v)
+	parts := make([]string, len(elem)+1)
+	parts[0] = path.v.Std()
+	for i, part := range elem {
+		parts[i+1] = part.Std()
+	}
 
-	return Ok(String(filepath.Join(transformSlice(se, String.Std)...)))
+	return Ok(String(filepath.Join(parts...)))
 }
 
 // SetPath sets the path of the current directory.
@@ -279,16 +299,15 @@ func (d *Dir) SetPath(path String) *Dir {
 //	dir.CreateAll()
 //	dir.CreateAll(0755)
 func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
-	if d.Exists() {
-		return Ok(d)
-	}
-
 	path := d.Path()
 	if path.IsErr() {
 		return Err[*Dir](path.err)
 	}
 
-	dmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(DirDefault)
+	dmode := os.FileMode(DirDefault)
+	if len(mode) > 0 {
+		dmode = mode[0]
+	}
 
 	err := os.MkdirAll(path.v.Std(), dmode)
 	if err != nil {
@@ -315,12 +334,7 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 //	dir := g.NewDir("path/to/directory")
 //	dir.Rename("path/to/new_directory")
 func (d *Dir) Rename(newpath String) Result[*Dir] {
-	ps := String(os.PathSeparator)
-
-	np := newpath.StripSuffix(ps).Split(ps).Collect()
-	_ = np.Pop()
-
-	if rd := NewDir(np.Join(ps)).CreateAll(); rd.IsErr() {
+	if rd := NewDir(String(filepath.Dir(newpath.Std()))).CreateAll(); rd.IsErr() {
 		return rd
 	}
 
@@ -371,13 +385,13 @@ func (d *Dir) Exists() bool {
 		return false
 	}
 
-	_, err := os.Stat(path.v.Std())
-
-	return !os.IsNotExist(err)
+	info, err := os.Stat(path.v.Std())
+	return err == nil && info.IsDir()
 }
 
-// Read iterates over the content of the current directory and yields File instances for each entry.
-// This method uses a lazy evaluation strategy where each file is processed one at a time as it is needed.
+// Read lazily iterates over the content of the current directory and yields a
+// File for each entry. Entries are read in bounded batches and retain the
+// filesystem order; callers that need sorted output can collect and sort them.
 //
 // Returns:
 //   - SeqResult[*File]: A sequence of Result[*File] instances representing each file and directory
@@ -392,28 +406,38 @@ func (d *Dir) Exists() bool {
 //	}
 func (d *Dir) Read() SeqResult[*File] {
 	return func(yield func(Result[*File]) bool) {
-		entries, err := os.ReadDir(d.path.Std())
-		if err != nil {
-			yield(Err[*File](err))
-			return
-		}
-
 		dpath := d.Path()
 		if dpath.IsErr() {
 			yield(Err[*File](dpath.err))
 			return
 		}
 
-		base := dpath.v
+		directory, err := os.Open(dpath.v.Std())
+		if err != nil {
+			yield(Err[*File](err))
+			return
+		}
 
-		for _, entry := range entries {
-			full := NewDir(base).Join(String(entry.Name()))
-			if full.IsErr() {
-				yield(Err[*File](full.err))
-				return
+		defer directory.Close()
+
+		const batchSize = 128
+		base := dpath.v.Std()
+
+		for {
+			entries, readErr := directory.ReadDir(batchSize)
+			for _, entry := range entries {
+				if !yield(Ok(NewFile(filepath.Join(base, entry.Name())))) {
+					return
+				}
 			}
 
-			if !yield(Ok(NewFile(full.v))) {
+			switch readErr {
+			case nil:
+				continue
+			case io.EOF:
+				return
+			default:
+				yield(Err[*File](readErr))
 				return
 			}
 		}
@@ -435,7 +459,7 @@ func (d *Dir) Read() SeqResult[*File] {
 //	    fmt.Println(file.Ok().Name())
 //	}
 func (d *Dir) Glob() SeqResult[*File] {
-	return (func(yield func(Result[*File]) bool) {
+	return func(yield func(Result[*File]) bool) {
 		matches, err := filepath.Glob(d.path.Std())
 		if err != nil {
 			yield(Err[*File](err))
@@ -453,7 +477,7 @@ func (d *Dir) Glob() SeqResult[*File] {
 				return
 			}
 		}
-	})
+	}
 }
 
 // Walk returns a lazy sequence of all files and directories under the current Dir.

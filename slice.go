@@ -1,7 +1,6 @@
 package g
 
 import (
-	"bytes"
 	"fmt"
 	"math/rand/v2"
 	"reflect"
@@ -553,12 +552,30 @@ func (sl Slice[T]) Join(sep ...T) String {
 	}
 
 	if s, ok := any(sl).(Slice[Bytes]); ok {
+		if len(s) == 0 {
+			return ""
+		}
+
 		var separator Bytes
 		if len(sep) != 0 {
 			separator, _ = any(sep[0]).(Bytes)
 		}
 
-		return String(bytes.Join(transformSlice(s, func(b Bytes) []byte { return b }), separator))
+		total := len(separator) * (len(s) - 1)
+		for _, value := range s {
+			total += len(value)
+		}
+
+		var builder Builder
+		builder.Grow(Int(total))
+		for i, value := range s {
+			if i > 0 {
+				builder.Write(separator)
+			}
+			builder.Write(value)
+		}
+
+		return builder.String()
 	}
 
 	if s, ok := any(sl).(Slice[String]); ok {

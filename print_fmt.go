@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"unicode/utf8"
 )
 
 type fmtAlign int
@@ -78,6 +79,7 @@ func parseDigits(runes []rune, pos int) (int, int, bool) {
 				n = maxFmtDigits
 			}
 		}
+
 		pos++
 		has = true
 	}
@@ -85,7 +87,150 @@ func parseDigits(runes []rune, pos int) (int, int, bool) {
 	return n, pos, has
 }
 
+func validFmtSpec(spec String) bool {
+	runes := []rune(spec)
+	pos := 0
+
+	if pos < len(runes) {
+		if pos+1 < len(runes) && isAlign(runes[pos+1]) {
+			pos += 2
+		} else if isAlign(runes[pos]) {
+			pos++
+		}
+	}
+
+	if pos < len(runes) && (runes[pos] == '+' || runes[pos] == '-' || runes[pos] == ' ') {
+		pos++
+	}
+
+	if pos < len(runes) && runes[pos] == '#' {
+		pos++
+	}
+
+	if pos < len(runes) && runes[pos] == '0' {
+		pos++
+	}
+
+	_, pos, _ = parseDigits(runes, pos)
+	if pos < len(runes) && runes[pos] == '.' {
+		pos++
+		_, pos, _ = parseDigits(runes, pos)
+	}
+
+	if pos == len(runes) {
+		return true
+	}
+
+	verb := runes[pos]
+
+	pos++
+	if pos != len(runes) {
+		return false
+	}
+
+	switch verb {
+	case 'd', 'c', 'q', 'U', 'x', 'X', 'o', 'b', 'e', 'E', 'T', 'p', '?', 'w', 's', 'f':
+		return true
+	default:
+		return false
+	}
+}
+
 func parseFmtSpec(spec String) fmtSpec {
+	if isASCIIFmtSpec(spec) {
+		return parseASCIIFmtSpec(spec)
+	}
+
+	return parseRuneFmtSpec(spec)
+}
+
+func isASCIIFmtSpec(spec String) bool {
+	for i := Int(0); i < spec.Len(); i++ {
+		if spec[i] >= utf8.RuneSelf {
+			return false
+		}
+	}
+
+	return true
+}
+
+func parseASCIIDigits(spec String, pos Int) (int, Int, bool) {
+	n, has := 0, false
+	for pos < spec.Len() && spec[pos] >= '0' && spec[pos] <= '9' {
+		if n <= maxFmtDigits {
+			n = n*10 + int(spec[pos]-'0')
+			if n > maxFmtDigits {
+				n = maxFmtDigits
+			}
+		}
+
+		pos++
+		has = true
+	}
+
+	return n, pos, has
+}
+
+func parseASCIIFmtSpec(spec String) fmtSpec {
+	fs := fmtSpec{fill: ' ', width: -1, precision: -1}
+	pos := Int(0)
+
+	if pos < spec.Len() {
+		if pos+1 < spec.Len() && isAlign(rune(spec[pos+1])) {
+			fs.fill = rune(spec[pos])
+			fs.align = toAlign(rune(spec[pos+1]))
+			pos += 2
+		} else if isAlign(rune(spec[pos])) {
+			fs.align = toAlign(rune(spec[pos]))
+			pos++
+		}
+	}
+
+	if pos < spec.Len() {
+		switch spec[pos] {
+		case '+':
+			fs.sign = signPlus
+			pos++
+		case '-':
+			fs.sign = signMinus
+			pos++
+		case ' ':
+			fs.sign = signSpace
+			pos++
+		}
+	}
+
+	if pos < spec.Len() && spec[pos] == '#' {
+		fs.alternate = true
+		pos++
+	}
+
+	if pos < spec.Len() && spec[pos] == '0' && fs.align == alignNone {
+		fs.zeroPad = true
+		pos++
+	}
+
+	if n, next, ok := parseASCIIDigits(spec, pos); ok {
+		fs.width, pos = Int(n), next
+	}
+
+	if pos < spec.Len() && spec[pos] == '.' {
+		pos++
+		if n, next, ok := parseASCIIDigits(spec, pos); ok {
+			fs.precision, pos = Int(n), next
+		} else {
+			fs.precision = 0
+		}
+	}
+
+	if pos < spec.Len() {
+		fs.verb = spec[pos]
+	}
+
+	return fs
+}
+
+func parseRuneFmtSpec(spec String) fmtSpec {
 	fs := fmtSpec{fill: ' ', width: -1, precision: -1}
 
 	runes := []rune(spec)
@@ -173,6 +318,14 @@ func applyFmtSpec(value any, spec fmtSpec) String {
 	var s String
 
 	switch spec.verb {
+	case 'd':
+		s = fmtDecimal(value, spec)
+	case 'c':
+		s = fmtCharacter(value)
+	case 'q':
+		s = fmtQuoted(value)
+	case 'U':
+		s = fmtUnicode(value, spec.alternate)
 	case 'x':
 		s = fmtIntBase(value, 16, fmtAltPrefix("0x", spec), spec, false)
 	case 'X':
@@ -200,6 +353,311 @@ func applyFmtSpec(value any, spec fmtSpec) String {
 	}
 
 	return fmtPad(s, spec, fmtIsNumeric(value))
+}
+
+func tryAppendNativeSpec(builder *Builder, value any, spec fmtSpec) bool {
+	return tryAppendNativeIntSpec(builder, value, spec) ||
+		tryAppendNativeTextSpec(builder, value, spec)
+}
+
+// tryAppendNativeIntSpec handles the common integer representations directly in
+// the destination builder. It avoids the temporary strings otherwise produced
+// by strconv.Format*, sign/prefix concatenation, and padding.
+func tryAppendNativeIntSpec(builder *Builder, value any, spec fmtSpec) bool {
+	base := 10
+	prefix := String("")
+	upper := false
+
+	switch spec.verb {
+	case 'd':
+	case 'x':
+		base = 16
+		if spec.alternate {
+			prefix = "0x"
+		}
+	case 'X':
+		base, upper = 16, true
+		if spec.alternate {
+			prefix = "0x"
+		}
+	case 'o':
+		base = 8
+		if spec.alternate {
+			prefix = "0o"
+		}
+	case 'b':
+		base = 2
+		if spec.alternate {
+			prefix = "0b"
+		}
+	default:
+		return false
+	}
+
+	var storage [128]byte
+	digits := storage[:0]
+	negative := false
+	if u, ok := fmtToUint64(value); ok {
+		digits = strconv.AppendUint(digits, u, base)
+	} else if i, ok := fmtToInt64(value); ok {
+		negative = i < 0
+		if negative {
+			// -(i+1)+1 is safe for MinInt64.
+			digits = strconv.AppendUint(digits, uint64(-(i+1))+1, base)
+		} else {
+			digits = strconv.AppendUint(digits, uint64(i), base)
+		}
+	} else {
+		return false
+	}
+
+	if upper {
+		for i, ch := range digits {
+			if ch >= 'a' && ch <= 'f' {
+				digits[i] = ch - ('a' - 'A')
+			}
+		}
+	}
+
+	var sign byte
+	if negative {
+		sign = '-'
+	} else if spec.sign == signPlus {
+		sign = '+'
+	} else if spec.sign == signSpace {
+		sign = ' '
+	}
+
+	contentLen := Int(len(digits)) + prefix.Len()
+	if sign != 0 {
+		contentLen++
+	}
+	padding := Int(0)
+	if spec.width > contentLen {
+		padding = spec.width - contentLen
+	}
+
+	if spec.zeroPad && spec.align == alignNone {
+		if sign != 0 {
+			builder.WriteByte(sign)
+		}
+		builder.WriteString(prefix)
+		for range padding {
+			builder.WriteByte('0')
+		}
+		builder.Write(digits)
+		return true
+	}
+
+	align := spec.align
+	if align == alignNone {
+		align = alignRight
+	}
+
+	left, right := Int(0), Int(0)
+	switch align {
+	case alignLeft:
+		right = padding
+	case alignRight:
+		left = padding
+	default:
+		left = padding / 2
+		right = padding - left
+	}
+
+	for range left {
+		builder.WriteRune(spec.fill)
+	}
+
+	if sign != 0 {
+		builder.WriteByte(sign)
+	}
+
+	builder.WriteString(prefix)
+	builder.Write(digits)
+
+	for range right {
+		builder.WriteRune(spec.fill)
+	}
+
+	return true
+}
+
+// tryAppendNativeTextSpec writes character, quoted, and Unicode representations
+// without allocating intermediate strings.
+func tryAppendNativeTextSpec(builder *Builder, value any, spec fmtSpec) bool {
+	var storage [128]byte
+	content := storage[:0]
+
+	switch spec.verb {
+	case 'c':
+		r, ok := fmtToRune(value)
+		if !ok {
+			return false
+		}
+		content = utf8.AppendRune(content, r)
+	case 'q':
+		switch v := value.(type) {
+		case string:
+			content = strconv.AppendQuote(content, v)
+		case String:
+			content = strconv.AppendQuote(content, v.Std())
+		case []byte:
+			content = strconv.AppendQuote(content, string(v))
+		case Bytes:
+			content = strconv.AppendQuote(content, string(v))
+		default:
+			r, ok := fmtToRune(value)
+			if !ok {
+				return false
+			}
+			content = strconv.AppendQuoteRune(content, r)
+		}
+	case 'U':
+		r, ok := fmtToRune(value)
+		if !ok || !utf8.ValidRune(r) {
+			return false
+		}
+		content = append(content, 'U', '+')
+		var digits [8]byte
+		hex := strconv.AppendInt(digits[:0], int64(r), 16)
+		for padding := 4 - len(hex); padding > 0; padding-- {
+			content = append(content, '0')
+		}
+		for _, ch := range hex {
+			if ch >= 'a' && ch <= 'f' {
+				ch -= 'a' - 'A'
+			}
+			content = append(content, ch)
+		}
+		if spec.alternate && strconv.IsPrint(r) {
+			content = append(content, ' ')
+			content = strconv.AppendQuoteRune(content, r)
+		}
+	default:
+		return false
+	}
+
+	appendNativePadded(builder, content, utf8.RuneCount(content), spec, fmtIsNumeric(value))
+	return true
+}
+
+func fmtToRune(value any) (rune, bool) {
+	if u, ok := fmtToUint64(value); ok {
+		return rune(u), true
+	}
+	if i, ok := fmtToSignedInt64(value); ok {
+		return rune(i), true
+	}
+	return 0, false
+}
+
+func appendNativePadded(builder *Builder, content []byte, runes int, spec fmtSpec, isNum bool) {
+	padding := spec.width - Int(runes)
+	if padding <= 0 {
+		builder.Write(content)
+		return
+	}
+
+	fill := spec.fill
+	align := spec.align
+	if spec.zeroPad && align == alignNone && isNum {
+		fill, align = '0', alignRight
+	} else if align == alignNone {
+		if isNum {
+			align = alignRight
+		} else {
+			align = alignLeft
+		}
+	}
+
+	left, right := Int(0), Int(0)
+	switch align {
+	case alignLeft:
+		right = padding
+	case alignRight:
+		left = padding
+	default:
+		left = padding / 2
+		right = padding - left
+	}
+
+	for range left {
+		builder.WriteRune(fill)
+	}
+	builder.Write(content)
+	for range right {
+		builder.WriteRune(fill)
+	}
+}
+
+func fmtDecimal(value any, spec fmtSpec) String {
+	if u, ok := fmtToUint64(value); ok {
+		return fmtApplySign(String(strconv.FormatUint(u, 10)), true, spec)
+	}
+
+	if i, ok := fmtToSignedInt64(value); ok {
+		s := String(strconv.FormatInt(i, 10))
+		return fmtApplySign(s, i >= 0, spec)
+	}
+
+	return String(fmt.Sprint(value))
+}
+
+func fmtCharacter(value any) String {
+	if u, ok := fmtToUint64(value); ok {
+		return String(string(rune(u)))
+	}
+
+	if i, ok := fmtToSignedInt64(value); ok {
+		return String(string(rune(i)))
+	}
+
+	return String(fmt.Sprintf("%c", value))
+}
+
+func fmtQuoted(value any) String {
+	switch v := value.(type) {
+	case string:
+		return String(strconv.Quote(v))
+	case String:
+		return String(strconv.Quote(v.Std()))
+	case []byte:
+		return String(strconv.Quote(string(v)))
+	case Bytes:
+		return String(strconv.Quote(string(v)))
+	}
+
+	if u, ok := fmtToUint64(value); ok {
+		return String(strconv.QuoteRune(rune(u)))
+	}
+
+	if i, ok := fmtToSignedInt64(value); ok {
+		return String(strconv.QuoteRune(rune(i)))
+	}
+
+	return String(fmt.Sprintf("%q", value))
+}
+
+func fmtUnicode(value any, alternate bool) String {
+	var r rune
+	if u, ok := fmtToUint64(value); ok {
+		r = rune(u)
+	} else if i, ok := fmtToSignedInt64(value); ok {
+		r = rune(i)
+	} else {
+		verb := "%U"
+		if alternate {
+			verb = "%#U"
+		}
+		return String(fmt.Sprintf(verb, value))
+	}
+
+	if alternate {
+		return String(fmt.Sprintf("%#U", r))
+	}
+
+	return String(fmt.Sprintf("%U", r))
 }
 
 func fmtAltPrefix(prefix String, spec fmtSpec) String {
@@ -245,20 +703,23 @@ func fmtDefault(value any, spec fmtSpec) String {
 	if prec >= 0 || spec.sign != signNone {
 		if f, ok := fmtToFloat64(value); ok {
 			return fmtApplySign(
-				String(strconv.FormatFloat(f, 'f', prec, 64)), f >= 0, spec)
+				String(strconv.FormatFloat(f, 'f', prec, 64)), f >= 0, spec,
+			)
 		}
 
 		if spec.sign != signNone {
 			if i, ok := fmtToInt64(value); ok {
 				return fmtApplySign(
-					String(strconv.FormatInt(abs64(i), 10)), i >= 0, spec)
+					String(strconv.FormatInt(abs64(i), 10)), i >= 0, spec,
+				)
 			}
 
 			// uint64 values above MaxInt64 don't fit in int64; format them
 			// unsigned so the requested sign (e.g. {:+}) is still applied.
 			if u, ok := fmtToUint64(value); ok {
 				return fmtApplySign(
-					String(strconv.FormatUint(u, 10)), true, spec)
+					String(strconv.FormatUint(u, 10)), true, spec,
+				)
 			}
 		}
 	}
@@ -287,7 +748,8 @@ func fmtExponential(value any, spec fmtSpec, verb byte) String {
 
 	if ok {
 		return fmtApplySign(
-			String(strconv.FormatFloat(f, verb, prec, 64)), f >= 0, spec)
+			String(strconv.FormatFloat(f, verb, prec, 64)), f >= 0, spec,
+		)
 	}
 
 	return String(fmt.Sprint(value))
@@ -317,8 +779,6 @@ func fmtPad(s String, spec fmtSpec, isNum bool) String {
 		return s
 	}
 
-	fill := String(string(spec.fill))
-
 	// zero-pad: sign-aware
 	if spec.zeroPad && spec.align == alignNone && isNum {
 		return fmtZeroPad(s, spec.width)
@@ -334,14 +794,37 @@ func fmtPad(s String, spec fmtSpec, isNum bool) String {
 		}
 	}
 
+	return fmtJustify(s, spec.width, spec.fill, align)
+}
+
+func fmtJustify(s String, width Int, fill rune, align fmtAlign) String {
+	remaining := width - s.LenRunes()
+	left, right := Int(0), Int(0)
+
 	switch align {
 	case alignLeft:
-		return s.LeftJustify(spec.width, fill)
+		right = remaining
 	case alignRight:
-		return s.RightJustify(spec.width, fill)
+		left = remaining
 	default:
-		return s.Center(spec.width, fill)
+		left = remaining / 2
+		right = remaining - left
 	}
+
+	var b Builder
+	b.Grow(s.Len() + remaining*Int(utf8.RuneLen(fill)))
+
+	for range left {
+		b.WriteRune(fill)
+	}
+
+	b.WriteString(s)
+
+	for range right {
+		b.WriteRune(fill)
+	}
+
+	return b.String()
 }
 
 func fmtZeroPad(s String, width Int) String {
@@ -365,12 +848,18 @@ func fmtZeroPad(s String, width Int) String {
 	}
 
 	var b Builder
+	b.Grow(width)
+
 	if sign != 0 {
 		b.WriteByte(sign)
 	}
 
 	b.WriteString(prefix)
-	b.WriteString(String("0").Repeat(padLen))
+
+	for range padLen {
+		b.WriteByte('0')
+	}
+
 	b.WriteString(body)
 
 	return b.String()
@@ -382,6 +871,7 @@ func fmtPrettyDebug(value any) String {
 
 func fmtIndentDebug(s String) String {
 	var b Builder
+	b.Grow(s.Len() + 16)
 
 	indent := Int(0)
 	inString := false
@@ -421,22 +911,28 @@ func fmtIndentDebug(s String) String {
 			indent++
 			b.WriteByte(ch)
 			b.WriteByte('\n')
-			b.WriteString(pad.Repeat(indent))
+			writeIndent(&b, pad, indent)
 		case '}', ']':
 			indent--
 			b.WriteByte('\n')
-			b.WriteString(pad.Repeat(indent))
+			writeIndent(&b, pad, indent)
 			b.WriteByte(ch)
 		case ',':
 			b.WriteByte(ch)
 			b.WriteByte('\n')
-			b.WriteString(pad.Repeat(indent))
+			writeIndent(&b, pad, indent)
 		default:
 			b.WriteByte(ch)
 		}
 	}
 
 	return b.String()
+}
+
+func writeIndent(b *Builder, pad String, indent Int) {
+	for range indent {
+		b.WriteString(pad)
+	}
 }
 
 func fmtIsNumeric(value any) bool {
@@ -485,6 +981,25 @@ func fmtToInt64(value any) (int64, bool) {
 		return int64(v), true
 	case float64:
 		return int64(v), true
+	}
+
+	return 0, false
+}
+
+func fmtToSignedInt64(value any) (int64, bool) {
+	switch v := value.(type) {
+	case Int:
+		return int64(v), true
+	case int:
+		return int64(v), true
+	case int8:
+		return int64(v), true
+	case int16:
+		return int64(v), true
+	case int32:
+		return int64(v), true
+	case int64:
+		return v, true
 	}
 
 	return 0, false

@@ -135,8 +135,20 @@ func (h *Heap[T]) Push(items ...T) {
 	}
 
 	if len(items) > 1 {
+		start := len(h.data)
 		h.data = append(h.data, items...)
-		h.heapify()
+
+		// Rebuilding is linear and wins for large batches. For a small batch on
+		// an established heap, sift only the appended elements to avoid scanning
+		// the entire existing heap.
+		if start == 0 || len(items) > start/2 {
+			h.heapify()
+			return
+		}
+
+		for i := start; i < len(h.data); i++ {
+			h.heapifyUp(i)
+		}
 	}
 }
 
@@ -150,6 +162,8 @@ func (h *Heap[T]) Pop() Option[T] {
 	top := h.data[0]
 	last := len(h.data) - 1
 	h.data[0] = h.data[last]
+	var zero T
+	h.data[last] = zero
 	h.data = h.data[:last]
 
 	if len(h.data) > 0 {
@@ -195,6 +209,8 @@ func (h *Heap[T]) Remove(i Int) Option[T] {
 		h.data[idx] = h.data[n]
 	}
 
+	var zero T
+	h.data[n] = zero
 	h.data = h.data[:n]
 
 	if idx < len(h.data) {

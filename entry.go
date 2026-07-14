@@ -28,6 +28,10 @@ package g
 //	case VacantEntry[string, int]:
 //	    e.Insert(42)
 //	}
+//
+// An Entry is a short-lived view of the key state observed by Map.Entry.
+// Do not retain it across external insertion or removal of the same key;
+// obtain a fresh Entry after structurally changing that key.
 type Entry[K comparable, V any] interface {
 	sealed()
 	Key() K
@@ -103,6 +107,7 @@ func (e OccupiedEntry[K, V]) OrDefault() V { return e.Get() }
 //
 // The function receives a pointer to a copy of the value; after modification,
 // the updated value is written back to the map.
+// The entry must not be used after the same key is externally removed or replaced.
 //
 // Example:
 //

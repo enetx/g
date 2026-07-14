@@ -9,8 +9,9 @@ import (
 
 // MapSafe is a concurrent-safe generic map built on sync.Map.
 type MapSafe[K comparable, V any] struct {
-	data  sync.Map
-	count atomic.Int64
+	data     sync.Map
+	count    atomic.Int64
+	structMu sync.RWMutex // coordinates key-presence changes with Clear
 }
 
 // NewMapSafe creates a new instance of MapSafe.
@@ -103,6 +104,9 @@ func (ms *MapSafe[K, V]) Clone() *MapSafe[K, V] {
 
 // Copy performs a deep copy of the source MapSafe's pairs into the current map.
 func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
+	ms.structMu.RLock()
+	defer ms.structMu.RUnlock()
+
 	src.data.Range(func(key, value any) bool {
 		v := *(value.(*V))
 		_, loaded := ms.data.Swap(key, &v)
@@ -149,6 +153,9 @@ func (ms *MapSafe[K, V]) Ordered() MapOrd[K, V] {
 
 // Remove removes the specified key from the MapSafe and returns the removed value.
 func (ms *MapSafe[K, V]) Remove(key K) Option[V] {
+	ms.structMu.RLock()
+	defer ms.structMu.RUnlock()
+
 	if v, loaded := ms.data.LoadAndDelete(key); loaded {
 		ms.count.Add(-1)
 		return Some(*(v.(*V)))
@@ -218,6 +225,9 @@ func (ms *MapSafe[K, V]) Get(key K) Option[V] {
 //	ms.Insert("a", 2)        // Some(1) (replaced)
 //	ms.Get("a").Some()    // 2
 func (ms *MapSafe[K, V]) Insert(key K, value V) Option[V] {
+	ms.structMu.RLock()
+	defer ms.structMu.RUnlock()
+
 	if previous, loaded := ms.data.Swap(key, &value); loaded {
 		return Some(*(previous.(*V)))
 	}
@@ -236,6 +246,9 @@ func (ms *MapSafe[K, V]) Insert(key K, value V) Option[V] {
 //	ms.TryInsert("a", 2)     // Some(1) (already existed, not replaced)
 //	ms.Get("a").Some()    // 1
 func (ms *MapSafe[K, V]) TryInsert(key K, value V) Option[V] {
+	ms.structMu.RLock()
+	defer ms.structMu.RUnlock()
+
 	if actual, loaded := ms.data.LoadOrStore(key, &value); loaded {
 		return Some(*(actual.(*V)))
 	}
@@ -252,6 +265,9 @@ func (ms *MapSafe[K, V]) Ne(other *MapSafe[K, V]) bool { return !ms.Eq(other) }
 
 // Clear removes all key-value pairs from the MapSafe.
 func (ms *MapSafe[K, V]) Clear() {
+	ms.structMu.Lock()
+	defer ms.structMu.Unlock()
+
 	ms.data.Clear()
 	ms.count.Store(0)
 }

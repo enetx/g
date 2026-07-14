@@ -24,6 +24,20 @@ type File struct {
 	guard bool     // Guard indicates whether the file is protected against concurrent access.
 }
 
+type fileReader struct {
+	owner *File
+	file  *os.File
+}
+
+func (r fileReader) Read(p []byte) (int, error) { return r.file.Read(p) }
+func (r fileReader) Close() error {
+	if r.owner.file == r.file {
+		return r.owner.Close()
+	}
+
+	return r.file.Close()
+}
+
 // NewFile returns a new File instance with the given name.
 func NewFile[T ~string](name T) *File { return &File{name: String(name)} }
 
@@ -265,7 +279,10 @@ func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
 			return r
 		}
 
-		fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
+		fmode := os.FileMode(FileDefault)
+		if len(mode) > 0 {
+			fmode = mode[0]
+		}
 
 		if r := f.OpenFile(os.O_APPEND|os.O_CREATE|os.O_WRONLY, fmode); r.IsErr() {
 			return r
@@ -409,15 +426,8 @@ func (f *File) Dir() Result[*Dir] {
 
 // Exists checks if the file exists.
 func (f *File) Exists() bool {
-	if f.dirPath().IsOk() {
-		filePath := f.filePath()
-		if filePath.IsOk() {
-			_, err := os.Stat(filePath.v.Std())
-			return !os.IsNotExist(err)
-		}
-	}
-
-	return false
+	_, err := os.Stat(f.name.Std())
+	return err == nil
 }
 
 // Ext returns the file extension.
@@ -559,7 +569,7 @@ func (f *File) Reader() Result[io.ReadCloser] {
 		}
 	}
 
-	return Ok[io.ReadCloser](f.file)
+	return Ok[io.ReadCloser](fileReader{owner: f, file: f.file})
 }
 
 // Remove removes the file.
@@ -716,7 +726,10 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 		return Err[*File](filePath.err)
 	}
 
-	fmode := Slice[os.FileMode](mode).Get(0).UnwrapOr(FileDefault)
+	fmode := os.FileMode(FileDefault)
+	if len(mode) > 0 {
+		fmode = mode[0]
+	}
 
 	if r := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode); r.IsErr() {
 		return Err[*File](r.err)
@@ -739,16 +752,17 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 
 // dirPath returns the absolute path of the directory containing the file.
 func (f *File) dirPath() Result[String] {
-	var (
-		path string
-		err  error
-	)
+	name := f.name.Std()
+	if info, err := os.Stat(name); err == nil && info.IsDir() {
+		path, err := filepath.Abs(name)
+		if err != nil {
+			return Err[String](err)
+		}
 
-	if f.IsDir() {
-		path, err = filepath.Abs(f.name.Std())
-	} else {
-		path, err = filepath.Abs(filepath.Dir(f.name.Std()))
+		return Ok(String(path))
 	}
+
+	path, err := filepath.Abs(filepath.Dir(name))
 
 	if err != nil {
 		return Err[String](err)
@@ -759,16 +773,12 @@ func (f *File) dirPath() Result[String] {
 
 // filePath returns the full file path, including the directory and file name.
 func (f *File) filePath() Result[String] {
-	dirPath := f.dirPath()
-	if dirPath.IsErr() {
-		return Err[String](dirPath.err)
+	path, err := filepath.Abs(f.name.Std())
+	if err != nil {
+		return Err[String](err)
 	}
 
-	if f.IsDir() {
-		return dirPath
-	}
-
-	return Ok(String(filepath.Join(dirPath.v.Std(), filepath.Base(f.name.Std()))))
+	return Ok(String(path))
 }
 
 func (f *File) createAll() Result[*File] {

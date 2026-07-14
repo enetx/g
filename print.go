@@ -7,9 +7,14 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-
-	"github.com/enetx/g/f"
 )
+
+// Formattable lets a type handle g.Format specifications without reflection.
+// The spec is the text after ':' without the colon; an empty spec requests the
+// type's default representation.
+type Formattable interface {
+	FormatValue(spec String) String
+}
 
 // Write formats according to a format specifier and writes to w.
 // It returns a Result containing the number of bytes written or an error.
@@ -30,7 +35,7 @@ func Write[T ~string](w io.Writer, format T, args ...any) Result[int] {
 //	res := g.Writeln(os.Stdout, "Hello, {}", "world")
 //	if res.IsErr() { log.Fatal(res.Err()) }
 func Writeln[T ~string](w io.Writer, format T, args ...any) Result[int] {
-	return ResultOf(io.WriteString(w, Format(format, args...).Append("\n").Std()))
+	return ResultOf(io.WriteString(w, formatTemplate(format, args, "\n").Std()))
 }
 
 // Print formats according to a format specifier and writes to os.Stdout.
@@ -84,22 +89,7 @@ func Eprintln[T ~string](format T, args ...any) Result[int] {
 //	errors.Is(err, os.ErrNotExist) // true
 func Errorf[T ~string](format T, args ...any) error {
 	tmpl := String(format)
-
-	var (
-		named      Named
-		positional Slice[any]
-	)
-
-	for _, arg := range args {
-		switch x := arg.(type) {
-		case Named:
-			named = x
-		case nil:
-			positional = append(positional, "<nil>")
-		default:
-			positional = append(positional, x)
-		}
-	}
+	named, positional := formatArgs(args)
 
 	var wraps []error
 
@@ -128,7 +118,7 @@ func Errorf[T ~string](format T, args ...any) error {
 //   - Named: `{key}`, `{key.MethodName(param1, param2)}` - References keys from a `Named` map and allows method invocation.
 //   - Fallback: `{key?fallback}` - Uses `fallback` if the key is not found in the named map.
 //   - Auto-index: `{}` - Automatically uses the next positional argument if the placeholder is empty.
-//   - Escaping: `\{` and `\}` - Escapes literal braces in the template string.
+//   - Escaping: `{{` and `}}` - Emits literal braces, matching Rust formatting.
 //
 // Returns:
 //   - String: A formatted string with all resolved placeholders replaced by their corresponding values.
@@ -169,17 +159,173 @@ func Errorf[T ~string](format T, args ...any) error {
 //	}
 //	result := g.Format("Hello, {name.Trim.Title}. Welcome to {city?Unknown}!", named)
 func Format[T ~string](template T, args ...any) String {
+	return formatTemplate(template, args, "")
+}
+
+// FormatTo formats template and appends the result to builder without resetting it.
+// It is intended for allocation-sensitive code that reuses a Builder across calls.
+func FormatTo[T ~string](builder *Builder, template T, args ...any) {
+	named, positional := formatArgs(args)
+	parseTmplInto(builder, String(template), named, positional, nil, "")
+}
+
+// TryFormat validates template structure and argument resolution before
+// formatting. Unlike Format, it returns an error for unmatched braces,
+// missing values, malformed modifiers, and unsupported format verbs.
+func TryFormat[T ~string](template T, args ...any) (result Result[String]) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			result = Err[String](fmt.Errorf("format: panic: %v", recovered))
+		}
+	}()
+
 	tmpl := String(template)
+	named, positional := formatArgs(args)
+	if err := validateFormatTemplate(tmpl, named, positional); err != nil {
+		return Err[String](err)
+	}
 
-	var (
-		named      Named
-		positional Slice[any]
-	)
+	return Ok(parseTmpl(tmpl, named, positional, nil))
+}
 
+// TryFormatTo validates and formats into a temporary buffer, appending to
+// builder only on success so an error never leaves a partial result behind.
+func TryFormatTo[T ~string](builder *Builder, template T, args ...any) Result[Unit] {
+	result := TryFormat(template, args...)
+	if result.IsErr() {
+		return Err[Unit](result.Err())
+	}
+
+	builder.WriteString(result.Ok())
+	return Ok(Unit{})
+}
+
+func validateFormatTemplate(tmpl String, named Named, positional Slice[any]) error {
+	length := tmpl.Len()
+	var autoidx, idx Int
+
+	for idx < length {
+		char := tmpl[idx]
+		if idx+1 < length && ((char == '{' && tmpl[idx+1] == '{') ||
+			(char == '}' && tmpl[idx+1] == '}')) {
+			idx += 2
+			continue
+		}
+
+		if char == '}' {
+			return fmt.Errorf("format: unmatched closing brace at byte %d", idx)
+		}
+		if char != '{' {
+			idx++
+			continue
+		}
+
+		cidx := tmpl[idx+1:].Index("}")
+		if cidx.IsNegative() {
+			return fmt.Errorf("format: unmatched opening brace at byte %d", idx)
+		}
+
+		eidx := idx + 1 + cidx
+		placeholder, spec := splitFmtSpec(tmpl[idx+1 : eidx])
+
+		trimmed := placeholder.Trim()
+		if trimmed.IsEmpty() || trimmed[0] == '.' {
+			autoidx++
+			if autoidx > positional.Len() {
+				return fmt.Errorf("format: missing automatic argument %d", autoidx)
+			}
+			if _, custom := positional[autoidx-1].(Formattable); !custom && !spec.IsEmpty() && !validFmtSpec(spec) {
+				return fmt.Errorf("format: invalid format specifier %q", spec)
+			}
+			if !trimmed.IsEmpty() && !validModifierChain(trimmed[1:]) {
+				return fmt.Errorf("format: malformed modifier chain %q", trimmed[1:])
+			}
+			idx = eidx + 1
+			continue
+		}
+
+		keyfall, mods := placeholder, String("")
+		if dot := placeholder.Index("."); !dot.IsNegative() {
+			keyfall, mods = placeholder[:dot], placeholder[dot+1:]
+		}
+		key, fall := keyfall, String("")
+		if q := keyfall.Index("?"); !q.IsNegative() {
+			key, fall = keyfall[:q], keyfall[q+1:]
+		}
+		value := resolveValue(key, fall, named, positional)
+		if value == nil {
+			return fmt.Errorf("format: unresolved placeholder %q", placeholder)
+		}
+		if _, custom := value.(Formattable); !custom && !spec.IsEmpty() && !validFmtSpec(spec) {
+			return fmt.Errorf("format: invalid format specifier %q", spec)
+		}
+		if !validModifierChain(mods) {
+			return fmt.Errorf("format: malformed modifier chain %q", mods)
+		}
+
+		idx = eidx + 1
+	}
+
+	return nil
+}
+
+func validModifierChain(mods String) bool {
+	valid := true
+	forEachMod(mods, func(segment String) {
+		if !valid {
+			return
+		}
+		open := segment.Index("(")
+		close := segment.LastIndex(")")
+		if open.IsNegative() != close.IsNegative() || (!open.IsNegative() && close != segment.Len()-1) {
+			valid = false
+		}
+	})
+
+	return valid
+}
+
+func formatTemplate[T ~string](template T, args []any, suffix String) String {
+	tmpl := String(template)
+	named, positional := formatArgs(args)
+
+	return parseTmplSuffix(tmpl, named, positional, nil, suffix)
+}
+
+// formatArgs separates the optional Named argument from positional arguments.
+// The overwhelmingly common case contains neither Named nor nil, so reuse the
+// caller-provided variadic slice instead of allocating and copying it.
+func formatArgs(args []any) (Named, Slice[any]) {
+	var named Named
+
+	needsCopy, positionalLen := false, 0
 	for _, arg := range args {
 		switch x := arg.(type) {
 		case Named:
 			named = x
+			needsCopy = true
+		case nil:
+			needsCopy = true
+			positionalLen++
+		default:
+			positionalLen++
+		}
+	}
+
+	if !needsCopy {
+		return named, Slice[any](args)
+	}
+
+	if positionalLen == 0 {
+		return named, nil
+	}
+
+	positional := make(Slice[any], 0, positionalLen)
+	for _, arg := range args {
+		switch x := arg.(type) {
+		case Named:
+			// Named arguments are metadata, not positional values. The last one
+			// wins, matching the existing public contract.
 		case nil:
 			positional = append(positional, "<nil>")
 		default:
@@ -187,26 +333,32 @@ func Format[T ~string](template T, args ...any) String {
 		}
 	}
 
-	return parseTmpl(tmpl, named, positional, nil)
+	return named, positional
 }
 
 func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) String {
+	return parseTmplSuffix(tmpl, named, positional, wraps, "")
+}
+
+func parseTmplSuffix(tmpl String, named Named, positional Slice[any], wraps *[]error, suffix String) String {
 	var builder Builder
+	parseTmplInto(&builder, tmpl, named, positional, wraps, suffix)
+	return builder.String()
+}
+
+func parseTmplInto(builder *Builder, tmpl String, named Named, positional Slice[any], wraps *[]error, suffix String) {
 	length := tmpl.Len()
-	builder.Grow(length)
+	builder.Grow(length + suffix.Len())
 
 	var autoidx, idx Int
 
 	for idx < length {
 		char := tmpl[idx]
-		if char == '\\' && idx+1 < length {
-			next := tmpl[idx+1]
-			if next == '{' || next == '}' {
-				builder.WriteByte(next)
-				idx += 2
-
-				continue
-			}
+		if idx+1 < length && ((char == '{' && tmpl[idx+1] == '{') ||
+			(char == '}' && tmpl[idx+1] == '}')) {
+			builder.WriteByte(char)
+			idx += 2
+			continue
 		}
 
 		if char == '{' {
@@ -232,13 +384,40 @@ func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) 
 			if trimmed.IsEmpty() || trimmed[0] == '.' {
 				autoidx++
 				if autoidx <= positional.Len() {
-					placeholder = autoidx.String() + trimmed
+					mods := trimmed
+					if !mods.IsEmpty() {
+						mods = mods[1:]
+					}
+
+					formatSpec := fmtSuffix
+					if !formatSpec.IsEmpty() {
+						formatSpec = formatSpec[1:]
+					}
+
+					value := positional[autoidx-1]
+					if mods.IsEmpty() && formatSpec.IsEmpty() {
+						writeFormatValue(builder, value)
+					} else if !mods.IsEmpty() ||
+						!tryAppendNativeSpec(builder, value, parseFmtSpec(formatSpec)) {
+						builder.WriteString(formatResolved(value, mods, formatSpec, wraps))
+					}
+
+					idx = eidx + 1
+					continue
 				}
 			}
 
 			// re-attach format spec
 			if !fmtSuffix.IsEmpty() {
 				placeholder += fmtSuffix
+			}
+
+			if fmtSuffix.IsEmpty() && placeholder.Index(".").IsNegative() && placeholder.Index("?").IsNegative() {
+				if value := resolveValue(placeholder, "", named, positional); value != nil {
+					writeFormatValue(builder, value)
+					idx = eidx + 1
+					continue
+				}
 			}
 
 			replaced := processPlaceholder(placeholder, named, positional, wraps)
@@ -251,7 +430,20 @@ func parseTmpl(tmpl String, named Named, positional Slice[any], wraps *[]error) 
 		}
 	}
 
-	return builder.String()
+	builder.WriteString(suffix)
+}
+
+func writeFormatValue(builder *Builder, value any) {
+	switch v := value.(type) {
+	case Formattable:
+		builder.WriteString(v.FormatValue(""))
+	case string:
+		builder.WriteString(String(v))
+	case String:
+		builder.WriteString(v)
+	default:
+		builder.WriteString(String(fmt.Sprint(value)))
+	}
 }
 
 func processPlaceholder(placeholder String, named Named, positional Slice[any], wraps *[]error) String {
@@ -284,14 +476,19 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any], 
 		return "{" + placeholder + "}"
 	}
 
+	return formatResolved(value, mods, formatSpec, wraps)
+}
+
+func formatResolved(value any, mods, formatSpec String, wraps *[]error) String {
 	if !mods.IsEmpty() {
-		mods.
-			Split(".").
-			Exclude(f.IsZero).
-			ForEach(func(segment String) {
-				name, params := parseMod(segment)
-				value = applyMod(value, name, params)
-			})
+		forEachMod(mods, func(segment String) {
+			name, params := parseMod(segment)
+			value = applyMod(value, name, params)
+		})
+	}
+
+	if formattable, ok := value.(Formattable); ok {
+		return formattable.FormatValue(formatSpec)
 	}
 
 	if !formatSpec.IsEmpty() {
@@ -312,22 +509,44 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any], 
 	return String(fmt.Sprint(value))
 }
 
-func resolveValue(key, fall String, named Named, positional Slice[any]) any {
-	if num := key.TryInt(); num.IsOk() {
-		idx := num.v - 1
-		if idx.IsNegative() || idx.Gte(positional.Len()) {
-			return nil
+// forEachMod scans a modifier chain without constructing an iterator, a slice
+// of segments, or closures for Filter/ForEach.
+func forEachMod(mods String, fn func(String)) {
+	start := Int(0)
+	for i := Int(0); i <= mods.Len(); i++ {
+		if i < mods.Len() && mods[i] != '.' {
+			continue
 		}
 
-		return positional[idx]
+		if segment := mods[start:i]; !segment.IsEmpty() {
+			fn(segment)
+		}
+
+		start = i + 1
+	}
+}
+
+func resolveValue(key, fall String, named Named, positional Slice[any]) any {
+	if !key.IsEmpty() {
+		first := key[0]
+		if first >= '0' && first <= '9' || (first == '+' || first == '-') && key.Len() > 1 {
+			if num := key.TryInt(); num.IsOk() {
+				idx := num.v - 1
+				if idx.IsNegative() || idx.Gte(positional.Len()) {
+					return nil
+				}
+
+				return positional[idx]
+			}
+		}
 	}
 
-	value := Map[String, any](named).Get(key)
-	if value.IsNone() && !fall.IsEmpty() {
-		value = Map[String, any](named).Get(fall)
+	value, ok := named[key]
+	if !ok && !fall.IsEmpty() {
+		value = named[fall]
 	}
 
-	return value.UnwrapOrDefault()
+	return value
 }
 
 func parseMod(segment String) (String, Slice[String]) {
@@ -341,7 +560,25 @@ func parseMod(segment String) (String, Slice[String]) {
 		return segment, nil
 	}
 
-	params := segment[oidx+1 : cidx].Split(",").Collect()
+	raw := segment[oidx+1 : cidx]
+	count := 1
+	for i := Int(0); i < raw.Len(); i++ {
+		if raw[i] == ',' {
+			count++
+		}
+	}
+
+	params := make(Slice[String], 0, count)
+	start := Int(0)
+	for i := Int(0); i <= raw.Len(); i++ {
+		if i < raw.Len() && raw[i] != ',' {
+			continue
+		}
+
+		params = append(params, raw[start:i])
+		start = i + 1
+	}
+
 	name := segment[:oidx]
 
 	return name, params
@@ -504,7 +741,7 @@ func callMethod(method reflect.Value, params Slice[String]) Option[any] {
 		return None[any]()
 	}
 
-	var args []reflect.Value
+	args := make([]reflect.Value, 0, params.Len())
 
 	for i := range numIn {
 		arg := toType(params[i], methodType.In(i))

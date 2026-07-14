@@ -861,9 +861,11 @@ func (s String) LeftJustify(length Int, pad String) String {
 	}
 
 	var b Builder
+	padlen := pad.LenRunes()
+	b.Grow(s.Len() + paddingCapacity(pad, padlen, length-rlen))
 
 	_, _ = b.WriteString(s)
-	writePadding(&b, pad, pad.LenRunes(), length-rlen)
+	writePadding(&b, pad, padlen, length-rlen)
 
 	return b.String()
 }
@@ -891,8 +893,10 @@ func (s String) RightJustify(length Int, pad String) String {
 	}
 
 	var b Builder
+	padlen := pad.LenRunes()
+	b.Grow(s.Len() + paddingCapacity(pad, padlen, length-rlen))
 
-	writePadding(&b, pad, pad.LenRunes(), length-rlen)
+	writePadding(&b, pad, padlen, length-rlen)
 	_, _ = b.WriteString(s)
 
 	return b.String()
@@ -925,12 +929,17 @@ func (s String) Center(length Int, pad String) String {
 
 	padlen := pad.LenRunes()
 	remains := length - slen
+	b.Grow(s.Len() + paddingCapacity(pad, padlen, remains))
 
 	writePadding(&b, pad, padlen, remains/2)
 	_, _ = b.WriteString(s)
 	writePadding(&b, pad, padlen, (remains+1)/2)
 
 	return b.String()
+}
+
+func paddingCapacity(pad String, padlen, runes Int) Int {
+	return ((runes + padlen - 1) / padlen) * pad.Len()
 }
 
 // writePadding writes the padding String to the output Builder to fill the remaining length.

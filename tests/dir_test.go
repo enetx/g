@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -536,6 +537,26 @@ func TestDir_CreateAll_Mode_Success(t *testing.T) {
 	}
 }
 
+func TestDirCreateAllRejectsExistingFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(path, []byte("file"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if result := NewDir(String(path)).CreateAll(); result.IsOk() {
+		t.Fatal("CreateAll must fail when the path is an existing file")
+	}
+	if NewDir(String(path)).Exists() {
+		t.Fatal("Dir.Exists must be false for a regular file")
+	}
+}
+
+func TestDirExistsReturnsFalseForInvalidPath(t *testing.T) {
+	if NewDir("invalid\x00path").Exists() {
+		t.Fatal("invalid directory path must not exist")
+	}
+}
+
 func TestDir_Read_Success(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := createTempDir(t)
@@ -555,14 +576,38 @@ func TestDir_Read_Success(t *testing.T) {
 		t.Errorf("TestDir_Read_Success: Unexpected error %s", result.FirstErr().Some())
 	}
 
-	// Check if the returned slice of File instances is accurate
+	// Directory iteration follows filesystem order, so compare as a set.
 	files := result.Ok().Collect()
-	expectedFileNames := []string{"file1.txt", "file2.txt", "subdir1", "subdir2"}
-
-	for i, file := range files {
-		if file.Name().Std() != expectedFileNames[i] {
-			t.Errorf("TestDir_Read_Success: Expected file '%s', got '%s'", expectedFileNames[i], file.Name().Std())
+	expectedFileNames := map[string]bool{"file1.txt": true, "file2.txt": true, "subdir1": true, "subdir2": true}
+	if len(files) != len(expectedFileNames) {
+		t.Fatalf("TestDir_Read_Success: expected %d entries, got %d", len(expectedFileNames), len(files))
+	}
+	for _, file := range files {
+		if !expectedFileNames[file.Name().Std()] {
+			t.Errorf("TestDir_Read_Success: unexpected file %q", file.Name())
 		}
+	}
+}
+
+func TestDirReadMultipleBatches(t *testing.T) {
+	tempDir := t.TempDir()
+	const files = 300
+	for i := range files {
+		name := filepath.Join(tempDir, fmt.Sprintf("file-%03d", i))
+		if err := os.WriteFile(name, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	count := 0
+	for result := range NewDir(String(tempDir)).Read() {
+		if result.IsErr() {
+			t.Fatalf("Read failed: %v", result.Err())
+		}
+		count++
+	}
+	if count != files {
+		t.Fatalf("expected %d entries, got %d", files, count)
 	}
 }
 
@@ -1356,5 +1401,33 @@ func TestDir_Copy_FileSymlinkNoFollow(t *testing.T) {
 	// The file symlink must be skipped (not dereferenced into a regular file).
 	if _, err := os.Lstat(filepath.Join(destDir, "link.txt")); !os.IsNotExist(err) {
 		t.Error("TestDir_Copy_FileSymlinkNoFollow: file symlink should be skipped with followLinks=false")
+	}
+}
+
+func BenchmarkDirRead(b *testing.B) {
+	dir := b.TempDir()
+	const files = 1024
+	for i := range files {
+		name := filepath.Join(dir, fmt.Sprintf("file-%04d", i))
+		if err := os.WriteFile(name, nil, 0o644); err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	d := NewDir(String(dir))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for b.Loop() {
+		count := 0
+		for result := range d.Read() {
+			if result.IsErr() {
+				b.Fatal(result.Err())
+			}
+			count++
+		}
+		if count != files {
+			b.Fatalf("expected %d entries, got %d", files, count)
+		}
 	}
 }

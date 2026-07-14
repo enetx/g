@@ -39,6 +39,8 @@ type Pool[T any] struct {
 	stream          chan Result[T]           // Real-time result channel (Stream mode only)
 	jobs            chan func() Result[T]    // Task queue for worker pool (Stream mode only)
 	streaming       atomic.Bool              // Whether the pool is in stream mode (race-free flag)
+	streamActive    atomic.Bool              // Whether the Stream producer or workers are still running
+	submitting      int32                    // Number of Go calls currently submitting or rate-waiting
 	totalTasks      int32                    // Total number of tasks submitted
 	activeTasks     int32                    // Number of currently active tasks
 	failedTasks     int32                    // Number of failed tasks
@@ -83,7 +85,7 @@ func New[T any]() *Pool[T] {
 // By default, burst equals n, allowing an initial burst before settling
 // into the steady rate. Override with an explicit burst value.
 //
-// Zero or negative n removes the rate limit.
+// Zero or negative n removes the rate limit. A positive rate requires d > 0.
 // Cannot be changed while tasks are running.
 // Panics if called after tasks have been submitted.
 //
@@ -100,8 +102,12 @@ func New[T any]() *Pool[T] {
 //	// Combined with Limit:
 //	p.Limit(10).Rate(5, time.Second)  // max 10 concurrent, max 5 starts/sec
 func (p *Pool[T]) Rate(n int, d time.Duration, burst ...int) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 {
+	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
 		panic("pool: cannot change rate limit while tasks are running")
+	}
+
+	if n > 0 && d <= 0 {
+		panic("pool: rate duration must be positive")
 	}
 
 	if p.rl != nil {
@@ -267,6 +273,9 @@ func (p *Pool[T]) exec(fn func() Result[T]) {
 // If fn is nil, the task completes with an error.
 // If fn panics, the panic is recovered and recorded as an error with a stack trace.
 func (p *Pool[T]) Go(fn func() Result[T]) {
+	atomic.AddInt32(&p.submitting, 1)
+	defer atomic.AddInt32(&p.submitting, -1)
+
 	if p.streaming.Load() {
 		select {
 		case p.jobs <- fn:
@@ -349,7 +358,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 //	    fmt.Println(r.Ok())
 //	}
 func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 {
+	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
 		panic("pool: Stream must be called before submitting tasks with Go")
 	}
 
@@ -359,8 +368,10 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 	}
 
 	p.stream = make(chan Result[T], buf)
+	stream := p.stream
 	p.jobs = make(chan func() Result[T])
 	p.streaming.Store(true)
+	p.streamActive.Store(true)
 
 	workers := p.workers()
 	for range workers {
@@ -371,7 +382,9 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 	// Producer: runs fn to submit tasks, then closes job queue.
 	// When fn returns (all Go calls done), close(p.jobs) signals
 	// workers to drain remaining tasks and exit.
+	producerDone := make(chan struct{})
 	go func() {
+		defer close(producerDone)
 		defer close(p.jobs)
 		defer func() {
 			if r := recover(); r != nil {
@@ -383,12 +396,14 @@ func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
 
 	// Closer: waits for all workers to finish, then closes stream channel.
 	go func() {
-		defer close(p.stream)
-		defer p.Cancel(ErrAllTasksDone)
+		<-producerDone
 		p.wg.Wait()
+		p.Cancel(ErrAllTasksDone)
+		p.streamActive.Store(false)
+		close(stream)
 	}()
 
-	return p.stream
+	return stream
 }
 
 // Wait blocks until all submitted tasks finish and returns their results.
@@ -430,7 +445,7 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 // On non-Windows systems, the limit is capped by the process open-file-descriptor
 // limit (RLIMIT_NOFILE) when the requested worker count would exceed it.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 {
+	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
 		panic("pool: cannot change semaphore limit while tasks are running")
 	}
 
@@ -487,7 +502,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 //	    return r.IsErr() && r.ErrAs(&sql.ErrNoRows)
 //	})
 func (p *Pool[T]) CancelOn(predicate func(Result[T]) bool) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 {
+	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
 		panic("pool: cannot set cancellation predicate while tasks are running")
 	}
 
@@ -542,11 +557,16 @@ func (p *Pool[T]) checkCancel(result Result[T]) {
 // If ctx is nil, context.Background() is used.
 // The previous context is canceled before replacement.
 func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
+	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() ||
+		atomic.LoadInt32(&p.submitting) > 0 {
+		panic("pool: cannot change context while tasks are running")
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	p.Cancel()
+	p.cancel(context.Canceled)
 	p.ctx, p.cancel = context.WithCancelCause(ctx)
 
 	return p
@@ -584,7 +604,7 @@ func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 //	p.Go(func() Result[int] { return Ok(1) })
 //	p.Wait()
 func (p *Pool[T]) Reset() {
-	if p.ActiveTasks() > 0 {
+	if p.ActiveTasks() > 0 || atomic.LoadInt32(&p.submitting) > 0 || p.streamActive.Load() {
 		panic("pool: cannot reset while tasks are running")
 	}
 
@@ -597,6 +617,7 @@ func (p *Pool[T]) Reset() {
 	p.stream = nil
 	p.jobs = nil
 	p.streaming.Store(false)
+	p.streamActive.Store(false)
 	p.cancelPredicate = nil
 	p.ctx, p.cancel = context.WithCancelCause(context.Background())
 }

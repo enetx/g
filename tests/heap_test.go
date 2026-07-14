@@ -806,3 +806,17 @@ func TestHeapFromSlice(t *testing.T) {
 		t.Fatalf("HeapFromSlice collector = %v", res)
 	}
 }
+
+func TestHeapBulkPushOnEstablishedHeap(t *testing.T) {
+	heap := NewHeap(cmp.Cmp[int])
+	for i := range 1024 {
+		heap.Push(i)
+	}
+
+	heap.Push(-2, -1)
+	for want := -2; want < 1024; want++ {
+		if got := heap.Pop(); got.IsNone() || got.Some() != want {
+			t.Fatalf("expected %d, got %v", want, got)
+		}
+	}
+}

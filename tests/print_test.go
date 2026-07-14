@@ -11,6 +11,16 @@ import (
 	. "github.com/enetx/g"
 )
 
+type testFormattable struct{ value String }
+
+func (f testFormattable) FormatValue(spec String) String {
+	return "custom[" + spec + "]:" + f.value
+}
+
+type panicFormattable struct{}
+
+func (panicFormattable) FormatValue(String) String { panic("custom formatter failed") }
+
 func TestFormatAutoIndexAndNumeric(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -37,10 +47,16 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 			expected: "Values: X, Y, x",
 		},
 		{
-			name:     "Escaped braces",
-			format:   "Show literal \\{{.Upper}\\} here",
+			name:     "Rust escaped braces around placeholder",
+			format:   "Show literal {{{.Upper}}} here",
 			args:     []any{String("upper")},
 			expected: "Show literal {UPPER} here",
+		},
+		{
+			name:     "Rust escaped placeholder is literal",
+			format:   "Show literal {{name}} here",
+			args:     []any{Named{"name": "value"}},
+			expected: "Show literal {name} here",
 		},
 		{
 			name:     "Autoindex with modifier {.Upper}",
@@ -91,8 +107,8 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "Escaped closing brace",
-			format:   "literal \\}",
+			name:     "Rust escaped closing brace",
+			format:   "literal }}",
 			args:     nil,
 			expected: "literal }",
 		},
@@ -618,6 +634,141 @@ func BenchmarkSprintfFormatSpecifiers(b *testing.B) {
 		b.ResetTimer()
 		for b.Loop() {
 			_ = Format("Hex: {1.Hex}, Binary: {1.Binary}", num)
+		}
+	})
+}
+
+func BenchmarkFormatNativeSpecifiers(b *testing.B) {
+	num := Int(255)
+
+	b.Run("decimal", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:d}", num)
+		}
+	})
+
+	b.Run("hex", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:x}", num)
+		}
+	})
+
+	b.Run("upper-hex", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:X}", num)
+		}
+	})
+
+	b.Run("octal", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:o}", num)
+		}
+	})
+
+	b.Run("binary", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:b}", num)
+		}
+	})
+
+	b.Run("character", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:c}", Int('Ж'))
+		}
+	})
+
+	b.Run("quoted", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:q}", String("hello\nworld"))
+		}
+	})
+
+	b.Run("unicode", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:U}", Int('Ж'))
+		}
+	})
+
+	b.Run("unicode-alternate", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:#U}", Int('Ж'))
+		}
+	})
+
+	b.Run("zero-pad", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:#010x}", num)
+		}
+	})
+
+	b.Run("alignment", func(b *testing.B) {
+		for b.Loop() {
+			_ = Format("{:*>10x}", num)
+		}
+	})
+}
+
+func BenchmarkFormatTo(b *testing.B) {
+	var builder Builder
+	for b.Loop() {
+		builder.Reset()
+		FormatTo(&builder, "{}={:04d}", "answer", 42)
+	}
+}
+
+func BenchmarkFormattable(b *testing.B) {
+	value := testFormattable{"value"}
+	for b.Loop() {
+		_ = Format("{:custom}", value)
+	}
+}
+
+func TestFormatExtendedAPI(t *testing.T) {
+	t.Run("FormatTo appends", func(t *testing.T) {
+		var b Builder
+		b.WriteString("prefix:")
+		FormatTo(&b, "{}:{:04d}", "value", 7)
+		if got := b.String(); got != "prefix:value:0007" {
+			t.Fatalf("unexpected FormatTo result: %q", got)
+		}
+	})
+
+	t.Run("Formattable default and spec", func(t *testing.T) {
+		value := testFormattable{"value"}
+		if got := Format("{}", value); got != "custom[]:value" {
+			t.Fatalf("unexpected default Formattable result: %q", got)
+		}
+		if got := Format("{:tag}", value); got != "custom[tag]:value" {
+			t.Fatalf("unexpected spec Formattable result: %q", got)
+		}
+	})
+
+	t.Run("TryFormat", func(t *testing.T) {
+		if got := TryFormat("{{{name}}}", Named{"name": "value"}); got.Unwrap() != "{value}" {
+			t.Fatalf("unexpected TryFormat result: %q", got.Unwrap())
+		}
+		if TryFormat("missing: {name}").IsOk() {
+			t.Fatal("TryFormat must reject unresolved placeholders")
+		}
+		if TryFormat("broken {").IsOk() {
+			t.Fatal("TryFormat must reject unmatched braces")
+		}
+		if TryFormat("{:unknown}", 1).IsOk() {
+			t.Fatal("TryFormat must reject unsupported format verbs")
+		}
+		if TryFormat("{}", panicFormattable{}).IsOk() {
+			t.Fatal("TryFormat must recover Formattable panics")
+		}
+	})
+
+	t.Run("TryFormatTo is transactional", func(t *testing.T) {
+		var b Builder
+		b.WriteString("before")
+		if TryFormatTo(&b, "broken {").IsOk() {
+			t.Fatal("TryFormatTo must return an error")
+		}
+		if got := b.String(); got != "before" {
+			t.Fatalf("TryFormatTo modified builder on error: %q", got)
 		}
 	})
 }
@@ -1218,6 +1369,7 @@ func TestFormatSpec(t *testing.T) {
 		{name: "x int16", format: "{:x}", args: []any{int16(256)}, expected: "100"},
 		{name: "x int32", format: "{:x}", args: []any{int32(255)}, expected: "ff"},
 		{name: "x int64", format: "{:x}", args: []any{int64(4096)}, expected: "1000"},
+		{name: "x min int64", format: "{:x}", args: []any{int64(math.MinInt64)}, expected: "-8000000000000000"},
 		{name: "x g.Int", format: "{:x}", args: []any{Int(255)}, expected: "ff"},
 		{name: "x g.Int negative", format: "{:x}", args: []any{Int(-1)}, expected: "-1"},
 		{name: "x non-numeric", format: "{:x}", args: []any{"hello"}, expected: "hello"},
@@ -1374,6 +1526,7 @@ func TestFormatSpec(t *testing.T) {
 		{name: "width + hex left", format: "{:<10x}", args: []any{255}, expected: "ff        "},
 		{name: "width + binary center", format: "{:^10b}", args: []any{42}, expected: "  101010  "},
 		{name: "width + octal fill", format: "{:_>10o}", args: []any{255}, expected: "_______377"},
+		{name: "width + hex custom center", format: "{:*^10x}", args: []any{255}, expected: "****ff****"},
 		{name: "width + #x", format: "{:>#10x}", args: []any{255}, expected: "      0xff"},
 
 		// ── Width + precision ──
@@ -1407,6 +1560,20 @@ func TestFormatSpec(t *testing.T) {
 
 		// ── Auto-index + spec ──
 		{name: "auto x and b", format: "{:x} and {:b}", args: []any{255, 42}, expected: "ff and 101010"},
+		{name: "decimal", format: "{:d}", args: []any{-42}, expected: "-42"},
+		{name: "decimal min int64", format: "{:d}", args: []any{int64(math.MinInt64)}, expected: "-9223372036854775808"},
+		{name: "decimal sign and pad", format: "{:+05d}", args: []any{42}, expected: "+0042"},
+		{name: "character", format: "{:c}", args: []any{65}, expected: "A"},
+		{name: "character unicode padded", format: "{:4c}", args: []any{rune('Ж')}, expected: "   Ж"},
+		{name: "quoted string", format: "{:q}", args: []any{"go\nlang"}, expected: `"go\nlang"`},
+		{name: "quoted rune", format: "{:q}", args: []any{rune('界')}, expected: `'界'`},
+		{name: "quoted bytes", format: "{:q}", args: []any{[]byte("go\nlang")}, expected: `"go\nlang"`},
+		{name: "unicode", format: "{:U}", args: []any{rune('A')}, expected: "U+0041"},
+		{name: "unicode alternate", format: "{:#U}", args: []any{rune('A')}, expected: "U+0041 'A'"},
+		{name: "unicode alternate non-printable", format: "{:#U}", args: []any{rune('\n')}, expected: "U+000A"},
+		{name: "character fallback", format: "{:c}", args: []any{struct{}{}}, expected: fmt.Sprintf("%c", struct{}{})},
+		{name: "quoted fallback", format: "{:q}", args: []any{struct{}{}}, expected: fmt.Sprintf("%q", struct{}{})},
+		{name: "unicode fallback", format: "{:U}", args: []any{struct{}{}}, expected: fmt.Sprintf("%U", struct{}{})},
 		{name: "auto multiple", format: "{:x} {:o} {:b}", args: []any{255, 255, 255}, expected: "ff 377 11111111"},
 		{name: "auto with plain", format: "{} {:x} {}", args: []any{"a", 255, "b"}, expected: "a ff b"},
 

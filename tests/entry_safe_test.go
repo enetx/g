@@ -655,6 +655,44 @@ func TestMapSafeEntryConcurrentAndModify(t *testing.T) {
 	}
 }
 
+func TestMapSafeEntryAndModifyMayRetryCallback(t *testing.T) {
+	ms := NewMapSafe[string, int]()
+	ms.Insert("counter", 0)
+
+	var calls atomic.Int32
+	var ready sync.WaitGroup
+	ready.Add(2)
+	release := make(chan struct{})
+	modify := func(value *int) {
+		call := calls.Add(1)
+		if call <= 2 {
+			ready.Done()
+			<-release
+		}
+		*value++
+	}
+
+	var workers sync.WaitGroup
+	workers.Add(2)
+	for range 2 {
+		go func() {
+			defer workers.Done()
+			ms.Entry("counter").AndModify(modify)
+		}()
+	}
+
+	ready.Wait()
+	close(release)
+	workers.Wait()
+
+	if got := ms.Get("counter").Some(); got != 2 {
+		t.Fatalf("expected both atomic modifications, got %d", got)
+	}
+	if got := calls.Load(); got < 3 {
+		t.Fatalf("expected at least one CAS retry, callback ran %d times", got)
+	}
+}
+
 func TestMapSafeEntryConcurrentWordFrequency(t *testing.T) {
 	freq := NewMapSafe[string, Int]()
 	words := SliceOf("apple", "banana", "apple", "cherry", "banana", "apple")

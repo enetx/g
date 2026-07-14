@@ -142,9 +142,10 @@ func (seq SeqHeap[V]) Chunks(n Int) SeqSlices[V] {
 func (seq SeqHeap[V]) Collect(compareFn func(V, V) cmp.Ordering) *Heap[V] {
 	result := NewHeap(compareFn)
 	seq(func(v V) bool {
-		result.Push(v)
+		result.data = append(result.data, v)
 		return true
 	})
+	result.heapify()
 
 	return result
 }

@@ -74,7 +74,7 @@ func main() {
 
 	// Mixing autoindex placeholders with named placeholders
 	Print(
-		"numeric: {}, named: {key.Named}, another numeric: \\{{.Upper}\\}\n",
+		"numeric: {}, named: {key.Named}, another numeric: {{{.Upper}}}\n",
 		Named{"key": struct{ Named string }{Named: "value"}},
 		"positional-1",         // => {1}
 		String("positional-2"), // => {2}

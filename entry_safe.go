@@ -15,6 +15,8 @@ import "github.com/enetx/g/ref"
 //
 // Concurrency notes:
 //   - AndModify uses a compare-and-swap (CAS) loop for atomic updates
+//   - AndModify may invoke its callback more than once when CAS retries; the
+//     callback must not perform non-idempotent external side effects
 //   - VacantSafeEntry stores pending modifications to handle insertion races
 //   - All operations are safe for concurrent use without external locking
 //
@@ -74,6 +76,9 @@ func (e OccupiedSafeEntry[K, V]) Get() V {
 //
 // The replacement is performed atomically with respect to other map operations.
 func (e OccupiedSafeEntry[K, V]) Insert(value V) V {
+	e.m.structMu.RLock()
+	defer e.m.structMu.RUnlock()
+
 	old, loaded := e.m.data.Swap(e.key, &value)
 	if loaded {
 		return *(old.(*V))
@@ -88,6 +93,9 @@ func (e OccupiedSafeEntry[K, V]) Insert(value V) V {
 //
 // If the key is concurrently removed, the zero value of V is returned.
 func (e OccupiedSafeEntry[K, V]) Remove() V {
+	e.m.structMu.RLock()
+	defer e.m.structMu.RUnlock()
+
 	if actual, loaded := e.m.data.LoadAndDelete(e.key); loaded {
 		e.m.count.Add(-1)
 		return *(actual.(*V))
@@ -103,12 +111,7 @@ func (e OccupiedSafeEntry[K, V]) OrInsert(value V) V {
 		return *(actual.(*V))
 	}
 
-	actual, loaded := e.m.data.LoadOrStore(e.key, &value)
-	if !loaded {
-		e.m.count.Add(1)
-	}
-
-	return *(actual.(*V))
+	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsert(value)
 }
 
 // OrInsertWith returns the existing value if present, or inserts the result
@@ -150,6 +153,9 @@ func (e OccupiedSafeEntry[K, V]) OrDefault() V {
 // The modification is performed using a compare-and-swap loop.
 // The function receives a pointer to a copy of the value; the updated value
 // is written back atomically.
+// Under contention, fn may be invoked more than once before CAS succeeds.
+// It should only modify the provided value and must not rely on exactly-once
+// external side effects.
 //
 // If the key is concurrently removed, AndModify becomes a no-op.
 func (e OccupiedSafeEntry[K, V]) AndModify(fn func(*V)) SafeEntry[K, V] {
@@ -229,6 +235,9 @@ func (e VacantSafeEntry[K, V]) Insert(value V) V { return e.OrInsert(value) }
 // pre-modify value observed during the failed insert is returned. In that
 // narrow window the modification can be lost.
 func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
+	e.m.structMu.RLock()
+	defer e.m.structMu.RUnlock()
+
 	actual, loaded := e.m.data.LoadOrStore(e.key, &value)
 	if !loaded {
 		e.m.count.Add(1)
@@ -252,6 +261,9 @@ func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 		return e.applyPending(actual.(*V))
 	}
 
+	e.m.structMu.RLock()
+	defer e.m.structMu.RUnlock()
+
 	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn()))
 	if !loaded {
 		e.m.count.Add(1)
@@ -274,6 +286,9 @@ func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
 		return e.applyPending(actual.(*V))
 	}
+
+	e.m.structMu.RLock()
+	defer e.m.structMu.RUnlock()
 
 	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn(e.key)))
 	if !loaded {

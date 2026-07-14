@@ -756,6 +756,40 @@ g.NewDir(".").Copy("copy").Unwrap()
 
 ---
 
+## Formatting and Print
+
+Rust-inspired placeholders support automatic, positional, and named values:
+
+```go
+g.Format("{} {2} {name}", "auto", "positional", g.Named{"name": "named"})
+g.Format("{{{name}}}", g.Named{"name": "value"}) // {value}
+```
+
+Format specs include alignment, width, precision, signs, alternate prefixes,
+and common representations:
+
+```go
+g.Format("{:d} {:c} {:q} {:U} {:#010x}", 42, 65, "go\n", 'A', 255)
+```
+
+Use `FormatTo` to append to a reusable builder. `TryFormat` validates templates
+and returns `Result[String]`; `TryFormatTo` appends only when formatting succeeds.
+
+Types can implement custom specs without reflection:
+
+```go
+type Price float64
+
+func (p Price) FormatValue(spec g.String) g.String {
+    if spec == "currency" {
+        return g.String(fmt.Sprintf("$%.2f", p))
+    }
+    return g.String(fmt.Sprintf("%.2f", p))
+}
+
+g.Format("{:currency}", Price(19.95)) // $19.95
+```
+
 ## Other Maps
 
 ### MapOrd — Ordered Map

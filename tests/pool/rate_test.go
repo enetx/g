@@ -246,6 +246,32 @@ func TestRate_Wait_ContextTimeout(t *testing.T) {
 	t.Logf("got %d results before context timeout", len(results))
 }
 
+func TestRate_ContextKeepsLimiterRunning(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	p := pool.New[int]().Rate(100, time.Second, 1).Context(ctx)
+	p.Go(func() Result[int] { return Ok(1) })
+	p.Go(func() Result[int] { return Ok(2) })
+
+	if got := len(p.Wait().Collect()); got != 2 {
+		t.Fatalf("expected limiter to continue after Context, got %d results", got)
+	}
+}
+
+func TestRateRejectsNonPositiveDuration(t *testing.T) {
+	for _, duration := range []time.Duration{0, -time.Second} {
+		t.Run(duration.String(), func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatal("Rate must panic for a non-positive duration")
+				}
+			}()
+			pool.New[int]().Rate(1, duration)
+		})
+	}
+}
+
 func TestRate_Stream_ContextTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Millisecond)
 	defer cancel()
