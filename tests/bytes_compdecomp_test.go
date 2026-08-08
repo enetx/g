@@ -9,20 +9,6 @@ import (
 func TestBytesCompressionAndDecompression(t *testing.T) {
 	inputData := Bytes("hello world")
 
-	// Zstd
-	zstdCompressed := inputData.Compress().Zstd()
-	zstdDecompressed := zstdCompressed.Decompress().Zstd()
-	if zstdDecompressed.IsErr() || zstdDecompressed.Unwrap().Ne(inputData) {
-		t.Errorf("Zstd round-trip failed. Input: %s, Decompressed: %s", inputData, zstdDecompressed.Unwrap())
-	}
-
-	// Brotli
-	brotliCompressed := inputData.Compress().Brotli()
-	brotliDecompressed := brotliCompressed.Decompress().Brotli()
-	if brotliDecompressed.IsErr() || brotliDecompressed.Unwrap().Ne(inputData) {
-		t.Errorf("Brotli round-trip failed. Input: %s, Decompressed: %s", inputData, brotliDecompressed.Unwrap())
-	}
-
 	// Zlib
 	zlibCompressed := inputData.Compress().Zlib()
 	zlibDecompressed := zlibCompressed.Decompress().Zlib()

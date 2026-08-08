@@ -37,7 +37,7 @@
 //
 // [String], [Int], [Float] and [Bytes] wrap the built-in types with fluent
 // methods, including conversion pipelines via Encode/Decode (Base64, Hex,
-// Octal, Binary, JSON, ...), Compress/Decompress (gzip, zstd, brotli, ...)
+// Octal, Binary, JSON, ...), Compress/Decompress (gzip, zlib, flate)
 // and Hash (MD5, SHA1, SHA256, SHA512).
 //
 // # Filesystem

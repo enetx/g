@@ -10,28 +10,6 @@ func TestStringCompressionAndDecompression(t *testing.T) {
 	// Test data
 	inputData := String("hello world")
 
-	// Test Zstd compression and decompression
-	zstdCompressed := inputData.Compress().Zstd()
-	zstdDecompressed := zstdCompressed.Decompress().Zstd()
-	if zstdDecompressed.IsErr() || zstdDecompressed.Unwrap().Ne(inputData) {
-		t.Errorf(
-			"Zstd compression and decompression failed. Input: %s, Decompressed: %s",
-			inputData,
-			zstdDecompressed.Unwrap(),
-		)
-	}
-
-	// Test Brotli compression and decompression
-	brotliCompressed := inputData.Compress().Brotli()
-	brotliDecompressed := brotliCompressed.Decompress().Brotli()
-	if brotliDecompressed.IsErr() || brotliDecompressed.Unwrap().Ne(inputData) {
-		t.Errorf(
-			"Brotli compression and decompression failed. Input: %s, Decompressed: %s",
-			inputData,
-			brotliDecompressed.Unwrap(),
-		)
-	}
-
 	// Test Zlib compression and decompression
 	zlibCompressed := inputData.Compress().Zlib()
 	zlibDecompressed := zlibCompressed.Decompress().Zlib()
@@ -117,26 +95,6 @@ func BenchmarkZlib(b *testing.B) {
 	}
 }
 
-func TestZstdDecompressionError(t *testing.T) {
-	// Test Zstd decompression with invalid data
-	invalidData := String("invalid zstd data")
-	result := invalidData.Decompress().Zstd()
-
-	if result.IsOk() {
-		t.Error("Zstd decompression of invalid data should fail")
-	}
-}
-
-func TestBrotliDecompressionError(t *testing.T) {
-	// Test Brotli decompression with invalid data
-	invalidData := String("invalid brotli data")
-	result := invalidData.Decompress().Brotli()
-
-	if result.IsOk() {
-		t.Error("Brotli decompression of invalid data should fail")
-	}
-}
-
 func TestZlibDecompressionError(t *testing.T) {
 	// Test Zlib decompression with invalid data
 	invalidData := String("invalid zlib data")
@@ -190,8 +148,6 @@ func TestEmptyStringCompression(t *testing.T) {
 	emptyStr := String("")
 
 	// Test all compression methods with empty string
-	zstdCompressed := emptyStr.Compress().Zstd()
-	brotliCompressed := emptyStr.Compress().Brotli()
 	zlibCompressed := emptyStr.Compress().Zlib()
 	gzipCompressed := emptyStr.Compress().Gzip()
 	flateCompressed := emptyStr.Compress().Flate()
@@ -200,20 +156,6 @@ func TestEmptyStringCompression(t *testing.T) {
 	// Some compression algorithms may produce empty compressed data for empty input
 
 	// Test decompression of empty compressed data
-	zstdDecompressed := zstdCompressed.Decompress().Zstd()
-	if zstdDecompressed.IsErr() {
-		t.Errorf("Zstd decompression of empty string failed: %v", zstdDecompressed.Err())
-	} else if zstdDecompressed.Ok().Ne(emptyStr) {
-		t.Errorf("Zstd round trip failed for empty string")
-	}
-
-	brotliDecompressed := brotliCompressed.Decompress().Brotli()
-	if brotliDecompressed.IsErr() {
-		t.Errorf("Brotli decompression of empty string failed: %v", brotliDecompressed.Err())
-	} else if brotliDecompressed.Ok().Ne(emptyStr) {
-		t.Errorf("Brotli round trip failed for empty string")
-	}
-
 	zlibDecompressed := zlibCompressed.Decompress().Zlib()
 	if zlibDecompressed.IsErr() {
 		t.Errorf("Zlib decompression of empty string failed: %v", zlibDecompressed.Err())

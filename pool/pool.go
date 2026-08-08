@@ -40,10 +40,10 @@ type Pool[T any] struct {
 	jobs            chan func() Result[T]    // Task queue for worker pool (Stream mode only)
 	streaming       atomic.Bool              // Whether the pool is in stream mode (race-free flag)
 	streamActive    atomic.Bool              // Whether the Stream producer or workers are still running
-	submitting      int32                    // Number of Go calls currently submitting or rate-waiting
-	totalTasks      int32                    // Total number of tasks submitted
-	activeTasks     int32                    // Number of currently active tasks
-	failedTasks     int32                    // Number of failed tasks
+	submitting      atomic.Int32             // Number of Go calls currently submitting or rate-waiting
+	totalTasks      atomic.Int32             // Total number of tasks submitted
+	activeTasks     atomic.Int32             // Number of currently active tasks
+	failedTasks     atomic.Int32             // Number of failed tasks
 	cancelPredicate func(Result[T]) bool     // Optional predicate for conditional cancellation, set via CancelOn
 	rl              *limiter                 // Token-bucket rate limiter, nil means no rate limit
 }
@@ -102,7 +102,7 @@ func New[T any]() *Pool[T] {
 //	// Combined with Limit:
 //	p.Limit(10).Rate(5, time.Second)  // max 10 concurrent, max 5 starts/sec
 func (p *Pool[T]) Rate(n int, d time.Duration, burst ...int) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
+	if p.totalTasks.Load() > 0 || p.streaming.Load() {
 		panic("pool: cannot change rate limit while tasks are running")
 	}
 
@@ -157,7 +157,7 @@ func (p *Pool[T]) acquire() bool {
 // release frees a worker slot and signals task completion.
 // Used only in Wait mode, called exactly once per acquired task.
 func (p *Pool[T]) release() {
-	atomic.AddInt32(&p.activeTasks, -1)
+	p.activeTasks.Add(-1)
 	if p.tokens != nil {
 		<-p.tokens
 	}
@@ -169,7 +169,7 @@ func (p *Pool[T]) release() {
 // BEFORE canceling the context, ensuring the first error is never lost
 // when CancelOnError is enabled.
 func (p *Pool[T]) error(index int32, err error) {
-	atomic.AddInt32(&p.failedTasks, 1)
+	p.failedTasks.Add(1)
 	result := Err[T](err)
 
 	if p.streaming.Load() {
@@ -230,8 +230,8 @@ func (p *Pool[T]) exec(fn func() Result[T]) {
 		return
 	}
 
-	atomic.AddInt32(&p.activeTasks, 1)
-	defer atomic.AddInt32(&p.activeTasks, -1)
+	p.activeTasks.Add(1)
+	defer p.activeTasks.Add(-1)
 
 	if fn == nil {
 		p.error(-1, errors.New("nil function provided"))
@@ -273,13 +273,13 @@ func (p *Pool[T]) exec(fn func() Result[T]) {
 // If fn is nil, the task completes with an error.
 // If fn panics, the panic is recovered and recorded as an error with a stack trace.
 func (p *Pool[T]) Go(fn func() Result[T]) {
-	atomic.AddInt32(&p.submitting, 1)
-	defer atomic.AddInt32(&p.submitting, -1)
+	p.submitting.Add(1)
+	defer p.submitting.Add(-1)
 
 	if p.streaming.Load() {
 		select {
 		case p.jobs <- fn:
-			atomic.AddInt32(&p.totalTasks, 1)
+			p.totalTasks.Add(1)
 		case <-p.ctx.Done():
 		}
 
@@ -294,8 +294,8 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 		return
 	}
 
-	index := atomic.AddInt32(&p.totalTasks, 1) - 1
-	atomic.AddInt32(&p.activeTasks, 1)
+	index := p.totalTasks.Add(1) - 1
+	p.activeTasks.Add(1)
 	p.wg.Add(1)
 
 	go func(index int32) {
@@ -358,7 +358,7 @@ func (p *Pool[T]) Go(fn func() Result[T]) {
 //	    fmt.Println(r.Ok())
 //	}
 func (p *Pool[T]) Stream(fn func(), buffer ...int) <-chan Result[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
+	if p.totalTasks.Load() > 0 || p.streaming.Load() {
 		panic("pool: Stream must be called before submitting tasks with Go")
 	}
 
@@ -421,7 +421,7 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 	defer p.Cancel(ErrAllTasksDone)
 	p.wg.Wait()
 
-	total := int(atomic.LoadInt32(&p.totalTasks))
+	total := int(p.totalTasks.Load())
 
 	return func(yield func(Result[T]) bool) {
 		for i := range total {
@@ -445,7 +445,7 @@ func (p *Pool[T]) Wait() SeqResult[T] {
 // On non-Windows systems, the limit is capped by the process open-file-descriptor
 // limit (RLIMIT_NOFILE) when the requested worker count would exceed it.
 func (p *Pool[T]) Limit(workers int) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
+	if p.totalTasks.Load() > 0 || p.streaming.Load() {
 		panic("pool: cannot change semaphore limit while tasks are running")
 	}
 
@@ -502,7 +502,7 @@ func (p *Pool[T]) Limit(workers int) *Pool[T] {
 //	    return r.IsErr() && r.ErrAs(&sql.ErrNoRows)
 //	})
 func (p *Pool[T]) CancelOn(predicate func(Result[T]) bool) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() {
+	if p.totalTasks.Load() > 0 || p.streaming.Load() {
 		panic("pool: cannot set cancellation predicate while tasks are running")
 	}
 
@@ -557,8 +557,8 @@ func (p *Pool[T]) checkCancel(result Result[T]) {
 // If ctx is nil, context.Background() is used.
 // The previous context is canceled before replacement.
 func (p *Pool[T]) Context(ctx context.Context) *Pool[T] {
-	if atomic.LoadInt32(&p.totalTasks) > 0 || p.streaming.Load() ||
-		atomic.LoadInt32(&p.submitting) > 0 {
+	if p.totalTasks.Load() > 0 || p.streaming.Load() ||
+		p.submitting.Load() > 0 {
 		panic("pool: cannot change context while tasks are running")
 	}
 
@@ -604,7 +604,7 @@ func (p *Pool[T]) Cause() error { return context.Cause(p.ctx) }
 //	p.Go(func() Result[int] { return Ok(1) })
 //	p.Wait()
 func (p *Pool[T]) Reset() {
-	if p.ActiveTasks() > 0 || atomic.LoadInt32(&p.submitting) > 0 || p.streamActive.Load() {
+	if p.ActiveTasks() > 0 || p.submitting.Load() > 0 || p.streamActive.Load() {
 		panic("pool: cannot reset while tasks are running")
 	}
 
@@ -624,26 +624,26 @@ func (p *Pool[T]) Reset() {
 
 // ClearMetrics resets total and failed task counters to zero.
 func (p *Pool[T]) ClearMetrics() {
-	atomic.StoreInt32(&p.totalTasks, 0)
-	atomic.StoreInt32(&p.failedTasks, 0)
+	p.totalTasks.Store(0)
+	p.failedTasks.Store(0)
 }
 
 // TotalTasks returns the total number of tasks submitted.
-func (p *Pool[T]) TotalTasks() int { return int(atomic.LoadInt32(&p.totalTasks)) }
+func (p *Pool[T]) TotalTasks() int { return int(p.totalTasks.Load()) }
 
 // ActiveTasks returns the number of tasks currently running.
-func (p *Pool[T]) ActiveTasks() int { return int(atomic.LoadInt32(&p.activeTasks)) }
+func (p *Pool[T]) ActiveTasks() int { return int(p.activeTasks.Load()) }
 
 // FailedTasks returns the number of tasks that completed with an error.
-func (p *Pool[T]) FailedTasks() int { return int(atomic.LoadInt32(&p.failedTasks)) }
+func (p *Pool[T]) FailedTasks() int { return int(p.failedTasks.Load()) }
 
 // SuccessfulTasks returns the number of tasks that completed successfully.
 // Calculated as TotalTasks - FailedTasks.
 // Accurate only after Wait returns or the Stream channel is drained,
 // while tasks are running, the count includes in-flight tasks.
 func (p *Pool[T]) SuccessfulTasks() int {
-	total := atomic.LoadInt32(&p.totalTasks)
-	failed := atomic.LoadInt32(&p.failedTasks)
+	total := p.totalTasks.Load()
+	failed := p.failedTasks.Load()
 	return int(total - failed)
 }
 

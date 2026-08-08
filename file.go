@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/enetx/g/internal/filelock"
+	"github.com/enetx/g/internal/mimesniff"
 )
 
 // errChunkSize is the shared error yielded by File.Chunks and File.ChunksRaw
@@ -448,9 +448,7 @@ func (f *File) MimeType() Result[String] {
 
 	defer f.Close()
 
-	const bufferSize = 512
-
-	buff := make([]byte, bufferSize)
+	buff := make([]byte, mimesniff.SniffLen)
 
 	bytesRead, err := f.file.ReadAt(buff, 0)
 	if err != nil && err != io.EOF {
@@ -459,7 +457,7 @@ func (f *File) MimeType() Result[String] {
 
 	buff = buff[:bytesRead]
 
-	return Ok(String(http.DetectContentType(buff)))
+	return Ok(String(mimesniff.DetectContentType(buff)))
 }
 
 // Move function simply calls [File.Rename]
