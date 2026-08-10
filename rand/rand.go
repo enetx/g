@@ -12,6 +12,10 @@
 //	rand.Shuffle(deck)            // in place; accepts Slice, MapOrd, plain slices
 //	rand.SecureString(32)         // crypto/rand-backed token
 //
+// Every function is generic over its numeric arguments: integer parameters
+// accept any integer type (int, g.Int, uint32, ...), float parameters any
+// float type, and the result follows the argument's type where one exists.
+//
 // The container types deliberately carry NO random methods — everything lives
 // here, one way to do it.
 //
@@ -22,6 +26,7 @@ package rand
 
 import (
 	"math/rand/v2"
+	"strings"
 
 	"github.com/enetx/g"
 	"github.com/enetx/g/constraints"
@@ -41,11 +46,11 @@ func Range[T constraints.Integer](lo, hi T) T {
 	return lo + rand.N(hi-lo)
 }
 
-// RangeInclusive returns a random Int in the closed interval [lo, hi].
+// RangeInclusive returns a random integer in the closed interval [lo, hi].
 // The order of bounds does not matter (it normalizes to
 // [min, max]); it works for negative bounds and the full int64 range without
 // overflow or bias.
-func RangeInclusive(lo, hi g.Int) g.Int {
+func RangeInclusive[T constraints.Integer](lo, hi T) T {
 	if lo > hi {
 		lo, hi = hi, lo
 	}
@@ -62,20 +67,20 @@ func RangeInclusive(lo, hi g.Int) g.Int {
 	w := uhi - ulo + 1
 
 	if w == 0 {
-		return g.Int(rand.Uint64())
+		return T(rand.Uint64())
 	}
 
 	randv := rand.N(w)
 	result := int64((ulo + randv) - bias)
 
-	return g.Int(result)
+	return T(result)
 }
 
 // Float returns a random Float in [0, 1).
 func Float() g.Float { return g.Float(rand.Float64()) }
 
-// Uniform returns a random Float in [lo, hi).
-func Uniform(lo, hi g.Float) g.Float { return lo + (hi-lo)*g.Float(rand.Float64()) }
+// Uniform returns a random value in [lo, hi) of the arguments' float type.
+func Uniform[T constraints.Float](lo, hi T) T { return lo + (hi-lo)*T(rand.Float64()) }
 
 // NormFloat returns a normally distributed Float with mean 0 and standard
 // deviation 1.
@@ -86,7 +91,7 @@ func Bool() bool { return rand.N(2) == 0 }
 
 // Chance returns true with probability p. Values outside [0, 1] clamp to
 // always-false / always-true.
-func Chance(p g.Float) bool {
+func Chance[T constraints.Float](p T) bool {
 	if p <= 0 {
 		return false
 	}
@@ -95,18 +100,19 @@ func Chance(p g.Float) bool {
 		return true
 	}
 
-	return rand.Float64() < p.Std()
+	return rand.Float64() < float64(p)
 }
 
-// Perm returns a random permutation of the integers [0, n) as a Slice.
-func Perm(n g.Int) g.Slice[g.Int] {
+// Perm returns a random permutation of the integers [0, n) as a Slice of the
+// argument's integer type.
+func Perm[T constraints.Integer](n T) g.Slice[T] {
 	if n <= 0 {
 		return nil
 	}
 
-	result := make(g.Slice[g.Int], n)
-	for i, v := range rand.Perm(n.Std()) {
-		result[i] = g.Int(v)
+	result := make(g.Slice[T], n)
+	for i, v := range rand.Perm(int(n)) {
+		result[i] = T(v)
 	}
 
 	return result
@@ -125,7 +131,7 @@ func Choice[S ~[]E, E any](sl S) g.Option[E] {
 
 // Choices returns k elements drawn WITH replacement.
 // An empty source or non-positive k yields an empty result.
-func Choices[S ~[]E, E any](sl S, k g.Int) S {
+func Choices[S ~[]E, E any, I constraints.Integer](sl S, k I) S {
 	if len(sl) == 0 || k <= 0 {
 		return nil
 	}
@@ -141,14 +147,14 @@ func Choices[S ~[]E, E any](sl S, k g.Int) S {
 // Sample returns k distinct elements drawn WITHOUT replacement. If k is not
 // less than the slice length, a shuffled copy of the whole
 // slice is returned. The source slice is not modified.
-func Sample[S ~[]E, E any](sl S, k g.Int) S {
+func Sample[S ~[]E, E any, I constraints.Integer](sl S, k I) S {
 	n := len(sl)
 
 	if n == 0 || k <= 0 {
 		return nil
 	}
 
-	if k >= g.Int(n) {
+	if uint64(k) >= uint64(n) {
 		out := make(S, n)
 		copy(out, sl)
 		Shuffle(out)
@@ -156,13 +162,15 @@ func Sample[S ~[]E, E any](sl S, k g.Int) S {
 		return out
 	}
 
+	kk := int(k)
+
 	// For small samples, track displaced indices in a map instead of copying
 	// the whole slice: O(k) time and space.
-	if g.Float(k) < g.Float(n)*0.25 {
-		result := make(S, k)
-		swapped := make(map[int]int, k)
+	if float64(kk) < float64(n)*0.25 {
+		result := make(S, kk)
+		swapped := make(map[int]int, kk)
 
-		for i := range k.Std() {
+		for i := range kk {
 			j := i + rand.N(n-i)
 
 			vi, foundI := swapped[i]
@@ -190,7 +198,7 @@ func Sample[S ~[]E, E any](sl S, k g.Int) S {
 	copy(out, sl)
 	Shuffle(out)
 
-	return out[:k]
+	return out[:kk]
 }
 
 // Shuffle permutes the slice in place. It accepts any
@@ -201,7 +209,7 @@ func Shuffle[S ~[]E, E any](sl S) {
 
 // Bytes returns length random bytes. NOT cryptographically secure — use
 // [SecureBytes] for keys and tokens.
-func Bytes(length g.Int) g.Bytes {
+func Bytes[I constraints.Integer](length I) g.Bytes {
 	if length <= 0 {
 		return nil
 	}
@@ -225,7 +233,7 @@ func Bytes(length g.Int) g.Bytes {
 //
 //	rand.String(10)          // 10 alphanumeric characters
 //	rand.String(6, g.Digits) // 6-digit code
-func String(length g.Int, letters ...g.String) g.String {
+func String[I constraints.Integer](length I, letters ...g.String) g.String {
 	if length <= 0 {
 		return ""
 	}
@@ -242,13 +250,13 @@ func String(length g.Int, letters ...g.String) g.String {
 			return ""
 		}
 
-		var b g.Builder
-		b.Grow(length)
-		for range length {
+		var b strings.Builder
+		b.Grow(int(length))
+		for range int(length) {
 			b.WriteRune(chars[rand.N(n)])
 		}
 
-		return b.String()
+		return g.String(b.String())
 	}
 
 	const charset = g.ASCIILetters + g.Digits

@@ -196,3 +196,53 @@ func TestSecureString(t *testing.T) {
 		t.Errorf("expected all 10 digits over 1000 draws, saw %d", seen.Len())
 	}
 }
+
+func TestGenericArguments(t *testing.T) {
+	// Integer parameters accept any integer type; results follow the argument type.
+	if v := rand.N(uint8(10)); v >= 10 {
+		t.Errorf("N(uint8) = %d, want < 10", v)
+	}
+
+	if v := rand.RangeInclusive(int8(-5), int8(5)); v < -5 || v > 5 {
+		t.Errorf("RangeInclusive(int8) = %d out of range", v)
+	}
+
+	if v := rand.RangeInclusive(uint16(200), uint16(300)); v < 200 || v > 300 {
+		t.Errorf("RangeInclusive(uint16) = %d out of range", v)
+	}
+
+	var perm Slice[int32] = rand.Perm(int32(4))
+	if perm.Len() != 4 {
+		t.Errorf("Perm(int32) length = %d, want 4", perm.Len())
+	}
+
+	// Float parameters accept any float type.
+	if v := rand.Uniform(float32(1), float32(2)); v < 1 || v >= 2 {
+		t.Errorf("Uniform(float32) = %v out of range", v)
+	}
+
+	_ = rand.Chance(float32(0.5))
+	_ = rand.Chance(Float(0.5))
+
+	// Length/count parameters accept any integer type.
+	if s := rand.String(int64(7)); len(s.Runes()) != 7 {
+		t.Errorf("String(int64) rune length = %d, want 7", len(s.Runes()))
+	}
+
+	if b := rand.Bytes(uint(3)); b.Len() != 3 {
+		t.Errorf("Bytes(uint) length = %d, want 3", b.Len())
+	}
+
+	if s := rand.SecureString(int32(9)); len(s.Runes()) != 9 {
+		t.Errorf("SecureString(int32) rune length = %d, want 9", len(s.Runes()))
+	}
+
+	sl := SliceOf(1, 2, 3, 4, 5)
+	if got := rand.Sample(sl, uint8(2)); got.Len() != 2 {
+		t.Errorf("Sample(uint8 k) length = %d, want 2", got.Len())
+	}
+
+	if got := rand.Choices(sl, int16(3)); got.Len() != 3 {
+		t.Errorf("Choices(int16 k) length = %d, want 3", got.Len())
+	}
+}

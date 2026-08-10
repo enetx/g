@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 
 	"github.com/enetx/g"
+	"github.com/enetx/g/constraints"
 )
 
 // SecureBytes returns length cryptographically secure random bytes drawn from
@@ -12,7 +13,7 @@ import (
 //
 // Unlike the rest of this package, the result is safe for keys, tokens and
 // other security-sensitive material.
-func SecureBytes(length g.Int) g.Bytes {
+func SecureBytes[I constraints.Integer](length I) g.Bytes {
 	if length <= 0 {
 		return nil
 	}
@@ -40,7 +41,7 @@ func SecureBytes(length g.Int) g.Bytes {
 //
 //	rand.SecureString(32)          // 32 alphanumeric characters
 //	rand.SecureString(6, g.Digits) // 6-digit one-time code
-func SecureString(length g.Int, letters ...g.String) g.String {
+func SecureString[I constraints.Integer](length I, letters ...g.String) g.String {
 	if length <= 0 {
 		return ""
 	}
@@ -63,9 +64,9 @@ func SecureString(length g.Int, letters ...g.String) g.String {
 	}
 
 	var b g.Builder
-	b.Grow(length)
+	b.Grow(g.Int(length))
 
-	for range length {
+	for range int(length) {
 		b.WriteRune(chars[secureIndex(n)])
 	}
 
