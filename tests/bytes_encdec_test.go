@@ -20,7 +20,7 @@ func TestBytesBase64Encode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.data.Encode().Base64(); got != tt.want {
+			if got := tt.data.Encode().Base64(); !got.Eq(Bytes(tt.want)) {
 				t.Errorf("Bytes.Encode().Base64() = %v, want %v", got, tt.want)
 			}
 		})
@@ -68,7 +68,7 @@ func TestBytesBase64RawEncode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.data.Encode().Base64Raw(); got != tt.want {
+			if got := tt.data.Encode().Base64Raw(); !got.Eq(Bytes(tt.want)) {
 				t.Errorf("Bytes.Encode().Base64Raw() = %v, want %v", got, tt.want)
 			}
 		})
@@ -109,7 +109,7 @@ func TestBytesBase64URLEncode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.data.Encode().Base64URL(); got != tt.want {
+			if got := tt.data.Encode().Base64URL(); !got.Eq(Bytes(tt.want)) {
 				t.Errorf("Bytes.Encode().Base64URL() = %v, want %v", got, tt.want)
 			}
 		})
@@ -150,7 +150,7 @@ func TestBytesBase64RawURLEncode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.data.Encode().Base64RawURL(); got != tt.want {
+			if got := tt.data.Encode().Base64RawURL(); !got.Eq(Bytes(tt.want)) {
 				t.Errorf("Bytes.Encode().Base64RawURL() = %v, want %v", got, tt.want)
 			}
 		})
@@ -181,19 +181,19 @@ func TestBytesBase64RawURLDecode(t *testing.T) {
 func TestBytesBase64RoundTrip(t *testing.T) {
 	input := Bytes("Hello, World! 🌍")
 
-	if got := input.Encode().Base64().BytesUnsafe().Decode().Base64().Unwrap(); !got.Eq(input) {
+	if got := input.Encode().Base64().Decode().Base64().Unwrap(); !got.Eq(input) {
 		t.Error("Base64 round trip failed")
 	}
 
-	if got := input.Encode().Base64Raw().BytesUnsafe().Decode().Base64Raw().Unwrap(); !got.Eq(input) {
+	if got := input.Encode().Base64Raw().Decode().Base64Raw().Unwrap(); !got.Eq(input) {
 		t.Error("Base64Raw round trip failed")
 	}
 
-	if got := input.Encode().Base64URL().BytesUnsafe().Decode().Base64URL().Unwrap(); !got.Eq(input) {
+	if got := input.Encode().Base64URL().Decode().Base64URL().Unwrap(); !got.Eq(input) {
 		t.Error("Base64URL round trip failed")
 	}
 
-	if got := input.Encode().Base64RawURL().BytesUnsafe().Decode().Base64RawURL().Unwrap(); !got.Eq(input) {
+	if got := input.Encode().Base64RawURL().Decode().Base64RawURL().Unwrap(); !got.Eq(input) {
 		t.Error("Base64RawURL round trip failed")
 	}
 }
@@ -204,11 +204,11 @@ func TestBytesBase64URLvsStd(t *testing.T) {
 	std := input.Encode().Base64()
 	url := input.Encode().Base64URL()
 
-	if !std.Contains("+") && !std.Contains("/") {
+	if !std.Contains(Bytes("+")) && !std.Contains(Bytes("/")) {
 		t.Skip("test input doesn't produce +/ in std base64")
 	}
 
-	if url.Contains("+") || url.Contains("/") {
+	if url.Contains(Bytes("+")) || url.Contains(Bytes("/")) {
 		t.Errorf("Base64URL should not contain + or /, got %s", url)
 	}
 }
@@ -353,7 +353,7 @@ func TestBytesBinaryEncode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.data.Encode().Binary(); got != tt.want {
+			if got := tt.data.Encode().Binary(); !got.Eq(Bytes(tt.want)) {
 				t.Errorf("Bytes.Encode().Binary() = %v, want %v", got, tt.want)
 			}
 		})
@@ -396,7 +396,7 @@ func TestBytesBinaryDecodeErrors(t *testing.T) {
 
 func TestBytesBinaryRoundTrip(t *testing.T) {
 	input := Bytes("Hello!")
-	got := input.Encode().Binary().BytesUnsafe().Decode().Binary().Unwrap()
+	got := input.Encode().Binary().Decode().Binary().Unwrap()
 
 	if !got.Eq(input) {
 		t.Errorf("Binary round trip failed: got %v, want %v", got, input)

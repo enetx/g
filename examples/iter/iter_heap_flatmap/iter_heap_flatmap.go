@@ -10,12 +10,12 @@ func main() {
 	priorities := NewHeap(cmp.Cmp[int])
 	priorities.Push(1, 3, 5)
 
-	expanded := priorities.Iter().FlatMap(func(priority int) SeqHeap[int] {
+	expanded := priorities.Iter().FlatMap(func(priority int) Seq[int] {
 		// Create sub-tasks for each priority level
 		subHeap := NewHeap(cmp.Cmp[int])
 		subHeap.Push(priority, priority*10, priority*100)
 		return subHeap.Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Expanded priorities: ")
 	expanded.Println() // Output will be sorted by heap order
@@ -24,11 +24,11 @@ func main() {
 	taskLevels := NewHeap(cmp.Cmp[string])
 	taskLevels.Push("urgent", "normal", "low")
 
-	taskHierarchy := taskLevels.Iter().FlatMap(func(level string) SeqHeap[string] {
+	taskHierarchy := taskLevels.Iter().FlatMap(func(level string) Seq[string] {
 		tasks := NewHeap(cmp.Cmp[string])
 		tasks.Push(level+"-task1", level+"-task2")
 		return tasks.Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Task hierarchy: ")
 	taskHierarchy.Println()
@@ -37,12 +37,12 @@ func main() {
 	baseScores := NewHeap(cmp.Cmp[float64])
 	baseScores.Push(1.5, 2.0, 3.5)
 
-	weightedScores := baseScores.Iter().FlatMap(func(base float64) SeqHeap[float64] {
+	weightedScores := baseScores.Iter().FlatMap(func(base float64) Seq[float64] {
 		weights := NewHeap(cmp.Cmp[float64])
 		// Apply different multipliers
 		weights.Push(base*1.0, base*1.5, base*2.0)
 		return weights.Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Weighted scores: ")
 	weightedScores.Println()
@@ -51,7 +51,7 @@ func main() {
 	numbers := NewHeap(cmp.Cmp[int])
 	numbers.Push(-1, 0, 1, 2, 3)
 
-	positiveExpanded := numbers.Iter().FlatMap(func(n int) SeqHeap[int] {
+	positiveExpanded := numbers.Iter().FlatMap(func(n int) Seq[int] {
 		if n > 0 {
 			// Expand positive numbers into ranges
 			expanded := NewHeap(cmp.Cmp[int])
@@ -62,7 +62,7 @@ func main() {
 		}
 		// Return empty heap for non-positive numbers
 		return NewHeap(cmp.Cmp[int]).Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Positive expanded: ")
 	positiveExpanded.Println()
@@ -71,7 +71,7 @@ func main() {
 	categories := NewHeap(cmp.Cmp[string])
 	categories.Push("tech", "science")
 
-	subcategories := categories.Iter().FlatMap(func(category string) SeqHeap[string] {
+	subcategories := categories.Iter().FlatMap(func(category string) Seq[string] {
 		subCats := NewHeap(cmp.Cmp[string])
 		switch category {
 		case "tech":
@@ -80,7 +80,7 @@ func main() {
 			subCats.Push("physics", "chemistry", "biology")
 		}
 		return subCats.Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("All subcategories: ")
 	subcategories.Println()
@@ -89,11 +89,11 @@ func main() {
 	bases := NewHeap(cmp.Cmp[int])
 	bases.Push(2, 5, 10)
 
-	multiplied := bases.Iter().FlatMap(func(base int) SeqHeap[int] {
+	multiplied := bases.Iter().FlatMap(func(base int) Seq[int] {
 		multiples := NewHeap(cmp.Cmp[int])
 		multiples.Push(base*1, base*2, base*3)
 		return multiples.Iter()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Multiplied values: ")
 	multiplied.Println()

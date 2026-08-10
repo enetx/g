@@ -11,7 +11,7 @@ func main() {
 	slice := Slice[int]{1, 2, 3}
 
 	// Get an iterator for the slice, generate permutations, and collect the result
-	perms := slice.Iter().Permutations().Collect()
+	perms := slice.Iter().Permutations().Collect().Slices()
 
 	// Iterate over the permutations and print each one
 	for _, perm := range perms {
@@ -28,7 +28,8 @@ func main() {
 		Chain(p2.Iter()).
 		Map(String.Upper).
 		Permutations().
-		Collect()
+		Collect().
+		Slices()
 
 	// Iterate over the permutations and print each one
 	for _, v := range pp {

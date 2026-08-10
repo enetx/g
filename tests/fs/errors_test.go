@@ -1,14 +1,14 @@
-package g_test
+package fs_test
 
 import (
 	"testing"
 
-	. "github.com/enetx/g"
+	gfs "github.com/enetx/g/fs"
 )
 
 func TestErrFileNotExist_Error(t *testing.T) {
 	// Create an instance of ErrFileNotExist
-	err := &ErrFileNotExist{Msg: "example.txt"}
+	err := &gfs.ErrFileNotExist{Msg: "example.txt"}
 
 	// Check if the error message is formatted correctly
 	expectedErrorMsg := "no such file: example.txt"
@@ -19,7 +19,7 @@ func TestErrFileNotExist_Error(t *testing.T) {
 
 func TestErrFileClosed_Error(t *testing.T) {
 	// Create an instance of ErrFileClosed
-	err := &ErrFileClosed{Msg: "example.txt"}
+	err := &gfs.ErrFileClosed{Msg: "example.txt"}
 
 	// Check if the error message is formatted correctly
 	expectedErrorMsg := "example.txt: file is already closed and unlocked"

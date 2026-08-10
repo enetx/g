@@ -3,13 +3,13 @@ package g_test
 import (
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestNewDeque(t *testing.T) {
 	// Test creating empty deque
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 	if !dq.IsEmpty() {
 		t.Errorf("Expected empty deque, got length %d", dq.Len())
 	}
@@ -18,7 +18,7 @@ func TestNewDeque(t *testing.T) {
 	}
 
 	// Test creating deque with capacity
-	dq2 := g.NewDeque[int](10)
+	dq2 := NewDeque[int](10)
 	if !dq2.IsEmpty() {
 		t.Errorf("Expected empty deque, got length %d", dq2.Len())
 	}
@@ -28,14 +28,14 @@ func TestNewDeque(t *testing.T) {
 }
 
 func TestDequeOf(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 	if dq.Len() != 5 {
 		t.Errorf("Expected length 5, got %d", dq.Len())
 	}
 
 	// Check order is maintained
 	for i := 0; i < 5; i++ {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != i+1 {
 			t.Errorf("Expected element %d at index %d, got %v", i+1, i, val)
 		}
@@ -43,7 +43,7 @@ func TestDequeOf(t *testing.T) {
 }
 
 func TestDequePushPopFront(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Test pushing to front
 	dq.PushFront(1)
@@ -84,7 +84,7 @@ func TestDequePushPopFront(t *testing.T) {
 }
 
 func TestDequePushPopBack(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Test pushing to back
 	dq.PushBack(1)
@@ -125,7 +125,7 @@ func TestDequePushPopBack(t *testing.T) {
 }
 
 func TestDequeMixedOperations(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Mix front and back operations
 	dq.PushBack(1)  // [1]
@@ -140,7 +140,7 @@ func TestDequeMixedOperations(t *testing.T) {
 	// Check elements
 	expected := []int{4, 2, 1, 3}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -163,11 +163,11 @@ func TestDequeMixedOperations(t *testing.T) {
 }
 
 func TestDequeGetSet(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	// Test valid gets
 	for i := 0; i < 5; i++ {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != i+1 {
 			t.Errorf("Expected element %d at index %d, got %v", i+1, i, val)
 		}
@@ -208,13 +208,13 @@ func TestDequeGetSet(t *testing.T) {
 }
 
 func TestDequeInsertRemove(t *testing.T) {
-	dq := g.DequeOf(1, 3, 5)
+	dq := DequeOf(1, 3, 5)
 
 	// Insert at beginning
 	dq.Insert(0, 0) // [0, 1, 3, 5]
 	expected := []int{0, 1, 3, 5}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After insert at 0: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -224,7 +224,7 @@ func TestDequeInsertRemove(t *testing.T) {
 	dq.Insert(2, 2) // [0, 1, 2, 3, 5]
 	expected = []int{0, 1, 2, 3, 5}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After insert at 2: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -234,7 +234,7 @@ func TestDequeInsertRemove(t *testing.T) {
 	dq.Insert(5, 6) // [0, 1, 2, 3, 5, 6]
 	expected = []int{0, 1, 2, 3, 5, 6}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After insert at end: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -248,7 +248,7 @@ func TestDequeInsertRemove(t *testing.T) {
 
 	expected = []int{0, 1, 2, 5, 6}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After remove: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -267,7 +267,7 @@ func TestDequeInsertRemove(t *testing.T) {
 }
 
 func TestDequeClear(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 	if dq.Len() != 5 {
 		t.Errorf("Expected length 5 before clear, got %d", dq.Len())
 	}
@@ -285,13 +285,13 @@ func TestDequeClear(t *testing.T) {
 }
 
 func TestDequeSwap(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	dq.Swap(0, 4) // Swap first and last elements
 
 	expected := []int{5, 2, 3, 4, 1}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After swap: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -299,26 +299,26 @@ func TestDequeSwap(t *testing.T) {
 }
 
 func TestDequeRotate(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	// Test rotate left by 2
 	dq.RotateLeft(2) // [3, 4, 5, 1, 2]
 
 	expected := []int{3, 4, 5, 1, 2}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After rotate left: Expected element %d at index %d, got %v", exp, i, val)
 		}
 	}
 
 	// Test rotate right by 1
-	dq2 := g.DequeOf(1, 2, 3, 4, 5)
+	dq2 := DequeOf(1, 2, 3, 4, 5)
 	dq2.RotateRight(1) // [5, 1, 2, 3, 4]
 
 	expected = []int{5, 1, 2, 3, 4}
 	for i, exp := range expected {
-		val := dq2.Get(g.Int(i))
+		val := dq2.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After rotate right: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -326,7 +326,7 @@ func TestDequeRotate(t *testing.T) {
 }
 
 func TestDequeContains(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	// Test existing elements
 	for i := 1; i <= 5; i++ {
@@ -342,7 +342,7 @@ func TestDequeContains(t *testing.T) {
 }
 
 func TestDequeIndex(t *testing.T) {
-	dq := g.DequeOf(10, 20, 30, 20, 40)
+	dq := DequeOf(10, 20, 30, 20, 40)
 
 	// Test finding existing elements
 	idx := dq.Index(10)
@@ -368,7 +368,7 @@ func TestDequeIndex(t *testing.T) {
 }
 
 func TestDequeClone(t *testing.T) {
-	original := g.DequeOf(1, 2, 3, 4, 5)
+	original := DequeOf(1, 2, 3, 4, 5)
 	clone := original.Clone()
 
 	// Check they have same contents
@@ -376,7 +376,7 @@ func TestDequeClone(t *testing.T) {
 		t.Errorf("Expected clone length %d, got %d", original.Len(), clone.Len())
 	}
 
-	for i := g.Int(0); i < original.Len(); i++ {
+	for i := Int(0); i < original.Len(); i++ {
 		origVal := original.Get(i)
 		cloneVal := clone.Get(i)
 		if origVal != cloneVal {
@@ -392,10 +392,10 @@ func TestDequeClone(t *testing.T) {
 }
 
 func TestDequeEq(t *testing.T) {
-	dq1 := g.DequeOf(1, 2, 3, 4, 5)
-	dq2 := g.DequeOf(1, 2, 3, 4, 5)
-	dq3 := g.DequeOf(1, 2, 3, 4, 6)
-	dq4 := g.DequeOf(1, 2, 3, 4)
+	dq1 := DequeOf(1, 2, 3, 4, 5)
+	dq2 := DequeOf(1, 2, 3, 4, 5)
+	dq3 := DequeOf(1, 2, 3, 4, 6)
+	dq4 := DequeOf(1, 2, 3, 4)
 
 	// Test equal deques
 	if !dq1.Eq(dq2) {
@@ -414,7 +414,7 @@ func TestDequeEq(t *testing.T) {
 }
 
 func TestDequeRetain(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+	dq := DequeOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
 	// Retain only even numbers
 	dq.Retain(func(x int) bool {
@@ -422,12 +422,12 @@ func TestDequeRetain(t *testing.T) {
 	})
 
 	expected := []int{2, 4, 6, 8, 10}
-	if dq.Len() != g.Int(len(expected)) {
+	if dq.Len() != Int(len(expected)) {
 		t.Errorf("Expected length %d after retain, got %d", len(expected), dq.Len())
 	}
 
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After retain: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -435,8 +435,8 @@ func TestDequeRetain(t *testing.T) {
 }
 
 func TestDequeToSlice(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
-	slice := dq.Slice()
+	dq := DequeOf(1, 2, 3, 4, 5)
+	slice := dq.Iter().Collect().Slice()
 
 	if len(slice) != int(dq.Len()) {
 		t.Errorf("Expected slice length %d, got %d", dq.Len(), len(slice))
@@ -450,7 +450,7 @@ func TestDequeToSlice(t *testing.T) {
 }
 
 func TestDequeGrowth(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Test that deque grows automatically
 	for i := 0; i < 100; i++ {
@@ -463,7 +463,7 @@ func TestDequeGrowth(t *testing.T) {
 
 	// Verify all elements are still there
 	for i := 0; i < 100; i++ {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != i {
 			t.Errorf("Expected element %d at index %d, got %v", i, i, val)
 		}
@@ -471,7 +471,7 @@ func TestDequeGrowth(t *testing.T) {
 }
 
 func TestDequeReserve(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 	initialCap := dq.Capacity()
 
 	dq.Reserve(100)
@@ -488,7 +488,7 @@ func TestDequeReserve(t *testing.T) {
 }
 
 func TestDequeShrinkToFit(t *testing.T) {
-	dq := g.NewDeque[int](100)
+	dq := NewDeque[int](100)
 
 	// Add only a few elements
 	for i := 0; i < 5; i++ {
@@ -509,7 +509,7 @@ func TestDequeShrinkToFit(t *testing.T) {
 
 	// Verify elements are still there
 	for i := 0; i < 5; i++ {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != i {
 			t.Errorf("Expected element %d at index %d after shrink, got %v", i, i, val)
 		}
@@ -517,7 +517,7 @@ func TestDequeShrinkToFit(t *testing.T) {
 }
 
 func TestDequeIter(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	var collected []int
 	dq.Iter()(func(val int) bool {
@@ -538,7 +538,7 @@ func TestDequeIter(t *testing.T) {
 }
 
 func TestDequeIterReverse(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	var collected []int
 	dq.IterReverse()(func(val int) bool {
@@ -560,14 +560,14 @@ func TestDequeIterReverse(t *testing.T) {
 
 func TestDequeString(t *testing.T) {
 	// Test empty deque
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 	str := dq.String()
 	if str != "Deque[]" {
 		t.Errorf("Expected 'Deque[]' for empty deque, got '%s'", str)
 	}
 
 	// Test non-empty deque
-	dq = g.DequeOf(1, 2, 3)
+	dq = DequeOf(1, 2, 3)
 	str = dq.String()
 	expected := "Deque[1, 2, 3]"
 	if str != expected {
@@ -577,7 +577,7 @@ func TestDequeString(t *testing.T) {
 
 func TestDequeRingBufferBehavior(t *testing.T) {
 	// Test that the ring buffer works correctly when wrapping around
-	dq := g.NewDeque[int](4) // Small capacity to force wrapping
+	dq := NewDeque[int](4) // Small capacity to force wrapping
 
 	// Fill the deque
 	for i := 0; i < 4; i++ {
@@ -591,7 +591,7 @@ func TestDequeRingBufferBehavior(t *testing.T) {
 	// Check the order is maintained: [1, 2, 3, 4]
 	expected := []int{1, 2, 3, 4}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("Ring buffer test: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -603,7 +603,7 @@ func TestDequeRingBufferBehavior(t *testing.T) {
 
 	expected = []int{0, 1, 2, 3}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("Ring buffer front test: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -613,7 +613,7 @@ func TestDequeRingBufferBehavior(t *testing.T) {
 // Additional tests for missing coverage
 
 func TestDequeFrontBackEmpty(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Test Front() on empty deque
 	front := dq.Front()
@@ -629,7 +629,7 @@ func TestDequeFrontBackEmpty(t *testing.T) {
 }
 
 func TestDequeInsertEdgeCases(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 
 	// Insert into empty deque
 	dq.Insert(0, 42)
@@ -643,7 +643,7 @@ func TestDequeInsertEdgeCases(t *testing.T) {
 	}
 
 	// Test insert at valid end position
-	dq2 := g.DequeOf(1, 2, 3)
+	dq2 := DequeOf(1, 2, 3)
 
 	// Insert at end (valid position)
 	dq2.Insert(dq2.Len(), 999) // Insert at length (valid)
@@ -659,7 +659,7 @@ func TestDequeInsertPanicsOnNegativeIndex(t *testing.T) {
 		}
 	}()
 
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	dq.Insert(-1, 999) // Should panic
 }
 
@@ -670,13 +670,13 @@ func TestDequeInsertPanicsOnHighIndex(t *testing.T) {
 		}
 	}()
 
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	dq.Insert(100, 999) // Should panic
 }
 
 func TestDequeRemoveEdgeCases(t *testing.T) {
 	// Test remove from single element deque
-	dq := g.DequeOf(42)
+	dq := DequeOf(42)
 	removed := dq.Remove(0)
 	if !removed.IsSome() || removed.Unwrap() != 42 {
 		t.Errorf("Expected to remove 42 from single element deque, got %v", removed)
@@ -686,7 +686,7 @@ func TestDequeRemoveEdgeCases(t *testing.T) {
 	}
 
 	// Test remove from empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	removed = empty.Remove(0)
 	if removed.IsSome() {
 		t.Errorf("Expected None when removing from empty deque, got %v", removed)
@@ -695,13 +695,13 @@ func TestDequeRemoveEdgeCases(t *testing.T) {
 
 func TestDequeSwapEdgeCases(t *testing.T) {
 	// Test swap with same index
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	dq.Swap(1, 1)
 
 	// Should remain unchanged
 	expected := []int{1, 2, 3}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After self-swap: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -715,18 +715,18 @@ func TestDequeSwapPanicsOnOutOfBounds(t *testing.T) {
 		}
 	}()
 
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	dq.Swap(-1, 0) // Should panic
 }
 
 func TestDequeRotateEdgeCases(t *testing.T) {
 	// Test rotate empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	empty.RotateLeft(5)  // Should not crash
 	empty.RotateRight(3) // Should not crash
 
 	// Test rotate single element
-	single := g.DequeOf(42)
+	single := DequeOf(42)
 	single.RotateLeft(10)
 	if single.Get(0).Some() != 42 {
 		t.Errorf("Single element should remain after rotation")
@@ -737,11 +737,11 @@ func TestDequeRotateEdgeCases(t *testing.T) {
 	}
 
 	// Test rotate by 0
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	expected := []int{1, 2, 3}
 	dq.RotateLeft(0)
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After rotate left 0: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -749,18 +749,18 @@ func TestDequeRotateEdgeCases(t *testing.T) {
 
 	dq.RotateRight(0)
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After rotate right 0: Expected element %d at index %d, got %v", exp, i, val)
 		}
 	}
 
 	// Test rotate by full length (should return to original)
-	dq = g.DequeOf(1, 2, 3, 4, 5)
+	dq = DequeOf(1, 2, 3, 4, 5)
 	dq.RotateLeft(5)
 	expected = []int{1, 2, 3, 4, 5}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After full rotation: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -769,7 +769,7 @@ func TestDequeRotateEdgeCases(t *testing.T) {
 
 func TestDequeMakeContiguous(t *testing.T) {
 	// Create a deque that will have non-contiguous storage
-	dq := g.NewDeque[int](4)
+	dq := NewDeque[int](4)
 
 	// Fill it
 	for i := 0; i < 4; i++ {
@@ -789,22 +789,22 @@ func TestDequeMakeContiguous(t *testing.T) {
 	// Verify elements are still in correct order
 	expected := []int{2, 3, 4, 5}
 	for i, exp := range expected {
-		val := dq.Get(g.Int(i))
+		val := dq.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After MakeContiguous: Expected element %d at index %d, got %v", exp, i, val)
 		}
 	}
 
 	// Test MakeContiguous on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	empty.MakeContiguous() // Should not crash
 
 	// Test MakeContiguous on already contiguous deque
-	contiguous := g.DequeOf(1, 2, 3)
+	contiguous := DequeOf(1, 2, 3)
 	contiguous.MakeContiguous()
 	expected = []int{1, 2, 3}
 	for i, exp := range expected {
-		val := contiguous.Get(g.Int(i))
+		val := contiguous.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("After MakeContiguous on contiguous: Expected element %d at index %d, got %v", exp, i, val)
 		}
@@ -813,7 +813,7 @@ func TestDequeMakeContiguous(t *testing.T) {
 
 func TestDequeIterReverseEdgeCases(t *testing.T) {
 	// Test IterReverse on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	var collected []int
 	empty.IterReverse()(func(val int) bool {
 		collected = append(collected, val)
@@ -825,7 +825,7 @@ func TestDequeIterReverseEdgeCases(t *testing.T) {
 	}
 
 	// Test IterReverse early termination
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 	collected = nil
 	dq.IterReverse()(func(val int) bool {
 		collected = append(collected, val)
@@ -840,7 +840,7 @@ func TestDequeIterReverseEdgeCases(t *testing.T) {
 
 func TestDequeReserveEdgeCases(t *testing.T) {
 	// Test reserve 0
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 	initialCap := dq.Capacity()
 	dq.Reserve(0)
 	if dq.Capacity() != initialCap {
@@ -848,7 +848,7 @@ func TestDequeReserveEdgeCases(t *testing.T) {
 	}
 
 	// Test reserve less than current capacity
-	dq = g.NewDeque[int](10)
+	dq = NewDeque[int](10)
 	dq.Reserve(5) // Should not shrink
 	if dq.Capacity() < 10 {
 		t.Errorf("Reserve should not shrink capacity")
@@ -857,12 +857,12 @@ func TestDequeReserveEdgeCases(t *testing.T) {
 
 func TestDequeShrinkToFitEdgeCases(t *testing.T) {
 	// Test ShrinkToFit on empty deque
-	empty := g.NewDeque[int](10)
+	empty := NewDeque[int](10)
 	empty.ShrinkToFit()
 	// Should not crash and should handle empty case
 
 	// Test ShrinkToFit when already optimal
-	optimal := g.DequeOf(1, 2, 3)
+	optimal := DequeOf(1, 2, 3)
 	optimal.ShrinkToFit()
 	// Should not crash
 }
@@ -870,7 +870,7 @@ func TestDequeShrinkToFitEdgeCases(t *testing.T) {
 func TestDequeContainsComprehensive(t *testing.T) {
 	t.Run("comparable_types", func(t *testing.T) {
 		// Test with integers (comparable type)
-		dq := g.DequeOf(1, 2, 3, 4, 5)
+		dq := DequeOf(1, 2, 3, 4, 5)
 
 		// Test existing elements
 		for i := 1; i <= 5; i++ {
@@ -885,13 +885,13 @@ func TestDequeContainsComprehensive(t *testing.T) {
 		}
 
 		// Test with zero value
-		dqWithZero := g.DequeOf(0, 1, 2)
+		dqWithZero := DequeOf(0, 1, 2)
 		if !dqWithZero.Contains(0) {
 			t.Errorf("Expected deque to contain zero value")
 		}
 
 		// Test with strings (comparable type)
-		stringDq := g.DequeOf("hello", "world", "test")
+		stringDq := DequeOf("hello", "world", "test")
 		if !stringDq.Contains("hello") {
 			t.Errorf("Expected deque to contain 'hello'")
 		}
@@ -905,9 +905,10 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 	t.Run("non_comparable_types", func(t *testing.T) {
 		// Test with slices (non-comparable type)
-		// Note: Eqd now uses identity comparison for slices, not deep equality
+		// Note: Contains falls back to deep equality for non-comparable types,
+		// so same-content slices match even without identity.
 		type TestSlice []int
-		dq := g.NewDeque[TestSlice]()
+		dq := NewDeque[TestSlice]()
 
 		// Store references to the slices we're adding
 		slice1 := TestSlice{1, 2, 3}
@@ -942,7 +943,7 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 		// Test with maps (non-comparable type)
 		type TestMap map[string]int
-		mapDq := g.NewDeque[TestMap]()
+		mapDq := NewDeque[TestMap]()
 		map1 := TestMap{"a": 1, "b": 2}
 		map2 := TestMap{"c": 3, "d": 4}
 		mapDq.PushBack(map1)
@@ -961,13 +962,13 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 	t.Run("edge_cases", func(t *testing.T) {
 		// Test Contains on empty deque
-		empty := g.NewDeque[int]()
+		empty := NewDeque[int]()
 		if empty.Contains(42) {
 			t.Errorf("Empty deque should not contain any element")
 		}
 
 		// Test Contains with single element
-		single := g.DequeOf(42)
+		single := DequeOf(42)
 		if !single.Contains(42) {
 			t.Errorf("Single element deque should contain its element")
 		}
@@ -976,13 +977,13 @@ func TestDequeContainsComprehensive(t *testing.T) {
 		}
 
 		// Test Contains with duplicate elements
-		duplicates := g.DequeOf(1, 2, 2, 3, 2, 4)
+		duplicates := DequeOf(1, 2, 2, 3, 2, 4)
 		if !duplicates.Contains(2) {
 			t.Errorf("Expected deque with duplicates to contain 2")
 		}
 
 		// Test Contains after modifications
-		dq := g.DequeOf(1, 2, 3)
+		dq := DequeOf(1, 2, 3)
 		if !dq.Contains(2) {
 			t.Errorf("Expected deque to contain 2 before modification")
 		}
@@ -997,7 +998,7 @@ func TestDequeContainsComprehensive(t *testing.T) {
 		}
 
 		// Test with negative numbers
-		negatives := g.DequeOf(-5, -10, 0, 5, 10)
+		negatives := DequeOf(-5, -10, 0, 5, 10)
 		if !negatives.Contains(-5) {
 			t.Errorf("Expected deque to contain -5")
 		}
@@ -1011,7 +1012,7 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 	t.Run("with_circular_buffer", func(t *testing.T) {
 		// Test Contains when deque wraps around (circular buffer behavior)
-		dq := g.NewDeque[int]()
+		dq := NewDeque[int]()
 
 		// Fill deque and then pop/push to cause wrapping
 		for i := 0; i < 10; i++ {
@@ -1050,13 +1051,13 @@ func TestDequeContainsComprehensive(t *testing.T) {
 
 func TestDequeContainsEdgeCases(t *testing.T) {
 	// Test Contains on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	if empty.Contains(42) {
 		t.Errorf("Empty deque should not contain any element")
 	}
 
 	// Test Contains with single element
-	single := g.DequeOf(42)
+	single := DequeOf(42)
 	if !single.Contains(42) {
 		t.Errorf("Single element deque should contain its element")
 	}
@@ -1067,13 +1068,13 @@ func TestDequeContainsEdgeCases(t *testing.T) {
 
 func TestDequeIndexEdgeCases(t *testing.T) {
 	// Test Index on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	if empty.Index(42) != -1 {
 		t.Errorf("Empty deque should return -1 for any element")
 	}
 
 	// Test Index with duplicates at edges
-	dq := g.DequeOf(5, 1, 2, 3, 5)
+	dq := DequeOf(5, 1, 2, 3, 5)
 	idx := dq.Index(5)
 	if idx != 0 {
 		t.Errorf("Index should return first occurrence, expected 0, got %d", idx)
@@ -1082,7 +1083,7 @@ func TestDequeIndexEdgeCases(t *testing.T) {
 
 func TestDequeBinarySearch(t *testing.T) {
 	// Test BinarySearch on sorted deque
-	dq := g.DequeOf(1, 3, 5, 7, 9)
+	dq := DequeOf(1, 3, 5, 7, 9)
 
 	// Test finding existing elements
 	idx, found := dq.BinarySearch(5, cmp.Cmp[int])
@@ -1117,14 +1118,14 @@ func TestDequeBinarySearch(t *testing.T) {
 	}
 
 	// Test BinarySearch on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	idx, found = empty.BinarySearch(5, cmp.Cmp[int])
 	if found || idx != 0 {
 		t.Errorf("Expected not to find 5 in empty deque, insertion point should be 0, got index %d, found %t", idx, found)
 	}
 
 	// Test BinarySearch on single element
-	single := g.DequeOf(5)
+	single := DequeOf(5)
 	idx, found = single.BinarySearch(5, cmp.Cmp[int])
 	if !found || idx != 0 {
 		t.Errorf("Expected to find 5 at index 0 in single element deque, got index %d, found %t", idx, found)
@@ -1143,14 +1144,14 @@ func TestDequeBinarySearch(t *testing.T) {
 
 func TestDequeEqEdgeCases(t *testing.T) {
 	// Test Eq with empty deques
-	empty1 := g.NewDeque[int]()
-	empty2 := g.NewDeque[int]()
+	empty1 := NewDeque[int]()
+	empty2 := NewDeque[int]()
 	if !empty1.Eq(empty2) {
 		t.Errorf("Two empty deques should be equal")
 	}
 
 	// Test Eq with one empty, one non-empty
-	nonEmpty := g.DequeOf(1)
+	nonEmpty := DequeOf(1)
 	if empty1.Eq(nonEmpty) {
 		t.Errorf("Empty and non-empty deques should not be equal")
 	}
@@ -1160,7 +1161,7 @@ func TestDequeEqEdgeCases(t *testing.T) {
 	// For safety, let's skip this test or make it implementation-specific
 
 	// Test Eq with same reference
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	if !dq.Eq(dq) {
 		t.Errorf("Deque should be equal to itself")
 	}
@@ -1168,7 +1169,7 @@ func TestDequeEqEdgeCases(t *testing.T) {
 
 func TestDequePrint(t *testing.T) {
 	// Test Print method - should return the deque unchanged
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	result := dq.Print()
 
 	// Should return the same deque instance
@@ -1184,7 +1185,7 @@ func TestDequePrint(t *testing.T) {
 
 func TestDequePrintln(t *testing.T) {
 	// Test Println method - should return the deque unchanged
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 	result := dq.Println()
 
 	// Should return the same deque instance
@@ -1202,21 +1203,21 @@ func TestDequeSetReturnsOld(t *testing.T) {
 	tests := []struct {
 		name    string
 		initial []int
-		index   g.Int
+		index   Int
 		value   int
-		wantOld g.Option[int]
-		wantGet g.Option[int]
+		wantOld Option[int]
+		wantGet Option[int]
 	}{
-		{"middle", []int{1, 2, 3, 4, 5}, 2, 99, g.Some(3), g.Some(99)},
-		{"front", []int{1, 2, 3}, 0, 10, g.Some(1), g.Some(10)},
-		{"back", []int{1, 2, 3}, 2, 30, g.Some(3), g.Some(30)},
-		{"negative", []int{1, 2, 3}, -1, 7, g.None[int](), g.None[int]()},
-		{"out_of_bounds", []int{1, 2, 3}, 3, 7, g.None[int](), g.None[int]()},
+		{"middle", []int{1, 2, 3, 4, 5}, 2, 99, Some(3), Some(99)},
+		{"front", []int{1, 2, 3}, 0, 10, Some(1), Some(10)},
+		{"back", []int{1, 2, 3}, 2, 30, Some(3), Some(30)},
+		{"negative", []int{1, 2, 3}, -1, 7, None[int](), None[int]()},
+		{"out_of_bounds", []int{1, 2, 3}, 3, 7, None[int](), None[int]()},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dq := g.DequeOf(tt.initial...)
+			dq := DequeOf(tt.initial...)
 			old := dq.Set(tt.index, tt.value)
 			if old != tt.wantOld {
 				t.Errorf("Set old value: expected %v, got %v", tt.wantOld, old)
@@ -1232,7 +1233,7 @@ func TestDequeSetReturnsOld(t *testing.T) {
 	}
 
 	// Set on empty deque returns None and does not mutate.
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	if empty.Set(0, 1).IsSome() {
 		t.Errorf("Set on empty deque should return None")
 	}
@@ -1242,32 +1243,32 @@ func TestDequeSetReturnsOld(t *testing.T) {
 }
 
 func TestDequeTransform(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 
-	doubled := dq.Transform(func(d *g.Deque[int]) *g.Deque[int] {
-		return d.Iter().Map(func(v int) int { return v * 2 }).Collect()
+	doubled := dq.Transform(func(d *Deque[int]) *Deque[int] {
+		return d.Iter().Map(func(v int) int { return v * 2 }).Collect().Deque()
 	})
 
 	expected := []int{2, 4, 6}
 	for i, exp := range expected {
-		val := doubled.Get(g.Int(i))
+		val := doubled.Get(Int(i))
 		if !val.IsSome() || val.Unwrap() != exp {
 			t.Errorf("Transform: expected element %d at index %d, got %v", exp, i, val)
 		}
 	}
 
 	// Identity transform returns the same deque.
-	same := dq.Transform(func(d *g.Deque[int]) *g.Deque[int] { return d })
+	same := dq.Transform(func(d *Deque[int]) *Deque[int] { return d })
 	if same != dq {
 		t.Errorf("Transform identity should return the same deque instance")
 	}
 }
 
 func TestDequeNe(t *testing.T) {
-	dq1 := g.DequeOf(1, 2, 3)
-	dq2 := g.DequeOf(1, 2, 3)
-	dq3 := g.DequeOf(1, 2, 4)
-	dq4 := g.DequeOf(1, 2)
+	dq1 := DequeOf(1, 2, 3)
+	dq2 := DequeOf(1, 2, 3)
+	dq3 := DequeOf(1, 2, 4)
+	dq4 := DequeOf(1, 2)
 
 	if dq1.Ne(dq2) {
 		t.Errorf("Expected dq1 not to be Ne to dq2 (they are equal)")
@@ -1284,7 +1285,7 @@ func TestDequeNe(t *testing.T) {
 }
 
 func TestDequeEqNil(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3)
+	dq := DequeOf(1, 2, 3)
 
 	// Eq with nil argument should not panic and should report not-equal.
 	if dq.Eq(nil) {
@@ -1297,7 +1298,7 @@ func TestDequeEqNil(t *testing.T) {
 	}
 
 	// nil receiver compared to nil argument is equal (identity).
-	var nilDq *g.Deque[int]
+	var nilDq *Deque[int]
 	if !nilDq.Eq(nil) {
 		t.Errorf("Expected nil deque to equal nil")
 	}
@@ -1309,7 +1310,7 @@ func TestDequeEqNil(t *testing.T) {
 }
 
 func TestDequeContainsAny(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	if !dq.ContainsAny(10, 3, 20) {
 		t.Errorf("Expected ContainsAny to be true when one value matches")
@@ -1322,14 +1323,14 @@ func TestDequeContainsAny(t *testing.T) {
 	}
 
 	// Empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	if empty.ContainsAny(1, 2, 3) {
 		t.Errorf("Expected empty deque ContainsAny to be false")
 	}
 }
 
 func TestDequeContainsAll(t *testing.T) {
-	dq := g.DequeOf(1, 2, 3, 4, 5)
+	dq := DequeOf(1, 2, 3, 4, 5)
 
 	if !dq.ContainsAll(1, 3, 5) {
 		t.Errorf("Expected ContainsAll to be true when all values match")
@@ -1342,7 +1343,7 @@ func TestDequeContainsAll(t *testing.T) {
 	}
 
 	// Empty deque with values is false.
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	if empty.ContainsAll(1) {
 		t.Errorf("Expected empty deque ContainsAll(1) to be false")
 	}
@@ -1354,7 +1355,7 @@ func TestDequeContainsAll(t *testing.T) {
 
 func TestDequeContainsAnyAllInterface(t *testing.T) {
 	// V=any holding uncomparable dynamic values must not panic (DeepEqual path).
-	dq := g.NewDeque[any]()
+	dq := NewDeque[any]()
 	dq.PushBack([]int{1, 2, 3})
 	dq.PushBack(map[string]int{"a": 1})
 	dq.PushBack(42)
@@ -1374,7 +1375,7 @@ func TestDequeWrapAroundTraversal(t *testing.T) {
 	// Build a deque whose live region wraps around the ring buffer:
 	// capacity 4, then pop the front twice and push to back so front index > 0
 	// and the logical region spans the buffer boundary.
-	dq := g.NewDeque[int](4)
+	dq := NewDeque[int](4)
 	for i := 0; i < 4; i++ {
 		dq.PushBack(i) // buffer: [0,1,2,3], front=0
 	}
@@ -1427,21 +1428,8 @@ func TestDequeWrapAroundTraversal(t *testing.T) {
 	}
 }
 
-func TestDequeFromSlice(t *testing.T) {
-	dq := g.DequeFromSlice(g.SliceOf(1, 2, 3))
-	if dq.Len() != 3 {
-		t.Fatalf("DequeFromSlice len = %d, want 3", dq.Len())
-	}
-
-	// usable as a method-expression collector after a fallible chain
-	res := g.SliceOf[g.String]("1", "2", "3").Iter().TryMap(g.String.TryInt).TryCollect().Map(g.DequeFromSlice)
-	if res.IsErr() || res.Ok().Len() != 3 {
-		t.Fatalf("Map(DequeFromSlice) = %v", res)
-	}
-}
-
 func TestDequeWrappedRotateAndBinarySearch(t *testing.T) {
-	deque := g.NewDeque[int](8)
+	deque := NewDeque[int](8)
 	for i := range 8 {
 		deque.PushBack(i)
 	}
@@ -1451,11 +1439,11 @@ func TestDequeWrappedRotateAndBinarySearch(t *testing.T) {
 	deque.Extend(8, 9, 10)
 
 	deque.RotateRight(1)
-	if got := deque.Slice(); !got.Eq(g.SliceOf(10, 3, 4, 5, 6, 7, 8, 9)) {
+	if got := deque.Iter().Collect().Slice(); !got.Eq(SliceOf(10, 3, 4, 5, 6, 7, 8, 9)) {
 		t.Fatalf("unexpected right rotation: %v", got)
 	}
 	deque.RotateLeft(1)
-	if got := deque.Slice(); !got.Eq(g.SliceOf(3, 4, 5, 6, 7, 8, 9, 10)) {
+	if got := deque.Iter().Collect().Slice(); !got.Eq(SliceOf(3, 4, 5, 6, 7, 8, 9, 10)) {
 		t.Fatalf("unexpected left rotation: %v", got)
 	}
 
@@ -1466,7 +1454,7 @@ func TestDequeWrappedRotateAndBinarySearch(t *testing.T) {
 }
 
 func TestDequeExtend(t *testing.T) {
-	dq := g.NewDeque[int]()
+	dq := NewDeque[int]()
 	dq.Extend(1, 2, 3)
 	dq.Extend([]int{4, 5}...) // spread a slice
 	if dq.Len() != 5 {

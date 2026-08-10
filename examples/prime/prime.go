@@ -12,8 +12,7 @@ func main() {
 
 	total := Range(2, limit).Filter(isPrime).Count()
 
-	Println("Computed prime({1}) = {2} in {3.Seconds} seconds.",
-		limit, total, time.Since(start))
+	Println("Computed prime({1}) = {2} in {3} seconds.", limit, total, time.Since(start).Seconds())
 }
 
 func isPrime(n int) bool {

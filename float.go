@@ -12,7 +12,7 @@ import (
 	"github.com/enetx/g/constraints"
 )
 
-// Float is an alias for the float64 type.
+// Float is a wrapper around the float64 type.
 type Float float64
 
 // NewFloat creates a new Float with the provided value.
@@ -41,10 +41,10 @@ func (f Float) BytesLE() Bytes {
 	return Bytes(buf[:])
 }
 
-// Min returns the minimum of two Floats.
+// Min returns the minimum of Floats.
 func (f Float) Min(b ...Float) Float { return cmp.Min(append(b, f)...) }
 
-// Max returns the maximum of two Floats.
+// Max returns the maximum of Floats.
 func (f Float) Max(b ...Float) Float { return cmp.Max(append(b, f)...) }
 
 // Sqrt returns the square root of the Float.

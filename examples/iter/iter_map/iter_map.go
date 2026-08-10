@@ -8,7 +8,7 @@ func main() {
 		Iter().
 		Map(NewString).
 		Map(String.Upper). // Map each string to its uppercase version
-		Collect().
+		Collect().Slice().
 		Println() // Slice[, BBB, DDD, , AAA, CCC]
 
 	// Example 2: Map each string in the slice, replacing empty strings with "abc", and print the result
@@ -21,7 +21,7 @@ func main() {
 			}
 			return s
 		}).
-		Collect().
+		Collect().Slice().
 		Println() // Slice[abc, bbb, ddd, abc, aaa, ccc]
 
 	// Example 3: Map can change the element type right in the chain (Go 1.27
@@ -30,7 +30,7 @@ func main() {
 		Iter().
 		Map(NewInt).
 		Map(Int.String).
-		Collect().
+		Collect().Slice().
 		Join("..").
-		Println() // 1, 4, 9
+		Println() // 1..2..3
 }

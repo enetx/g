@@ -105,10 +105,7 @@ func runStressTest(name string, testFn func(*MapSafe[string, Int]) Int) TestResu
 	const iterations = 50_000
 
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			for range iterations {
 				ms := NewMapSafe[string, Int]()
 				ready := make(chan struct{})
@@ -116,31 +113,25 @@ func runStressTest(name string, testFn func(*MapSafe[string, Int]) Int) TestResu
 				var done sync.WaitGroup
 
 				// Goroutine A: Entry + AndModify + Or* method
-				done.Add(1)
-				go func() {
-					defer done.Done()
+				done.Go(func() {
 					<-ready
 					result = testFn(ms)
-				}()
+				})
 
 				// Goroutine B: Insert value 100
-				done.Add(1)
-				go func() {
-					defer done.Done()
+				done.Go(func() {
 					<-ready
 					ms.Insert("key", 100)
-				}()
+				})
 
 				// Goroutines C-F: aggressively remove key
 				for range 4 {
-					done.Add(1)
-					go func() {
-						defer done.Done()
+					done.Go(func() {
 						<-ready
 						for range 50 {
 							ms.Remove("key")
 						}
-					}()
+					})
 				}
 
 				close(ready)
@@ -169,7 +160,7 @@ func runStressTest(name string, testFn func(*MapSafe[string, Int]) Int) TestResu
 					totalRaces.Add(1)
 				}
 			}
-		}()
+		})
 	}
 
 	wg.Wait()

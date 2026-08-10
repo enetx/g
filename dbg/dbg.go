@@ -24,10 +24,11 @@ import (
 //
 // The output will look like this:
 //
-//	Caller: [filename:line]
+//	Caller: [filename:line] [function]
 //
-// Where "filename" is the name of the file where the caller is located, and
-// "line" is the line number in that file.
+// Where "filename" is the name of the file where the caller is located,
+// "line" is the line number in that file, and "function" is the name of the
+// enclosing function.
 func CallerInfo() string {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
@@ -51,8 +52,9 @@ func funcName(pc uintptr) string {
 }
 
 // Dbg is a debugging utility function that prints the given expression and its
-// location in the source code to standard output. It also prints the file name
-// and line number where the Dbg function is called.
+// location in the source code. Error values are written to standard error, all
+// other values to standard output. It also prints the file name and line
+// number where the Dbg function is called.
 //
 // Parameters:
 //
@@ -64,11 +66,12 @@ func funcName(pc uintptr) string {
 //
 // The output will look like this:
 //
-//	[filename:line] variable = value
+//	[filename:line] [function] variable = value
 //
 // Where "filename" is the name of the file where Dbg is called, "line" is the
-// line number in that file, "variable" is the variable or expression being
-// debugged, and "value" is the value of the expression.
+// line number in that file, "function" is the name of the enclosing function,
+// "variable" is the variable or expression being debugged, and "value" is the
+// value of the expression.
 func Dbg(exp any) {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {

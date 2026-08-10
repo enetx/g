@@ -82,15 +82,15 @@ func main() {
 	Println("{:.2}", Float(3.14159)) // 3.14
 	Println("{:05}", Int(42))        // 00042
 
-	// --- Modifiers + format spec ---
-	// Modifiers (method calls) run first, then the spec formats the result.
-	Println("{1.Abs:05}", Int(-42))          // 00042
-	Println("{.Upper:>10}", String("hello")) // "     HELLO"
+	// --- Transform + format spec ---
+	// Transform the value in Go, then let the spec do the layout.
+	Println("{1:05}", Int(-42).Abs())          // 00042
+	Println("{:>10}", String("hello").Upper()) // "     HELLO"
 
 	// --- Named + spec ---
 	data := Named{"port": 8080, "name": String("go")}
-	Println("port: {port:x}", data)         // port: 1f90
-	Println("name: {name.Upper:>10}", data) // name:         GO
+	Println("port: {port:x}", data)   // port: 1f90
+	Println("name: {name:>10}", data) // name:         go
 
 	// --- Auto-index + spec ---
 	Println("{:x} {:o} {:b}", 255, 255, 255) // ff 377 11111111

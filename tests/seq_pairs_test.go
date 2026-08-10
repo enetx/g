@@ -8,13 +8,13 @@ import (
 	"github.com/enetx/g/f"
 )
 
-// pairsSeq returns a SeqPairs[int, string] with pairs (1,a) (2,b) (3,c) (4,d).
-func pairsSeq() SeqPairs[int, string] {
+// pairsSeq returns a Seq2[int, string] with pairs (1,a) (2,b) (3,c) (4,d).
+func pairsSeq() Seq2[int, string] {
 	return SliceOf(1, 2, 3, 4).Iter().Zip(SliceOf("a", "b", "c", "d").Iter())
 }
 
-// emptyPairsSeq returns an empty SeqPairs[int, string].
-func emptyPairsSeq() SeqPairs[int, string] {
+// emptyPairsSeq returns an empty Seq2[int, string].
+func emptyPairsSeq() Seq2[int, string] {
 	return SliceOf[int]().Iter().Zip(SliceOf[string]().Iter())
 }
 
@@ -30,29 +30,29 @@ func assertPairs(t *testing.T, got, want []Pair[int, string]) {
 	}
 }
 
-func TestSeqPairsKeys(t *testing.T) {
-	keys := pairsSeq().Keys().Collect()
+func TestSeq2Keys(t *testing.T) {
+	keys := pairsSeq().Keys().Collect().Slice()
 	if !keys.Eq(SliceOf(1, 2, 3, 4)) {
 		t.Errorf("expected keys [1 2 3 4], got %v", keys)
 	}
 
-	if empty := emptyPairsSeq().Keys().Collect(); !empty.IsEmpty() {
+	if empty := emptyPairsSeq().Keys().Collect().Slice(); !empty.IsEmpty() {
 		t.Errorf("expected no keys, got %v", empty)
 	}
 }
 
-func TestSeqPairsValues(t *testing.T) {
-	values := pairsSeq().Values().Collect()
+func TestSeq2Values(t *testing.T) {
+	values := pairsSeq().Values().Collect().Slice()
 	if !values.Eq(SliceOf("a", "b", "c", "d")) {
 		t.Errorf("expected values [a b c d], got %v", values)
 	}
 
-	if empty := emptyPairsSeq().Values().Collect(); !empty.IsEmpty() {
+	if empty := emptyPairsSeq().Values().Collect().Slice(); !empty.IsEmpty() {
 		t.Errorf("expected no values, got %v", empty)
 	}
 }
 
-func TestSeqPairsUnzip(t *testing.T) {
+func TestSeq2Unzip(t *testing.T) {
 	keys, values := pairsSeq().Unzip()
 
 	if !keys.Eq(SliceOf(1, 2, 3, 4)) {
@@ -69,75 +69,75 @@ func TestSeqPairsUnzip(t *testing.T) {
 	}
 }
 
-func TestSeqPairsMap(t *testing.T) {
-	doubled := pairsSeq().Map(func(k int, _ string) int { return k * 2 }).Collect()
+func TestSeq2Map(t *testing.T) {
+	doubled := pairsSeq().MapTo(func(k int, _ string) int { return k * 2 }).Collect().Slice()
 	if !doubled.Eq(SliceOf(2, 4, 6, 8)) {
 		t.Errorf("expected [2 4 6 8], got %v", doubled)
 	}
 
 	// Cross-type mapping: pairs to strings.
-	joined := pairsSeq().Map(func(_ int, v string) string { return v + "!" }).Collect()
+	joined := pairsSeq().MapTo(func(_ int, v string) string { return v + "!" }).Collect().Slice()
 	if !joined.Eq(SliceOf("a!", "b!", "c!", "d!")) {
 		t.Errorf("expected [a! b! c! d!], got %v", joined)
 	}
 }
 
-func TestSeqPairsFilter(t *testing.T) {
-	even := pairsSeq().Filter(func(k int, _ string) bool { return k%2 == 0 }).Collect()
+func TestSeq2Filter(t *testing.T) {
+	even := pairsSeq().Filter(func(k int, _ string) bool { return k%2 == 0 }).Collect().Pairs()
 	assertPairs(t, even, []Pair[int, string]{
 		{Key: 2, Value: "b"},
 		{Key: 4, Value: "d"},
 	})
 
-	none := pairsSeq().Filter(func(int, string) bool { return false }).Collect()
+	none := pairsSeq().Filter(func(int, string) bool { return false }).Collect().Pairs()
 	assertPairs(t, none, nil)
 }
 
-func TestSeqPairsExclude(t *testing.T) {
-	odd := pairsSeq().Exclude(func(k int, _ string) bool { return k%2 == 0 }).Collect()
+func TestSeq2Exclude(t *testing.T) {
+	odd := pairsSeq().Exclude(func(k int, _ string) bool { return k%2 == 0 }).Collect().Pairs()
 	assertPairs(t, odd, []Pair[int, string]{
 		{Key: 1, Value: "a"},
 		{Key: 3, Value: "c"},
 	})
 
-	all := pairsSeq().Exclude(func(int, string) bool { return false }).Collect()
+	all := pairsSeq().Exclude(func(int, string) bool { return false }).Collect().Pairs()
 	if len(all) != 4 {
 		t.Errorf("expected all 4 pairs, got %v", all)
 	}
 }
 
-func TestSeqPairsTake(t *testing.T) {
-	head := pairsSeq().Take(2).Collect()
+func TestSeq2Take(t *testing.T) {
+	head := pairsSeq().Take(2).Collect().Pairs()
 	assertPairs(t, head, []Pair[int, string]{
 		{Key: 1, Value: "a"},
 		{Key: 2, Value: "b"},
 	})
 
-	assertPairs(t, pairsSeq().Take(0).Collect(), nil)
+	assertPairs(t, pairsSeq().Take(0).Collect().Pairs(), nil)
 
-	over := pairsSeq().Take(10).Collect()
+	over := pairsSeq().Take(10).Collect().Pairs()
 	if len(over) != 4 {
 		t.Errorf("expected all 4 pairs, got %v", over)
 	}
 }
 
-func TestSeqPairsSkip(t *testing.T) {
-	tail := pairsSeq().Skip(2).Collect()
+func TestSeq2Skip(t *testing.T) {
+	tail := pairsSeq().Skip(2).Collect().Pairs()
 	assertPairs(t, tail, []Pair[int, string]{
 		{Key: 3, Value: "c"},
 		{Key: 4, Value: "d"},
 	})
 
-	all := pairsSeq().Skip(0).Collect()
+	all := pairsSeq().Skip(0).Collect().Pairs()
 	if len(all) != 4 {
 		t.Errorf("expected all 4 pairs, got %v", all)
 	}
 
-	assertPairs(t, pairsSeq().Skip(10).Collect(), nil)
+	assertPairs(t, pairsSeq().Skip(10).Collect().Pairs(), nil)
 }
 
-func TestSeqPairsTakeWhile(t *testing.T) {
-	head := pairsSeq().TakeWhile(func(k int, _ string) bool { return k < 3 }).Collect()
+func TestSeq2TakeWhile(t *testing.T) {
+	head := pairsSeq().TakeWhile(func(k int, _ string) bool { return k < 3 }).Collect().Pairs()
 	assertPairs(t, head, []Pair[int, string]{
 		{Key: 1, Value: "a"},
 		{Key: 2, Value: "b"},
@@ -146,15 +146,15 @@ func TestSeqPairsTakeWhile(t *testing.T) {
 	// Elements after the first failing one are not yielded, even if they match.
 	trailing := SliceOf(1, 2, 1).Iter().Zip(SliceOf("a", "b", "c").Iter()).
 		TakeWhile(func(k int, _ string) bool { return k < 2 }).
-		Collect()
+		Collect().Pairs()
 	assertPairs(t, trailing, []Pair[int, string]{{Key: 1, Value: "a"}})
 
-	assertPairs(t, pairsSeq().TakeWhile(func(int, string) bool { return false }).Collect(), nil)
-	assertPairs(t, emptyPairsSeq().TakeWhile(func(int, string) bool { return true }).Collect(), nil)
+	assertPairs(t, pairsSeq().TakeWhile(func(int, string) bool { return false }).Collect().Pairs(), nil)
+	assertPairs(t, emptyPairsSeq().TakeWhile(func(int, string) bool { return true }).Collect().Pairs(), nil)
 }
 
-func TestSeqPairsSkipWhile(t *testing.T) {
-	tail := pairsSeq().SkipWhile(func(k int, _ string) bool { return k < 3 }).Collect()
+func TestSeq2SkipWhile(t *testing.T) {
+	tail := pairsSeq().SkipWhile(func(k int, _ string) bool { return k < 3 }).Collect().Pairs()
 	assertPairs(t, tail, []Pair[int, string]{
 		{Key: 3, Value: "c"},
 		{Key: 4, Value: "d"},
@@ -163,21 +163,21 @@ func TestSeqPairsSkipWhile(t *testing.T) {
 	// Once the predicate fails, later matching elements are still yielded.
 	trailing := SliceOf(1, 2, 1).Iter().Zip(SliceOf("a", "b", "c").Iter()).
 		SkipWhile(func(k int, _ string) bool { return k < 2 }).
-		Collect()
+		Collect().Pairs()
 	assertPairs(t, trailing, []Pair[int, string]{
 		{Key: 2, Value: "b"},
 		{Key: 1, Value: "c"},
 	})
 
-	all := pairsSeq().SkipWhile(func(int, string) bool { return false }).Collect()
+	all := pairsSeq().SkipWhile(func(int, string) bool { return false }).Collect().Pairs()
 	if len(all) != 4 {
 		t.Errorf("expected all 4 pairs, got %v", all)
 	}
 
-	assertPairs(t, pairsSeq().SkipWhile(func(int, string) bool { return true }).Collect(), nil)
+	assertPairs(t, pairsSeq().SkipWhile(func(int, string) bool { return true }).Collect().Pairs(), nil)
 }
 
-func TestSeqPairsFind(t *testing.T) {
+func TestSeq2Find(t *testing.T) {
 	found := pairsSeq().Find(func(k int, _ string) bool { return k == 3 })
 	if found.IsNone() || found.Some() != (Pair[int, string]{Key: 3, Value: "c"}) {
 		t.Errorf("expected Some({3 c}), got %v", found)
@@ -189,7 +189,7 @@ func TestSeqPairsFind(t *testing.T) {
 	}
 }
 
-func TestSeqPairsForEach(t *testing.T) {
+func TestSeq2ForEach(t *testing.T) {
 	var (
 		sum    int
 		concat string
@@ -205,7 +205,7 @@ func TestSeqPairsForEach(t *testing.T) {
 	}
 }
 
-func TestSeqPairsCount(t *testing.T) {
+func TestSeq2Count(t *testing.T) {
 	if count := pairsSeq().Count(); count != 4 {
 		t.Errorf("expected count 4, got %d", count)
 	}
@@ -215,12 +215,12 @@ func TestSeqPairsCount(t *testing.T) {
 	}
 }
 
-func TestSeqPairsInspect(t *testing.T) {
+func TestSeq2Inspect(t *testing.T) {
 	var inspected int
 
 	pairs := pairsSeq().
 		Inspect(func(int, string) { inspected++ }).
-		Collect()
+		Collect().Pairs()
 
 	if inspected != 4 {
 		t.Errorf("expected 4 inspected pairs, got %d", inspected)
@@ -231,7 +231,7 @@ func TestSeqPairsInspect(t *testing.T) {
 	}
 }
 
-func TestSeqPairsFold(t *testing.T) {
+func TestSeq2Fold(t *testing.T) {
 	sum := pairsSeq().Fold(0, func(acc, k int, _ string) int { return acc + k })
 	if sum != 10 {
 		t.Errorf("expected sum 10, got %d", sum)
@@ -248,7 +248,7 @@ func TestSeqPairsFold(t *testing.T) {
 	}
 }
 
-func TestSeqPairsAll(t *testing.T) {
+func TestSeq2All(t *testing.T) {
 	if !pairsSeq().All(func(k int, _ string) bool { return k > 0 }) {
 		t.Error("expected All to be true for positive keys")
 	}
@@ -269,7 +269,7 @@ func TestSeqPairsAll(t *testing.T) {
 	}
 }
 
-func TestSeqPairsAny(t *testing.T) {
+func TestSeq2Any(t *testing.T) {
 	if !pairsSeq().Any(func(k int, v string) bool { return k == 3 && v == "c" }) {
 		t.Error("expected Any to be true for pair (3, c)")
 	}
@@ -290,18 +290,18 @@ func TestSeqPairsAny(t *testing.T) {
 	}
 }
 
-func TestSeqPairsCollect(t *testing.T) {
-	assertPairs(t, pairsSeq().Collect(), []Pair[int, string]{
+func TestSeq2Collect(t *testing.T) {
+	assertPairs(t, pairsSeq().Collect().Pairs(), []Pair[int, string]{
 		{Key: 1, Value: "a"},
 		{Key: 2, Value: "b"},
 		{Key: 3, Value: "c"},
 		{Key: 4, Value: "d"},
 	})
 
-	assertPairs(t, emptyPairsSeq().Collect(), nil)
+	assertPairs(t, emptyPairsSeq().Collect().Pairs(), nil)
 }
 
-func TestSeqPairsFilterByKey(t *testing.T) {
+func TestSeq2FilterByKey(t *testing.T) {
 	keys, values := pairsSeq().FilterByKey(f.Gt(2)).Unzip()
 
 	if !keys.Eq(SliceOf(3, 4)) {
@@ -316,7 +316,7 @@ func TestSeqPairsFilterByKey(t *testing.T) {
 	}
 }
 
-func TestSeqPairsFilterByValue(t *testing.T) {
+func TestSeq2FilterByValue(t *testing.T) {
 	keys, values := pairsSeq().FilterByValue(f.Eq("b")).Unzip()
 
 	if !keys.Eq(SliceOf(2)) {
@@ -324,5 +324,19 @@ func TestSeqPairsFilterByValue(t *testing.T) {
 	}
 	if !values.Eq(SliceOf("b")) {
 		t.Errorf("FilterByValue(f.Eq(\"b\")): expected values [b], got %v", values)
+	}
+}
+
+func TestSeq2MapToEdges(t *testing.T) {
+	// Empty source maps to an empty slice.
+	empty := emptyPairsSeq().MapTo(func(k int, v string) string { return v }).Collect().Slice()
+	if empty.Len() != 0 {
+		t.Errorf("MapTo over empty = %v, want empty", empty)
+	}
+
+	// Early break via Take stops consumption after two elements.
+	firstTwo := pairsSeq().MapTo(func(k int, _ string) int { return k }).Take(2).Collect().Slice()
+	if !firstTwo.Eq(SliceOf(1, 2)) {
+		t.Errorf("MapTo+Take(2) = %v, want [1 2]", firstTwo)
 	}
 }

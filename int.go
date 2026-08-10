@@ -5,14 +5,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
-	"math/rand/v2"
 	"strconv"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/constraints"
 )
 
-// Int is an alias for the int type.
+// Int is a wrapper around the int type.
 type Int int
 
 // NewInt creates a new Int with the provided int value.
@@ -26,37 +25,6 @@ func (i Int) Min(b ...Int) Int { return cmp.Min(append(b, i)...) }
 
 // Max returns the maximum of Ints.
 func (i Int) Max(b ...Int) Int { return cmp.Max(append(b, i)...) }
-
-// RandomRange returns a random Int in the inclusive range [i, to].
-// The order of bounds does not matter (it normalizes to [min, max]).
-// Works for negative bounds and the full int64 range without overflow or bias.
-func (i Int) RandomRange(to Int) Int {
-	lo, hi := i, to
-
-	if lo > hi {
-		lo, hi = hi, lo
-	}
-
-	if lo == hi {
-		return lo
-	}
-
-	const bias = uint64(1) << 63 // 2^63 = 9223372036854775808
-
-	ulo := uint64(lo) + bias
-	uhi := uint64(hi) + bias
-
-	w := uhi - ulo + 1
-
-	if w == 0 {
-		return Int(rand.Uint64())
-	}
-
-	randv := rand.N(w)
-	result := int64((ulo + randv) - bias)
-
-	return Int(result)
-}
 
 // Abs returns the absolute value of the Int.
 // Like Go's native arithmetic it wraps on overflow: Abs of math.MinInt is math.MinInt.
@@ -162,15 +130,6 @@ func (i Int) Mul(b Int) Int { return i * b }
 // Ne checks if two Ints are not equal.
 func (i Int) Ne(b Int) bool { return i != b }
 
-// Random returns a random Int in the range [0, hi].
-func (i Int) Random() Int {
-	if i <= 0 {
-		return 0
-	}
-
-	return Int(rand.N(uint64(i)))
-}
-
 // Rem returns the remainder of the division between the receiver and the input value.
 //
 // Rem panics with a runtime "integer divide by zero" error if b is 0.
@@ -183,7 +142,8 @@ func (i Int) Rem(b Int) Int { return i % b }
 // Use CheckedSub, SaturatingSub or OverflowingSub for guarded variants.
 func (i Int) Sub(b Int) Int { return i - b }
 
-// Binary returns the Int as a binary string.
+// Binary returns the Int as a binary string, zero-padded to a minimum width of
+// 8 characters (the sign counts toward the width for negative values).
 func (i Int) Binary() String {
 	var storage [65]byte
 	digits := strconv.AppendInt(storage[:0], int64(i), 2)
@@ -216,20 +176,20 @@ func (i Int) Hex() String { return String(strconv.FormatInt(int64(i), 16)) }
 // Octal returns the Int as an octal string.
 func (i Int) Octal() String { return String(strconv.FormatInt(int64(i), 8)) }
 
-// UInt returns the Int as a uint.
-func (i Int) UInt() uint { return uint(i) }
+// Uint returns the Int as a uint.
+func (i Int) Uint() uint { return uint(i) }
 
-// UInt16 returns the Int as a uint16.
-func (i Int) UInt16() uint16 { return uint16(i) }
+// Uint16 returns the Int as a uint16.
+func (i Int) Uint16() uint16 { return uint16(i) }
 
-// UInt32 returns the Int as a uint32.
-func (i Int) UInt32() uint32 { return uint32(i) }
+// Uint32 returns the Int as a uint32.
+func (i Int) Uint32() uint32 { return uint32(i) }
 
-// UInt64 returns the Int as a uint64.
-func (i Int) UInt64() uint64 { return uint64(i) }
+// Uint64 returns the Int as a uint64.
+func (i Int) Uint64() uint64 { return uint64(i) }
 
-// UInt8 returns the Int as a uint8.
-func (i Int) UInt8() uint8 { return uint8(i) }
+// Uint8 returns the Int as a uint8.
+func (i Int) Uint8() uint8 { return uint8(i) }
 
 // bytesFromInt converts Int to Bytes using the given byte order.
 // For BE: removes leading zeros while preserving the sign bit.

@@ -14,7 +14,7 @@ import (
 func TestOkSeq(t *testing.T) {
 	t.Run("yields single Ok value", func(t *testing.T) {
 		seq := OkSeq(42)
-		collected := seq.Ok().Collect()
+		collected := seq.Ok().Collect().Slice()
 
 		if len(collected) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(collected))
@@ -35,7 +35,7 @@ func TestOkSeq(t *testing.T) {
 
 	t.Run("string value", func(t *testing.T) {
 		seq := OkSeq("hello")
-		collected := seq.Ok().Collect()
+		collected := seq.Ok().Collect().Slice()
 
 		if len(collected) != 1 || collected[0] != "hello" {
 			t.Errorf("expected [hello], got %v", collected)
@@ -61,7 +61,7 @@ func TestOkSeq(t *testing.T) {
 			yield(Ok(3))
 		})
 
-		collected := seq1.Chain(seq2).Ok().Collect()
+		collected := seq1.Chain(seq2).Ok().Collect().Slice()
 		want := []int{1, 2, 3}
 
 		if len(collected) != len(want) {
@@ -90,7 +90,7 @@ func TestErrSeq(t *testing.T) {
 
 	t.Run("no Ok values", func(t *testing.T) {
 		seq := ErrSeq[int](errors.New("fail"))
-		collected := seq.Ok().Collect()
+		collected := seq.Ok().Collect().Slice()
 
 		if len(collected) != 0 {
 			t.Errorf("expected no Ok values, got %d", len(collected))
@@ -111,7 +111,7 @@ func TestErrSeq(t *testing.T) {
 
 	t.Run("nil error", func(t *testing.T) {
 		seq := ErrSeq[int](nil)
-		collected := seq.Collect()
+		collected := seq.Collect().Slice()
 
 		if len(collected) != 1 {
 			t.Fatalf("expected 1 item, got %d", len(collected))
@@ -306,7 +306,7 @@ func TestSeqResultCollect(t *testing.T) {
 			t.Fatalf("expected Ok([10, 20, 30]) but got Err: %v", res.FirstErr().Some())
 		}
 
-		collected := res.Ok().Collect()
+		collected := res.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -360,7 +360,7 @@ func TestSeqResultCollect(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := seq.Ok().Collect()
+		collected := seq.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -431,7 +431,7 @@ func TestSeqResultMap(t *testing.T) {
 			t.Fatalf("expected all Ok, got Err: %v", firstErr.Some())
 		}
 
-		values := mapped.Ok().Collect()
+		values := mapped.Ok().Collect().Slice()
 		if len(values) != 3 {
 			t.Errorf("expected 3 items, got %d", len(values))
 		}
@@ -482,7 +482,7 @@ func TestSeqResultMap(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := mapped.Ok().Collect()
+		collected := mapped.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
 		}
@@ -525,7 +525,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := filtered.Ok().Collect()
+		collected := filtered.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected an empty slice, got %d elements", len(collected))
 		}
@@ -549,7 +549,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := filtered.Ok().Collect()
+		collected := filtered.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -600,7 +600,7 @@ func TestSeqResultFilter(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := filtered.Ok().Collect()
+		collected := filtered.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -621,7 +621,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := excluded.Ok().Collect()
+		collected := excluded.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected empty slice, got %d items", len(collected))
 		}
@@ -644,7 +644,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := excluded.Ok().Collect()
+		collected := excluded.Ok().Collect().Slice()
 		if len(collected) != 2 {
 			t.Errorf("expected 2 items, got %d", len(collected))
 		}
@@ -694,7 +694,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := excluded.Ok().Collect()
+		collected := excluded.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected no items, got %d", len(collected))
 		}
@@ -716,7 +716,7 @@ func TestSeqResultExclude(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := excluded.Ok().Collect()
+		collected := excluded.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected all 3 items, got %d", len(collected))
 		}
@@ -742,7 +742,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := deduped.Ok().Collect()
+		collected := deduped.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected empty slice, got %d items", len(collected))
 		}
@@ -762,7 +762,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := deduped.Ok().Collect()
+		collected := deduped.Ok().Collect().Slice()
 		if len(collected) != 1 {
 			t.Errorf("expected only 1 item after dedup, got %d", len(collected))
 		}
@@ -784,7 +784,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := deduped.Ok().Collect()
+		collected := deduped.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		}
@@ -814,7 +814,7 @@ func TestSeqResultDedup(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := deduped.Ok().Collect()
+		collected := deduped.Ok().Collect().Slice()
 		expected := []int{5, 10, 15, 20}
 		if len(collected) != len(expected) {
 			t.Errorf("expected %d items, got %d", len(expected), len(collected))
@@ -861,7 +861,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := unique.Ok().Collect()
+		collected := unique.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 elements, got %d", len(collected))
 		}
@@ -881,7 +881,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := unique.Ok().Collect()
+		collected := unique.Ok().Collect().Slice()
 		// Only the first 10 should appear
 		if len(collected) != 1 {
 			t.Errorf("expected 1 element, got %d", len(collected))
@@ -905,7 +905,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := unique.Ok().Collect()
+		collected := unique.Ok().Collect().Slice()
 		// Expect [1, 2, 3, 4], skipping repeated 1 and 2
 		want := []int{1, 2, 3, 4}
 		if len(collected) != len(want) {
@@ -930,7 +930,7 @@ func TestSeqResultUnique(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := unique.Ok().Collect()
+		collected := unique.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 elements, got %d", len(collected))
 		}
@@ -1173,7 +1173,7 @@ func TestSeqResultSkip(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := skipped.Ok().Collect()
+		collected := skipped.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		} else {
@@ -1196,7 +1196,7 @@ func TestSeqResultSkip(t *testing.T) {
 		})
 
 		skipped := seq.Skip(2) // skip the first 2 Ok
-		allResults := skipped.Collect()
+		allResults := skipped.Collect().Slice()
 
 		// Check for errors
 		var firstErr error
@@ -1239,7 +1239,7 @@ func TestSeqResultSkip(t *testing.T) {
 		})
 
 		skipped := seq.Skip(5) // skip 5, but we only have 3 Ok items
-		allResults := skipped.Collect()
+		allResults := skipped.Collect().Slice()
 
 		// Check for errors
 		var firstErr error
@@ -1302,7 +1302,7 @@ func TestSeqResultStepBy(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := stepped.Ok().Collect()
+		collected := stepped.Ok().Collect().Slice()
 		if len(collected) != 3 {
 			t.Errorf("expected 3 items, got %d", len(collected))
 		}
@@ -1329,7 +1329,7 @@ func TestSeqResultStepBy(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := stepped.Ok().Collect()
+		collected := stepped.Ok().Collect().Slice()
 		// We yield i=1 => keep, i=2 => skip, i=3 => keep, i=4 => skip, i=5 => keep
 		want := []int{1, 3, 5}
 		if len(collected) != len(want) {
@@ -1354,7 +1354,7 @@ func TestSeqResultStepBy(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := stepped.Ok().Collect()
+		collected := stepped.Ok().Collect().Slice()
 		// We yield i=1 => keep, i=2 => skip, no more items
 		// => [10]
 		if len(collected) != 1 {
@@ -1396,7 +1396,7 @@ func TestSeqResultStepBy(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := stepped.Ok().Collect()
+		collected := stepped.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected empty, got %d items", len(collected))
 		}
@@ -1415,7 +1415,7 @@ func TestSeqResultTake(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := taken.Ok().Collect()
+		collected := taken.Ok().Collect().Slice()
 		// No elements should be yielded
 		if len(collected) != 0 {
 			t.Errorf("expected 0, got %d", len(collected))
@@ -1431,7 +1431,7 @@ func TestSeqResultTake(t *testing.T) {
 		})
 
 		taken := seq.Take(2)
-		allResults := taken.Collect()
+		allResults := taken.Collect().Slice()
 
 		// Check for errors
 		var firstErr error
@@ -1474,7 +1474,7 @@ func TestSeqResultTake(t *testing.T) {
 		})
 
 		taken := seq.Take(3)
-		allResults := taken.Collect()
+		allResults := taken.Collect().Slice()
 
 		// Check for errors
 		var firstErr error
@@ -1519,7 +1519,7 @@ func TestSeqResultTake(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := taken.Ok().Collect()
+		collected := taken.Ok().Collect().Slice()
 		// We can only get the 2 Ok items
 		if len(collected) != 2 {
 			t.Errorf("expected 2, got %d", len(collected))
@@ -1568,7 +1568,7 @@ func TestSeqResultChain(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := chained.Ok().Collect()
+		collected := chained.Ok().Collect().Slice()
 		if len(collected) != 2 {
 			t.Errorf("expected 2 items, got %d", len(collected))
 		} else {
@@ -1602,7 +1602,7 @@ func TestSeqResultChain(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
-		collected := chained.Ok().Collect()
+		collected := chained.Ok().Collect().Slice()
 		// Expect them in the order: seq1 -> seq2 -> seq3
 		want := []int{10, 20, 30, 40, 50}
 		if len(collected) != len(want) {
@@ -1687,7 +1687,7 @@ func TestSeqResultChain(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := chained.Ok().Collect()
+		collected := chained.Ok().Collect().Slice()
 		// We only expect the one Ok(999) from seqWithItems
 		if len(collected) != 1 || collected[0] != 999 {
 			t.Errorf("expected [999], got %v", collected)
@@ -1707,7 +1707,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := inters.Ok().Collect()
+		collected := inters.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
 		}
@@ -1724,7 +1724,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := inters.Ok().Collect()
+		collected := inters.Ok().Collect().Slice()
 		// Only one item => no separators
 		if len(collected) != 1 || collected[0] != 42 {
 			t.Errorf("expected [42], got %v", collected)
@@ -1744,7 +1744,7 @@ func TestSeqResultIntersperse(t *testing.T) {
 			t.Fatalf("expected Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := inters.Ok().Collect()
+		collected := inters.Ok().Collect().Slice()
 		// We expect: ["a", ",", "b", ",", "c"]
 		want := []string{"a", ",", "b", ",", "c"}
 		if len(collected) != len(want) {
@@ -1829,7 +1829,7 @@ func TestSeqResultInspect(t *testing.T) {
 			inspected = append(inspected, v)
 		})
 
-		allResults := inspectedSeq.Collect()
+		allResults := inspectedSeq.Collect().Slice()
 
 		// Check for errors
 		var firstErr error
@@ -2645,7 +2645,7 @@ func TestSeqResultNext(t *testing.T) {
 		}
 
 		// Remaining results
-		remaining := iter.Collect()
+		remaining := iter.Collect().Slice()
 		remainingSlice := make([]int, 0)
 		for _, r := range remaining {
 			if r.IsOk() {
@@ -2693,7 +2693,7 @@ func TestSeqResultNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().Slice()
 		remainingSlice := make([]int, 0)
 		for _, r := range remaining {
 			if r.IsOk() {
@@ -2813,7 +2813,7 @@ func TestSeqResultOk(t *testing.T) {
 		})
 
 		okSeq := seq.Ok()
-		collected := okSeq.Collect()
+		collected := okSeq.Collect().Slice()
 
 		expected := Slice[int]{1, 2, 3}
 		if len(collected) != len(expected) {
@@ -2834,7 +2834,7 @@ func TestSeqResultOk(t *testing.T) {
 		})
 
 		okSeq := seq.Ok()
-		collected := okSeq.Collect()
+		collected := okSeq.Collect().Slice()
 
 		expected := Slice[int]{1, 2, 3}
 		if len(collected) != len(expected) {
@@ -2854,7 +2854,7 @@ func TestSeqResultOk(t *testing.T) {
 		})
 
 		okSeq := seq.Ok()
-		collected := okSeq.Collect()
+		collected := okSeq.Collect().Slice()
 
 		if len(collected) != 0 {
 			t.Errorf("Expected 0 Ok values, got %d", len(collected))
@@ -2867,7 +2867,7 @@ func TestSeqResultOk(t *testing.T) {
 		})
 
 		okSeq := seq.Ok()
-		collected := okSeq.Collect()
+		collected := okSeq.Collect().Slice()
 
 		if len(collected) != 0 {
 			t.Errorf("Expected 0 Ok values, got %d", len(collected))
@@ -2886,7 +2886,7 @@ func TestSeqResultErr(t *testing.T) {
 		})
 
 		errSeq := seq.Err()
-		collected := errSeq.Collect()
+		collected := errSeq.Collect().Slice()
 
 		if len(collected) != 2 {
 			t.Errorf("Expected 2 error values, got %d", len(collected))
@@ -2906,7 +2906,7 @@ func TestSeqResultErr(t *testing.T) {
 		})
 
 		errSeq := seq.Err()
-		collected := errSeq.Collect()
+		collected := errSeq.Collect().Slice()
 
 		if len(collected) != 2 {
 			t.Errorf("Expected 2 error values, got %d", len(collected))
@@ -2927,7 +2927,7 @@ func TestSeqResultErr(t *testing.T) {
 		})
 
 		errSeq := seq.Err()
-		collected := errSeq.Collect()
+		collected := errSeq.Collect().Slice()
 
 		if len(collected) != 0 {
 			t.Errorf("Expected 0 error values, got %d", len(collected))
@@ -2940,7 +2940,7 @@ func TestSeqResultErr(t *testing.T) {
 		})
 
 		errSeq := seq.Err()
-		collected := errSeq.Collect()
+		collected := errSeq.Collect().Slice()
 
 		if len(collected) != 0 {
 			t.Errorf("Expected 0 error values, got %d", len(collected))
@@ -3034,7 +3034,7 @@ func TestFromResultChan(t *testing.T) {
 		ch := make(chan Result[int])
 		close(ch)
 
-		collected := FromResultChan(ch).Collect()
+		collected := FromResultChan(ch).Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 results, got %d", len(collected))
 		}
@@ -3048,7 +3048,7 @@ func TestFromResultChan(t *testing.T) {
 		close(ch)
 
 		seq := FromResultChan(ch)
-		collected := seq.Ok().Collect()
+		collected := seq.Ok().Collect().Slice()
 
 		want := []int{1, 2, 3}
 		if len(collected) != len(want) {
@@ -3103,7 +3103,7 @@ func TestFromResultChan(t *testing.T) {
 			}
 		}()
 
-		collected := FromResultChan(ch).Ok().Collect()
+		collected := FromResultChan(ch).Ok().Collect().Slice()
 		want := []int{0, 10, 20, 30, 40}
 		if len(collected) != len(want) {
 			t.Fatalf("expected %d items, got %d", len(want), len(collected))
@@ -3152,7 +3152,8 @@ func TestFromResultChan(t *testing.T) {
 			Filter(func(v int) bool { return v%2 != 0 }).
 			Map(func(v int) int { return v * 100 }).
 			Ok().
-			Collect()
+			Collect().
+			Slice()
 
 		want := []int{100, 300, 500}
 		if len(collected) != len(want) {
@@ -3214,7 +3215,7 @@ func TestSeqResultMapCrossType(t *testing.T) {
 			t.Fatalf("expected all Ok, got Err: %v", firstErr.Some())
 		}
 
-		collected := mapped.Ok().Collect()
+		collected := mapped.Ok().Collect().Slice()
 		want := []String{"1", "2", "3"}
 		if len(collected) != len(want) {
 			t.Fatalf("expected %d items, got %d", len(want), len(collected))
@@ -3237,7 +3238,7 @@ func TestSeqResultMapCrossType(t *testing.T) {
 		if firstErr.IsSome() {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
-		collected := mapped.Ok().Collect()
+		collected := mapped.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items, got %d", len(collected))
 		}
@@ -3296,7 +3297,7 @@ func TestSeqResultMapCrossType(t *testing.T) {
 		})
 
 		// Take(1) downstream of the map must stop the source after the first Ok.
-		collected := seq.Map(func(v int) int { return v * 10 }).Take(1).Ok().Collect()
+		collected := seq.Map(func(v int) int { return v * 10 }).Take(1).Ok().Collect().Slice()
 
 		if len(collected) != 1 || collected[0] != 10 {
 			t.Errorf("expected [10], got %v", collected)
@@ -3322,7 +3323,7 @@ func TestSeqResultChainHonorsDownstreamStop(t *testing.T) {
 
 		// Take(1) requests a stop after the first Ok. Chain must propagate that
 		// stop to the outer loop and never invoke seq2.
-		collected := seq1.Chain(seq2).Take(1).Ok().Collect()
+		collected := seq1.Chain(seq2).Take(1).Ok().Collect().Slice()
 
 		if len(collected) != 1 || collected[0] != 1 {
 			t.Errorf("expected [1], got %v", collected)
@@ -3384,7 +3385,7 @@ func TestSeqResultStepByZero(t *testing.T) {
 			t.Fatalf("expected Ok([]), got Err: %v", firstErr.Some())
 		}
 
-		collected := stepped.Ok().Collect()
+		collected := stepped.Ok().Collect().Slice()
 		if len(collected) != 0 {
 			t.Errorf("expected 0 items from StepBy(0), got %d: %v", len(collected), collected)
 		}
@@ -3398,7 +3399,7 @@ func TestSeqResultStepByZero(t *testing.T) {
 func TestSeqResultFlatMap(t *testing.T) {
 	t.Run("flattens ok slices", func(t *testing.T) {
 		seq := SeqResult[Slice[int]](SliceOf(SliceOf(1, 2), SliceOf(3)).Iter().Map(Ok))
-		got := seq.FlatMap(Slice[int].Iter).Ok().Collect()
+		got := seq.FlatMap(Slice[int].Iter).Ok().Collect().Slice()
 		if !reflect.DeepEqual(got, SliceOf(1, 2, 3)) {
 			t.Errorf("FlatMap = %v, want [1 2 3]", got)
 		}
@@ -3420,7 +3421,7 @@ func TestSeqResultFlatMap(t *testing.T) {
 		// source continues (consumer-driven).
 		var vals []String
 		var errs []error
-		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
+		seq.FlatMap(func(s String) Seq[String] { return SliceOf(s.Chars()...).Iter() })(func(r Result[String]) bool {
 			if r.IsErr() {
 				errs = append(errs, r.Err())
 			} else {
@@ -3439,7 +3440,7 @@ func TestSeqResultFlatMap(t *testing.T) {
 		// Consumer breaks on the Err: fail-fast is the consumer's choice and the
 		// source must not be pulled past the Err.
 		vals, errs = nil, nil
-		seq.FlatMap(func(s String) SeqSlice[String] { return s.Chars() })(func(r Result[String]) bool {
+		seq.FlatMap(func(s String) Seq[String] { return SliceOf(s.Chars()...).Iter() })(func(r Result[String]) bool {
 			if r.IsErr() {
 				errs = append(errs, r.Err())
 				return false
@@ -3483,7 +3484,7 @@ func TestSeqResultFoldReduceScan(t *testing.T) {
 		t.Errorf("Reduce err = %v, want Err(boom)", got)
 	}
 
-	sums := okSeq.Scan(Int(0), func(acc Int, v int) Int { return acc + Int(v) }).Ok().Collect()
+	sums := okSeq.Scan(Int(0), func(acc Int, v int) Int { return acc + Int(v) }).Ok().Collect().Slice()
 	if !reflect.DeepEqual(sums, SliceOf[Int](0, 1, 3, 6)) {
 		t.Errorf("Scan = %v, want [0 1 3 6]", sums)
 	}
@@ -3680,7 +3681,7 @@ func TestSeqResultCounterBy(t *testing.T) {
 	if got.IsErr() {
 		t.Fatalf("err: %v", got.Err())
 	}
-	m := got.Ok()
+	m := MapOrd[Int, Int](got.Ok())
 	if m.Get(1).UnwrapOr(0) != 1 || m.Get(2).UnwrapOr(0) != 2 || m.Get(3).UnwrapOr(0) != 3 {
 		t.Fatalf("CounterBy = %v", m)
 	}
@@ -3703,7 +3704,7 @@ func TestSeqResultTakeNoTrailingErr(t *testing.T) {
 		yield(Ok[Int](3))
 	})
 
-	got := rogue.Take(2).Collect()
+	got := rogue.Take(2).Collect().Slice()
 	if got.Len() != 2 {
 		t.Fatalf("Take(2) yielded %d (%v), want exactly 2 with no trailing Err", got.Len(), got)
 	}
@@ -3726,7 +3727,7 @@ func TestSeqResultTakeForwardsEarlyErr(t *testing.T) {
 		yield(Ok[Int](2))
 	})
 
-	got := seq.Take(2).Collect() // Err, Ok(1), Ok(2)
+	got := seq.Take(2).Collect().Slice() // Err, Ok(1), Ok(2)
 	if got.Len() != 3 || !got[0].IsErr() {
 		t.Fatalf("Take(2) with leading Err = %v, want [Err, Ok, Ok]", got)
 	}

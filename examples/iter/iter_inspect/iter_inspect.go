@@ -20,8 +20,7 @@ func main() {
 		StepBy(2).                                                        // Iterate with a step size of 2
 		Exclude(func(k int, _ string) bool { return k == 4 }).            // Exclude entry with key 4
 		Inspect(func(k int, v string) { fmt.Println("~inspect", k, v) }). // Inspect each entry
-		Map(func(k int, v string) (int, string) { return k, v + v }).
+		Map(func(k int, v string) (int, string) { return k, v + v }).Collect().MapOrd[int, string]().
 		// Map values to concatenate them with themselves
-		Collect(). // Collect the resulting ordered map
-		Println()  // Print the ordered map
+		Println() // Print the ordered map
 }

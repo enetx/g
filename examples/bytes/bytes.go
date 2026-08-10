@@ -6,6 +6,6 @@ func main() {
 	b := Bytes("test rest foo bar")
 	b.Println()
 
-	b.Chars().Map(Bytes.Upper).Collect().Join().Println()
-	b.Fields().Map(Bytes.Upper).Collect().Join().Println()
+	SliceOf(b.Chars()...).Iter().Map(Bytes.Upper).Collect().Slice().Join().Println()
+	SliceOf(b.Fields()...).Iter().Map(Bytes.Upper).Collect().Slice().Join().Println()
 }

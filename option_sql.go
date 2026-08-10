@@ -100,7 +100,7 @@ func (o Option[T]) Value() (driver.Value, error) {
 //   - int64 → int, int8, int16, int32, uint*, uint64 (if fits)
 //   - float64 → float32, float64
 //   - string / []byte → string
-//   - []byte → []byte
+//   - []byte / string → []byte
 //   - bool → bool
 //   - time.Time → time.Time
 //

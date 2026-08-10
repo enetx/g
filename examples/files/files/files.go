@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	. "github.com/enetx/g"
+	"github.com/enetx/g/fs"
 )
 
 func main() {
-	f := NewFile("some/dir/that/dont/exist/file.txt")
+	f := fs.NewFile("some/dir/that/dont/exist/file.txt")
 
 	f.Append("one").Unwrap().Append("\n")
 	f.Append("two").Ok().Append("\n")
@@ -41,6 +41,6 @@ func main() {
 	dir, file := f.Split()
 	fmt.Println(dir.Path().Unwrap(), file.Name())
 
-	newFile := NewFile(dir.Join(file.Name()).Ok())
+	newFile := fs.NewFile(dir.Join(file.Name()).Ok())
 	newFile.Path().Ok().Println()
 }

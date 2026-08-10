@@ -2,19 +2,20 @@ package main
 
 import (
 	"fmt"
-	"regexp"
+
+	"github.com/enetx/g/rx"
 
 	. "github.com/enetx/g"
 )
 
 func main() {
 	// Regexp
-	reCache := NewMapSafe[String, *regexp.Regexp]()
+	reCache := NewMapSafe[String, rx.Regex]()
 
 	p := String("content=.+")
 
-	re := reCache.Entry(p).OrInsertWith(p.Regexp().Compile().Unwrap)
-	re = reCache.Entry(p).OrInsertWith((p + "\\w").Regexp().Compile().Unwrap)
+	re := reCache.Entry(p).OrInsertWith(rx.New(p).Unwrap)
+	re = reCache.Entry(p).OrInsertWith(rx.New(p + `\w`).Unwrap)
 
 	fmt.Println("re:", re) // re: content=.+
 
@@ -35,7 +36,7 @@ func main() {
 		freq.Entry(word).AndModify(func(v *Int) { *v++ }).OrInsert(1)
 	})
 
-	fmt.Println("freq:", freq) // Map{apple:3, banana:2, cherry:1}
+	fmt.Println("freq:", freq) // Map{apple:3, banana:2, cherry:1} (order varies)
 
 	// Get value after insert
 	val := m.Entry("new_key").OrInsert(100)

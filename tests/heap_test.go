@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestNewHeap(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	if heap.Len() != 0 {
 		t.Errorf("Expected new heap to be empty, got length %d", heap.Len())
@@ -21,7 +21,7 @@ func TestNewHeap(t *testing.T) {
 }
 
 func TestHeap_Push_Pop(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	// Test pushing single elements
 	heap.Push(5)
@@ -56,7 +56,7 @@ func TestHeap_Push_Pop(t *testing.T) {
 }
 
 func TestHeap_Peek(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	// Test peek on empty heap
 	val := heap.Peek()
@@ -79,7 +79,7 @@ func TestHeap_Peek(t *testing.T) {
 
 func TestHeap_MaxHeap(t *testing.T) {
 	// Create max heap by reversing comparison
-	heap := g.NewHeap(func(a, b int) cmp.Ordering {
+	heap := NewHeap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // reverse comparison for max heap
 	})
 
@@ -100,7 +100,7 @@ func TestHeap_MaxHeap(t *testing.T) {
 }
 
 func TestHeap_StringComparison(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[string])
+	heap := NewHeap(cmp.Cmp[string])
 
 	heap.Push("banana", "apple", "cherry", "date")
 
@@ -119,7 +119,7 @@ func TestHeap_StringComparison(t *testing.T) {
 }
 
 func TestHeap_Len_Empty(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	if heap.Len() != 0 {
 		t.Errorf("Expected length 0, got %d", heap.Len())
@@ -153,7 +153,7 @@ func TestHeap_Len_Empty(t *testing.T) {
 }
 
 func TestHeap_ToSlice(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(5, 3, 7, 1)
 
 	slice := heap.Slice()
@@ -162,7 +162,7 @@ func TestHeap_ToSlice(t *testing.T) {
 		t.Errorf("Expected slice length 4, got %d", len(slice))
 	}
 
-	// ToSlice should contain all elements (order not guaranteed)
+	// Slice should contain all elements (order not guaranteed)
 	elements := make(map[int]bool)
 	for _, v := range slice {
 		elements[v] = true
@@ -177,7 +177,7 @@ func TestHeap_ToSlice(t *testing.T) {
 }
 
 func TestHeap_Clear(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	if heap.Len() != 5 {
@@ -201,7 +201,7 @@ func TestHeap_Clear(t *testing.T) {
 }
 
 func TestHeap_Clone(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5)
 
 	cloned := heap.Clone()
@@ -241,10 +241,10 @@ func TestHeap_Clone(t *testing.T) {
 }
 
 func TestHeap_Transform(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
-	result := heap.Transform(func(h *g.Heap[int]) *g.Heap[int] {
+	result := heap.Transform(func(h *Heap[int]) *Heap[int] {
 		h.Push(4, 5)
 		return h
 	})
@@ -260,7 +260,7 @@ func TestHeap_Transform(t *testing.T) {
 }
 
 func TestHeap_DuplicateElements(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(2, 1, 2, 3, 1, 3, 2)
 
 	expected := []int{1, 1, 2, 2, 2, 3, 3}
@@ -288,7 +288,7 @@ func TestHeap_DuplicateElements(t *testing.T) {
 }
 
 func TestHeap_SingleElement(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(42)
 
 	if heap.Len() != 1 {
@@ -311,7 +311,7 @@ func TestHeap_SingleElement(t *testing.T) {
 }
 
 func TestHeap_MaintainsProperty(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	// Push elements in random order
 	elements := []int{50, 25, 75, 10, 30, 60, 80, 5, 15, 35}
@@ -332,7 +332,7 @@ func TestHeap_MaintainsProperty(t *testing.T) {
 
 func TestHeap_CustomComparison(t *testing.T) {
 	// Heap that sorts by absolute value
-	heap := g.NewHeap(func(a, b int) cmp.Ordering {
+	heap := NewHeap(func(a, b int) cmp.Ordering {
 		absA := a
 		if a < 0 {
 			absA = -a
@@ -361,7 +361,7 @@ func TestHeap_CustomComparison(t *testing.T) {
 }
 
 func TestHeap_IntoIter(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5)
 
 	// Test that IntoIter drains the heap in sorted order
@@ -390,7 +390,7 @@ func TestHeap_IntoIter(t *testing.T) {
 }
 
 func TestHeap_IntoIterEarlyTermination(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(5, 3, 7, 1, 9)
 
 	// Test early termination of IntoIter
@@ -418,7 +418,7 @@ func TestHeap_HeapifyIndirect(t *testing.T) {
 	// by creating scenarios that would require it to be called
 
 	// Create a heap and manipulate it in ways that would require heapification
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	// Push elements in a way that might require heapification
 	elements := []int{10, 5, 15, 3, 7, 12, 20, 1, 4, 6}
@@ -445,7 +445,7 @@ func TestHeap_HeapifyIndirect(t *testing.T) {
 
 func TestHeap_String(t *testing.T) {
 	// Test empty heap
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	str := heap.String()
 	if str != "Heap[]" {
 		t.Errorf("Expected 'Heap[]' for empty heap, got '%s'", str)
@@ -472,7 +472,7 @@ func TestHeap_String(t *testing.T) {
 	}
 
 	// Test single element heap
-	singleHeap := g.NewHeap(cmp.Cmp[string])
+	singleHeap := NewHeap(cmp.Cmp[string])
 	singleHeap.Push("hello")
 	singleStr := singleHeap.String()
 	expected := "Heap[hello]"
@@ -483,7 +483,7 @@ func TestHeap_String(t *testing.T) {
 
 func TestHeapHeapify(t *testing.T) {
 	// Create a heap and add elements to trigger heapify
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 
 	// Add elements in non-heap order
 	elements := []int{5, 3, 8, 1, 9, 2}
@@ -511,7 +511,7 @@ func TestHeapHeapify(t *testing.T) {
 
 func TestHeapPrint(t *testing.T) {
 	// Test Print method - should return the heap unchanged
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1)
 	heap.Push(2)
 	heap.Push(3)
@@ -531,7 +531,7 @@ func TestHeapPrint(t *testing.T) {
 
 func TestHeapPrintln(t *testing.T) {
 	// Test Println method - should return the heap unchanged
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1)
 	heap.Push(2)
 	heap.Push(3)
@@ -556,11 +556,11 @@ func TestNewHeap_NilPanics(t *testing.T) {
 		}
 	}()
 
-	g.NewHeap[int](nil)
+	NewHeap[int](nil)
 }
 
 func TestHeap_ClearReleasesBacking(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	heap.Clear()
@@ -581,7 +581,7 @@ func TestHeap_ClearReleasesBacking(t *testing.T) {
 }
 
 func TestHeap_Contains(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5, 9)
 
 	tests := []struct {
@@ -603,14 +603,14 @@ func TestHeap_Contains(t *testing.T) {
 		})
 	}
 
-	empty := g.NewHeap(cmp.Cmp[int])
+	empty := NewHeap(cmp.Cmp[int])
 	if empty.Contains(1) {
 		t.Error("Expected empty heap to contain nothing")
 	}
 }
 
 func TestHeap_Remove(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(5, 3, 8, 1, 9, 2)
 
 	// Out-of-range indices return None and don't mutate.
@@ -651,7 +651,7 @@ func TestHeap_Remove(t *testing.T) {
 }
 
 func TestHeap_RemoveLast(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
 	// Removing the final backing index must not panic and must shrink the heap.
@@ -666,7 +666,7 @@ func TestHeap_RemoveLast(t *testing.T) {
 }
 
 func TestHeap_Fix(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(10, 20, 30, 40)
 
 	// Out-of-range Fix is a no-op (must not panic).
@@ -690,10 +690,10 @@ func TestHeap_Fix(t *testing.T) {
 }
 
 func TestHeapEq(t *testing.T) {
-	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1 := NewHeap(cmp.Cmp[int])
 	heap1.Push(1, 2, 3)
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(3, 1, 2) // same contents, different insertion order
 
 	// Test equal heaps
@@ -712,7 +712,7 @@ func TestHeapEq(t *testing.T) {
 	}
 
 	// Test unequal heaps (different elements)
-	heap3 := g.NewHeap(cmp.Cmp[int])
+	heap3 := NewHeap(cmp.Cmp[int])
 	heap3.Push(1, 2, 4)
 
 	if heap1.Eq(heap3) {
@@ -720,7 +720,7 @@ func TestHeapEq(t *testing.T) {
 	}
 
 	// Test unequal heaps (different lengths)
-	heap4 := g.NewHeap(cmp.Cmp[int])
+	heap4 := NewHeap(cmp.Cmp[int])
 	heap4.Push(1, 2, 3, 4)
 
 	if heap1.Eq(heap4) {
@@ -728,15 +728,15 @@ func TestHeapEq(t *testing.T) {
 	}
 
 	// Test empty heaps
-	heap5 := g.NewHeap(cmp.Cmp[int])
-	heap6 := g.NewHeap(cmp.Cmp[int])
+	heap5 := NewHeap(cmp.Cmp[int])
+	heap6 := NewHeap(cmp.Cmp[int])
 
 	if !heap5.Eq(heap6) {
 		t.Errorf("Empty heaps should be equal")
 	}
 
 	// Test nil receiver/argument
-	var nilHeap *g.Heap[int]
+	var nilHeap *Heap[int]
 
 	if !nilHeap.Eq(nil) {
 		t.Errorf("Two nil heaps should be equal")
@@ -754,10 +754,10 @@ func TestHeapEq(t *testing.T) {
 func TestHeapEqUncomparable(t *testing.T) {
 	cmpSlices := func(a, b []int) cmp.Ordering { return cmp.Cmp(a[0], b[0]) }
 
-	heap1 := g.NewHeap(cmpSlices)
+	heap1 := NewHeap(cmpSlices)
 	heap1.Push([]int{1, 2}, []int{3, 4})
 
-	heap2 := g.NewHeap(cmpSlices)
+	heap2 := NewHeap(cmpSlices)
 	heap2.Push([]int{3, 4}, []int{1, 2})
 
 	// Uncomparable element types fall back to reflect.DeepEqual
@@ -765,7 +765,7 @@ func TestHeapEqUncomparable(t *testing.T) {
 		t.Errorf("Heaps with deeply equal uncomparable elements should be equal")
 	}
 
-	heap3 := g.NewHeap(cmpSlices)
+	heap3 := NewHeap(cmpSlices)
 	heap3.Push([]int{1, 2}, []int{3, 5})
 
 	if heap1.Eq(heap3) {
@@ -774,17 +774,17 @@ func TestHeapEqUncomparable(t *testing.T) {
 }
 
 func TestHeapNe(t *testing.T) {
-	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1 := NewHeap(cmp.Cmp[int])
 	heap1.Push(1, 2, 3)
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(1, 2, 3)
 
 	if heap1.Ne(heap2) {
 		t.Errorf("Equal heaps should not be Ne")
 	}
 
-	heap3 := g.NewHeap(cmp.Cmp[int])
+	heap3 := NewHeap(cmp.Cmp[int])
 	heap3.Push(1, 2, 4)
 
 	if !heap1.Ne(heap3) {
@@ -792,23 +792,8 @@ func TestHeapNe(t *testing.T) {
 	}
 }
 
-func TestHeapFromSlice(t *testing.T) {
-	h := g.HeapFromSlice(cmp.Cmp[g.Int], g.SliceOf[g.Int](3, 1, 2))
-	if h.Len() != 3 {
-		t.Fatalf("HeapFromSlice len = %d, want 3", h.Len())
-	}
-
-	// curried collector (HeapFromSlice needs the comparator)
-	res := g.SliceOf[g.String]("3", "1", "2").
-		Iter().TryMap(g.String.TryInt).TryCollect().
-		Map(func(s g.Slice[g.Int]) *g.Heap[g.Int] { return g.HeapFromSlice(cmp.Cmp, s) })
-	if res.IsErr() || res.Ok().Len() != 3 {
-		t.Fatalf("HeapFromSlice collector = %v", res)
-	}
-}
-
 func TestHeapBulkPushOnEstablishedHeap(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	for i := range 1024 {
 		heap.Push(i)
 	}

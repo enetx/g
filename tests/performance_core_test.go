@@ -49,34 +49,34 @@ func TestPerformanceCoreParity(t *testing.T) {
 	})
 
 	t.Run("heap collect", func(t *testing.T) {
-		seq := SeqHeap[int](func(yield func(int) bool) {
+		seq := Seq[int](func(yield func(int) bool) {
 			for _, value := range []int{3, 1, 2, 1} {
 				if !yield(value) {
 					return
 				}
 			}
 		})
-		heap := seq.Collect(cmp.Cmp[int])
+		heap := seq.Collect().Heap(cmp.Cmp[int])
 		for _, want := range []int{1, 1, 2, 3} {
 			if got := heap.Pop(); got.IsNone() || got.Some() != want {
 				t.Fatalf("expected %d, got %v", want, got)
 			}
 		}
 
-		empty := SeqHeap[int](func(func(int) bool) {}).Collect(cmp.Cmp[int])
+		empty := Seq[int](func(func(int) bool) {}).Collect().Heap(cmp.Cmp[int])
 		if !empty.IsEmpty() {
 			t.Fatal("empty sequence must collect into an empty heap")
 		}
 
-		partial := SeqHeap[int](func(yield func(int) bool) {
+		partial := Seq[int](func(yield func(int) bool) {
 			yield(4)
 			yield(2)
-		}).Collect(cmp.Cmp[int])
+		}).Collect().Heap(cmp.Cmp[int])
 		if partial.Pop().Some() != 2 || partial.Pop().Some() != 4 {
 			t.Fatal("partial sequence values were not heapified")
 		}
 
-		maxHeap := seq.Collect(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) })
+		maxHeap := seq.Collect().Heap(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) })
 		for _, want := range []int{3, 2, 1, 1} {
 			if got := maxHeap.Pop(); got.IsNone() || got.Some() != want {
 				t.Fatalf("max heap: expected %d, got %v", want, got)
@@ -151,7 +151,7 @@ func BenchmarkPerformanceCore(b *testing.B) {
 		}
 	})
 	b.Run("heap-collect", func(b *testing.B) {
-		seq := SeqHeap[int](func(yield func(int) bool) {
+		seq := Seq[int](func(yield func(int) bool) {
 			for value := 1024; value > 0; value-- {
 				if !yield(value) {
 					return
@@ -159,7 +159,7 @@ func BenchmarkPerformanceCore(b *testing.B) {
 			}
 		})
 		for b.Loop() {
-			_ = seq.Collect(cmp.Cmp[int])
+			_ = seq.Collect().Heap(cmp.Cmp[int])
 		}
 	})
 }

@@ -12,6 +12,7 @@ func main() {
 		// Filter(func(i int) bool { return i != 1 }).
 		Filter(f.Ne(1)).
 		Collect().
+		Slice().
 		Println() // Slice[2]
 
 	// Example 2: Chained filtering on a slice of strings and print the result
@@ -27,13 +28,12 @@ func main() {
 	// fi = fi.Filter(func(s string) bool { return s != "ddd" })
 	// fi = fi.Filter(func(s string) bool { return s != "bbb" })
 
-	fi.Collect().Println() // Slice[ccc]
+	fi.Collect().Slice().Println() // Slice[ccc]
 
 	// Example 3: Exclude a key from a map and print the result
 	Map[int, string]{88: "aa", 99: "bb", 199: "ii"}.
 		Iter().
-		Exclude(func(k int, _ string) bool { return k == 99 }).
-		Collect().
+		Exclude(func(k int, _ string) bool { return k == 99 }).Collect().Map[int, string]().
 		Println() // Map{88:aa, 199:ii}
 
 		// Example 4: Exclude empty strings from a slice and print the result
@@ -41,5 +41,6 @@ func main() {
 		Iter().
 		Exclude(f.IsZero).
 		Collect().
+		Slice().
 		Println() // Slice[bbb, ddd, aaa, ccc]
 }

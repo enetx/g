@@ -13,7 +13,8 @@ func main() {
 		Cycle().   // Cycle through the elements in the slice
 		Take(10).  // Take the first 10 elements from the cycled sequence
 		Collect(). // Collect the resulting sequence
-		Println()  // Print the collected sequence
+		Slice().
+		Println() // Print the collected sequence
 
 	// Output: Slice[bbb, ddd, aaa, ccc, bbb, ddd, aaa, ccc, bbb, ddd]
 
@@ -23,12 +24,14 @@ func main() {
 		Iter().
 		TakeWhile(func(v int) bool { return v < 5 }).
 		Collect().
+		Slice().
 		Println() // Slice[1, 2, 3]
 
 	SliceOf(1, 2, 3, 10, 4).
 		Iter().
 		SkipWhile(func(v int) bool { return v < 5 }).
 		Collect().
+		Slice().
 		Println() // Slice[10, 4]
 
 }

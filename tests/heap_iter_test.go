@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestSeqHeap_All(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(2, 4, 6, 8)
 
 	allEven := heap.Iter().All(func(v int) bool { return v%2 == 0 })
@@ -19,7 +19,7 @@ func TestSeqHeap_All(t *testing.T) {
 		t.Error("Expected all elements to be even")
 	}
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(1, 2, 3, 4)
 
 	allEven2 := heap2.Iter().All(func(v int) bool { return v%2 == 0 })
@@ -29,7 +29,7 @@ func TestSeqHeap_All(t *testing.T) {
 }
 
 func TestSeqHeap_Any(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 3, 5, 7)
 
 	anyEven := heap.Iter().Any(func(v int) bool { return v%2 == 0 })
@@ -37,7 +37,7 @@ func TestSeqHeap_Any(t *testing.T) {
 		t.Error("Expected no even elements")
 	}
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(1, 2, 3, 5)
 
 	anyEven2 := heap2.Iter().Any(func(v int) bool { return v%2 == 0 })
@@ -47,10 +47,10 @@ func TestSeqHeap_Any(t *testing.T) {
 }
 
 func TestSeqHeap_Chain(t *testing.T) {
-	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1 := NewHeap(cmp.Cmp[int])
 	heap1.Push(3, 1, 2)
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(6, 4, 5)
 
 	result := make([]int, 0)
@@ -65,10 +65,10 @@ func TestSeqHeap_Chain(t *testing.T) {
 }
 
 func TestSeqHeap_Chunks(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5, 6)
 
-	chunks := heap.Iter().Chunks(2).Collect()
+	chunks := heap.Iter().Chunks(2).Collect().Slices()
 
 	if len(chunks) != 3 {
 		t.Errorf("Expected 3 chunks, got %d", len(chunks))
@@ -83,11 +83,11 @@ func TestSeqHeap_Chunks(t *testing.T) {
 }
 
 func TestSeqHeap_Collect(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5)
 
 	// Collect with reverse comparison (max heap)
-	collected := heap.Iter().Collect(func(a, b int) cmp.Ordering {
+	collected := heap.Iter().Collect().Heap(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // reverse comparison
 	})
 
@@ -109,7 +109,7 @@ func TestSeqHeap_Collect(t *testing.T) {
 }
 
 func TestSeqHeap_Count(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	count := heap.Iter().Count()
@@ -119,15 +119,15 @@ func TestSeqHeap_Count(t *testing.T) {
 }
 
 func TestSeqHeap_Counter(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 1, 3, 2, 1)
 
-	counts := make(map[int]g.Int)
-	heap.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+	counts := make(map[int]Int)
+	heap.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v Int) {
 		counts[k] = v
 	})
 
-	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
+	expected := map[int]Int{1: 3, 2: 2, 3: 1}
 	for k, v := range expected {
 		if counts[k] != v {
 			t.Errorf("Counter for %d: expected %d, got %d", k, v, counts[k])
@@ -136,7 +136,7 @@ func TestSeqHeap_Counter(t *testing.T) {
 }
 
 func TestSeqHeap_Dedup(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 1, 2, 2, 3, 3, 3)
 
 	result := make([]int, 0)
@@ -151,15 +151,15 @@ func TestSeqHeap_Dedup(t *testing.T) {
 }
 
 func TestSeqHeap_Enumerate(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[string])
+	heap := NewHeap(cmp.Cmp[string])
 	heap.Push("c", "a", "b")
 
-	pairs := make(map[g.Int]string)
-	heap.Iter().Enumerate().ForEach(func(i g.Int, v string) {
+	pairs := make(map[Int]string)
+	heap.Iter().Enumerate().ForEach(func(i Int, v string) {
 		pairs[i] = v
 	})
 
-	expected := map[g.Int]string{0: "a", 1: "b", 2: "c"} // sorted order
+	expected := map[Int]string{0: "a", 1: "b", 2: "c"} // sorted order
 	for k, v := range expected {
 		if pairs[k] != v {
 			t.Errorf("Enumerate at %d: expected %s, got %s", k, v, pairs[k])
@@ -168,7 +168,7 @@ func TestSeqHeap_Enumerate(t *testing.T) {
 }
 
 func TestSeqHeap_Filter(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5, 6)
 
 	result := make([]int, 0)
@@ -183,7 +183,7 @@ func TestSeqHeap_Filter(t *testing.T) {
 }
 
 func TestSeqHeap_Exclude(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	result := make([]int, 0)
@@ -198,7 +198,7 @@ func TestSeqHeap_Exclude(t *testing.T) {
 }
 
 func TestSeqHeap_Find(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	found := heap.Iter().Find(func(v int) bool { return v > 3 })
@@ -213,7 +213,7 @@ func TestSeqHeap_Find(t *testing.T) {
 }
 
 func TestSeqHeap_Fold(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	sum := heap.Iter().Fold(0, func(acc, val int) int {
@@ -226,7 +226,7 @@ func TestSeqHeap_Fold(t *testing.T) {
 }
 
 func TestSeqHeap_Reduce(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	product := heap.Iter().Reduce(func(a, b int) int {
@@ -243,7 +243,7 @@ func TestSeqHeap_Reduce(t *testing.T) {
 }
 
 func TestSeqHeap_ForEach(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
 	sum := 0
@@ -257,7 +257,7 @@ func TestSeqHeap_ForEach(t *testing.T) {
 }
 
 func TestSeqHeap_Map(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
 	result := make([]int, 0)
@@ -274,7 +274,7 @@ func TestSeqHeap_Map(t *testing.T) {
 }
 
 func TestSeqHeap_Skip(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(5, 2, 8, 1, 9)
 
 	result := make([]int, 0)
@@ -289,7 +289,7 @@ func TestSeqHeap_Skip(t *testing.T) {
 }
 
 func TestSeqHeap_Take(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(5, 2, 8, 1, 9)
 
 	result := make([]int, 0)
@@ -304,7 +304,7 @@ func TestSeqHeap_Take(t *testing.T) {
 }
 
 func TestSeqHeap_StepBy(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5, 6)
 
 	result := make([]int, 0)
@@ -319,7 +319,7 @@ func TestSeqHeap_StepBy(t *testing.T) {
 }
 
 func TestSeqHeap_SortBy(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[string])
+	heap := NewHeap(cmp.Cmp[string])
 	heap.Push("apple", "banana", "cherry")
 
 	// Sort by string length (ascending)
@@ -337,7 +337,7 @@ func TestSeqHeap_SortBy(t *testing.T) {
 }
 
 func TestSeqHeap_MaxBy_MinBy(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[string])
+	heap := NewHeap(cmp.Cmp[string])
 	heap.Push("a", "bb", "ccc", "dd")
 
 	// Find max by string length
@@ -360,7 +360,7 @@ func TestSeqHeap_MaxBy_MinBy(t *testing.T) {
 }
 
 func TestSeqHeap_Unique(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 1, 3, 2, 4)
 
 	result := make([]int, 0)
@@ -376,10 +376,10 @@ func TestSeqHeap_Unique(t *testing.T) {
 }
 
 func TestSeqHeap_Windows(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
-	windows := heap.Iter().Windows(3).Collect()
+	windows := heap.Iter().Windows(3).Collect().Slices()
 
 	if len(windows) != 3 { // [1,2,3], [2,3,4], [3,4,5]
 		t.Errorf("Expected 3 windows, got %d", len(windows))
@@ -393,10 +393,10 @@ func TestSeqHeap_Windows(t *testing.T) {
 }
 
 func TestSeqHeap_Zip(t *testing.T) {
-	heap1 := g.NewHeap(cmp.Cmp[int])
+	heap1 := NewHeap(cmp.Cmp[int])
 	heap1.Push(1, 2, 3)
 
-	heap2 := g.NewHeap(cmp.Cmp[int])
+	heap2 := NewHeap(cmp.Cmp[int])
 	heap2.Push(4, 5, 6)
 
 	pairs := make([][2]int, 0)
@@ -411,7 +411,7 @@ func TestSeqHeap_Zip(t *testing.T) {
 }
 
 func TestSeqHeap_Intersperse(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
 	result := make([]int, 0)
@@ -427,7 +427,7 @@ func TestSeqHeap_Intersperse(t *testing.T) {
 
 func TestSeqHeap_First(t *testing.T) {
 	t.Run("first element exists", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(50, 20, 30, 40, 10)
 
 		first := heap.Iter().First()
@@ -440,7 +440,7 @@ func TestSeqHeap_First(t *testing.T) {
 	})
 
 	t.Run("empty heap", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 
 		first := heap.Iter().First()
 
@@ -450,7 +450,7 @@ func TestSeqHeap_First(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(42)
 
 		first := heap.Iter().First()
@@ -465,7 +465,7 @@ func TestSeqHeap_First(t *testing.T) {
 
 func TestSeqHeap_Last(t *testing.T) {
 	t.Run("last element exists", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(50, 20, 30, 40, 10)
 
 		last := heap.Iter().Last()
@@ -476,7 +476,7 @@ func TestSeqHeap_Last(t *testing.T) {
 	})
 
 	t.Run("empty heap", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 
 		last := heap.Iter().Last()
 
@@ -486,7 +486,7 @@ func TestSeqHeap_Last(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(42)
 
 		last := heap.Iter().Last()
@@ -500,7 +500,7 @@ func TestSeqHeap_Last(t *testing.T) {
 }
 
 func TestSeqHeap_Nth(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(50, 20, 30, 40, 10)
 
 	second := heap.Iter().Nth(1)
@@ -515,14 +515,12 @@ func TestSeqHeap_Nth(t *testing.T) {
 }
 
 func TestSeqHeap_Partition(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5, 6)
 
-	evens, odds := heap.Iter().Partition(
-		func(v int) bool { return v%2 == 0 },
-		cmp.Cmp[int],                                         // min heap for evens
-		func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }, // max heap for odds
-	)
+	evenValues, oddValues := heap.Iter().Partition(func(v int) bool { return v%2 == 0 })
+	evens := evenValues.Iter().Collect().Heap(cmp.Cmp)                                            // min heap for evens
+	odds := oddValues.Iter().Collect().Heap(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) }) // max heap for odds
 
 	if evens.Len() != 3 || odds.Len() != 3 {
 		t.Errorf("Expected both heaps to have 3 elements, got evens=%d, odds=%d", evens.Len(), odds.Len())
@@ -550,7 +548,7 @@ func TestSeqHeap_Partition(t *testing.T) {
 }
 
 func TestSeqHeap_Context(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -568,7 +566,7 @@ func TestSeqHeap_Context(t *testing.T) {
 }
 
 func TestSeqHeap_Pull(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 2)
 
 	next, stop := heap.Iter().Pull()
@@ -586,7 +584,7 @@ func TestSeqHeap_Pull(t *testing.T) {
 }
 
 func TestSeqHeap_ToChan(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(3, 1, 4, 1, 5)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -606,7 +604,7 @@ func TestSeqHeap_ToChan(t *testing.T) {
 }
 
 func TestSeqHeap_Inspect(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
 	inspected := make([]int, 0)
@@ -623,10 +621,10 @@ func TestSeqHeap_Inspect(t *testing.T) {
 }
 
 func TestSeqHeap_Combinations(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
-	combos := heap.Iter().Combinations(2).Collect()
+	combos := heap.Iter().Combinations(2).Collect().Slices()
 
 	if len(combos) != 3 { // C(3,2) = 3
 		t.Errorf("Expected 3 combinations, got %d", len(combos))
@@ -640,10 +638,10 @@ func TestSeqHeap_Combinations(t *testing.T) {
 }
 
 func TestSeqHeap_Permutations(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
-	perms := heap.Iter().Permutations().Collect()
+	perms := heap.Iter().Permutations().Collect().Slices()
 
 	if len(perms) != 6 { // 3! = 6
 		t.Errorf("Expected 6 permutations, got %d", len(perms))
@@ -660,10 +658,10 @@ func TestSeqHeap_Permutations(t *testing.T) {
 
 func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 	// Test Counter on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
-	counts := make(map[int]g.Int)
+	empty := NewHeap(cmp.Cmp[int])
+	counts := make(map[int]Int)
 
-	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v Int) {
 		counts[k] = v
 	})
 
@@ -673,10 +671,10 @@ func TestSeqHeap_CounterEdgeCases(t *testing.T) {
 }
 
 func TestSeqHeap_ChunkBy(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 1, 2, 3, 2, 3, 4)
 
-	groups := heap.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
+	groups := heap.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect().Slices()
 
 	if len(groups) == 0 {
 		t.Error("Expected at least one group")
@@ -694,7 +692,7 @@ func TestSeqHeap_ChunkBy(t *testing.T) {
 }
 
 func TestSeqHeap_Cycle(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2)
 
 	result := make([]int, 0)
@@ -710,7 +708,7 @@ func TestSeqHeap_Cycle(t *testing.T) {
 
 func TestSeqHeap_DedupEdgeCases(t *testing.T) {
 	// Test Dedup on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
+	empty := NewHeap(cmp.Cmp[int])
 	result := make([]int, 0)
 
 	empty.Iter().Dedup().ForEach(func(v int) {
@@ -722,7 +720,7 @@ func TestSeqHeap_DedupEdgeCases(t *testing.T) {
 	}
 
 	// Test Dedup on single element
-	single := g.NewHeap(cmp.Cmp[int])
+	single := NewHeap(cmp.Cmp[int])
 	single.Push(42)
 	result = nil
 
@@ -738,7 +736,7 @@ func TestSeqHeap_DedupEdgeCases(t *testing.T) {
 
 func TestSeqHeap_Flatten(t *testing.T) {
 	// Test Flatten with heap containing nested any elements
-	heap := g.NewHeap(func(a, b any) cmp.Ordering {
+	heap := NewHeap(func(a, b any) cmp.Ordering {
 		// Simple comparison for any type
 		aStr := fmt.Sprintf("%v", a)
 		bStr := fmt.Sprintf("%v", b)
@@ -759,7 +757,7 @@ func TestSeqHeap_Flatten(t *testing.T) {
 }
 
 func TestSeqHeap_Range(t *testing.T) {
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	result := make([]int, 0)
@@ -776,14 +774,14 @@ func TestSeqHeap_Range(t *testing.T) {
 
 func TestSeqHeapFlatMap(t *testing.T) {
 	// Test FlatMap with expanding elements
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3)
 
-	result := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
-		subHeap := g.NewHeap(cmp.Cmp[int])
+	result := heap.Iter().FlatMap(func(n int) Seq[int] {
+		subHeap := NewHeap(cmp.Cmp[int])
 		subHeap.Push(n, n*10)
 		return subHeap.Iter()
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	// Count elements - should have 6 total (2 per original element)
 	count := 0
@@ -805,32 +803,32 @@ func TestSeqHeapFlatMap(t *testing.T) {
 	}
 
 	// Test FlatMap with empty results
-	emptyResult := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
-		return g.NewHeap(cmp.Cmp[int]).Iter()
-	}).Collect(cmp.Cmp[int])
+	emptyResult := heap.Iter().FlatMap(func(n int) Seq[int] {
+		return NewHeap(cmp.Cmp[int]).Iter()
+	}).Collect().Heap(cmp.Cmp)
 
 	if !emptyResult.IsEmpty() {
 		t.Errorf("FlatMap empty: expected empty heap, got %d elements", emptyResult.Len())
 	}
 
 	// Test FlatMap on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
-	emptyFlatMapped := empty.Iter().FlatMap(func(n int) g.SeqHeap[int] {
-		subHeap := g.NewHeap(cmp.Cmp[int])
+	empty := NewHeap(cmp.Cmp[int])
+	emptyFlatMapped := empty.Iter().FlatMap(func(n int) Seq[int] {
+		subHeap := NewHeap(cmp.Cmp[int])
 		subHeap.Push(n)
 		return subHeap.Iter()
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	if !emptyFlatMapped.IsEmpty() {
 		t.Errorf("FlatMap empty input: expected empty heap, got %d elements", emptyFlatMapped.Len())
 	}
 
 	// Test FlatMap with single elements
-	singleResult := heap.Iter().FlatMap(func(n int) g.SeqHeap[int] {
-		subHeap := g.NewHeap(cmp.Cmp[int])
+	singleResult := heap.Iter().FlatMap(func(n int) Seq[int] {
+		subHeap := NewHeap(cmp.Cmp[int])
 		subHeap.Push(n * 2)
 		return subHeap.Iter()
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	singleCount := 0
 	singleResult.Iter().ForEach(func(v int) { singleCount++ })
@@ -842,15 +840,15 @@ func TestSeqHeapFlatMap(t *testing.T) {
 
 func TestSeqHeapFilterMap(t *testing.T) {
 	// Test FilterMap with transformation and filtering
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
-	result := heap.Iter().FilterMap(func(n int) g.Option[int] {
+	result := heap.Iter().FilterMap(func(n int) Option[int] {
 		if n%2 == 0 {
-			return g.Some(n * 10)
+			return Some(n * 10)
 		}
-		return g.None[int]()
-	}).Collect(cmp.Cmp[int])
+		return None[int]()
+	}).Collect().Heap(cmp.Cmp)
 
 	// Should have 2 even numbers (2, 4) transformed to (20, 40)
 	expected := []int{20, 40}
@@ -874,18 +872,18 @@ func TestSeqHeapFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap that filters all elements
-	allFiltered := heap.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.None[int]()
-	}).Collect(cmp.Cmp[int])
+	allFiltered := heap.Iter().FilterMap(func(n int) Option[int] {
+		return None[int]()
+	}).Collect().Heap(cmp.Cmp)
 
 	if !allFiltered.IsEmpty() {
 		t.Errorf("FilterMap all filtered: expected empty heap, got %d elements", allFiltered.Len())
 	}
 
 	// Test FilterMap that keeps all elements with transformation
-	allKept := heap.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.Some(n * 2)
-	}).Collect(cmp.Cmp[int])
+	allKept := heap.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * 2)
+	}).Collect().Heap(cmp.Cmp)
 
 	keptCount := 0
 	allKept.Iter().ForEach(func(v int) { keptCount++ })
@@ -895,26 +893,26 @@ func TestSeqHeapFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap on empty heap
-	empty := g.NewHeap(cmp.Cmp[int])
-	emptyFiltered := empty.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.Some(n * 2)
-	}).Collect(cmp.Cmp[int])
+	empty := NewHeap(cmp.Cmp[int])
+	emptyFiltered := empty.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * 2)
+	}).Collect().Heap(cmp.Cmp)
 
 	if !emptyFiltered.IsEmpty() {
 		t.Errorf("FilterMap empty input: expected empty heap, got %d elements", emptyFiltered.Len())
 	}
 
 	// Test FilterMap with string processing
-	stringHeap := g.NewHeap(cmp.Cmp[string])
+	stringHeap := NewHeap(cmp.Cmp[string])
 	stringHeap.Push("hello", "", "world", "   ", "go")
 
-	processedWords := stringHeap.Iter().FilterMap(func(s string) g.Option[string] {
-		trimmed := g.String(s).Trim()
+	processedWords := stringHeap.Iter().FilterMap(func(s string) Option[string] {
+		trimmed := String(s).Trim()
 		if !trimmed.IsEmpty() {
-			return g.Some(string(trimmed.Upper()))
+			return Some(string(trimmed.Upper()))
 		}
-		return g.None[string]()
-	}).Collect(cmp.Cmp[string])
+		return None[string]()
+	}).Collect().Heap(cmp.Cmp)
 
 	// Should have 3 valid words: "HELLO", "WORLD", "GO"
 	wordCount := 0
@@ -938,12 +936,12 @@ func TestSeqHeapFilterMap(t *testing.T) {
 
 func TestSeqHeapScan(t *testing.T) {
 	// Test Scan with sum accumulation
-	heap := g.NewHeap(cmp.Cmp[int])
+	heap := NewHeap(cmp.Cmp[int])
 	heap.Push(1, 2, 3, 4, 5)
 
 	result := heap.Iter().Scan(0, func(acc, val int) int {
 		return acc + val
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	// Should have 6 elements: initial value + 5 accumulated values
 	count := 0
@@ -966,12 +964,12 @@ func TestSeqHeapScan(t *testing.T) {
 	}
 
 	// Test Scan with multiplication
-	small := g.NewHeap(cmp.Cmp[int])
+	small := NewHeap(cmp.Cmp[int])
 	small.Push(2, 3, 4)
 
 	product := small.Iter().Scan(1, func(acc, val int) int {
 		return acc * val
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	productCount := 0
 	product.Iter().ForEach(func(v int) { productCount++ })
@@ -993,10 +991,10 @@ func TestSeqHeapScan(t *testing.T) {
 	}
 
 	// Test Scan on empty heap (should just return initial value)
-	empty := g.NewHeap(cmp.Cmp[int])
+	empty := NewHeap(cmp.Cmp[int])
 	emptyScanned := empty.Iter().Scan(42, func(acc, val int) int {
 		return acc + val
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	if emptyScanned.Len() != 1 {
 		t.Errorf("Scan empty length: expected 1, got %d", emptyScanned.Len())
@@ -1015,12 +1013,12 @@ func TestSeqHeapScan(t *testing.T) {
 	}
 
 	// Test Scan with single element
-	single := g.NewHeap(cmp.Cmp[int])
+	single := NewHeap(cmp.Cmp[int])
 	single.Push(10)
 
 	singleScanned := single.Iter().Scan(5, func(acc, val int) int {
 		return acc + val
-	}).Collect(cmp.Cmp[int])
+	}).Collect().Heap(cmp.Cmp)
 
 	if singleScanned.Len() != 2 { // initial + 1 element
 		t.Errorf("Scan single length: expected 2, got %d", singleScanned.Len())
@@ -1035,12 +1033,12 @@ func TestSeqHeapScan(t *testing.T) {
 	}
 
 	// Test Scan with string concatenation
-	stringHeap := g.NewHeap(cmp.Cmp[string])
+	stringHeap := NewHeap(cmp.Cmp[string])
 	stringHeap.Push("a", "b", "c")
 
 	concatenated := stringHeap.Iter().Scan("", func(acc, val string) string {
 		return acc + val
-	}).Collect(cmp.Cmp[string])
+	}).Collect().Heap(cmp.Cmp)
 
 	concatCount := 0
 	concatenated.Iter().ForEach(func(s string) { concatCount++ })
@@ -1064,7 +1062,7 @@ func TestSeqHeapScan(t *testing.T) {
 
 func TestSeqHeapNext(t *testing.T) {
 	t.Run("Next with non-empty iterator", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(3, 1, 4, 2, 5)
 		iter := heap.Iter()
 
@@ -1081,14 +1079,14 @@ func TestSeqHeapNext(t *testing.T) {
 		}
 
 		// Check that remaining elements can be collected
-		remaining := iter.Collect(cmp.Cmp[int])
+		remaining := iter.Collect().Heap(cmp.Cmp)
 		if remaining.Len() != 3 {
 			t.Errorf("Expected 3 remaining elements, got %d", remaining.Len())
 		}
 	})
 
 	t.Run("Next with empty iterator", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		iter := heap.Iter()
 
 		result := iter.Next()
@@ -1098,7 +1096,7 @@ func TestSeqHeapNext(t *testing.T) {
 	})
 
 	t.Run("Next until exhausted", func(t *testing.T) {
-		heap := g.NewHeap(cmp.Cmp[int])
+		heap := NewHeap(cmp.Cmp[int])
 		heap.Push(1, 2)
 		iter := heap.Iter()
 
@@ -1118,7 +1116,7 @@ func TestSeqHeapNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect(cmp.Cmp[int])
+		remaining := iter.Collect().Heap(cmp.Cmp)
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty heap, got length %d", remaining.Len())
 		}
@@ -1126,9 +1124,9 @@ func TestSeqHeapNext(t *testing.T) {
 }
 
 func TestSeqHeapTryMap(t *testing.T) {
-	got := g.HeapOf(cmp.Cmp[g.String], "1", "2", "3").Iter().
-		TryMap(g.String.TryInt).
-		SumBy(func(v g.Int) g.Int { return v })
+	got := HeapOf(cmp.Cmp[String], "1", "2", "3").Iter().
+		TryMap(String.TryInt).
+		SumBy(func(v Int) Int { return v })
 	if got.IsErr() || got.Ok() != 6 {
 		t.Fatalf("Heap.TryMap = %v", got)
 	}

@@ -49,7 +49,7 @@ func main() {
 		SumBy(func(_ String, v Int) Int { return v }).
 		Println() // 6
 
-	// Zipped pairs (SeqPairs): dot-product of two slices
+	// Zipped pairs (Seq2): dot-product of two slices
 	xs := SliceOf[Int](1, 2, 3)
 	ys := SliceOf[Int](4, 5, 6)
 	xs.Iter().

@@ -628,7 +628,7 @@ func TestBytesChunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			chunks := tt.input.Chunks(tt.size).Collect()
+			chunks := SliceOf(tt.input.Chunks(tt.size)...).Iter().Collect().Slice()
 
 			if chunks.Len() != Int(len(tt.expected)) {
 				t.Fatalf("Bytes(%q).Chunks(%d) yielded %d chunks; want %d", tt.input, tt.size, chunks.Len(), len(tt.expected))
@@ -646,7 +646,7 @@ func TestBytesChunks(t *testing.T) {
 func TestBytesChunksEarlyBreak(t *testing.T) {
 	var collected []Bytes
 
-	for chunk := range Bytes("abcdef").Chunks(2) {
+	for _, chunk := range Bytes("abcdef").Chunks(2) {
 		collected = append(collected, chunk)
 		if len(collected) == 2 {
 			break
@@ -809,8 +809,8 @@ func TestBytesTextStringParity(t *testing.T) {
 	t.Run("Chunks", func(t *testing.T) {
 		for _, s := range inputs {
 			for _, size := range []Int{-1, 0, 1, 2, 3, 100} {
-				bChunks := Bytes(s).Chunks(size).Collect()
-				sChunks := String(s).Chunks(size).Collect()
+				bChunks := SliceOf(Bytes(s).Chunks(size)...).Iter().Collect().Slice()
+				sChunks := SliceOf(String(s).Chunks(size)...).Iter().Collect().Slice()
 
 				if bChunks.Len() != sChunks.Len() {
 					t.Errorf(

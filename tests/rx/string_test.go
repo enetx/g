@@ -1,6 +1,7 @@
-package g_test
+package rx_test
 
 import (
+	"github.com/enetx/g/rx"
 	"reflect"
 	"regexp"
 	"testing"
@@ -41,7 +42,7 @@ func TestToRegexp(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Regexp().Compile()
+			result := rx.New(tt.input)
 			if tt.expectsOk {
 				if !result.IsOk() {
 					t.Errorf("Expected result to be OK, got error: %v", result.Err())
@@ -107,10 +108,78 @@ func TestRxReplace(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().Replace(tc.pattern, tc.newString)
+		result := rx.From(tc.pattern).ReplaceAll(tc.input, tc.newString)
 		if result != tc.expected {
 			t.Errorf("Expected %s, but got %s for input %s", tc.expected, result, tc.input)
 		}
+	}
+}
+
+func TestRxReplaceCaptures(t *testing.T) {
+	re := rx.New(`(\w+)@(\w+)`).Unwrap()
+	input := String("a@b c@d")
+	repl := String("${2}@${1}")
+
+	// Replace expands $-references but rewrites only the FIRST match.
+	if got := re.Replace(input, repl); got != "b@a c@d" {
+		t.Errorf("Replace: expected %q, but got %q for input %q", "b@a c@d", got, input)
+	}
+
+	// ReplaceAll expands $-references in every match.
+	if got := re.ReplaceAll(input, repl); got != "b@a d@c" {
+		t.Errorf("ReplaceAll: expected %q, but got %q for input %q", "b@a d@c", got, input)
+	}
+}
+
+func TestRxReplaceFirst(t *testing.T) {
+	testCases := []struct {
+		name     string
+		pattern  *regexp.Regexp
+		input    String
+		repl     String
+		expected String
+	}{
+		// Test case 1: Multiple matches, only the first is replaced
+		{
+			name:     "OnlyFirstMatch",
+			pattern:  regexp.MustCompile(`\d+`),
+			input:    "a1 b2 c3",
+			repl:     "X",
+			expected: "aX b2 c3",
+		},
+		// Test case 2: $-expansion of numbered and named groups in repl
+		{
+			name:     "CaptureExpansion",
+			pattern:  regexp.MustCompile(`(?P<word>\w+)!`),
+			input:    "hi! yo!",
+			repl:     "<${word}>$1",
+			expected: "<hi>hi yo!",
+		},
+		// Test case 3: No match returns the input unchanged
+		{
+			name:     "NoMatch",
+			pattern:  regexp.MustCompile(`z+`),
+			input:    "abc",
+			repl:     "X",
+			expected: "abc",
+		},
+		// Test case 4: Zero-width first match inserts repl at the start
+		{
+			name:     "ZeroWidthFirstMatch",
+			pattern:  regexp.MustCompile(`x*`),
+			input:    "abc",
+			repl:     "-",
+			expected: "-abc",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := rx.From(tc.pattern).Replace(tc.input, tc.repl)
+			if result != tc.expected {
+				t.Errorf("Expected %q, but got %q for input %q", tc.expected, result, tc.input)
+			}
+		})
 	}
 }
 
@@ -147,7 +216,7 @@ func TestRxFind(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().Find(tc.pattern)
+		result := rx.From(tc.pattern).Find(tc.input)
 		if result.IsSome() {
 			if result.Some() != tc.expected.Some() {
 				t.Errorf("Expected %s, but got %s for input %s", tc.expected.Some(), result.Some(), tc.input)
@@ -177,7 +246,7 @@ func TestRxFindEmptyMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := tc.input.Regexp().Find(tc.pattern)
+			result := rx.From(tc.pattern).Find(tc.input)
 			if result.IsSome() != tc.wantSome {
 				t.Fatalf("Find(%v) IsSome = %v, want %v", tc.pattern, result.IsSome(), tc.wantSome)
 			}
@@ -222,7 +291,7 @@ func TestRxMatch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().Match(tc.pattern)
+		result := rx.From(tc.pattern).IsMatch(tc.input)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -232,37 +301,37 @@ func TestRxMatch(t *testing.T) {
 func TestRxMatchAny(t *testing.T) {
 	testCases := []struct {
 		input    String
-		patterns Slice[*regexp.Regexp]
+		patterns []rx.Regex
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\bworld\b`))},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, one matches
 		{
 			input:    "Hello, world!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d+`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\bworld\b`)), rx.From(regexp.MustCompile(`\d+`))},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, none matches
 		{
 			input:    "Hello, world!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\buniverse\b`), regexp.MustCompile(`\d`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\buniverse\b`)), rx.From(regexp.MustCompile(`\d`))},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\d`))},
 			expected: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().MatchAny(tc.patterns...)
+		result := rx.MatchAny(tc.input, tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -272,37 +341,37 @@ func TestRxMatchAny(t *testing.T) {
 func TestRxMatchAll(t *testing.T) {
 	testCases := []struct {
 		input    String
-		patterns Slice[*regexp.Regexp]
+		patterns []rx.Regex
 		expected bool
 	}{
 		// Test case 1: Regular match
 		{
 			input:    "Hello, world!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\bworld\b`))},
 			expected: true,
 		},
 		// Test case 2: Multiple patterns, all match
 		{
 			input:    "Hello, 12345!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bHello\b`), regexp.MustCompile(`\d+`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\bHello\b`)), rx.From(regexp.MustCompile(`\d+`))},
 			expected: true,
 		},
 		// Test case 3: Multiple patterns, some match
 		{
 			input:    "Hello, world!",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\bworld\b`), regexp.MustCompile(`\d`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\bworld\b`)), rx.From(regexp.MustCompile(`\d`))},
 			expected: false,
 		},
 		// Test case 4: Empty input
 		{
 			input:    "",
-			patterns: Slice[*regexp.Regexp]{regexp.MustCompile(`\d`)},
+			patterns: []rx.Regex{rx.From(regexp.MustCompile(`\d`))},
 			expected: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().MatchAll(tc.patterns...)
+		result := rx.MatchAll(tc.input, tc.patterns...)
 		if result != tc.expected {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -342,7 +411,7 @@ func TestRxSplit(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().Split(tc.pattern)
+		result := rx.From(tc.pattern).Split(tc.input).Collect().Slice()
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
 		}
@@ -351,44 +420,44 @@ func TestRxSplit(t *testing.T) {
 
 func TestRxSplitN(t *testing.T) {
 	testCases := []struct {
-		expected Option[Slice[String]]
+		expected Slice[String]
 		input    String
 		pattern  *regexp.Regexp
 		n        Int
 	}{
-		// Test case 1: Regular split with n = 2
+		// Test case 1: Regular split with n = 2 (remainder stays unsplit)
 		{
 			input:    "one,two,three",
 			pattern:  regexp.MustCompile(`,`),
 			n:        2,
-			expected: Some(Slice[String]{"one", "two,three"}),
+			expected: Slice[String]{"one", "two,three"},
 		},
-		// Test case 2: Split with multiple patterns with n = 0
+		// Test case 2: n = 0 yields nothing
 		{
 			input:    "1, 2, 3, 4",
 			pattern:  regexp.MustCompile(`\s*,\s*`),
 			n:        0,
-			expected: None[Slice[String]](),
+			expected: Slice[String]{},
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  regexp.MustCompile(`,`),
 			n:        1,
-			expected: Some(Slice[String]{""}),
+			expected: Slice[String]{""},
 		},
 		// Test case 4: No match with n = -1
 		{
 			input:    "abcdefgh",
 			pattern:  regexp.MustCompile(`,`),
 			n:        -1,
-			expected: Some(Slice[String]{"abcdefgh"}),
+			expected: Slice[String]{"abcdefgh"},
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().SplitN(tc.pattern, tc.n)
-		if !reflect.DeepEqual(result, tc.expected) {
+		result := rx.From(tc.pattern).SplitN(tc.input, tc.n).Collect().Slice()
+		if !result.Eq(tc.expected) {
 			t.Errorf("Expected %v, but got %v for input %s with n = %d", tc.expected, result, tc.input, tc.n)
 		}
 	}
@@ -421,7 +490,7 @@ func TestRxIndex(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().Index(&tc.pattern)
+		result := rx.From(&tc.pattern).Index(tc.input)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -436,7 +505,7 @@ func TestRxIndex(t *testing.T) {
 
 func TestRxFindAll(t *testing.T) {
 	testCases := []struct {
-		expected Option[Slice[String]]
+		expected Slice[String]
 		input    String
 		pattern  regexp.Regexp
 	}{
@@ -444,25 +513,25 @@ func TestRxFindAll(t *testing.T) {
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: Some(Slice[String]{"Hello", "Hello"}),
+			expected: Slice[String]{"Hello", "Hello"},
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: None[Slice[String]](),
+			expected: Slice[String]{},
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: None[Slice[String]](),
+			expected: Slice[String]{},
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().FindAll(&tc.pattern)
-		if !reflect.DeepEqual(result, tc.expected) {
+		result := rx.From(&tc.pattern).FindIter(tc.input).Collect().Slice()
+		if !result.Eq(tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
 				tc.expected,
@@ -474,9 +543,9 @@ func TestRxFindAll(t *testing.T) {
 	}
 }
 
-func TestRxFindAllN(t *testing.T) {
+func TestRxFindIterTake(t *testing.T) {
 	testCases := []struct {
-		expected Option[Slice[String]]
+		expected Slice[String]
 		input    String
 		pattern  regexp.Regexp
 		n        Int
@@ -486,27 +555,32 @@ func TestRxFindAllN(t *testing.T) {
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        2,
-			expected: Some(Slice[String]{"Hello", "Hello"}),
+			expected: Slice[String]{"Hello", "Hello"},
 		},
-		// Test case 2: No match with n = -1
+		// Test case 2: No match with n = -1 (no limit)
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
 			n:        -1,
-			expected: None[Slice[String]](),
+			expected: Slice[String]{},
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        1,
-			expected: None[Slice[String]](),
+			expected: Slice[String]{},
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().FindAllN(&tc.pattern, tc.n)
-		if !reflect.DeepEqual(result, tc.expected) {
+		seq := rx.From(&tc.pattern).FindIter(tc.input)
+		if tc.n >= 0 {
+			seq = seq.Take(tc.n)
+		}
+
+		result := seq.Collect().Slice()
+		if !result.Eq(tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s and n = %d",
 				tc.expected,
@@ -546,7 +620,7 @@ func TestRxFindSubmatch(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().FindSubmatch(&tc.pattern)
+		result := rx.From(&tc.pattern).Captures(tc.input)
 		if !reflect.DeepEqual(result, tc.expected) {
 			t.Errorf(
 				"Expected %v, but got %v for input %s with pattern %s",
@@ -559,9 +633,9 @@ func TestRxFindSubmatch(t *testing.T) {
 	}
 }
 
-func TestRxFindAllSubmatch(t *testing.T) {
+func TestRxCapturesIter(t *testing.T) {
 	testCases := []struct {
-		expected Option[Slice[Slice[String]]]
+		expected Slice[Slice[String]]
 		input    String
 		pattern  regexp.Regexp
 	}{
@@ -569,39 +643,39 @@ func TestRxFindAllSubmatch(t *testing.T) {
 		{
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello, (\w+)!`),
-			expected: Some(Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
+			expected: Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}},
 		},
 		// Test case 2: No match
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
-			expected: None[Slice[Slice[String]]](),
+			expected: Slice[Slice[String]]{},
 		},
 		// Test case 3: Empty input
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
-			expected: None[Slice[Slice[String]]](),
+			expected: Slice[Slice[String]]{},
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().FindAllSubmatch(&tc.pattern)
-		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf(
-				"Expected %v, but got %v for input %s with pattern %s",
-				tc.expected,
-				result,
-				tc.input,
-				tc.pattern.String(),
-			)
+		result := rx.From(&tc.pattern).CapturesIter(tc.input).Collect().Slice()
+		if result.Len() != tc.expected.Len() {
+			t.Fatalf("Expected %v, but got %v for input %s", tc.expected, result, tc.input)
+		}
+
+		for i := range tc.expected {
+			if !result[i].Eq(tc.expected[i]) {
+				t.Errorf("group %d: expected %v, got %v", i, tc.expected[i], result[i])
+			}
 		}
 	}
 }
 
-func TestRxFindAllSubmatchN(t *testing.T) {
+func TestRxCapturesIterTake(t *testing.T) {
 	testCases := []struct {
-		expected Option[Slice[Slice[String]]]
+		expected Slice[Slice[String]]
 		input    String
 		pattern  regexp.Regexp
 		n        Int
@@ -611,35 +685,39 @@ func TestRxFindAllSubmatchN(t *testing.T) {
 			input:    "Hello, World! Hello, Universe!",
 			pattern:  *regexp.MustCompile(`Hello, (\w+)!`),
 			n:        2,
-			expected: Some(Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}}),
+			expected: Slice[Slice[String]]{{"Hello, World!", "World"}, {"Hello, Universe!", "Universe"}},
 		},
-		// Test case 2: No match with n = -1
+		// Test case 2: No match with n = -1 (no limit)
 		{
 			input:    "Hello, World!",
 			pattern:  *regexp.MustCompile(`Earth`),
 			n:        -1,
-			expected: None[Slice[Slice[String]]](),
+			expected: Slice[Slice[String]]{},
 		},
 		// Test case 3: Empty input with n = 1
 		{
 			input:    "",
 			pattern:  *regexp.MustCompile(`Hello`),
 			n:        1,
-			expected: None[Slice[Slice[String]]](),
+			expected: Slice[Slice[String]]{},
 		},
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.Regexp().FindAllSubmatchN(&tc.pattern, tc.n)
-		if !reflect.DeepEqual(result, tc.expected) {
-			t.Errorf(
-				"Expected %v, but got %v for input %s with pattern %s and n = %d",
-				tc.expected,
-				result,
-				tc.input,
-				tc.pattern.String(),
-				tc.n,
-			)
+		seq := rx.From(&tc.pattern).CapturesIter(tc.input)
+		if tc.n >= 0 {
+			seq = seq.Take(tc.n)
+		}
+
+		result := seq.Collect().Slice()
+		if result.Len() != tc.expected.Len() {
+			t.Fatalf("Expected %v, but got %v for input %s and n = %d", tc.expected, result, tc.input, tc.n)
+		}
+
+		for i := range tc.expected {
+			if !result[i].Eq(tc.expected[i]) {
+				t.Errorf("group %d: expected %v, got %v", i, tc.expected[i], result[i])
+			}
 		}
 	}
 }
@@ -648,7 +726,7 @@ func TestString_Regexp_Find_Additional(t *testing.T) {
 	testStr := String("Hello 123 World")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testStr.Regexp().Find(pattern)
+	result := rx.From(pattern).Find(testStr)
 
 	if result.IsNone() {
 		t.Error("Expected to find digits, but got None")
@@ -664,7 +742,7 @@ func TestString_Regexp_Find_NoMatch_Additional(t *testing.T) {
 	testStr := String("Hello World")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testStr.Regexp().Find(pattern)
+	result := rx.From(pattern).Find(testStr)
 
 	if result.IsSome() {
 		t.Error("Expected None for no match, but got Some")
@@ -676,7 +754,7 @@ func TestString_Regexp_Replace_Additional(t *testing.T) {
 	pattern := regexp.MustCompile(`\d+`)
 	replacement := String("XXX")
 
-	result := testStr.Regexp().Replace(pattern, replacement)
+	result := rx.From(pattern).ReplaceAll(testStr, replacement)
 	expected := String("Hello XXX World XXX")
 
 	if !result.Eq(expected) {
@@ -688,7 +766,7 @@ func TestString_Regexp_ReplaceBy_Additional(t *testing.T) {
 	testStr := String("The numbers are 42 and 100")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testStr.Regexp().ReplaceBy(pattern, func(match String) String {
+	result := rx.From(pattern).ReplaceAllBy(testStr, func(match String) String {
 		return String("[" + match.Std() + "]")
 	})
 
@@ -703,7 +781,7 @@ func TestString_Regexp_Match_Additional(t *testing.T) {
 	testStr := String("test@example.com")
 	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-	result := testStr.Regexp().Match(emailPattern)
+	result := rx.From(emailPattern).IsMatch(testStr)
 
 	if !result {
 		t.Error("Expected email pattern to match")
@@ -713,13 +791,13 @@ func TestString_Regexp_Match_Additional(t *testing.T) {
 func TestString_Regexp_MatchAny_Additional(t *testing.T) {
 	testStr := String("The number is 42")
 
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`[a-z]+`),
-		regexp.MustCompile(`\d+`),
-		regexp.MustCompile(`[A-Z]+`),
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`[a-z]+`)),
+		rx.From(regexp.MustCompile(`\d+`)),
+		rx.From(regexp.MustCompile(`[A-Z]+`)),
 	}
 
-	result := testStr.Regexp().MatchAny(patterns...)
+	result := rx.MatchAny(testStr, patterns...)
 
 	if !result {
 		t.Error("Expected at least one pattern to match")
@@ -729,12 +807,12 @@ func TestString_Regexp_MatchAny_Additional(t *testing.T) {
 func TestString_Regexp_MatchAll_Additional(t *testing.T) {
 	testStr := String("Hello123World")
 
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`[a-zA-Z]+`), // Letters
-		regexp.MustCompile(`\d+`),       // Digits
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`[a-zA-Z]+`)), // Letters
+		rx.From(regexp.MustCompile(`\d+`)),       // Digits
 	}
 
-	result := testStr.Regexp().MatchAll(patterns...)
+	result := rx.MatchAll(testStr, patterns...)
 
 	if !result {
 		t.Error("Expected all patterns to match")
@@ -745,7 +823,7 @@ func TestString_Regexp_Split_Additional(t *testing.T) {
 	testStr := String("apple,banana,cherry")
 	pattern := regexp.MustCompile(`,`)
 
-	results := testStr.Regexp().Split(pattern)
+	results := rx.From(pattern).Split(testStr).Collect().Slice()
 
 	if len(results) != 3 {
 		t.Errorf("Expected 3 parts, got %d", len(results))
@@ -768,13 +846,7 @@ func TestString_Regexp_FindAll_Additional(t *testing.T) {
 	testStr := String("abc 123 def 456 ghi")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testStr.Regexp().FindAll(pattern)
-
-	if result.IsNone() {
-		t.Error("Expected Some result, got None")
-	}
-
-	matches := result.Unwrap()
+	matches := rx.From(pattern).FindIter(testStr).Collect().Slice()
 	if len(matches) != 2 {
 		t.Errorf("Expected 2 matches, got %d", len(matches))
 	}
@@ -788,5 +860,25 @@ func TestString_Regexp_FindAll_Additional(t *testing.T) {
 
 	if !matches[1].Eq(expected2) {
 		t.Errorf("Second match mismatch: got %s, want %s", matches[1], expected2)
+	}
+}
+
+func TestRxReplaceBy(t *testing.T) {
+	re := rx.New(`\d+`).Unwrap()
+
+	// Only the FIRST match is transformed.
+	got := re.ReplaceBy("a1b22c333", func(m String) String { return m + "!" })
+	if got != "a1!b22c333" {
+		t.Errorf("ReplaceBy = %q, want %q", got, "a1!b22c333")
+	}
+
+	// No match returns the input untouched.
+	if got := re.ReplaceBy("abc", func(m String) String { return "X" }); got != "abc" {
+		t.Errorf("ReplaceBy without match = %q, want %q", got, "abc")
+	}
+
+	// The replacement is literal: $-references are not expanded.
+	if got := re.ReplaceBy("a1b", func(String) String { return "$0" }); got != "a$0b" {
+		t.Errorf("ReplaceBy should insert literally, got %q", got)
 	}
 }

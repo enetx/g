@@ -5,6 +5,7 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	"github.com/enetx/g/fs"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 	fname := String("test_file.txt")
 
 	// Create and guard the file
-	f := NewFile(fname).Guard()
+	f := fs.NewFile(fname).Guard()
 
 	// Append data to the original file
 	f.Append("test string")
@@ -24,7 +25,7 @@ func main() {
 	go func() {
 		fmt.Println("Waiting for guard release")
 		// Create a new file and guard it for reading
-		NewFile(fname).Guard().Read().Unwrap().Println()
+		fs.NewFile(fname).Guard().Read().Unwrap().Println()
 		// Signal the main goroutine that the reading is complete
 		exit <- Unit{}
 	}()

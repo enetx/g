@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math/big"
-	"math/rand/v2"
 	"slices"
 	"strconv"
 	"strings"
@@ -12,18 +11,19 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
-	"github.com/enetx/g/cmp"
 	"golang.org/x/text/unicode/norm"
+
+	"github.com/enetx/g/cmp"
 )
 
-// String is an alias for the string type.
+// String is a wrapper around the string type.
 type String string
 
 // Named is a map-like type that stores key-value pairs for resolving named
-// placeholders in Sprintf.
+// placeholders in Format.
 type Named Map[String, any]
 
-// NewString creates a new String from the provided string.
+// NewString creates a new String from the provided string, rune, byte, rune slice, or byte slice.
 func NewString[T ~string | rune | byte | ~[]rune | ~[]byte](str T) String { return String(str) }
 
 // Clone returns a copy of the String.
@@ -46,60 +46,6 @@ func (s String) Min(b ...String) String { return cmp.Min(append(b, s)...) }
 
 // Max returns the maximum of Strings.
 func (s String) Max(b ...String) String { return cmp.Max(append(b, s)...) }
-
-// Random generates a random String of the specified length, selecting characters from predefined sets.
-// If additional character sets are provided, only those will be used; the default set (ASCII_LETTERS and DIGITS)
-// is excluded unless explicitly provided.
-//
-// Parameters:
-// - length (Int): Length of the random String to generate.
-// - letters (...String): Additional character sets to consider for generating the random String (optional).
-//
-// Returns:
-// - String: Randomly generated String with the specified length.
-//
-// If length is zero or negative, an empty String is returned. If an explicit
-// letter set is provided but resolves to empty, an empty String is returned as well.
-//
-// Example usage:
-//
-//	randomString := g.String("").Random(10)
-//	randomString contains a random String with 10 characters.
-func (String) Random(length Int, letters ...String) String {
-	if length <= 0 {
-		return ""
-	}
-
-	if len(letters) != 0 {
-		var buf Builder
-		for _, set := range letters {
-			_, _ = buf.WriteString(set)
-		}
-
-		chars := buf.String().Runes()
-		n := Int(len(chars))
-		if n == 0 {
-			return ""
-		}
-
-		var b Builder
-		b.Grow(length)
-		for range length {
-			b.WriteRune(chars[n.Random()])
-		}
-
-		return b.String()
-	}
-
-	const charset = ASCII_LETTERS + DIGITS
-	n := len(charset)
-	buf := make(Bytes, length)
-	for i := range buf {
-		buf[i] = charset[rand.N(n)]
-	}
-
-	return buf.StringUnsafe()
-}
 
 // IsASCII checks if all characters in the String are ASCII bytes.
 func (s String) IsASCII() bool {
@@ -281,7 +227,7 @@ func (s String) ReplaceAll(oldS, newS String) String {
 //	    "world", "universe",
 //	    "test", "example",
 //	)
-//	// replaced contains "Greetings, universe! This is an example."
+//	// replaced contains "Greetings, universe! This is a example."
 func (s String) ReplaceMulti(oldnew ...String) String {
 	pairs := make([]string, len(oldnew))
 	for i, str := range oldnew {
@@ -432,50 +378,71 @@ func (s String) EndsWithAny(suffixes ...String) bool {
 	return slices.ContainsFunc(suffixes, s.EndsWith)
 }
 
-// Lines splits the String by lines and returns the iterator.
-func (s String) Lines() SeqSlice[String] {
-	return SeqSlice[string](strings.Lines(s.Std())).Map(NewString).Map(String.TrimEnd)
+// Lines splits the String by lines, with trailing whitespace trimmed per
+// line. The substrings share the receiver's backing memory.
+//
+// It returns a plain []String — deliberately not a Seq or Slice: a named
+// generic type in the signature would make every package that names g.String
+// compile the whole container machinery. Convert with g.SliceOf(parts...) for
+// chaining; for lazy streaming over files use fs.File.Lines.
+func (s String) Lines() []String {
+	var result []String
+
+	for line := range strings.Lines(s.Std()) {
+		result = append(result, String(line).TrimEnd())
+	}
+
+	return result
 }
 
-// Fields splits the String into a slice of substrings, removing any whitespace, and returns the iterator.
-func (s String) Fields() SeqSlice[String] {
-	return SeqSlice[string](strings.FieldsSeq(s.Std())).Map(NewString)
+// Fields splits the String around whitespace. See [String.Lines] for why the
+// return type is a plain slice.
+func (s String) Fields() []String {
+	return castStrings(strings.Fields(s.Std()))
 }
 
-// FieldsBy splits the String into a slice of substrings using a custom function to determine the field boundaries,
-// and returns the iterator.
-func (s String) FieldsBy(fn func(r rune) bool) SeqSlice[String] {
-	return SeqSlice[string](strings.FieldsFuncSeq(s.Std(), fn)).Map(NewString)
+// FieldsBy splits the String using a custom function to determine the field
+// boundaries. See [String.Lines] for why the return type is a plain slice.
+func (s String) FieldsBy(fn func(r rune) bool) []String {
+	return castStrings(strings.FieldsFunc(s.Std(), fn))
 }
 
-// Split splits the String by the specified separator and returns the iterator.
-// If sep is empty, the String is split after each UTF-8 rune; Chars is the
-// canonical way to iterate runes.
-func (s String) Split(sep String) SeqSlice[String] {
-	return SeqSlice[string](strings.SplitSeq(s.Std(), sep.Std())).Map(NewString)
+// Split splits the String by the specified separator. If sep is empty, the
+// String is split after each UTF-8 rune. See [String.Lines] for why the return
+// type is a plain slice.
+func (s String) Split(sep String) []String {
+	return castStrings(strings.Split(s.Std(), sep.Std()))
 }
 
-// SplitAfter splits the String after each instance of the specified separator and returns the iterator.
-func (s String) SplitAfter(sep String) SeqSlice[String] {
-	return SeqSlice[string](strings.SplitAfterSeq(s.Std(), sep.Std())).Map(NewString)
+// SplitAfter splits the String after each instance of the specified separator.
+// See [String.Lines] for why the return type is a plain slice.
+func (s String) SplitAfter(sep String) []String {
+	return castStrings(strings.SplitAfter(s.Std(), sep.Std()))
 }
 
-// SplitN splits the String into substrings using the provided separator and returns an Slice[String] of the results.
-// The n parameter controls the number of substrings to return:
+// SplitN splits the String into substrings using the provided separator and
+// returns a plain []String of the results (convert with Slice[String] for
+// chaining). The n parameter controls the number of substrings to return:
 // - If n is negative, there is no limit on the number of substrings returned.
-// - If n is zero, an empty Slice[String] is returned.
+// - If n is zero, an empty slice is returned.
 // - If n is positive, at most n substrings are returned.
-func (s String) SplitN(sep String, n Int) Slice[String] {
-	return transformSlice(strings.SplitN(s.Std(), sep.Std(), n.Std()), NewString)
+func (s String) SplitN(sep String, n Int) []String {
+	parts := strings.SplitN(s.Std(), sep.Std(), n.Std())
+
+	result := make([]String, len(parts))
+	for i, p := range parts {
+		result[i] = String(p)
+	}
+
+	return result
 }
 
 // Chunks splits the String into chunks of the specified size.
 //
 // This function iterates through the String, creating new String chunks of the specified size.
-// If size is less than or equal to 0 or the String is empty,
-// it returns an empty Slice[String].
-// If size is greater than or equal to the length of the String,
-// it returns an Slice[String] containing the original String.
+// If size is less than or equal to 0 or the String is empty, it returns nil.
+// If size is greater than or equal to the length of the String, it returns the
+// original String as the only chunk.
 //
 // Parameters:
 //
@@ -483,7 +450,7 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 //
 // Returns:
 //
-// - Slice[String]: A slice of String chunks of the specified size.
+// - []String: the String chunks of the specified size.
 //
 // Example usage:
 //
@@ -491,9 +458,9 @@ func (s String) SplitN(sep String, n Int) Slice[String] {
 //	chunks := text.Chunks(4)
 //
 // chunks contains {"Hell", "o, W", "orld", "!"}.
-func (s String) Chunks(size Int) SeqSlice[String] {
+func (s String) Chunks(size Int) []String {
 	if size.Lte(0) || s.IsEmpty() {
-		return func(func(String) bool) {}
+		return nil
 	}
 
 	if s.IsASCII() {
@@ -501,37 +468,35 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 		l := len(s)
 
 		if n >= l {
-			return func(yield func(String) bool) { yield(s) }
+			return []String{s}
 		}
 
-		return func(yield func(String) bool) {
-			for i := 0; i < l; i += n {
-				if !yield(s[i:min(i+n, l)]) {
-					return
-				}
-			}
+		result := make([]String, 0, (l+n-1)/n)
+		for i := 0; i < l; i += n {
+			result = append(result, s[i:min(i+n, l)])
 		}
+
+		return result
 	}
 
 	n := size.Std()
 
-	return func(yield func(String) bool) {
-		rest := s
-		for !rest.IsEmpty() {
-			i := 0
-			str := rest.Std()
-			for count := 0; count < n && i < len(rest); count++ {
-				_, sz := utf8.DecodeRuneInString(str[i:])
-				i += sz
-			}
+	var result []String
 
-			if !yield(rest[:i]) {
-				return
-			}
-
-			rest = rest[i:]
+	rest := s
+	for !rest.IsEmpty() {
+		i := 0
+		str := rest.Std()
+		for count := 0; count < n && i < len(rest); count++ {
+			_, sz := utf8.DecodeRuneInString(str[i:])
+			i += sz
 		}
+
+		result = append(result, rest[:i])
+		rest = rest[i:]
 	}
+
+	return result
 }
 
 // Cut returns two String values. The first String contains the remainder of the
@@ -544,7 +509,7 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 // between the first occurrences of 'start' and 'end' with tags removed if specified.
 //
 // If either 'start' or 'end' is empty or not found in the String, it returns the
-// original String as the second String, and an empty String as the first.
+// original String as the first String, and an empty String as the second.
 //
 // Parameters:
 //
@@ -561,10 +526,10 @@ func (s String) Chunks(size Int) SeqSlice[String] {
 //
 //   - String: The first String containing the remainder of the original String.
 //     When rmtags is true the matched region is removed from it; otherwise it is
-//     the original String. Returns an empty String if 'start' or 'end' is empty or not found.
+//     the original String. Returns the original String if 'start' or 'end' is empty or not found.
 //
 //   - String: The second String containing the text between the first occurrences of
-//     'start' and 'end', or the original String if 'start' or 'end' is empty or not found.
+//     'start' and 'end', or an empty String if 'start' or 'end' is empty or not found.
 //
 // Example usage:
 //
@@ -673,7 +638,7 @@ func (s String) ContainsRune(r rune) bool { return strings.ContainsRune(s.Std(),
 // Count returns the number of non-overlapping instances of the substring in the String.
 func (s String) Count(substr String) Int { return Int(strings.Count(s.Std(), substr.Std())) }
 
-// Empty checks if the String is empty.
+// IsEmpty checks if the String is empty.
 func (s String) IsEmpty() bool { return len(s) == 0 }
 
 // Eq checks if two Strings are equal.
@@ -708,6 +673,14 @@ func (s String) LastIndex(substr String) Int { return Int(strings.LastIndex(s.St
 // IndexRune returns the index of the first instance of the specified rune in the String.
 func (s String) IndexRune(r rune) Int { return Int(strings.IndexRune(s.Std(), r)) }
 
+// IndexByte returns the index of the first instance of the specified byte in the String, or -1
+// if b is not present in s.
+func (s String) IndexByte(b byte) Int { return Int(strings.IndexByte(s.Std(), b)) }
+
+// LastIndexByte returns the index of the last instance of the specified byte in the String, or -1
+// if b is not present in s.
+func (s String) LastIndexByte(b byte) Int { return Int(strings.LastIndexByte(s.Std(), b)) }
+
 // Len returns the length of the String.
 func (s String) Len() Int { return Int(len(s)) }
 
@@ -723,9 +696,6 @@ func (s String) Lte(str String) bool { return s <= str }
 // Map applies the provided function to all runes in the String and returns the resulting String.
 func (s String) Map(fn func(rune) rune) String { return String(strings.Map(fn, s.Std())) }
 
-// NormalizeNFC returns a new String with its Unicode characters normalized using the NFC form.
-func (s String) NormalizeNFC() String { return String(norm.NFC.String(s.Std())) }
-
 // Ne checks if two Strings are not equal.
 func (s String) Ne(str String) bool { return !s.Eq(str) }
 
@@ -738,12 +708,12 @@ func (s String) Repeat(count Int) String { return String(strings.Repeat(s.Std(),
 // Reverse reverses the String.
 func (s String) Reverse() String { return s.BytesUnsafe().Reverse().StringUnsafe() }
 
-// Runes returns the String as a slice of runes.
-func (s String) Runes() Slice[rune] { return []rune(s) }
+// Runes returns the String as a plain slice of runes.
+func (s String) Runes() []rune { return []rune(s) }
 
-// Chars splits the String into individual UTF-8 characters and returns the iterator.
-// It is the canonical way to iterate runes of a String, equivalent to s.Split("").
-func (s String) Chars() SeqSlice[String] { return s.Split("") }
+// Chars splits the String into individual UTF-8 characters, equivalent to
+// s.Split(""). Prefer Runes when only code points are needed.
+func (s String) Chars() []String { return s.Split("") }
 
 // SubString extracts a substring from the String starting at the 'start' index and ending before the 'end' index.
 // The function also supports an optional 'step' parameter to define the increment between indices in the substring.
@@ -755,7 +725,7 @@ func (s String) Chars() SeqSlice[String] { return s.Split("") }
 // if 'start' exceeds 'end' (for a positive step) the result is an empty String.
 func (s String) SubString(start, end Int, step ...Int) String {
 	runes := s.Runes()
-	n := runes.Len()
+	n := Int(len(runes))
 
 	clamp := func(i Int) Int {
 		if i < 0 {
@@ -773,8 +743,48 @@ func (s String) SubString(start, end Int, step ...Int) String {
 		return i
 	}
 
-	return String(runes.SubSlice(clamp(start), clamp(end), step...))
+	start, end = clamp(start), clamp(end)
+
+	st := Int(1)
+	if len(step) > 0 {
+		st = step[0]
+	}
+
+	// For a negative step the iteration starts AT start and moves down,
+	// so a start clamped to n must begin at the last element.
+	if st < 0 && start == n {
+		start--
+	}
+
+	if st == 1 {
+		if start >= end {
+			return ""
+		}
+
+		return String(runes[start:end])
+	}
+
+	if (start >= end && st > 0) || (start <= end && st < 0) || st == 0 {
+		return ""
+	}
+
+	var out []rune
+
+	if st > 0 {
+		for i := start; i < end; i += st {
+			out = append(out, runes[i])
+		}
+	} else {
+		for i := start; i > end; i += st {
+			out = append(out, runes[i])
+		}
+	}
+
+	return String(out)
 }
+
+// NormalizeNFC returns a new String with its Unicode characters normalized using the NFC form.
+func (s String) NormalizeNFC() String { return String(norm.NFC.String(s.Std())) }
 
 // Std returns the String as a string.
 func (s String) Std() string { return string(s) }
@@ -1018,3 +1028,10 @@ func (s *String) Scan(src any) error {
 //   - Returns the underlying string value, ready for database insertion.
 //   - Always returns a value compatible with SQL TEXT / VARCHAR types.
 func (s String) Value() (driver.Value, error) { return string(s), nil }
+
+// castStrings reinterprets a []string as []String without copying: String is
+// defined as `type String string`, so the two slice types share one memory
+// layout.
+func castStrings(ss []string) []String {
+	return unsafe.Slice((*String)(unsafe.SliceData(ss)), len(ss))
+}

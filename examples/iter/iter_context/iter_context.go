@@ -69,8 +69,8 @@ func TimeoutProcessing() {
 			time.Sleep(time.Millisecond) // Simulate slow processing
 			return n * 2
 		}).
-		Take(50). // Try to take 50, but timeout will stop us earlier
-		Collect()
+		Take(500). // Try to take 500, but timeout will stop us earlier
+		Collect().Slice()
 
 	fmt.Printf("Processed %d numbers before timeout: %v\n", len(processed), processed[:min(10, len(processed))])
 }
@@ -99,7 +99,7 @@ func UserCancellation() {
 			time.Sleep(time.Microsecond) // Simulate expensive transformation
 			return n * n
 		}).
-		Collect()
+		Collect().Slice()
 
 	fmt.Printf("Computation result (length: %d): %v...\n",
 		len(result), result[:min(5, len(result))])
@@ -126,7 +126,7 @@ func PipelineWithContext() {
 		}).
 		Context(ctx). // Check context after mapping
 		Take(100).
-		Collect()
+		Collect().Slice()
 
 	fmt.Printf("Pipeline result (length: %d): %v...\n",
 		len(result), result[:min(5, len(result))])
@@ -189,7 +189,7 @@ func ContextWithChannels() {
 		Context(ctx).
 		Filter(func(n int) bool { return n%10 == 0 }).
 		Map(func(n int) int { return n * n }).
-		Collect()
+		Collect().Slice()
 
 	fmt.Printf("Channel processing result: %v\n", result)
 }
@@ -226,7 +226,7 @@ func NestedContextOperations() {
 			return int(innerResult)
 		}).
 		Take(20).
-		Collect()
+		Collect().Slice()
 
 	fmt.Printf("Nested processing result: %v\n", outerResult)
 }

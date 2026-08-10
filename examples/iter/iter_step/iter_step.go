@@ -13,7 +13,6 @@ func main() {
 	m.Insert(5, "gg")
 	m.Insert(6, "aa")
 	m.Iter().
-		StepBy(2). // Iterate over the map with a step size of 2
-		Collect().
-		Println() // MapOrd{0:aa, 2:cc, 4:ff, 6:aa}
+		StepBy(2).Collect().MapOrd[int, string](). // Iterate over the map with a step size of 2
+		Println()                                  // MapOrd{0:aa, 2:cc, 4:ff, 6:aa}
 }

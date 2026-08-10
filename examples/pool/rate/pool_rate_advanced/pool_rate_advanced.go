@@ -38,7 +38,7 @@ func exampleRateWithCancelOnError() {
 		})
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	fmt.Printf("Got %d results (some tasks were canceled)\n", results.Len())
 
 	for _, r := range results {

@@ -190,18 +190,6 @@ func TestIntNegative(t *testing.T) {
 	}
 }
 
-func TestIntRandomRange(t *testing.T) {
-	for range 100 {
-		min := Int(100).Random()
-		max := Int(100).Random().Add(min)
-
-		r := min.RandomRange(max)
-		if r.Lt(min) || r.Gt(max) {
-			t.Errorf("RandomRange(%d, %d) = %d, want in range [%d, %d]", min, max, r, min, max)
-		}
-	}
-}
-
 func TestIntMax(t *testing.T) {
 	if max := Int(1).Max(1, 2, 3, 4, 5); max != 5 {
 		t.Errorf("Max() = %d, want: %d.", max, 5)
@@ -307,47 +295,47 @@ func TestIntBinary(t *testing.T) {
 func TestIntUInt16(t *testing.T) {
 	// Test for positive integer
 	posInt := Int(100)
-	uint16Val := posInt.UInt16()
+	uint16Val := posInt.Uint16()
 	expected := uint16(100)
 	if uint16Val != expected {
-		t.Errorf("UInt16 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint16Val)
+		t.Errorf("Uint16 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint16Val)
 	}
 
 	// Test for negative integer
 	negInt := Int(-100)
-	uint16Val = negInt.UInt16()
+	uint16Val = negInt.Uint16()
 	expected = 65436 // Conversion to uint16 of negative number results in 0
 	if uint16Val != expected {
-		t.Errorf("UInt16 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint16Val)
+		t.Errorf("Uint16 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint16Val)
 	}
 }
 
 func TestIntUInt32(t *testing.T) {
 	// Test for positive integer
 	posInt := Int(100)
-	uint32Val := posInt.UInt32()
+	uint32Val := posInt.Uint32()
 	expected := uint32(100)
 	if uint32Val != expected {
-		t.Errorf("UInt32 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint32Val)
+		t.Errorf("Uint32 function incorrect for positive integer. Expected: %d, Got: %d", expected, uint32Val)
 	}
 
 	// Test for negative integer
 	negInt := Int(-100)
-	uint32Val = negInt.UInt32()
+	uint32Val = negInt.Uint32()
 	expected = 4294967196 // Conversion to uint32 of negative number results in 0
 	if uint32Val != expected {
-		t.Errorf("UInt32 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint32Val)
+		t.Errorf("Uint32 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint32Val)
 	}
 }
 
 func TestIntUInt8(t *testing.T) {
 	// Test for positive integer within range
 	posInt := Int(100)
-	uint8Val := posInt.UInt8()
+	uint8Val := posInt.Uint8()
 	expected := uint8(100)
 	if uint8Val != expected {
 		t.Errorf(
-			"UInt8 function incorrect for positive integer within range. Expected: %d, Got: %d",
+			"Uint8 function incorrect for positive integer within range. Expected: %d, Got: %d",
 			expected,
 			uint8Val,
 		)
@@ -355,11 +343,11 @@ func TestIntUInt8(t *testing.T) {
 
 	// Test for positive integer outside range
 	posInt = Int(300)
-	uint8Val = posInt.UInt8()
+	uint8Val = posInt.Uint8()
 	expected = 44 // Overflow results in 44
 	if uint8Val != expected {
 		t.Errorf(
-			"UInt8 function incorrect for positive integer outside range. Expected: %d, Got: %d",
+			"Uint8 function incorrect for positive integer outside range. Expected: %d, Got: %d",
 			expected,
 			uint8Val,
 		)
@@ -367,10 +355,10 @@ func TestIntUInt8(t *testing.T) {
 
 	// Test for negative integer
 	negInt := Int(-100)
-	uint8Val = negInt.UInt8()
+	uint8Val = negInt.Uint8()
 	expected = 156 // Conversion to uint8 of negative number results in 156
 	if uint8Val != expected {
-		t.Errorf("UInt8 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint8Val)
+		t.Errorf("Uint8 function incorrect for negative integer. Expected: %d, Got: %d", expected, uint8Val)
 	}
 }
 
@@ -509,39 +497,6 @@ func TestIntPrintln(t *testing.T) {
 	}
 }
 
-func TestRandomRange_Distribution_Sanity(t *testing.T) {
-	const (
-		lo    = Int(-3)
-		hi    = Int(3)
-		iters = 1_000_00 // 100k
-	)
-	counts := make(map[Int]int)
-
-	for range iters {
-		x := lo.RandomRange(hi)
-		counts[x]++
-	}
-
-	want := float64(iters) / float64(hi-lo+1)
-	tol := want * 0.05
-	for v := lo; v <= hi; v++ {
-		got := float64(counts[v])
-		if diff := got - want; diff < -tol || diff > tol {
-			t.Fatalf("value %d: got %d, want ~%.0f (+/-%0.f)", v, counts[v], want, tol)
-		}
-	}
-}
-
-func TestRandomRange_FullRange_Moves(t *testing.T) {
-	lo := Int(math.MinInt64)
-	hi := Int(math.MaxInt64)
-	a := lo.RandomRange(hi)
-	b := lo.RandomRange(hi)
-	if a == b {
-		t.Logf("two draws equal (ok but unlikely); a=%d b=%d", a, b)
-	}
-}
-
 func wantBytesBE(i int64) Bytes {
 	var buf [8]byte
 	binary.BigEndian.PutUint64(buf[:], uint64(i))
@@ -667,36 +622,6 @@ func TestIntBytes_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestIntRandom_EdgeCase(t *testing.T) {
-	// Test edge case where i <= 0 should return 0
-	zero := Int(0)
-	result := zero.Random()
-	if result != 0 {
-		t.Errorf("Random(0) should return 0, got %d", result)
-	}
-
-	negative := Int(-5)
-	result = negative.Random()
-	if result != 0 {
-		t.Errorf("Random(-5) should return 0, got %d", result)
-	}
-}
-
-func TestIntRandom_NormalCase(t *testing.T) {
-	// Test normal case where i > 0 should return random number in range [0, i)
-	ten := Int(10)
-	result := ten.Random()
-	if result < 0 || result >= 10 {
-		t.Errorf("Random(10) should return value in [0, 10), got %d", result)
-	}
-
-	one := Int(1)
-	result = one.Random()
-	if result != 0 {
-		t.Errorf("Random(1) should return 0, got %d", result)
-	}
-}
-
 func TestIntUInt64(t *testing.T) {
 	testCases := []struct {
 		input    Int
@@ -711,9 +636,9 @@ func TestIntUInt64(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		result := tc.input.UInt64()
+		result := tc.input.Uint64()
 		if result != tc.expected {
-			t.Errorf("UInt64() for %d: expected %d, got %d", tc.input, tc.expected, result)
+			t.Errorf("Uint64() for %d: expected %d, got %d", tc.input, tc.expected, result)
 		}
 	}
 }

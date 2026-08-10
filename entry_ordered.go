@@ -46,8 +46,8 @@ type OrdEntry[K comparable, V any] interface {
 // underlying ordered slice, allowing inspection, modification, replacement, or
 // removal. The key's position is resolved once, when the entry is created,
 // and reused directly by every operation. The entry is therefore only valid
-// as long as the MapOrd is not structurally mutated (Remove, SortBy, Shuffle,
-// Clear) between creation and use; obtain a fresh entry after such mutations.
+// as long as the MapOrd is not structurally mutated (Remove, SortBy, Clear)
+// between creation and use; obtain a fresh entry after such mutations.
 type OccupiedOrdEntry[K comparable, V any] struct {
 	mo  *MapOrd[K, V]
 	key K

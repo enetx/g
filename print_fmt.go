@@ -74,10 +74,7 @@ func parseDigits(runes []rune, pos int) (int, int, bool) {
 
 	for pos < len(runes) && runes[pos] >= '0' && runes[pos] <= '9' {
 		if n <= maxFmtDigits {
-			n = n*10 + int(runes[pos]-'0')
-			if n > maxFmtDigits {
-				n = maxFmtDigits
-			}
+			n = min(n*10+int(runes[pos]-'0'), maxFmtDigits)
 		}
 
 		pos++
@@ -158,10 +155,7 @@ func parseASCIIDigits(spec String, pos Int) (int, Int, bool) {
 	n, has := 0, false
 	for pos < spec.Len() && spec[pos] >= '0' && spec[pos] <= '9' {
 		if n <= maxFmtDigits {
-			n = n*10 + int(spec[pos]-'0')
-			if n > maxFmtDigits {
-				n = maxFmtDigits
-			}
+			n = min(n*10+int(spec[pos]-'0'), maxFmtDigits)
 		}
 
 		pos++

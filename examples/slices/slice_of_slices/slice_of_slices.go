@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/enetx/g/rand"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
@@ -25,7 +26,7 @@ func main() {
 
 	nx.Println()
 
-	nx = nx.Iter().Dedup().Collect().Println()
+	nx = nx.Iter().Dedup().Collect().Slice().Println()
 
 	nx.SortBy(func(a, b Slice[String]) cmp.Ordering { return b[0].Cmp(a[0]) })
 	nx.Println()
@@ -36,15 +37,15 @@ func main() {
 	nx.Reverse()
 	nx.Println()
 
-	nx.Random().Println()
-	nx.RandomSample(2).Println()
+	rand.Choice(nx).UnwrapOrDefault().Println()
+	rand.Sample(nx, 2).Println()
 
-	ch := nx.Iter().Chunks(2).Collect() // return []Slice[T]
-	chunks := SliceOf(ch...)            // make slice chunks
+	ch := nx.Iter().Chunks(2).Collect().Slices() // return []Slice[T]
+	chunks := SliceOf(ch...)                     // make slice chunks
 	chunks.Println()
 
-	// pr := nx.Iter().Permutations().Collect() // return []Slice[T]
-	// permutations := g.SliceOf(pr...)         // make slice permutations
+	// pr := nx.Iter().Permutations().Collect().Slices() // return []Slice[T]
+	// permutations := g.SliceOf(pr...)                  // make slice permutations
 	// permutations.Println()
 
 	m := NewMap[string, Slice[Slice[String]]]()
@@ -53,7 +54,7 @@ func main() {
 	fmt.Println(m.Get("one").Some().Last().Some().Contains("aaa"))
 
 	nested := Slice[any]{1, 2, Slice[int]{3, 4, 5}, []any{6, 7, []int{8, 9}}}
-	flattened := nested.Iter().Flatten().Collect()
+	flattened := nested.Iter().Flatten().Collect().Slice()
 	flattened.Println()
 
 	nestedSlice := Slice[any]{
@@ -64,8 +65,8 @@ func main() {
 		SliceOf(4.5, 6.7),
 	}
 
-	nestedSlice.Println()                            // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
-	nestedSlice.Iter().Flatten().Collect().Println() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
+	nestedSlice.Println()                                    // Output: Slice[1, Slice[2, 3], abc, Slice[def, ghi], Slice[4.5, 6.7]]
+	nestedSlice.Iter().Flatten().Collect().Slice().Println() // Output: Slice[1, 2, 3, abc, def, ghi, 4.5, 6.7]
 
 	nestedSlice2 := Slice[any]{
 		1,
@@ -79,5 +80,5 @@ func main() {
 	}
 
 	// Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], Map{1:1}, Map{2:2}]
-	nestedSlice2.Iter().Flatten().Collect().Println()
+	nestedSlice2.Iter().Flatten().Collect().Slice().Println()
 }

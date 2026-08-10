@@ -10,6 +10,7 @@ func main() {
 			return acc + val
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[0, 1, 3, 6, 10]
 
 	// Example 2: Scan to build string progressively
@@ -19,6 +20,7 @@ func main() {
 			return acc + val
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[, a, ab, abc, abcd]
 
 	// Example 3: Scan to track running maximum
@@ -31,6 +33,7 @@ func main() {
 			return acc
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[0, 3, 3, 4, 4, 5, 9, 9, 9]
 
 	// Example 4: Scan to calculate factorial sequence
@@ -40,6 +43,7 @@ func main() {
 			return acc * val
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[1, 1, 2, 6, 24, 120]
 
 	// Example 5: Scan to track balance with transactions
@@ -50,6 +54,7 @@ func main() {
 			return balance + transaction
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[1000, 1100, 1070, 1050, 1100, 1090]
 
 	// Example 6: Scan with custom type - building a path
@@ -63,6 +68,7 @@ func main() {
 		}).
 		Skip(1). // Skip the initial empty value
 		Collect().
+		Slice().
 		Println() // Slice[/home, /home/user, /home/user/documents, /home/user/documents/file.txt]
 
 	// Example 7: Scan vs Reduce comparison
@@ -82,6 +88,7 @@ func main() {
 			return acc + val
 		}).
 		Collect().
+		Slice().
 		Println()
 	// Scan results:
 	// Slice[0, 1, 3, 6, 10]
@@ -92,6 +99,7 @@ func main() {
 		Iter().
 		Scan(Int(0), func(acc Int, w String) Int { return acc + w.Len() }).
 		Collect().
+		Slice().
 		Println() // Slice[0, 5, 9, 14]
 
 }

@@ -30,7 +30,7 @@ func main() {
 		})
 	}
 
-	p.Wait().Collect().Println()
+	p.Wait().Collect().Slice().Println()
 
 	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

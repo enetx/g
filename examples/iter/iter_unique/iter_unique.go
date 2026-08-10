@@ -8,5 +8,6 @@ func main() {
 		Iter().
 		Unique().  // Filter out duplicate elements
 		Collect(). // Collect the unique elements
-		Println()  // Print the collected unique elements: Slice[bbb, ddd, aaa, xxx]
+		Slice().
+		Println() // Print the collected unique elements: Slice[bbb, ddd, aaa, xxx]
 }

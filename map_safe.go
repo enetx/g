@@ -22,17 +22,10 @@ func NewMapSafe[K comparable, V any]() *MapSafe[K, V] { return &MapSafe[K, V]{} 
 func MapSafeOf[K comparable, V any](pairs ...Pair[K, V]) *MapSafe[K, V] {
 	ms := NewMapSafe[K, V]()
 	for _, p := range pairs {
-		ms.Insert(p.Key, p.Value)
+		ms.Insert(p.Unpack())
 	}
 
 	return ms
-}
-
-// MapSafeFromPairs builds a MapSafe from a slice of pairs. Unlike the variadic
-// MapSafeOf, it takes the slice directly, so it can be passed as a first-class
-// function — e.g. res.TryCollect().Map(MapSafeFromPairs).
-func MapSafeFromPairs[K comparable, V any](pairs Slice[Pair[K, V]]) *MapSafe[K, V] {
-	return MapSafeOf(pairs...)
 }
 
 // Transform applies a transformation function to the MapSafe and returns the result.
@@ -41,7 +34,7 @@ func (ms *MapSafe[K, V]) Transform[U any](fn func(*MapSafe[K, V]) U) U {
 }
 
 // Iter provides a thread-safe iterator over the MapSafe's key-value pairs.
-func (ms *MapSafe[K, V]) Iter() SeqMap[K, V] {
+func (ms *MapSafe[K, V]) Iter() Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		ms.data.Range(func(key, value any) bool {
 			return yield(key.(K), *(value.(*V)))
@@ -116,39 +109,6 @@ func (ms *MapSafe[K, V]) Copy(src *MapSafe[K, V]) {
 
 		return true
 	})
-}
-
-// Map converts the MapSafe to a standard Map by taking a snapshot of its
-// current key-value pairs.
-//
-// The returned Map is an independent, non-thread-safe copy; subsequent
-// mutations to the MapSafe are not reflected in it.
-func (ms *MapSafe[K, V]) Map() Map[K, V] {
-	m := NewMap[K, V](ms.Len())
-
-	ms.data.Range(func(key, value any) bool {
-		m[key.(K)] = *(value.(*V))
-		return true
-	})
-
-	return m
-}
-
-// Ordered converts the MapSafe to an ordered Map by taking a snapshot of its
-// current key-value pairs.
-//
-// Because MapSafe does not track insertion order, the order of the returned
-// MapOrd is unspecified. The returned MapOrd is an independent, non-thread-safe
-// copy; subsequent mutations to the MapSafe are not reflected in it.
-func (ms *MapSafe[K, V]) Ordered() MapOrd[K, V] {
-	mo := NewMapOrd[K, V](ms.Len())
-
-	ms.data.Range(func(key, value any) bool {
-		mo = append(mo, Pair[K, V]{Key: key.(K), Value: *(value.(*V))})
-		return true
-	})
-
-	return mo
 }
 
 // Remove removes the specified key from the MapSafe and returns the removed value.

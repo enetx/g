@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"github.com/enetx/g/rx"
 	"io"
 	"math"
 	"reflect"
@@ -112,7 +113,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs1 := Bytes("hello world hello world")
 	pattern1 := regexp.MustCompile("world")
 	newB1 := Bytes("gopher")
-	replaced1 := bs1.Regexp().Replace(pattern1, newB1)
+	replaced1 := rx.From(pattern1).ReplaceAllBytes(bs1, newB1)
 	expected1 := Bytes("hello gopher hello gopher")
 	if !bytes.Equal(replaced1, expected1) {
 		t.Errorf("Replacement failed. Expected: %s, Got: %s", expected1, replaced1)
@@ -122,7 +123,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs2 := Bytes("apple apple apple")
 	pattern2 := regexp.MustCompile(`(\w+)`)
 	newB2 := Bytes("${1}s")
-	replaced2 := bs2.Regexp().Replace(pattern2, newB2)
+	replaced2 := rx.From(pattern2).ReplaceAllBytes(bs2, newB2)
 	expected2 := Bytes("apples apples apples")
 	if !bytes.Equal(replaced2, expected2) {
 		t.Errorf("Replacement with capture group failed. Expected: %s, Got: %s", expected2, replaced2)
@@ -132,7 +133,7 @@ func TestBytesRxReplace(t *testing.T) {
 	bs3 := Bytes("hello world")
 	pattern3 := regexp.MustCompile("gopher")
 	newB3 := Bytes("earth")
-	replaced3 := bs3.Regexp().Replace(pattern3, newB3)
+	replaced3 := rx.From(pattern3).ReplaceAllBytes(bs3, newB3)
 	if !bytes.Equal(replaced3, bs3) {
 		t.Errorf("Expected no change when pattern doesn't match. Got: %s", replaced3)
 	}
@@ -142,7 +143,7 @@ func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern matches and is found
 	bs1 := Bytes("hello world")
 	pattern1 := regexp.MustCompile("world")
-	found1 := bs1.Regexp().Find(pattern1)
+	found1 := rx.From(pattern1).FindBytes(bs1)
 	expected1 := Bytes("world")
 	if found1.IsNone() {
 		t.Errorf("Expected to find matching pattern, but found none")
@@ -153,7 +154,7 @@ func TestBytesRxFind(t *testing.T) {
 	// Test case where pattern doesn't match
 	bs2 := Bytes("hello world")
 	pattern2 := regexp.MustCompile("gopher")
-	found2 := bs2.Regexp().Find(pattern2)
+	found2 := rx.From(pattern2).FindBytes(bs2)
 	if found2.IsSome() {
 		t.Errorf("Expected not to find matching pattern, but found one")
 	}
@@ -162,56 +163,56 @@ func TestBytesRxFind(t *testing.T) {
 func TestBytesRxMatch(t *testing.T) {
 	pattern := regexp.MustCompile(`\d+`)
 	bs := Bytes("123abc456")
-	if !bs.Regexp().Match(pattern) {
+	if !rx.From(pattern).IsMatchBytes(bs) {
 		t.Errorf("Expected match for pattern %v, but got none", pattern)
 	}
 
 	bs = Bytes("abc")
-	if bs.Regexp().Match(pattern) {
+	if rx.From(pattern).IsMatchBytes(bs) {
 		t.Errorf("Expected no match for pattern %v, but got one", pattern)
 	}
 }
 
 func TestBytesRxMatchAny(t *testing.T) {
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`\d+`),
-		regexp.MustCompile(`[a-z]+`),
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`\d+`)),
+		rx.From(regexp.MustCompile(`[a-z]+`)),
 	}
 
 	bs := Bytes("123abc456")
-	if !bs.Regexp().MatchAny(patterns...) {
+	if !rx.MatchAnyBytes(bs, patterns...) {
 		t.Errorf("Expected match for one of the patterns, but got none")
 	}
 
 	bs = Bytes("123")
-	if !bs.Regexp().MatchAny(patterns...) {
+	if !rx.MatchAnyBytes(bs, patterns...) {
 		t.Errorf("Expected match for one of the patterns, but got none")
 	}
 
 	bs = Bytes("!@#")
-	if bs.Regexp().MatchAny(patterns...) {
+	if rx.MatchAnyBytes(bs, patterns...) {
 		t.Errorf("Expected no match for any of the patterns, but got one")
 	}
 }
 
 func TestBytesRxMatchAll(t *testing.T) {
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`\d+`),
-		regexp.MustCompile(`[a-z]+`),
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`\d+`)),
+		rx.From(regexp.MustCompile(`[a-z]+`)),
 	}
 
 	bs := Bytes("123abc")
-	if !bs.Regexp().MatchAll(patterns...) {
+	if !rx.MatchAllBytes(bs, patterns...) {
 		t.Errorf("Expected match for all patterns, but got none")
 	}
 
 	bs = Bytes("123")
-	if bs.Regexp().MatchAll(patterns...) {
+	if rx.MatchAllBytes(bs, patterns...) {
 		t.Errorf("Expected no match for all patterns, but got one")
 	}
 
 	bs = Bytes("abc")
-	if bs.Regexp().MatchAll(patterns...) {
+	if rx.MatchAllBytes(bs, patterns...) {
 		t.Errorf("Expected no match for all patterns, but got one")
 	}
 }
@@ -258,7 +259,7 @@ func TestBytesSplit(t *testing.T) {
 	// Test case where separator exists
 	bs1 := Bytes("hello world gopher")
 	separator1 := Bytes(" ")
-	split1 := bs1.Split(separator1).Collect()
+	split1 := SliceOf(bs1.Split(separator1)...).Iter().Collect().Slice()
 	expected1 := SliceOf(Bytes("hello"), Bytes("world"), Bytes("gopher"))
 	if !reflect.DeepEqual(split1, expected1) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected1, split1)
@@ -267,7 +268,7 @@ func TestBytesSplit(t *testing.T) {
 	// Test case where separator doesn't exist
 	bs2 := Bytes("helloworldgopher")
 	separator2 := Bytes(" ")
-	split2 := bs2.Split(separator2).Collect()
+	split2 := SliceOf(bs2.Split(separator2)...).Iter().Collect().Slice()
 	expected2 := Slice[Bytes]{Bytes("helloworldgopher")}
 	if !reflect.DeepEqual(split2, expected2) {
 		t.Errorf("Split failed. Expected: %v, Got: %v", expected2, split2)
@@ -276,21 +277,21 @@ func TestBytesSplit(t *testing.T) {
 
 func TestBytesChars(t *testing.T) {
 	// ASCII characters
-	ascii := Bytes("abc").Chars().Collect()
+	ascii := SliceOf(Bytes("abc").Chars()...).Iter().Collect().Slice()
 	expectedASCII := SliceOf(Bytes("a"), Bytes("b"), Bytes("c"))
 	if !reflect.DeepEqual(ascii, expectedASCII) {
 		t.Errorf("Chars failed. Expected: %v, Got: %v", expectedASCII, ascii)
 	}
 
 	// Multibyte UTF-8 characters are yielded rune-wise, mirroring String.Chars
-	unicode := Bytes("héй世").Chars().Collect()
+	unicode := SliceOf(Bytes("héй世").Chars()...).Iter().Collect().Slice()
 	expectedUnicode := SliceOf(Bytes("h"), Bytes("é"), Bytes("й"), Bytes("世"))
 	if !reflect.DeepEqual(unicode, expectedUnicode) {
 		t.Errorf("Chars failed. Expected: %v, Got: %v", expectedUnicode, unicode)
 	}
 
 	// Empty Bytes yields nothing
-	if got := Bytes("").Chars().Collect(); got.Len() != 0 {
+	if got := SliceOf(Bytes("").Chars()...).Iter().Collect().Slice(); got.Len() != 0 {
 		t.Errorf("Chars on empty Bytes: expected empty, got %v", got)
 	}
 }
@@ -779,7 +780,7 @@ func TestBytesRxIndex(t *testing.T) {
 	// Test case where a match is found
 	bs := Bytes("apple banana")
 	pattern := regexp.MustCompile(`banana`)
-	idx := bs.Regexp().Index(pattern)
+	idx := rx.From(pattern).IndexBytes(bs)
 	expected := Some(Slice[Int]{6, 12})
 	if idx.IsNone() || !reflect.DeepEqual(idx.Some(), expected.Some()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -788,7 +789,7 @@ func TestBytesRxIndex(t *testing.T) {
 	// Test case where no match is found
 	bs = Bytes("apple banana")
 	pattern = regexp.MustCompile(`orange`)
-	idx = bs.Regexp().Index(pattern)
+	idx = rx.From(pattern).IndexBytes(bs)
 	expected = None[Slice[Int]]()
 	if idx.IsSome() || !reflect.DeepEqual(idx.IsNone(), expected.IsNone()) {
 		t.Errorf("IndexRegexp failed. Expected: %v, Got: %v", expected, idx)
@@ -817,7 +818,7 @@ func TestToRunes(t *testing.T) {
 	// Test case where the Bytes are converted to runes
 	bs := Bytes("hello")
 	runes := bs.Runes()
-	expected := Slice[rune]{'h', 'e', 'l', 'l', 'o'}
+	expected := []rune{'h', 'e', 'l', 'l', 'o'}
 	if !reflect.DeepEqual(runes, expected) {
 		t.Errorf("ToRunes failed. Expected: %v, Got: %v", expected, runes)
 	}
@@ -1095,24 +1096,25 @@ func TestBytesRxFindAllSubmatchN(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.Regexp().FindAllSubmatchN(pattern, -1)
-	if matches.IsSome() {
-		expected := Slice[Slice[Bytes]]{
-			{Bytes("hello")},
-			{Bytes("world")},
+	matches := rx.From(pattern).CapturesIterBytes(bs).Collect().Slice()
+	expected := Slice[Slice[Bytes]]{
+		{Bytes("hello")},
+		{Bytes("world")},
+	}
+	if matches.Len() != expected.Len() {
+		t.Fatalf("CapturesIterBytes failed. Expected: %s, Got: %s", expected, matches)
+	}
+	for i := range expected {
+		if !matches[i].Eq(expected[i]) {
+			t.Errorf("CapturesIterBytes failed. Expected: %s, Got: %s", expected[i], matches[i])
 		}
-		if !matches.Some().Eq(expected) {
-			t.Errorf("FindAllSubmatchRegexpN failed. Expected: %s, Got: %s", expected, matches.Some())
-		}
-	} else {
-		t.Errorf("FindAllSubmatchRegexpN failed. Expected matches, Got None")
 	}
 
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.Regexp().FindAllSubmatchN(pattern, -1)
-	if matches.IsSome() {
+	matches = rx.From(pattern).CapturesIterBytes(bs).Collect().Slice()
+	if !matches.IsEmpty() {
 		t.Errorf("FindAllSubmatchRegexpN failed. Expected None, Got matches")
 	}
 }
@@ -1121,24 +1123,20 @@ func TestBytesRxFindAll(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.Regexp().FindAll(pattern)
-	if matches.IsSome() {
-		expected := Slice[Bytes]{
-			Bytes("hello"),
-			Bytes("world"),
-		}
-		if !matches.Some().Eq(expected) {
-			t.Errorf("FindAllRegexp failed. Expected: %s, Got: %s", expected, matches.Some())
-		}
-	} else {
-		t.Errorf("FindAllRegexp failed. Expected matches, Got None")
+	matches := rx.From(pattern).FindIterBytes(bs).Collect().Slice()
+	expected := Slice[Bytes]{
+		Bytes("hello"),
+		Bytes("world"),
+	}
+	if !matches.Eq(expected) {
+		t.Errorf("FindIterBytes failed. Expected: %s, Got: %s", expected, matches)
 	}
 
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.Regexp().FindAll(pattern)
-	if matches.IsSome() {
+	matches = rx.From(pattern).FindIterBytes(bs).Collect().Slice()
+	if !matches.IsEmpty() {
 		t.Errorf("FindAllRegexp failed. Expected None, Got matches")
 	}
 }
@@ -1147,7 +1145,7 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where a match is found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	match := bs.Regexp().FindSubmatch(pattern)
+	match := rx.From(pattern).CapturesBytes(bs)
 	if match.IsSome() {
 		expected := SliceOf(Bytes("hello"))
 		if !match.Some().Eq(expected) {
@@ -1160,7 +1158,7 @@ func TestBytesRxFindSubmatch(t *testing.T) {
 	// Test case where no match is found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	match = bs.Regexp().FindSubmatch(pattern)
+	match = rx.From(pattern).CapturesBytes(bs)
 	if match.IsSome() {
 		t.Errorf("FindSubmatchRegexp failed. Expected None, Got match")
 	}
@@ -1170,24 +1168,25 @@ func TestBytesRxFindAllSubmatch(t *testing.T) {
 	// Test case where matches are found
 	bs := Bytes("hello world")
 	pattern := regexp.MustCompile(`\b\w+\b`)
-	matches := bs.Regexp().FindAllSubmatch(pattern)
-	if matches.IsSome() {
-		expected := Slice[Slice[Bytes]]{
-			{Bytes("hello")},
-			{Bytes("world")},
+	matches := rx.From(pattern).CapturesIterBytes(bs).Collect().Slice()
+	expected := Slice[Slice[Bytes]]{
+		{Bytes("hello")},
+		{Bytes("world")},
+	}
+	if matches.Len() != expected.Len() {
+		t.Fatalf("CapturesIterBytes failed. Expected: %s, Got: %s", expected, matches)
+	}
+	for i := range expected {
+		if !matches[i].Eq(expected[i]) {
+			t.Errorf("CapturesIterBytes failed. Expected: %s, Got: %s", expected[i], matches[i])
 		}
-		if !matches.Some().Eq(expected) {
-			t.Errorf("FindAllSubmatchRegexp failed. Expected: %s, Got: %s", expected, matches.Some())
-		}
-	} else {
-		t.Errorf("FindAllSubmatchRegexp failed. Expected matches, Got None")
 	}
 
 	// Test case where no matches are found
 	bs = Bytes("")
 	pattern = regexp.MustCompile(`\b\w+\b`)
-	matches = bs.Regexp().FindAllSubmatch(pattern)
-	if matches.IsSome() {
+	matches = rx.From(pattern).CapturesIterBytes(bs).Collect().Slice()
+	if !matches.IsEmpty() {
 		t.Errorf("FindAllSubmatchRegexp failed. Expected None, Got matches")
 	}
 }
@@ -1255,7 +1254,7 @@ func TestBytesSplitAfter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.SplitAfter(tc.separator).Collect()
+		actual := SliceOf(tc.input.SplitAfter(tc.separator)...).Iter().Collect().Slice()
 
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf(
@@ -1272,28 +1271,28 @@ func TestBytesSplitAfter(t *testing.T) {
 func TestBytesFields(t *testing.T) {
 	bs1 := Bytes("hello world how are you")
 	expected1 := Slice[Bytes]{Bytes("hello"), Bytes("world"), Bytes("how"), Bytes("are"), Bytes("you")}
-	result1 := bs1.Fields().Collect()
+	result1 := SliceOf(bs1.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
 
 	bs2 := Bytes("hello")
 	expected2 := Slice[Bytes]{Bytes("hello")}
-	result2 := bs2.Fields().Collect()
+	result2 := SliceOf(bs2.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
 
 	bs3 := Bytes("")
 	expected3 := Slice[Bytes]{}
-	result3 := bs3.Fields().Collect()
+	result3 := SliceOf(bs3.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
 	}
 
 	bs4 := Bytes("   hello   world   ")
 	expected4 := Slice[Bytes]{Bytes("hello"), Bytes("world")}
-	result4 := bs4.Fields().Collect()
+	result4 := SliceOf(bs4.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result4, expected4) {
 		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
 	}
@@ -1315,7 +1314,7 @@ func TestBytesFieldsBy(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.FieldsBy(tc.fn).Collect()
+		actual := SliceOf(tc.input.FieldsBy(tc.fn)...).Iter().Collect().Slice()
 
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf("Unexpected result for input: %s\nExpected: %v\nGot: %v", tc.input, tc.expected, actual)
@@ -1495,31 +1494,30 @@ func TestBytesReverse(t *testing.T) {
 }
 
 func TestNewBytes(t *testing.T) {
-	// Test NewBytes with no arguments - should create empty bytes
-	bs1 := NewBytes()
-	if len(bs1) != 0 {
-		t.Errorf("NewBytes() should create empty bytes, got length %d", len(bs1))
+	// Conversion from a string.
+	bs1 := NewBytes("hello")
+	if !bs1.Eq(Bytes("hello")) {
+		t.Errorf("NewBytes(string) = %q, want %q", bs1, "hello")
 	}
 
-	// Test NewBytes with length only
-	bs2 := NewBytes(5)
-	if len(bs2) != 5 {
-		t.Errorf("NewBytes(5) should create bytes with length 5, got %d", len(bs2))
-	}
-	if cap(bs2) != 5 {
-		t.Errorf("NewBytes(5) should create bytes with capacity 5, got %d", cap(bs2))
+	// Conversion from a byte slice.
+	bs2 := NewBytes([]byte{1, 2, 3})
+	if !bs2.Eq(Bytes{1, 2, 3}) {
+		t.Errorf("NewBytes([]byte) = %v, want [1 2 3]", bs2)
 	}
 
-	// Test NewBytes with length and capacity
-	bs3 := NewBytes(3, 10)
-	if len(bs3) != 3 {
-		t.Errorf("NewBytes(3, 10) should create bytes with length 3, got %d", len(bs3))
+	// Conversion from another Bytes-shaped type keeps the data.
+	bs3 := NewBytes(String("g"))
+	if !bs3.Eq(Bytes("g")) {
+		t.Errorf("NewBytes(String) = %q, want %q", bs3, "g")
 	}
-	if cap(bs3) != 10 {
-		t.Errorf("NewBytes(3, 10) should create bytes with capacity 10, got %d", cap(bs3))
+
+	// Pre-sized buffers come from make directly.
+	buf := make(Bytes, 3, 10)
+	if len(buf) != 3 || cap(buf) != 10 {
+		t.Errorf("make(Bytes, 3, 10) = len %d cap %d", len(buf), cap(buf))
 	}
 }
-
 func TestBytesStringUnsafe(t *testing.T) {
 	bs := Bytes("hello world")
 	str := bs.StringUnsafe()
@@ -1542,7 +1540,7 @@ func TestBytesLen(t *testing.T) {
 }
 
 func TestBytesReset(t *testing.T) {
-	bs := NewBytes(5, 10)
+	bs := make(Bytes, 5, 10)
 	// Set some data
 	copy(bs, "hello")
 
@@ -2028,7 +2026,7 @@ func TestBytesEndsWithAny(t *testing.T) {
 
 func TestBytesLines(t *testing.T) {
 	bs := Bytes("line1\nline2\r\nline3")
-	got := bs.Lines().Collect()
+	got := SliceOf(bs.Lines()...).Iter().Collect().Slice()
 	want := Slice[Bytes]{Bytes("line1"), Bytes("line2"), Bytes("line3")}
 
 	if !reflect.DeepEqual(got, want) {
@@ -2041,11 +2039,11 @@ func TestBytesSplitN(t *testing.T) {
 		input Bytes
 		sep   Bytes
 		n     Int
-		want  Slice[Bytes]
+		want  []Bytes
 	}{
-		{Bytes("a,b,c"), Bytes(","), 2, Slice[Bytes]{Bytes("a"), Bytes("b,c")}},
-		{Bytes("a,b,c"), Bytes(","), -1, Slice[Bytes]{Bytes("a"), Bytes("b"), Bytes("c")}},
-		{Bytes("a,b,c"), Bytes(","), 1, Slice[Bytes]{Bytes("a,b,c")}},
+		{Bytes("a,b,c"), Bytes(","), 2, []Bytes{Bytes("a"), Bytes("b,c")}},
+		{Bytes("a,b,c"), Bytes(","), -1, []Bytes{Bytes("a"), Bytes("b"), Bytes("c")}},
+		{Bytes("a,b,c"), Bytes(","), 1, []Bytes{Bytes("a,b,c")}},
 	}
 
 	for _, tc := range tests {
@@ -2055,7 +2053,7 @@ func TestBytesSplitN(t *testing.T) {
 		}
 	}
 
-	if got := Bytes("a,b,c").SplitN(Bytes(","), 0); got.Len() != 0 {
+	if got := Bytes("a,b,c").SplitN(Bytes(","), 0); Slice[Bytes](got).Len() != 0 {
 		t.Errorf("SplitN(_, 0) = %v, want empty", got)
 	}
 }
@@ -2090,5 +2088,21 @@ func TestBytesParsers(t *testing.T) {
 	}
 	if e := Bytes("x").TryBool().Err(); !errors.Is(e, ErrParseBool) {
 		t.Errorf("Bytes.TryBool err = %v, want ErrParseBool", e)
+	}
+}
+
+func TestBytesSplitNEdges(t *testing.T) {
+	// Empty separator with n limiting: last element carries the remainder.
+	got := Bytes("héllo").SplitN(Bytes(""), 3)
+	want := []Bytes{Bytes("h"), Bytes("é"), Bytes("llo")}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("SplitN(empty sep, 3) = %q, want %q", got, want)
+	}
+
+	// Unicode separator.
+	got = Bytes("a—b").SplitN(Bytes("—"), -1)
+	want = []Bytes{Bytes("a"), Bytes("b")}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("SplitN(unicode sep) = %q, want %q", got, want)
 	}
 }

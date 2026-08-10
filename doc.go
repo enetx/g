@@ -22,13 +22,14 @@
 //
 // # Iterators
 //
-// Every container exposes Iter/IntoIter methods returning lazy sequences —
-// [SeqSlice], [SeqSlices], [SeqSet], [SeqMap], [SeqMapOrd], [SeqDeque],
-// [SeqHeap], [SeqResult] and [SeqPairs] — built on top of
-// github.com/enetx/iter. With Go 1.27 generic methods, transformations can
-// change the element type mid-chain:
+// Every container exposes an Iter method returning lazy sequences (Heap
+// additionally offers a draining IntoIter) —
+// [Seq] for values, [Seq2] for key-value pairs, [SeqSlices] for grouped
+// windows/chunks and [SeqResult] for fallible streams — built on g's own
+// dependency-free iterator core. With Go 1.27 generic methods, transformations
+// can change the element type mid-chain:
 //
-//	g.SliceOf(1, 2, 3).Iter().Map[string](strconv.Itoa).Collect() // Slice[string]
+//	g.SliceOf(1, 2, 3).Iter().Map[string](strconv.Itoa).Collect().Slice() // Slice[string]
 //
 // Iterators are lazy: nothing is computed until a consumer (Collect, ForEach,
 // Fold, ...) runs the chain.
@@ -40,13 +41,13 @@
 // Octal, Binary, JSON, ...), Compress/Decompress (gzip, zlib, flate)
 // and Hash (MD5, SHA1, SHA256, SHA512).
 //
-// # Filesystem
-//
-// [File] and [Dir] provide chainable, Result-based file and directory
-// operations, including lazy line/chunk iterators over file contents.
-//
 // # Subpackages
 //
+//   - fs: File and Dir — chainable, Result-based file and directory
+//     operations, including lazy line/chunk iterators over file contents.
+//   - rx: compiled regular expressions with a compile-once, rich matching API.
+//   - rand: all randomness (numbers, choices, samples, shuffles, strings)
+//     in one place.
 //   - pool: a generic goroutine pool with limits, rate limiting and streaming.
 //   - cmp: ordering primitives (cmp.Ordering, cmp.Cmp) used by sorts and heaps.
 //   - f: predicate combinators for filters (f.Eq, f.Gt, f.Contains, ...).
@@ -69,8 +70,8 @@
 //
 // # Security
 //
-// [Format] templates can invoke arbitrary exported methods on their arguments
-// via reflection ({key.Method(...)} placeholders). Treat templates as code:
-// never pass untrusted or user-controlled input as the template string —
-// untrusted data belongs only in argument values.
+// [Format] placeholders resolve data only: each dot-segment selects a map
+// key, a MapOrd key, a slice/array index or a struct field — placeholders
+// cannot invoke methods. Note that an untrusted template string can still
+// choose which of the supplied argument data is printed.
 package g

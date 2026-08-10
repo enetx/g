@@ -1,13 +1,14 @@
-package g_test
+package fs_test
 
 import (
 	"testing"
 
 	. "github.com/enetx/g"
+	gfs "github.com/enetx/g/fs"
 )
 
 func TestGobEncodingDecoding(t *testing.T) {
-	file, err := NewFile("testfile.gob").CreateTemp().Result()
+	file, err := gfs.CreateTempFile().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -34,7 +35,7 @@ func TestGobEncodingDecoding(t *testing.T) {
 }
 
 func TestJSONDecodeDuplicateKeyError(t *testing.T) {
-	file, err := NewFile("dupkey.json").CreateTemp().Result()
+	file, err := gfs.CreateTempFile().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -54,7 +55,7 @@ func TestJSONDecodeDuplicateKeyError(t *testing.T) {
 }
 
 func TestJSONEncodeStructV2Defaults(t *testing.T) {
-	file, err := NewFile("structdefaults.json").CreateTemp().Result()
+	file, err := gfs.CreateTempFile().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -84,7 +85,7 @@ func TestJSONEncodeStructV2Defaults(t *testing.T) {
 }
 
 func TestJSONDecodeCaseSensitive(t *testing.T) {
-	file, err := NewFile("casesensitive.json").CreateTemp().Result()
+	file, err := gfs.CreateTempFile().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}
@@ -112,7 +113,7 @@ func TestJSONDecodeCaseSensitive(t *testing.T) {
 }
 
 func TestJSONEncodingDecoding(t *testing.T) {
-	file, err := NewFile("testfile.json").CreateTemp().Result()
+	file, err := gfs.CreateTempFile().Result()
 	if err != nil {
 		t.Fatalf("Failed to create a temporary file: %v", err)
 	}

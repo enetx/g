@@ -7,7 +7,7 @@ func main() {
 	is := SliceOf[Int](1, 2, 3, 4, 5)
 
 	// Transform the slice of integers into a slice of strings
-	itos := is.Iter().Map(Int.String).Collect()
+	itos := is.Iter().Map(Int.String).Collect().Slice()
 
 	// Iterate over the transformed slice, perform folding, and print the result
 	itos.Iter().

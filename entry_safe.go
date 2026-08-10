@@ -1,7 +1,5 @@
 package g
 
-import "github.com/enetx/g/ref"
-
 // SafeEntry is a sealed interface representing a view into a single MapSafe entry.
 //
 // SafeEntry provides an API for in-place manipulation of concurrent map entries,
@@ -66,7 +64,7 @@ func (e OccupiedSafeEntry[K, V]) Key() K { return e.key }
 // If the key is concurrently removed, the zero value of V is returned.
 func (e OccupiedSafeEntry[K, V]) Get() V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 	var zero V
 	return zero
@@ -81,7 +79,7 @@ func (e OccupiedSafeEntry[K, V]) Insert(value V) V {
 
 	old, loaded := e.m.data.Swap(e.key, &value)
 	if loaded {
-		return *(old.(*V))
+		return *old.(*V)
 	}
 
 	e.m.count.Add(1)
@@ -98,7 +96,7 @@ func (e OccupiedSafeEntry[K, V]) Remove() V {
 
 	if actual, loaded := e.m.data.LoadAndDelete(e.key); loaded {
 		e.m.count.Add(-1)
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 
 	var zero V
@@ -106,9 +104,10 @@ func (e OccupiedSafeEntry[K, V]) Remove() V {
 }
 
 // OrInsert returns the existing value without modifying the map.
+// If the key was concurrently removed, the value is inserted as for a vacant entry.
 func (e OccupiedSafeEntry[K, V]) OrInsert(value V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 
 	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsert(value)
@@ -122,25 +121,28 @@ func (e OccupiedSafeEntry[K, V]) OrInsert(value V) V {
 // the result of fn() is discarded and the existing value is returned.
 func (e OccupiedSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 
 	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsertWith(fn)
 }
 
 // OrInsertWithKey returns the existing value without invoking the function.
+// If the key was concurrently removed, fn is invoked with the key and its
+// result inserted as for a vacant entry.
 func (e OccupiedSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 
 	return VacantSafeEntry[K, V]{m: e.m, key: e.key}.OrInsertWithKey(fn)
 }
 
 // OrDefault returns the existing value.
+// If the key was concurrently removed, the zero value of V is inserted and returned.
 func (e OccupiedSafeEntry[K, V]) OrDefault() V {
 	if actual, ok := e.m.data.Load(e.key); ok {
-		return *(actual.(*V))
+		return *actual.(*V)
 	}
 
 	var zero V
@@ -206,7 +208,7 @@ func (e VacantSafeEntry[K, V]) applyPending(fallback *V) V {
 	if e.modify != nil {
 		OccupiedSafeEntry[K, V]{m: e.m, key: e.key}.AndModify(e.modify)
 		if val, ok := e.m.data.Load(e.key); ok {
-			return *(val.(*V))
+			return *val.(*V)
 		}
 	}
 
@@ -247,7 +249,7 @@ func (e VacantSafeEntry[K, V]) OrInsert(value V) V {
 		return e.applyPending(actual.(*V))
 	}
 
-	return *(actual.(*V))
+	return *actual.(*V)
 }
 
 // OrInsertWith inserts the value returned by the function and returns the
@@ -264,7 +266,7 @@ func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 	e.m.structMu.RLock()
 	defer e.m.structMu.RUnlock()
 
-	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn()))
+	actual, loaded := e.m.data.LoadOrStore(e.key, new(fn()))
 	if !loaded {
 		e.m.count.Add(1)
 	}
@@ -273,7 +275,7 @@ func (e VacantSafeEntry[K, V]) OrInsertWith(fn func() V) V {
 		return e.applyPending(actual.(*V))
 	}
 
-	return *(actual.(*V))
+	return *actual.(*V)
 }
 
 // OrInsertWithKey inserts the value returned by the function and returns the
@@ -290,7 +292,7 @@ func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 	e.m.structMu.RLock()
 	defer e.m.structMu.RUnlock()
 
-	actual, loaded := e.m.data.LoadOrStore(e.key, ref.Of(fn(e.key)))
+	actual, loaded := e.m.data.LoadOrStore(e.key, new(fn(e.key)))
 	if !loaded {
 		e.m.count.Add(1)
 	}
@@ -299,7 +301,7 @@ func (e VacantSafeEntry[K, V]) OrInsertWithKey(fn func(K) V) V {
 		return e.applyPending(actual.(*V))
 	}
 
-	return *(actual.(*V))
+	return *actual.(*V)
 }
 
 // OrDefault inserts the zero value of V into the map and returns the stored value.

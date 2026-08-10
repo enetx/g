@@ -86,19 +86,19 @@ func main() {
 	}
 
 	// into an (unordered) Map
-	resMap := src.Iter().TryMap(toPairs).TryCollect().Map(MapFromPairs)
+	resMap := src.Iter().TryMap(toPairs).TryCollect().Map(func(p Slice[Pair[String, Int]]) Map[String, Int] { return MapOf(p...) })
 	Println("-> Map:     {}", resMap) // Ok(Map{a:10, b:20})
 
 	// into a MapOrd — insertion order is preserved through the whole chain
-	resOrd := src.Iter().TryMap(toPairs).TryCollect().Map(MapOrdFromPairs)
+	resOrd := src.Iter().TryMap(toPairs).TryCollect().Map(func(p Slice[Pair[String, Int]]) MapOrd[String, Int] { return MapOrdOf(p...) })
 	Println("-> MapOrd:  {}", resOrd) // Ok(MapOrd{a:10, b:20})
 
 	// into a concurrent MapSafe
-	resSafe := src.Iter().TryMap(toPairs).TryCollect().Map(MapSafeFromPairs)
+	resSafe := src.Iter().TryMap(toPairs).TryCollect().Map(func(p Slice[Pair[String, Int]]) *MapSafe[String, Int] { return MapSafeOf(p...) })
 	Println("-> MapSafe: {}", resSafe) // Ok(MapSafe{a:10, b:20})
 
 	// The first Err short-circuits the whole rebuild, whichever target is used.
 	src.Insert("c", "x")
-	resErr := src.Iter().TryMap(toPairs).TryCollect().Map(MapFromPairs)
+	resErr := src.Iter().TryMap(toPairs).TryCollect().Map(func(p Slice[Pair[String, Int]]) Map[String, Int] { return MapOf(p...) })
 	Println("-> Err:     {}", resErr) // Err(invalid integer: "x")
 }

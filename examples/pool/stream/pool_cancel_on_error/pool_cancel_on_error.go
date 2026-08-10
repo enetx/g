@@ -31,7 +31,7 @@ func main() {
 	// Collect all delivered results.
 	// With CancelOnError, this will contain tasks 0..3 (Ok) + task 4 (Err).
 	// Tasks 5..9 are never executed.
-	FromChan(ch).Collect().Println()
+	FromChan(ch).Collect().Slice().Println()
 
 	// Cause returns the error that triggered cancellation.
 	if cause := p.Cause(); cause != nil {

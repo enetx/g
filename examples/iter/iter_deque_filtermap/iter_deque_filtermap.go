@@ -14,7 +14,7 @@ func main() {
 			return Some(s) // Keep valid numeric strings
 		}
 		return None[string]()
-	}).Collect()
+	}).Collect().Deque()
 
 	validStrings.Println() // Deque[1, 42, 7]
 
@@ -25,19 +25,19 @@ func main() {
 			return Some(score * 2) // Double high scores
 		}
 		return None[int]() // Filter out scores below 80
-	}).Collect()
+	}).Collect().Deque()
 
 	highGrades.Println() // Show doubled high scores
 
 	// Example 3: FilterMap to extract file extensions
 	filenames := DequeOf("document.pdf", "image", "script.py", "data.json", "readme")
 	extensions := filenames.Iter().FilterMap(func(filename string) Option[string] {
-		if parts := String(filename).Split(".").Collect(); parts.Len() > 1 {
+		if parts := SliceOf(String(filename).Split(".")...).Iter().Collect().Slice(); parts.Len() > 1 {
 			ext := parts[parts.Len()-1]
 			return Some("." + string(ext))
 		}
 		return None[string]() // Filter out files without extensions
-	}).Collect()
+	}).Collect().Deque()
 
 	extensions.Println() // Deque[.pdf, .py, .json]
 
@@ -50,7 +50,7 @@ func main() {
 			return Some(num * 2) // Double them
 		}
 		return None[int]()
-	}).Collect()
+	}).Collect().Deque()
 
 	safeResults.Println() // Deque[30, 40]
 
@@ -63,19 +63,19 @@ func main() {
 			return Some(string(cleaned.Lower()))
 		}
 		return None[string]()
-	}).Collect()
+	}).Collect().Deque()
 
 	validEmails.Println() // Deque[john@email.com, jane@test.org, admin@site.net]
 
 	// Example 6: FilterMap for string processing
-	words := DequeOf("hello", "", "world", "   ", "go", "rust")
+	words := DequeOf("hello", "", "world", "   ", "go", "dart")
 	validWords := words.Iter().FilterMap(func(s string) Option[string] {
 		trimmed := String(s).Trim()
 		if !trimmed.IsEmpty() && len(trimmed) > 2 {
 			return Some(string(trimmed.Upper()))
 		}
 		return None[string]()
-	}).Collect()
+	}).Collect().Deque()
 
-	validWords.Println() // Deque[HELLO, WORLD, RUST]
+	validWords.Println() // Deque[HELLO, WORLD, DART]
 }

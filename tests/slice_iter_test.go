@@ -28,7 +28,7 @@ func assertGroupsInt(t *testing.T, got []Slice[int], want [][]int) {
 
 func TestSliceIterChunkBy_EqualRuns(t *testing.T) {
 	in := SliceOf(1, 1, 1, 3, 3, 2, 2, 2)
-	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect().Slices()
 
 	want := [][]int{
 		{1, 1, 1},
@@ -40,7 +40,7 @@ func TestSliceIterChunkBy_EqualRuns(t *testing.T) {
 
 func TestSliceIterChunkBy_LessEqRuns(t *testing.T) {
 	in := SliceOf(1, 1, 2, 3, 2, 3, 2, 3, 4)
-	got := in.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect().Slices()
 
 	want := [][]int{
 		{1, 1, 2, 3},
@@ -52,7 +52,7 @@ func TestSliceIterChunkBy_LessEqRuns(t *testing.T) {
 
 func TestSliceIterChunkBy_Empty(t *testing.T) {
 	in := Slice[int]{}
-	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect().Slices()
 	if len(got) != 0 {
 		t.Fatalf("expected 0 groups, got %d: %v", len(got), got)
 	}
@@ -60,14 +60,14 @@ func TestSliceIterChunkBy_Empty(t *testing.T) {
 
 func TestSliceIterChunkBy_AlwaysTrue(t *testing.T) {
 	in := SliceOf(7, 8, 9)
-	got := in.Iter().ChunkBy(func(a, b int) bool { return true }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return true }).Collect().Slices()
 	want := [][]int{{7, 8, 9}}
 	assertGroupsInt(t, got, want)
 }
 
 func TestSliceIterChunkBy_AlwaysFalse(t *testing.T) {
 	in := SliceOf(7, 8, 9)
-	got := in.Iter().ChunkBy(func(a, b int) bool { return false }).Collect()
+	got := in.Iter().ChunkBy(func(a, b int) bool { return false }).Collect().Slices()
 	want := [][]int{{7}, {8}, {9}}
 	assertGroupsInt(t, got, want)
 }
@@ -76,7 +76,7 @@ func TestSliceIterChunkBy_GroupsAreCopies(t *testing.T) {
 	in := SliceOf(1, 1, 2, 2)
 	orig := append([]int(nil), []int(in)...)
 
-	groups := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect()
+	groups := in.Iter().ChunkBy(func(a, b int) bool { return a == b }).Collect().Slices()
 	if len(groups) != 2 {
 		t.Fatalf("expected 2 groups, got %d: %v", len(groups), groups)
 	}
@@ -101,7 +101,7 @@ func TestSliceIterChunkBy_GroupsAreCopies(t *testing.T) {
 
 func TestSliceIterChunkBy_Strings(t *testing.T) {
 	in := SliceOf("a", "a", "b", "bb", "bb", "a")
-	got := in.Iter().ChunkBy(func(a, b string) bool { return len(a) == len(b) }).Collect()
+	got := in.Iter().ChunkBy(func(a, b string) bool { return len(a) == len(b) }).Collect().Slices()
 
 	want := [][]string{
 		{"a", "a", "b"},
@@ -216,7 +216,7 @@ func TestSliceIterPartition(t *testing.T) {
 func TestSliceIterCombinations(t *testing.T) {
 	// Test case 1: Combinations of integers
 	slice1 := Slice[int]{0, 1, 2, 3}
-	combs1 := slice1.Iter().Combinations(3).Collect()
+	combs1 := slice1.Iter().Combinations(3).Collect().Slices()
 	expectedCombs1 := []Slice[int]{
 		{0, 1, 2},
 		{0, 1, 3},
@@ -231,7 +231,7 @@ func TestSliceIterCombinations(t *testing.T) {
 	// Test case 2: Combinations of strings
 	p1 := SliceOf[String]("a", "b")
 	p2 := SliceOf[String]("c", "d")
-	combs2 := p1.Iter().Chain(p2.Iter()).Map(String.Upper).Combinations(2).Collect()
+	combs2 := p1.Iter().Chain(p2.Iter()).Map(String.Upper).Combinations(2).Collect().Slices()
 	expectedCombs2 := []Slice[String]{
 		{"A", "B"},
 		{"A", "C"},
@@ -248,7 +248,7 @@ func TestSliceIterCombinations(t *testing.T) {
 	// Test case 3: Combinations of mixed types
 	p3 := SliceOf[any]("x", "y")
 	p4 := SliceOf[any](1, 2)
-	combs3 := p3.Iter().Chain(p4.Iter()).Combinations(2).Collect()
+	combs3 := p3.Iter().Chain(p4.Iter()).Combinations(2).Collect().Slices()
 	expectedCombs3 := []Slice[any]{
 		{"x", "y"},
 		{"x", 1},
@@ -264,7 +264,7 @@ func TestSliceIterCombinations(t *testing.T) {
 
 	// Test case 4: Empty slice
 	emptySlice := Slice[int]{}
-	combs4 := emptySlice.Iter().Combinations(2).Collect()
+	combs4 := emptySlice.Iter().Combinations(2).Collect().Slices()
 	expectedCombs4 := []Slice[int]{}
 
 	if !reflect.DeepEqual(combs4, expectedCombs4) {
@@ -273,7 +273,7 @@ func TestSliceIterCombinations(t *testing.T) {
 
 	// Test case 5: Combinations with k greater than slice length
 	slice5 := Slice[int]{1, 2, 3}
-	combs5 := slice5.Iter().Combinations(4).Collect()
+	combs5 := slice5.Iter().Combinations(4).Collect().Slices()
 	expectedCombs5 := []Slice[int]{}
 
 	if !reflect.DeepEqual(combs5, expectedCombs5) {
@@ -288,7 +288,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	expected1 := NewSlice[int]()
 	expected1.Push(1, 1, 3, 4, 5)
 
-	actual1 := sl1.Iter().SortBy(cmp.Cmp).Collect()
+	actual1 := sl1.Iter().SortBy(cmp.Cmp).Collect().Slice()
 
 	if !actual1.Eq(expected1) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected1, actual1)
@@ -299,7 +299,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	expected2 := NewSlice[string]()
 	expected2.Push("foo", "baz", "bar")
 
-	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).Collect()
+	actual2 := sl2.Iter().SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).Collect().Slice()
 
 	if !actual2.Eq(expected2) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected2, actual2)
@@ -308,7 +308,7 @@ func TestSliceIterSortBy(t *testing.T) {
 	sl3 := NewSlice[int]()
 	expected3 := NewSlice[int]()
 
-	actual3 := sl3.Iter().SortBy(cmp.Cmp).Collect()
+	actual3 := sl3.Iter().SortBy(cmp.Cmp).Collect().Slice()
 
 	if !actual3.Eq(expected3) {
 		t.Errorf("SortBy failed: expected %v, but got %v", expected3, actual3)
@@ -321,7 +321,7 @@ func TestSliceIterDedup(t *testing.T) {
 	expectedResultInt := Slice[int]{1, 2, 3, 4, 5}
 
 	iterInt := sliceInt.Iter().Dedup()
-	resultInt := iterInt.Collect()
+	resultInt := iterInt.Collect().Slice()
 
 	if !reflect.DeepEqual(resultInt, expectedResultInt) {
 		t.Errorf("Dedup failed for int. Expected %v, got %v", expectedResultInt, resultInt)
@@ -332,7 +332,7 @@ func TestSliceIterDedup(t *testing.T) {
 	expectedResultString := Slice[string]{"apple", "orange", "banana", "grape"}
 
 	iterString := sliceString.Iter().Dedup()
-	resultString := iterString.Collect()
+	resultString := iterString.Collect().Slice()
 
 	if !reflect.DeepEqual(resultString, expectedResultString) {
 		t.Errorf("Dedup failed for strin Expected %v, got %v", expectedResultString, resultString)
@@ -343,7 +343,7 @@ func TestSliceIterDedup(t *testing.T) {
 	expectedResultFloat64 := Slice[float64]{1.2, 2.3, 3.4, 4.5, 5.6}
 
 	iterFloat64 := sliceFloat64.Iter().Dedup()
-	resultFloat64 := iterFloat64.Collect()
+	resultFloat64 := iterFloat64.Collect().Slice()
 
 	if !reflect.DeepEqual(resultFloat64, expectedResultFloat64) {
 		t.Errorf("Dedup failed for float64. Expected %v, got %v", expectedResultFloat64, resultFloat64)
@@ -366,7 +366,7 @@ func TestSliceIterDedup(t *testing.T) {
 	expectedResultStruct := Slice[myStruct]{{val: []int{1}}, {val: []int{2}}, {val: []int{3}}, {val: []int{4}}}
 
 	iterStruct := sliceStruct.Iter().Dedup()
-	resultStruct := iterStruct.Collect()
+	resultStruct := iterStruct.Collect().Slice()
 
 	if !reflect.DeepEqual(resultStruct, expectedResultStruct) {
 		t.Errorf("Dedup failed for custom struct. Expected %v, got %v", expectedResultStruct, resultStruct)
@@ -379,7 +379,7 @@ func TestSliceIterStepBy(t *testing.T) {
 	expectedResult := Slice[int]{1, 4, 7, 10}
 
 	iter := slice.Iter().StepBy(3)
-	result := iter.Collect()
+	result := iter.Collect().Slice()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -390,7 +390,7 @@ func TestSliceIterStepBy(t *testing.T) {
 	expectedResult = Slice[int]{1, 3, 5, 7, 9}
 
 	iter = slice.Iter().StepBy(2)
-	result = iter.Collect()
+	result = iter.Collect().Slice()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -401,7 +401,7 @@ func TestSliceIterStepBy(t *testing.T) {
 	expectedResult = Slice[int]{1}
 
 	iter = slice.Iter().StepBy(10)
-	result = iter.Collect()
+	result = iter.Collect().Slice()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -412,7 +412,7 @@ func TestSliceIterStepBy(t *testing.T) {
 	expectedResult = Slice[int]{1, 2, 3, 4, 5}
 
 	iter = slice.Iter().StepBy(1)
-	result = iter.Collect()
+	result = iter.Collect().Slice()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -422,7 +422,7 @@ func TestSliceIterStepBy(t *testing.T) {
 func TestSliceIterPermutations(t *testing.T) {
 	// Test case 1: Single element slice
 	slice1 := SliceOf(1)
-	perms1 := slice1.Iter().Permutations().Collect()
+	perms1 := slice1.Iter().Permutations().Collect().Slices()
 	expectedPerms1 := []Slice[int]{slice1}
 	if !reflect.DeepEqual(perms1, expectedPerms1) {
 		t.Errorf("expected %v, but got %v", expectedPerms1, perms1)
@@ -430,7 +430,7 @@ func TestSliceIterPermutations(t *testing.T) {
 
 	// Test case 2: Two-element string slice
 	slice2 := SliceOf("a", "b")
-	perms2 := slice2.Iter().Permutations().Collect()
+	perms2 := slice2.Iter().Permutations().Collect().Slices()
 	expectedPerms2 := []Slice[string]{
 		{"a", "b"},
 		{"b", "a"},
@@ -441,7 +441,7 @@ func TestSliceIterPermutations(t *testing.T) {
 
 	// Test case 3: Three-element float64 slice (Heap order)
 	slice3 := SliceOf(1.0, 2.0, 3.0)
-	perms3 := slice3.Iter().Permutations().Collect()
+	perms3 := slice3.Iter().Permutations().Collect().Slices()
 	expectedPerms3 := []Slice[float64]{
 		{1.0, 2.0, 3.0},
 		{2.0, 1.0, 3.0},
@@ -456,7 +456,7 @@ func TestSliceIterPermutations(t *testing.T) {
 
 	// Additional Test case 4: Empty slice
 	slice4 := Slice[any]{}
-	perms4 := slice4.Iter().Permutations().Collect()
+	perms4 := slice4.Iter().Permutations().Collect().Slices()
 	expectedPerms4 := []Slice[any]{}
 	if !reflect.DeepEqual(perms4, expectedPerms4) {
 		t.Errorf("expected %v, but got %v", expectedPerms4, perms4)
@@ -464,7 +464,7 @@ func TestSliceIterPermutations(t *testing.T) {
 
 	// Additional Test case 5: Four-element mixed-type slice (Heap order)
 	slice5 := SliceOf[any]("a", 1, 2.5, true)
-	perms5 := slice5.Iter().Permutations().Collect()
+	perms5 := slice5.Iter().Permutations().Collect().Slices()
 	expectedPerms5 := []Slice[any]{
 		{"a", 1, 2.5, true},
 		{1, "a", 2.5, true},
@@ -545,7 +545,7 @@ func TestSliceIterChunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Iter().Chunks(tt.size).Collect()
+			result := tt.input.Iter().Chunks(tt.size).Collect().Slices()
 
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Expected %d, but got %d", tt.expected, result)
@@ -646,7 +646,7 @@ func TestSliceIterFold(t *testing.T) {
 	}
 }
 
-func TestSeqSliceReduce_Sum(t *testing.T) {
+func TestSeqReduce_Sum(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 4, 5}
 
 	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
@@ -659,7 +659,7 @@ func TestSeqSliceReduce_Sum(t *testing.T) {
 	}
 }
 
-func TestSeqSliceReduce_Empty(t *testing.T) {
+func TestSeqReduce_Empty(t *testing.T) {
 	var sl Slice[int]
 
 	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
@@ -672,7 +672,7 @@ func TestSeqSliceReduce_Empty(t *testing.T) {
 	}
 }
 
-func TestSeqSliceReduce_Single(t *testing.T) {
+func TestSeqReduce_Single(t *testing.T) {
 	sl := Slice[int]{42}
 
 	got := sl.Iter().Reduce(func(a, b int) int { return a + b })
@@ -689,7 +689,7 @@ func TestSliceIterFilter(t *testing.T) {
 	var sl Slice[int]
 
 	sl.Push(1, 2, 3, 4, 5)
-	result := sl.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect()
+	result := sl.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect().Slice()
 
 	if result.Len() != 2 {
 		t.Errorf("Expected 2, got %d", result.Len())
@@ -706,7 +706,7 @@ func TestSliceIterFilter(t *testing.T) {
 
 func TestSliceIterMap(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 4, 5}
-	result := sl.Iter().Map(func(i int) int { return i * 2 }).Collect()
+	result := sl.Iter().Map(func(i int) int { return i * 2 }).Collect().Slice()
 
 	if result.Len() != sl.Len() {
 		t.Errorf("Expected %d, got %d", sl.Len(), result.Len())
@@ -721,7 +721,7 @@ func TestSliceIterMap(t *testing.T) {
 
 func TestSliceIterExcludeZeroValues(t *testing.T) {
 	sl := Slice[int]{1, 2, 3, 0, 4, 0, 5, 0, 6, 0, 7, 0, 8, 0, 9, 0, 10}
-	sl = sl.Iter().Exclude(f.IsZero).Collect()
+	sl = sl.Iter().Exclude(f.IsZero).Collect().Slice()
 
 	if sl.Len() != 10 {
 		t.Errorf("Expected 10, got %d", sl.Len())
@@ -785,7 +785,7 @@ func TestSliceIterForEach(t *testing.T) {
 func TestSliceIterZip(t *testing.T) {
 	s1 := SliceOf(1, 2, 3, 4)
 	s2 := SliceOf(5, 6, 7, 8)
-	result := s1.Iter().Zip(s2.Iter()).Collect()
+	result := s1.Iter().Zip(s2.Iter()).Collect().Pairs()
 	expected := []Pair[int, int]{{Key: 1, Value: 5}, {Key: 2, Value: 6}, {Key: 3, Value: 7}, {Key: 4, Value: 8}}
 
 	if !reflect.DeepEqual(result, expected) {
@@ -794,7 +794,7 @@ func TestSliceIterZip(t *testing.T) {
 
 	s3 := SliceOf(1, 2, 3)
 	s4 := SliceOf(4, 5)
-	result = s3.Iter().Zip(s4.Iter()).Collect()
+	result = s3.Iter().Zip(s4.Iter()).Collect().Pairs()
 	expected = []Pair[int, int]{{Key: 1, Value: 4}, {Key: 2, Value: 5}}
 
 	if !reflect.DeepEqual(result, expected) {
@@ -806,7 +806,7 @@ func TestSliceIterZipCrossType(t *testing.T) {
 	s1 := SliceOf(1, 2, 3)
 	s2 := SliceOf("a", "b", "c")
 
-	pairs := s1.Iter().Zip(s2.Iter()).Collect()
+	pairs := s1.Iter().Zip(s2.Iter()).Collect().Pairs()
 	expected := []Pair[int, string]{{Key: 1, Value: "a"}, {Key: 2, Value: "b"}, {Key: 3, Value: "c"}}
 
 	if !reflect.DeepEqual(pairs, expected) {
@@ -818,9 +818,9 @@ func TestSliceIterZipCrossType(t *testing.T) {
 		t.Errorf("Unzip = %v, %v", keys, values)
 	}
 
-	joined := s1.Iter().Zip(s2.Iter()).Map(func(n int, s string) string {
+	joined := s1.Iter().Zip(s2.Iter()).MapTo(func(n int, s string) string {
 		return fmt.Sprintf("%d%s", n, s)
-	}).Collect()
+	}).Collect().Slice()
 
 	if !reflect.DeepEqual(joined, SliceOf("1a", "2b", "3c")) {
 		t.Errorf("Zip().Map() = %v", joined)
@@ -858,7 +858,7 @@ func TestSliceIterFlatten(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.input.Iter().Flatten().Collect()
+			result := tt.input.Iter().Flatten().Collect().Slice()
 			if !reflect.DeepEqual(result, tt.expected) {
 				t.Errorf("Flatten() = %v, want %v", result, tt.expected)
 			}
@@ -941,7 +941,7 @@ func TestSliceIterCount(t *testing.T) {
 func TestSliceIterCycle(t *testing.T) {
 	// Test case 1: Cyclic behavior
 	seq := Slice[int]{1, 2, 3}
-	cycle := seq.Iter().Cycle().Take(9).Collect()
+	cycle := seq.Iter().Cycle().Take(9).Collect().Slice()
 
 	expected := []int{1, 2, 3, 1, 2, 3, 1, 2, 3}
 	for i := 0; i < len(expected); i++ {
@@ -954,7 +954,7 @@ func TestSliceIterCycle(t *testing.T) {
 func TestSliceIterEnumerate(t *testing.T) {
 	// Test case 1: Enumerate elements
 	seq := Slice[string]{"bbb", "ddd", "xxx", "aaa", "ccc"}
-	enumerated := seq.Iter().Enumerate().Collect()
+	enumerated := seq.Iter().Enumerate().Collect().MapOrd[Int, string]()
 
 	expected := NewMapOrd[Int, string]()
 	expected.Insert(0, "bbb")
@@ -975,7 +975,7 @@ func TestSliceIterEnumerate(t *testing.T) {
 func TestSliceIterSkip(t *testing.T) {
 	// Test case 1: Skip elements
 	seq := Slice[int]{1, 2, 3, 4, 5, 6}
-	skipped := seq.Iter().Skip(3).Collect()
+	skipped := seq.Iter().Skip(3).Collect().Slice()
 	expected := Slice[int]{4, 5, 6}
 	if len(skipped) != len(expected) {
 		t.Errorf("Expected skipped slice to have length %d, got %d", len(expected), len(skipped))
@@ -988,7 +988,7 @@ func TestSliceIterSkip(t *testing.T) {
 
 	// Test case 2: Skip all elements
 	seq2 := Slice[string]{"a", "b", "c"}
-	skipped2 := seq2.Iter().Skip(3).Collect()
+	skipped2 := seq2.Iter().Skip(3).Collect().Slice()
 	if len(skipped2) != 0 {
 		t.Errorf("Expected skipped slice of all elements to be empty, got length %d", len(skipped2))
 	}
@@ -997,7 +997,7 @@ func TestSliceIterSkip(t *testing.T) {
 func TestSliceIterUnique(t *testing.T) {
 	// Test case 1: Unique elements
 	seq := Slice[int]{1, 2, 3, 2, 4, 5, 3}
-	unique := seq.Iter().Unique().Collect()
+	unique := seq.Iter().Unique().Collect().Slice()
 
 	expected := Slice[int]{1, 2, 3, 4, 5}
 	if len(unique) != len(expected) {
@@ -1035,7 +1035,7 @@ func TestSliceIterFind(t *testing.T) {
 func TestSliceIterWindows(t *testing.T) {
 	// Test case 1: Windows of correct size
 	seq := Slice[int]{1, 2, 3, 4, 5, 6}
-	windows := seq.Iter().Windows(3).Collect()
+	windows := seq.Iter().Windows(3).Collect().Slices()
 
 	expected := []Slice[int]{
 		{1, 2, 3},
@@ -1105,7 +1105,7 @@ func TestSliceIterInspect(t *testing.T) {
 	// Create a new iterator with Inspect and collect the elements
 	s.Iter().Inspect(func(v int) {
 		inspectedElements = append(inspectedElements, v)
-	}).Collect()
+	}).Collect().Slice()
 
 	if inspectedElements.Len() != s.Len() {
 		t.Errorf("Expected %d inspected elements, got %d", s.Len(), inspectedElements.Len())
@@ -1128,7 +1128,7 @@ func TestSliceIterCounter(t *testing.T) {
 	expected1.Insert(4, 3)
 	expected1.Insert(5, 1)
 
-	result1 := sl1.Iter().CounterBy(func(v int) int { return v }).Collect()
+	result1 := sl1.Iter().CounterBy(func(v int) int { return v }).Collect().MapOrd[int, Int]()
 	result1.SortByKey(cmp.Cmp)
 	if !result1.Eq(expected1) {
 		t.Errorf("CounterBy() returned %v, expected %v", result1, expected1)
@@ -1141,7 +1141,7 @@ func TestSliceIterCounter(t *testing.T) {
 	expected2.Insert("grape", 1)
 	expected2.Insert("orange", 2)
 
-	result2 := sl2.Iter().CounterBy(func(v string) string { return v }).Collect()
+	result2 := sl2.Iter().CounterBy(func(v string) string { return v }).Collect().MapOrd[string, Int]()
 	result2.SortByKey(cmp.Cmp)
 	if !result2.Eq(expected2) {
 		t.Errorf("CounterBy() returned %v, expected %v", result2, expected2)
@@ -1151,7 +1151,7 @@ func TestSliceIterCounter(t *testing.T) {
 func TestSliceIterCounterBy(t *testing.T) {
 	words := SliceOf[String]("alpha", "beta", "gamma", "delta")
 
-	byLen := words.Iter().CounterBy(func(w String) Int { return w.Len() }).Collect()
+	byLen := words.Iter().CounterBy(func(w String) Int { return w.Len() }).Collect().MapOrd[Int, Int]()
 
 	expected := NewMapOrd[Int, Int]()
 	expected.Insert(5, 3) // alpha, gamma, delta
@@ -1166,7 +1166,7 @@ func TestSliceIntersperse(t *testing.T) {
 	// Test case 1: Intersperse strings with a comma
 	testSlice := Slice[string]{"apple", "banana", "orange"}
 	expected := Slice[string]{"apple", ", ", "banana", ", ", "orange"}
-	interspersed := testSlice.Iter().Intersperse(", ").Collect()
+	interspersed := testSlice.Iter().Intersperse(", ").Collect().Slice()
 
 	if interspersed.Ne(expected) {
 		t.Errorf("Test case 1 failed. Expected: %v, Got: %v", expected, interspersed)
@@ -1175,7 +1175,7 @@ func TestSliceIntersperse(t *testing.T) {
 	// Test case 2: Intersperse strings with a dash
 	testSlice = Slice[string]{"apple", "banana", "orange"}
 	expected = Slice[string]{"apple", "-", "banana", "-", "orange"}
-	interspersed = testSlice.Iter().Intersperse("-").Collect()
+	interspersed = testSlice.Iter().Intersperse("-").Collect().Slice()
 
 	if interspersed.Ne(expected) {
 		t.Errorf("Test case 2 failed. Expected: %v, Got: %v", expected, interspersed)
@@ -1184,7 +1184,7 @@ func TestSliceIntersperse(t *testing.T) {
 	// Test case 3: Intersperse empty slice
 	emptySlice := Slice[string]{}    // Create an empty slice of strings
 	expectedEmpty := Slice[string]{} // Expected empty slice
-	interspersedEmpty := emptySlice.Iter().Intersperse(", ").Collect()
+	interspersedEmpty := emptySlice.Iter().Intersperse(", ").Collect().Slice()
 
 	if interspersedEmpty.Ne(expectedEmpty) {
 		t.Errorf("Test case 3 failed. Expected: %v, Got: %v", expectedEmpty, interspersedEmpty)
@@ -1282,7 +1282,7 @@ func TestRange(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := Range(tc.start, tc.stop, tc.step...).Collect()
+			got := Range(tc.start, tc.stop, tc.step...).Collect().Slice()
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("Range(%d, %d, %v) = %v; want %v",
 					tc.start, tc.stop, tc.step, got, tc.want)
@@ -1356,7 +1356,7 @@ func TestRangeInclusive(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := RangeInclusive(tc.start, tc.stop, tc.step...).Collect()
+			got := RangeInclusive(tc.start, tc.stop, tc.step...).Collect().Slice()
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("RangeInclusive(%d, %d, %v) = %v; want %v",
 					tc.start, tc.stop, tc.step, got, tc.want)
@@ -1566,7 +1566,7 @@ func TestSliceIterNth(t *testing.T) {
 	})
 }
 
-func TestSeqSlicePull(t *testing.T) {
+func TestSeqPull(t *testing.T) {
 	slice := SliceOf(1, 2, 3, 4, 5)
 
 	next, stop := slice.Iter().Pull()
@@ -1590,7 +1590,7 @@ func TestSeqSlicePull(t *testing.T) {
 	}
 }
 
-func TestSeqSliceMaxBy(t *testing.T) {
+func TestSeqMaxBy(t *testing.T) {
 	// Test with integers
 	slice := SliceOf(5, 2, 8, 1, 9, 3)
 	max := slice.Iter().MaxBy(cmp.Cmp[int])
@@ -1620,7 +1620,7 @@ func TestSeqSliceMaxBy(t *testing.T) {
 	}
 }
 
-func TestSeqSliceMinBy(t *testing.T) {
+func TestSeqMinBy(t *testing.T) {
 	// Test with integers
 	slice := SliceOf(5, 2, 8, 1, 9, 3)
 	min := slice.Iter().MinBy(cmp.Cmp[int])
@@ -1650,12 +1650,12 @@ func TestSeqSliceMinBy(t *testing.T) {
 	}
 }
 
-func TestSeqSliceFlatMap(t *testing.T) {
+func TestSeqFlatMap(t *testing.T) {
 	// Test basic FlatMap - expand each number to a range
 	numbers := SliceOf(1, 2, 3)
-	expanded := numbers.Iter().FlatMap(func(n int) SeqSlice[int] {
+	expanded := numbers.Iter().FlatMap(func(n int) Seq[int] {
 		return SliceOf(n, n*10, n*100).Iter()
-	}).Collect()
+	}).Collect().Slice()
 
 	expected := SliceOf(1, 10, 100, 2, 20, 200, 3, 30, 300)
 	if !reflect.DeepEqual(expanded, expected) {
@@ -1664,14 +1664,14 @@ func TestSeqSliceFlatMap(t *testing.T) {
 
 	// Test FlatMap with strings - split words into characters
 	words := SliceOf("hi", "go")
-	chars := words.Iter().FlatMap(func(s string) SeqSlice[string] {
+	chars := words.Iter().FlatMap(func(s string) Seq[string] {
 		// Split string into individual characters
 		result := Slice[string]{}
 		for _, ch := range s {
 			result = append(result, string(ch))
 		}
 		return result.Iter()
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedChars := SliceOf("h", "i", "g", "o")
 	if !reflect.DeepEqual(chars, expectedChars) {
@@ -1680,12 +1680,12 @@ func TestSeqSliceFlatMap(t *testing.T) {
 
 	// Test FlatMap with empty sequences
 	mixed := SliceOf(1, 2, 3)
-	filtered := mixed.Iter().FlatMap(func(n int) SeqSlice[int] {
+	filtered := mixed.Iter().FlatMap(func(n int) Seq[int] {
 		if n == 2 {
 			return Slice[int]{}.Iter() // Return empty for 2
 		}
 		return SliceOf(n, n*2).Iter()
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedFiltered := SliceOf(1, 2, 3, 6)
 	if !reflect.DeepEqual(filtered, expectedFiltered) {
@@ -1694,16 +1694,16 @@ func TestSeqSliceFlatMap(t *testing.T) {
 
 	// Test empty input
 	emptySlice := Slice[int]{}
-	emptyResult := emptySlice.Iter().FlatMap(func(n int) SeqSlice[int] {
+	emptyResult := emptySlice.Iter().FlatMap(func(n int) Seq[int] {
 		return SliceOf(n, n*2).Iter()
-	}).Collect()
+	}).Collect().Slice()
 
 	if len(emptyResult) != 0 {
 		t.Errorf("FlatMap on empty slice should return empty, got %v", emptyResult)
 	}
 }
 
-func TestSeqSliceFilterMap(t *testing.T) {
+func TestSeqFilterMap(t *testing.T) {
 	// Test FilterMap with Option - parse strings to ints
 	strings := SliceOf("1", "2", "abc", "3", "xyz", "4")
 	numbers := strings.Iter().FilterMap(func(s string) Option[string] {
@@ -1720,7 +1720,7 @@ func TestSeqSliceFilterMap(t *testing.T) {
 		default:
 			return None[string]()
 		}
-	}).Collect()
+	}).Collect().Slice()
 
 	expected := SliceOf("1", "2", "3", "4")
 	if !reflect.DeepEqual(numbers, expected) {
@@ -1734,7 +1734,7 @@ func TestSeqSliceFilterMap(t *testing.T) {
 			return Some(n * 2)
 		}
 		return None[int]()
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedDoubled := SliceOf(2, 6, 10)
 	if !reflect.DeepEqual(positiveDoubled, expectedDoubled) {
@@ -1748,7 +1748,7 @@ func TestSeqSliceFilterMap(t *testing.T) {
 			return Some(n)
 		}
 		return None[int]()
-	}).Collect()
+	}).Collect().Slice()
 
 	if len(noPositive) != 0 {
 		t.Errorf("FilterMap should filter all negative numbers, got %v", noPositive)
@@ -1758,7 +1758,7 @@ func TestSeqSliceFilterMap(t *testing.T) {
 	allPositive := SliceOf(1, 2, 3)
 	allSquared := allPositive.Iter().FilterMap(func(n int) Option[int] {
 		return Some(n * n)
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedSquared := SliceOf(1, 4, 9)
 	if !reflect.DeepEqual(allSquared, expectedSquared) {
@@ -1769,19 +1769,19 @@ func TestSeqSliceFilterMap(t *testing.T) {
 	emptySlice := Slice[int]{}
 	emptyResult := emptySlice.Iter().FilterMap(func(n int) Option[int] {
 		return Some(n * 2)
-	}).Collect()
+	}).Collect().Slice()
 
 	if len(emptyResult) != 0 {
 		t.Errorf("FilterMap on empty slice should return empty, got %v", emptyResult)
 	}
 }
 
-func TestSeqSliceScan(t *testing.T) {
+func TestSeqScan(t *testing.T) {
 	// Test Scan with sum accumulation
 	numbers := SliceOf(1, 2, 3, 4)
 	sums := numbers.Iter().Scan(0, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedSums := SliceOf(0, 1, 3, 6, 10)
 	if !reflect.DeepEqual(sums, expectedSums) {
@@ -1792,7 +1792,7 @@ func TestSeqSliceScan(t *testing.T) {
 	words := SliceOf("a", "b", "c")
 	concatenated := words.Iter().Scan("", func(acc, val string) string {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedConcat := SliceOf("", "a", "ab", "abc")
 	if !reflect.DeepEqual(concatenated, expectedConcat) {
@@ -1803,7 +1803,7 @@ func TestSeqSliceScan(t *testing.T) {
 	factors := SliceOf(2, 3, 4)
 	products := factors.Iter().Scan(1, func(acc, val int) int {
 		return acc * val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedProducts := SliceOf(1, 2, 6, 24)
 	if !reflect.DeepEqual(products, expectedProducts) {
@@ -1817,7 +1817,7 @@ func TestSeqSliceScan(t *testing.T) {
 			return val
 		}
 		return acc
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedMax := SliceOf(0, 3, 3, 4, 4, 5, 9, 9)
 	if !reflect.DeepEqual(maxValues, expectedMax) {
@@ -1828,7 +1828,7 @@ func TestSeqSliceScan(t *testing.T) {
 	emptySlice := Slice[int]{}
 	emptyResult := emptySlice.Iter().Scan(100, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	// Should only contain the initial value
 	expectedEmpty := SliceOf(100)
@@ -1840,7 +1840,7 @@ func TestSeqSliceScan(t *testing.T) {
 	single := SliceOf(5)
 	singleResult := single.Iter().Scan(10, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedSingle := SliceOf(10, 15)
 	if !reflect.DeepEqual(singleResult, expectedSingle) {
@@ -1848,7 +1848,7 @@ func TestSeqSliceScan(t *testing.T) {
 	}
 }
 
-func TestSeqSliceNext(t *testing.T) {
+func TestSeqSliceIterNext(t *testing.T) {
 	t.Run("Next with non-empty iterator", func(t *testing.T) {
 		iter := SliceOf(1, 2, 3, 4, 5).Iter()
 
@@ -1865,7 +1865,7 @@ func TestSeqSliceNext(t *testing.T) {
 		}
 
 		// Remaining elements
-		remaining := iter.Collect()
+		remaining := iter.Collect().Slice()
 		expected := SliceOf(3, 4, 5)
 		if !remaining.Eq(expected) {
 			t.Errorf("Expected remaining %v, got %v", expected, remaining)
@@ -1900,7 +1900,7 @@ func TestSeqSliceNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().Slice()
 		if len(remaining) != 0 {
 			t.Errorf("Expected empty slice, got %v", remaining)
 		}
@@ -1958,9 +1958,9 @@ func TestSeqSlicesMap(t *testing.T) {
 			got := tt.input.Iter().
 				Chunks(tt.size).
 				Map(func(c Slice[int]) Slice[int] {
-					return c.Iter().Map(func(v int) int { return v * 2 }).Collect()
+					return c.Iter().Map(func(v int) int { return v * 2 }).Collect().Slice()
 				}).
-				Collect()
+				Collect().Slices()
 			assertGroupsInt(t, got, tt.want)
 		})
 	}
@@ -1971,7 +1971,7 @@ func TestSeqSlicesFilter(t *testing.T) {
 		Iter().
 		Chunks(2).
 		Filter(func(c Slice[int]) bool { return c.Len() == 2 }).
-		Collect()
+		Collect().Slices()
 	assertGroupsInt(t, got, [][]int{{1, 2}, {3, 4}})
 }
 
@@ -2026,9 +2026,9 @@ func TestSeqSlicesFlatten(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.input.Iter().Chunks(tt.size).Flatten().Collect()
+			got := tt.input.Iter().Chunks(tt.size).Flatten().Collect().Slice()
 			if !got.Eq(tt.want) {
-				t.Errorf("Flatten().Collect() = %v; want %v", got, tt.want)
+				t.Errorf("Flatten().Collect().Slice() = %v; want %v", got, tt.want)
 			}
 		})
 	}
@@ -2041,7 +2041,7 @@ func TestSeqSlicesFlattenEarlyStop(t *testing.T) {
 		Chunks(2).
 		Flatten().
 		Take(3).
-		Collect()
+		Collect().Slice()
 	if !got.Eq(SliceOf(1, 2, 3)) {
 		t.Errorf("Flatten().Take(3) = %v; want [1 2 3]", got)
 	}
@@ -2053,13 +2053,13 @@ func TestSeqSlicesFilterEarlyStop(t *testing.T) {
 		Iter().
 		Chunks(2).
 		Filter(func(c Slice[int]) bool { return true }).
-		Collect()
+		Collect().Slices()
 	assertGroupsInt(t, got, [][]int{{1, 2}, {3, 4}, {5, 6}, {7, 8}})
 }
 
 func TestSliceIterCrossTypeChains(t *testing.T) {
 	// Map to a different element type mid-chain
-	strs := SliceOf(1, 2, 3).Iter().Map(func(n int) String { return Int(n).String() }).Collect()
+	strs := SliceOf(1, 2, 3).Iter().Map(func(n int) String { return Int(n).String() }).Collect().Slice()
 	if !reflect.DeepEqual(strs, SliceOf[String]("1", "2", "3")) {
 		t.Errorf("Map cross-type = %v", strs)
 	}
@@ -2073,21 +2073,21 @@ func TestSliceIterCrossTypeChains(t *testing.T) {
 	// FilterMap into a different element type
 	ints := SliceOf[String]("1", "x", "3").Iter().FilterMap(func(s String) Option[Int] {
 		return s.TryInt().Option()
-	}).Collect()
+	}).Collect().Slice()
 	if !reflect.DeepEqual(ints, SliceOf[Int](1, 3)) {
 		t.Errorf("FilterMap cross-type = %v", ints)
 	}
 
 	// FlatMap into a different element type
-	chars := SliceOf[String]("ab", "c").Iter().FlatMap(func(s String) SeqSlice[string] {
-		return s.Chars().Map(String.Std)
-	}).Collect()
+	chars := SliceOf[String]("ab", "c").Iter().FlatMap(func(s String) Seq[string] {
+		return SliceOf(s.Chars()...).Iter().Map(String.Std)
+	}).Collect().Slice()
 	if !reflect.DeepEqual(chars, SliceOf("a", "b", "c")) {
 		t.Errorf("FlatMap cross-type = %v", chars)
 	}
 
 	// Scan with a different accumulator type
-	sums := SliceOf(1, 2, 3).Iter().Scan(Int(0), func(acc Int, n int) Int { return acc + Int(n) }).Collect()
+	sums := SliceOf(1, 2, 3).Iter().Scan(Int(0), func(acc Int, n int) Int { return acc + Int(n) }).Collect().Slice()
 	if !reflect.DeepEqual(sums, SliceOf[Int](0, 1, 3, 6)) {
 		t.Errorf("Scan cross-type = %v", sums)
 	}
@@ -2096,37 +2096,37 @@ func TestSliceIterCrossTypeChains(t *testing.T) {
 func TestSliceIterWhileAdapters(t *testing.T) {
 	s := SliceOf(1, 2, 3, 10, 4)
 
-	taken := s.Iter().TakeWhile(func(v int) bool { return v < 5 }).Collect()
+	taken := s.Iter().TakeWhile(func(v int) bool { return v < 5 }).Collect().Slice()
 	if !reflect.DeepEqual(taken, SliceOf(1, 2, 3)) {
 		t.Errorf("TakeWhile = %v", taken)
 	}
 
-	skipped := s.Iter().SkipWhile(func(v int) bool { return v < 5 }).Collect()
+	skipped := s.Iter().SkipWhile(func(v int) bool { return v < 5 }).Collect().Slice()
 	if !reflect.DeepEqual(skipped, SliceOf(10, 4)) {
 		t.Errorf("SkipWhile = %v", skipped)
 	}
 }
 
-func TestSeqSliceSumBy(t *testing.T) {
+func TestSeqSliceIterSumBy(t *testing.T) {
 	words := SliceOf[String]("a", "bb", "ccc")
 	if got := words.Iter().SumBy(func(s String) Int { return s.Len() }); got != 6 {
-		t.Errorf("SeqSlice.SumBy = %d, want 6", got)
+		t.Errorf("Seq.SumBy = %d, want 6", got)
 	}
 
 	// element-type-independent result type: Int elements -> Float sum
 	nums := SliceOf[Int](1, 2, 3)
 	if got := nums.Iter().SumBy(func(v Int) Float { return Float(v) * 0.5 }); got != 3.0 {
-		t.Errorf("SeqSlice.SumBy float = %v, want 3", got)
+		t.Errorf("Seq.SumBy float = %v, want 3", got)
 	}
 
 	// empty -> zero value
 	empty := NewSlice[Int]()
 	if got := empty.Iter().SumBy(func(v Int) Int { return v }); got != 0 {
-		t.Errorf("SeqSlice.SumBy empty = %d, want 0", got)
+		t.Errorf("Seq.SumBy empty = %d, want 0", got)
 	}
 }
 
-func TestSeqSliceTryMapTryCollect(t *testing.T) {
+func TestSeqTryMapTryCollect(t *testing.T) {
 	ok := SliceOf[String]("1", "2", "3").Iter().TryMap(String.TryInt).TryCollect()
 	if ok.IsErr() {
 		t.Fatalf("unexpected err: %v", ok.Err())
@@ -2144,7 +2144,7 @@ func TestSeqSliceTryMapTryCollect(t *testing.T) {
 	}
 }
 
-func TestSeqSliceTryMapSumBy(t *testing.T) {
+func TestSeqTryMapSumBy(t *testing.T) {
 	sum := SliceOf[String]("1", "2", "3").Iter().TryMap(String.TryInt).SumBy(f.Id)
 	if sum.IsErr() || sum.Ok() != 6 {
 		t.Fatalf("SumBy = %v, want Ok(6)", sum)
@@ -2156,8 +2156,8 @@ func TestSeqSliceTryMapSumBy(t *testing.T) {
 	}
 }
 
-func TestSeqSliceTryMapCollectFullTraverse(t *testing.T) {
-	full := SliceOf[String]("aaa", "22", "ddd").Iter().TryMap(String.TryInt).Collect()
+func TestSeqTryMapCollectFullTraverse(t *testing.T) {
+	full := SliceOf[String]("aaa", "22", "ddd").Iter().TryMap(String.TryInt).Collect().Slice()
 	if full.Len() != 3 {
 		t.Fatalf("Collect len = %d, want 3", full.Len())
 	}
@@ -2166,22 +2166,22 @@ func TestSeqSliceTryMapCollectFullTraverse(t *testing.T) {
 	}
 }
 
-func TestSeqSliceTryMapEmpty(t *testing.T) {
+func TestSeqTryMapEmpty(t *testing.T) {
 	empty := NewSlice[String]().Iter().TryMap(String.TryInt).TryCollect()
 	if empty.IsErr() || empty.Ok().Len() != 0 {
 		t.Fatalf("empty TryCollect = %v, want Ok(empty)", empty)
 	}
 }
 
-func TestSeqSliceTryMapLift(t *testing.T) {
-	results := SliceOf[String]("1", "2", "3").Iter().Map(String.TryInt) // SeqSlice[Result[Int]]
+func TestSeqTryMapLift(t *testing.T) {
+	results := SliceOf[String]("1", "2", "3").Iter().Map(String.TryInt) // Seq[Result[Int]]
 	lifted := results.TryMap(f.Id).TryCollect()                         // -> Result[Slice[Int]]
 	if lifted.IsErr() || lifted.Ok().Len() != 3 {
 		t.Fatalf("lift = %v", lifted)
 	}
 }
 
-func TestSeqSliceProductBy(t *testing.T) {
+func TestSeqProductBy(t *testing.T) {
 	if got := SliceOf[Int](1, 2, 3, 4).Iter().ProductBy(f.Id); got != 24 {
 		t.Errorf("ProductBy = %d, want 24", got)
 	}
@@ -2191,7 +2191,7 @@ func TestSeqSliceProductBy(t *testing.T) {
 	}
 }
 
-func TestSeqSliceFindMap(t *testing.T) {
+func TestSeqFindMap(t *testing.T) {
 	pick := func(v Int) Option[String] {
 		if v == 3 {
 			return Some(v.String())
@@ -2203,5 +2203,25 @@ func TestSeqSliceFindMap(t *testing.T) {
 	}
 	if got := SliceOf[Int](1, 2, 4).Iter().FindMap(pick); got.IsSome() {
 		t.Fatalf("FindMap = %v, want None", got)
+	}
+}
+
+func TestSliceIterTakeSkipNegativeClamp(t *testing.T) {
+	sl := Slice[int]{1, 2, 3}
+
+	if got := sl.Iter().Take(-1).Collect().Slice(); got.Len() != 0 {
+		t.Errorf("Take(-1) should yield nothing, got %v", got)
+	}
+
+	if got := sl.Iter().Skip(-1).Collect().Slice(); !got.Eq(sl) {
+		t.Errorf("Skip(-1) should yield everything, got %v", got)
+	}
+
+	if got := sl.Iter().Take(1 << 40).Collect().Slice(); !got.Eq(sl) {
+		t.Errorf("Take(huge) should yield everything, got %v", got)
+	}
+
+	if got := sl.Iter().Skip(1 << 40).Collect().Slice(); got.Len() != 0 {
+		t.Errorf("Skip(huge) should yield nothing, got %v", got)
 	}
 }

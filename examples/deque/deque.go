@@ -442,14 +442,16 @@ func DequeIterators() {
 	// Functional operations
 	evenNumbers := dq.Iter().
 		Filter(func(x int) bool { return x%2 == 0 }).
-		Collect()
+		Collect().
+		Deque()
 	fmt.Printf("Even numbers: %s\n", evenNumbers)
 
 	// Chain with transformations
 	result := dq.Iter().
 		Filter(func(x int) bool { return x > 5 }).
 		Map(func(x int) int { return x * 2 }).
-		Collect()
+		Collect().
+		Deque()
 	fmt.Printf("Filtered and doubled: %s\n", result)
 }
 

@@ -1,33 +1,34 @@
-package g_test
+package rx_test
 
 import (
+	"github.com/enetx/g/rx"
 	"regexp"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 )
 
 func TestBytes_Regexp_Find(t *testing.T) {
-	testBytes := g.Bytes("Hello 123 World")
+	testBytes := Bytes("Hello 123 World")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testBytes.Regexp().Find(pattern)
+	result := rx.From(pattern).FindBytes(testBytes)
 
 	if result.IsNone() {
 		t.Error("Expected to find digits, but got None")
 	}
 
-	expected := g.Bytes("123")
+	expected := Bytes("123")
 	if !result.Unwrap().Eq(expected) {
 		t.Errorf("Find result mismatch: got %s, want %s", result.Unwrap(), expected)
 	}
 }
 
 func TestBytes_Regexp_Find_NoMatch(t *testing.T) {
-	testBytes := g.Bytes("Hello World")
+	testBytes := Bytes("Hello World")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testBytes.Regexp().Find(pattern)
+	result := rx.From(pattern).FindBytes(testBytes)
 
 	if result.IsSome() {
 		t.Error("Expected None for no match, but got Some")
@@ -35,10 +36,10 @@ func TestBytes_Regexp_Find_NoMatch(t *testing.T) {
 }
 
 func TestBytes_Regexp_Match(t *testing.T) {
-	testBytes := g.Bytes("test@example.com")
+	testBytes := Bytes("test@example.com")
 	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-	result := testBytes.Regexp().Match(emailPattern)
+	result := rx.From(emailPattern).IsMatchBytes(testBytes)
 
 	if !result {
 		t.Error("Expected email pattern to match")
@@ -46,10 +47,10 @@ func TestBytes_Regexp_Match(t *testing.T) {
 }
 
 func TestBytes_Regexp_Match_False(t *testing.T) {
-	testBytes := g.Bytes("not-an-email")
+	testBytes := Bytes("not-an-email")
 	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
-	result := testBytes.Regexp().Match(emailPattern)
+	result := rx.From(emailPattern).IsMatchBytes(testBytes)
 
 	if result {
 		t.Error("Expected email pattern not to match")
@@ -57,15 +58,15 @@ func TestBytes_Regexp_Match_False(t *testing.T) {
 }
 
 func TestBytes_Regexp_MatchAny(t *testing.T) {
-	testBytes := g.Bytes("The number is 42")
+	testBytes := Bytes("The number is 42")
 
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`[a-z]+`),
-		regexp.MustCompile(`\d+`),
-		regexp.MustCompile(`[A-Z]+`),
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`[a-z]+`)),
+		rx.From(regexp.MustCompile(`\d+`)),
+		rx.From(regexp.MustCompile(`[A-Z]+`)),
 	}
 
-	result := testBytes.Regexp().MatchAny(patterns...)
+	result := rx.MatchAnyBytes(testBytes, patterns...)
 
 	if !result {
 		t.Error("Expected at least one pattern to match")
@@ -73,14 +74,14 @@ func TestBytes_Regexp_MatchAny(t *testing.T) {
 }
 
 func TestBytes_Regexp_MatchAny_None(t *testing.T) {
-	testBytes := g.Bytes("123")
+	testBytes := Bytes("123")
 
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`[a-z]+`),
-		regexp.MustCompile(`[A-Z]+`),
+	patterns := []rx.Regex{
+		rx.From(regexp.MustCompile(`[a-z]+`)),
+		rx.From(regexp.MustCompile(`[A-Z]+`)),
 	}
 
-	result := testBytes.Regexp().MatchAny(patterns...)
+	result := rx.MatchAnyBytes(testBytes, patterns...)
 
 	if result {
 		t.Error("Expected no patterns to match")
@@ -88,22 +89,21 @@ func TestBytes_Regexp_MatchAny_None(t *testing.T) {
 }
 
 func TestBytes_Regexp_FindAll(t *testing.T) {
-	testBytes := g.Bytes("abc 123 def 456 ghi")
+	testBytes := Bytes("abc 123 def 456 ghi")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testBytes.Regexp().FindAll(pattern)
+	matches := rx.From(pattern).FindIterBytes(testBytes).Collect().Slice()
 
-	if result.IsNone() {
-		t.Error("Expected Some result, got None")
+	if matches.IsEmpty() {
+		t.Error("Expected matches, got none")
 	}
 
-	matches := result.Unwrap()
 	if len(matches) != 2 {
 		t.Errorf("Expected 2 matches, got %d", len(matches))
 	}
 
-	expected1 := g.Bytes("123")
-	expected2 := g.Bytes("456")
+	expected1 := Bytes("123")
+	expected2 := Bytes("456")
 
 	if !matches[0].Eq(expected1) {
 		t.Errorf("First match mismatch: got %s, want %s", matches[0], expected1)
@@ -115,64 +115,72 @@ func TestBytes_Regexp_FindAll(t *testing.T) {
 }
 
 func TestBytes_Regexp_FindAll_NoMatches(t *testing.T) {
-	testBytes := g.Bytes("Hello World")
+	testBytes := Bytes("Hello World")
 	pattern := regexp.MustCompile(`\d+`)
 
-	result := testBytes.Regexp().FindAll(pattern)
+	matches := rx.From(pattern).FindIterBytes(testBytes).Collect().Slice()
 
-	if result.IsSome() {
-		t.Error("Expected None for no matches, got Some")
+	if !matches.IsEmpty() {
+		t.Error("Expected no matches, got some")
 	}
 }
 
 func TestBytes_Regexp_Replace(t *testing.T) {
-	testBytes := g.Bytes("Hello 123 World 456")
+	testBytes := Bytes("Hello 123 World 456")
 	pattern := regexp.MustCompile(`\d+`)
-	replacement := g.Bytes("XXX")
+	replacement := Bytes("XXX")
 
-	result := testBytes.Regexp().Replace(pattern, replacement)
-	expected := g.Bytes("Hello XXX World XXX")
+	// ReplaceBytes replaces the FIRST match only.
+	result := rx.From(pattern).ReplaceBytes(testBytes, replacement)
+	expected := Bytes("Hello XXX World 456")
 
 	if !result.Eq(expected) {
 		t.Errorf("Replace result mismatch: got %s, want %s", result, expected)
 	}
+
+	// ReplaceAllBytes replaces every match.
+	all := rx.From(pattern).ReplaceAllBytes(testBytes, replacement)
+	expectedAll := Bytes("Hello XXX World XXX")
+
+	if !all.Eq(expectedAll) {
+		t.Errorf("ReplaceAll result mismatch: got %s, want %s", all, expectedAll)
+	}
 }
 
 func TestBytes_Regexp_EmptyBytes(t *testing.T) {
-	emptyBytes := g.Bytes("")
+	emptyBytes := Bytes("")
 	pattern := regexp.MustCompile(`.*`)
 
 	// Find should return None for meaningful patterns on empty bytes
 	digitPattern := regexp.MustCompile(`\d+`)
-	result := emptyBytes.Regexp().Find(digitPattern)
+	result := rx.From(digitPattern).FindBytes(emptyBytes)
 	if result.IsSome() {
 		t.Error("Expected None when searching for digits in empty bytes")
 	}
 
 	// Match should work with patterns that match empty strings
-	result2 := emptyBytes.Regexp().Match(pattern)
+	result2 := rx.From(pattern).IsMatchBytes(emptyBytes)
 	if !result2 {
 		t.Error("Pattern .* should match empty bytes")
 	}
 }
 
 func TestBytes_Regexp_ComplexPatterns(t *testing.T) {
-	testBytes := g.Bytes("Visit https://example.com or http://test.org")
+	testBytes := Bytes("Visit https://example.com or http://test.org")
 	urlPattern := regexp.MustCompile(`https?://[^\s]+`)
 
-	result := testBytes.Regexp().FindAll(urlPattern)
+	results := rx.From(urlPattern).FindIterBytes(testBytes).Collect().Slice()
 
-	if result.IsNone() {
-		t.Error("Expected Some result, got None")
+	if results.IsEmpty() {
+		t.Error("Expected matches, got none")
 	}
 
-	results := result.Unwrap()
 	if len(results) != 2 {
 		t.Errorf("Expected 2 URLs, got %d", len(results))
 	}
 
-	expected1 := g.Bytes("https://example.com")
-	expected2 := g.Bytes("http://test.org")
+	expected1 := Bytes("https://example.com")
+	expected2 := Bytes("http://test.org")
 
 	if !results[0].Eq(expected1) {
 		t.Errorf("First URL mismatch: got %s, want %s", results[0], expected1)
@@ -186,39 +194,39 @@ func TestBytes_Regexp_ComplexPatterns(t *testing.T) {
 func TestBytes_Regexp_Find_EmptyMatch(t *testing.T) {
 	// A pattern that matches the empty string at position 0 must return Some(""),
 	// not None (which is reserved for genuine no-match).
-	testBytes := g.Bytes("abc")
+	testBytes := Bytes("abc")
 	pattern := regexp.MustCompile(`x*`)
 
-	result := testBytes.Regexp().Find(pattern)
+	result := rx.From(pattern).FindBytes(testBytes)
 	if result.IsNone() {
 		t.Fatal("Expected Some for empty match, got None")
 	}
-	if !result.Unwrap().Eq(g.Bytes("")) {
+	if !result.Unwrap().Eq(Bytes("")) {
 		t.Errorf("Expected empty match, got %q", result.Unwrap())
 	}
 }
 
 func TestBytes_Regexp_ReplaceBy(t *testing.T) {
-	testBytes := g.Bytes("a1b2c3")
+	testBytes := Bytes("a1b2c3")
 	pattern := regexp.MustCompile(`\d`)
 
-	result := testBytes.Regexp().ReplaceBy(pattern, func(m g.Bytes) g.Bytes {
+	result := rx.From(pattern).ReplaceAllBytesBy(testBytes, func(m Bytes) Bytes {
 		// Clone first: the match aliases the source backing array (see Bytes.Append docs).
-		return m.Clone().Append(g.Bytes("!"))
+		return m.Clone().Append(Bytes("!"))
 	})
 
-	expected := g.Bytes("a1!b2!c3!")
+	expected := Bytes("a1!b2!c3!")
 	if !result.Eq(expected) {
 		t.Errorf("ReplaceBy = %q, want %q", result, expected)
 	}
 }
 
 func TestBytes_Regexp_Split(t *testing.T) {
-	testBytes := g.Bytes("a1b2c3d")
+	testBytes := Bytes("a1b2c3d")
 	pattern := regexp.MustCompile(`\d`)
 
-	result := testBytes.Regexp().Split(pattern)
-	expected := g.Slice[g.Bytes]{g.Bytes("a"), g.Bytes("b"), g.Bytes("c"), g.Bytes("d")}
+	result := rx.From(pattern).SplitBytes(testBytes).Collect().Slice()
+	expected := Slice[Bytes]{Bytes("a"), Bytes("b"), Bytes("c"), Bytes("d")}
 
 	if result.Len() != expected.Len() {
 		t.Fatalf("Split length = %d, want %d", result.Len(), expected.Len())
@@ -231,16 +239,11 @@ func TestBytes_Regexp_Split(t *testing.T) {
 }
 
 func TestBytes_Regexp_SplitN(t *testing.T) {
-	testBytes := g.Bytes("a1b2c3d")
+	testBytes := Bytes("a1b2c3d")
 	pattern := regexp.MustCompile(`\d`)
 
-	result := testBytes.Regexp().SplitN(pattern, 2)
-	if result.IsNone() {
-		t.Fatal("Expected Some, got None")
-	}
-
-	parts := result.Unwrap()
-	expected := g.Slice[g.Bytes]{g.Bytes("a"), g.Bytes("b2c3d")}
+	parts := rx.From(pattern).SplitBytesN(testBytes, 2).Collect().Slice()
+	expected := Slice[Bytes]{Bytes("a"), Bytes("b2c3d")}
 	if parts.Len() != expected.Len() {
 		t.Fatalf("SplitN length = %d, want %d", parts.Len(), expected.Len())
 	}
@@ -250,8 +253,26 @@ func TestBytes_Regexp_SplitN(t *testing.T) {
 		}
 	}
 
-	// n == 0 yields an empty slice -> None
-	if testBytes.Regexp().SplitN(pattern, 0).IsSome() {
-		t.Error("SplitN(_, 0) should be None")
+	// n == 0 yields no parts
+	if !rx.From(pattern).SplitBytesN(testBytes, 0).Collect().Slice().IsEmpty() {
+		t.Error("SplitN(_, 0) should yield no parts")
+	}
+}
+
+func TestBytes_Regexp_ReplaceBytesBy_First(t *testing.T) {
+	re := rx.From(regexp.MustCompile(`\d+`))
+
+	// Only the FIRST match is transformed.
+	got := re.ReplaceBytesBy(Bytes("a1b22c333"), func(m Bytes) Bytes {
+		return m.Clone().Append(Bytes("!"))
+	})
+	if !got.Eq(Bytes("a1!b22c333")) {
+		t.Errorf("ReplaceBytesBy = %q, want %q", got, "a1!b22c333")
+	}
+
+	// No match returns the input untouched.
+	src := Bytes("abc")
+	if got := re.ReplaceBytesBy(src, func(Bytes) Bytes { return Bytes("X") }); !got.Eq(src) {
+		t.Errorf("ReplaceBytesBy without match = %q, want %q", got, src)
 	}
 }

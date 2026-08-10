@@ -143,5 +143,5 @@ func main() {
 	fmt.Println(SeqResult[Int](consumed).TryCollect())
 	// consuming: 1
 	// consuming: oops
-	// Err(strconv.ParseInt: parsing "oops": invalid syntax) — "3" is never consumed
+	// Err(invalid integer: "oops") — "3" is never consumed
 }

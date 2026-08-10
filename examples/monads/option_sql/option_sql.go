@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "github.com/enetx/g"
+	// To run: go get modernc.org/sqlite, then uncomment the import below.
 	// _ "modernc.org/sqlite"
 )
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/enetx/g/rand"
 	"strings"
 
 	. "github.com/enetx/g"
@@ -40,7 +41,7 @@ func main() {
 	wsl.Println() // Slice[three three, one, o o oo oooo, four, b b, aaa aaaa, aaa aaa, aa a a aa a, aa a, a a a aaaa]
 
 	wsl.SortBy(func(a, b String) cmp.Ordering {
-		return a.Fields().Collect().Len().Cmp(b.Fields().Collect().Len()).
+		return SliceOf(a.Fields()...).Iter().Collect().Slice().Len().Cmp(SliceOf(b.Fields()...).Iter().Collect().Slice().Len()).
 			Then(a.Len().Cmp(b.Len()))
 	})
 
@@ -48,9 +49,9 @@ func main() {
 
 	slice := Slice[int]{1, 2, 3, 4}
 
-	slice.Iter().Filter(f.Gt(2)).Collect().Println() // Slice[3, 4]
-	slice.Iter().Filter(f.Eq(2)).Collect().Println() // Slice[2]
-	slice.Iter().Filter(f.Ne(2)).Collect().Println() // Slice[1, 3, 4]
+	slice.Iter().Filter(f.Gt(2)).Collect().Slice().Println() // Slice[3, 4]
+	slice.Iter().Filter(f.Eq(2)).Collect().Slice().Println() // Slice[2]
+	slice.Iter().Filter(f.Ne(2)).Collect().Slice().Println() // Slice[1, 3, 4]
 
 	fmt.Println(slice.Iter().All(func(i int) bool { return i != 5 }))
 	fmt.Println(slice.Iter().Any(func(i int) bool { return i == 5 }))
@@ -72,7 +73,7 @@ func main() {
 	result.SubSlice(-3, -1).Println()           // Slice[8, 9]
 	result.SubSlice(-1, result.Len()).Println() // Slice[10]
 
-	result = result.RandomSample(5)
+	result = rand.Sample(result, 5)
 
 	result = result.Clone()
 	result.Push(999)
@@ -106,7 +107,7 @@ func main() {
 	slicea.Println()
 
 	slice = Slice[int]{1, 2, 0, 4, 0, 3, 0, 0, 0, 0}
-	slice = slice.Iter().Exclude(f.IsZero).Collect()
+	slice = slice.Iter().Exclude(f.IsZero).Collect().Slice()
 
 	slice.Remove(0)
 	slice.Println()
@@ -117,8 +118,8 @@ func main() {
 
 	fmt.Println(sll.Cap())
 
-	Slice[string]{"AAA", "BBB", "CCC"}.Iter().Map(NewString).Map(String.Lower).Collect().Println()
-	SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Println()
+	Slice[string]{"AAA", "BBB", "CCC"}.Iter().Map(NewString).Map(String.Lower).Collect().Slice().Println()
+	SliceOf([]string{"AAA", "BBB"}...).Iter().Map(strings.ToLower).Collect().Slice().Println()
 
 	Range(0, 11).
 		Filter(isPrime).

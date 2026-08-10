@@ -6,13 +6,14 @@ import (
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
+	"github.com/enetx/g/fs"
 )
 
 func main() {
 	// Example 1: Reading and processing lines
 
 	// Open a new file with the specified name "text.txt" and process it line by line.
-	NewFile("text.txt").
+	fs.NewFile("text.txt").
 		Lines().                            // Reads the file line by line.
 		Skip(2).                            // Skips the first 2 lines in the iterator.
 		Exclude(f.IsZero).                  // Excludes lines that are empty or contain only whitespaces.
@@ -36,19 +37,25 @@ func main() {
 
 	offset := int64(10) // Initialize offset.
 
-	// Open the file and read it in chunks of 3 bytes.
-	NewFile("text.txt").
-		Seek(offset, io.SeekStart).Unwrap(). // Moves the read pointer to 10 bytes from the beginning of the file.
-		Chunks(3).                           // Reads the file in chunks of 3 bytes.
-		Inspect(func(s String) {             // Inspects each chunk during iteration.
+	// Open the file and move the read pointer to 10 bytes from the beginning of the file.
+	seek := fs.NewFile("text.txt").Seek(offset, io.SeekStart)
+	if seek.IsErr() { // Handles any errors encountered while seeking.
+		fmt.Println("Error:", seek.Err())
+		return
+	}
+
+	// Read the file in chunks of 3 bytes.
+	seek.Ok().
+		Chunks(3).               // Reads the file in chunks of 3 bytes.
+		Inspect(func(s String) { // Inspects each chunk during iteration.
 			// Updates the offset based on the length of each chunk.
 			// This keeps track of the current position in the file.
 			offset += int64(s.Bytes().Len())
 		}).
 		Ok().
-		Collect(). // Collects all chunks into a single collection (Slice).
-		Join().    // Joins all collected chunks into a single string.
-		Println()  // Prints the joined string.
+		Collect().Slice(). // Collects all chunks into a single collection (Slice).
+		Join().            // Joins all collected chunks into a single string.
+		Println()          // Prints the joined string.
 
 	fmt.Println(offset) // Prints the final offset after processing the chunks.
 }

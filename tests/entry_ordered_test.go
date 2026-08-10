@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"github.com/enetx/g/rand"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -397,7 +398,7 @@ func TestMapOrdEntryCachedIndexAfterShuffle(t *testing.T) {
 
 	// Shuffle reorders the backing slice; an entry obtained afterwards
 	// captures the key's post-shuffle index and stays valid.
-	mo.Shuffle()
+	rand.Shuffle(mo)
 
 	e, ok := mo.Entry(7).(OccupiedOrdEntry[int, int])
 	if !ok {

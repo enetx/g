@@ -12,7 +12,7 @@ func main() {
 
 	runningTotal := priorities.Iter().Scan(0, func(acc, val int) int {
 		return acc + val
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Priority heap running totals: ")
 	runningTotal.Println()
@@ -28,7 +28,7 @@ func main() {
 			return score
 		}
 		return maxVal
-	}).Collect(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) })
+	}).Collect().Heap(func(a, b int) cmp.Ordering { return cmp.Cmp(b, a) })
 
 	Print("Running maximum: ")
 	maxSoFar.Println()
@@ -39,7 +39,7 @@ func main() {
 
 	itemCounts := items.Iter().Scan(0, func(count, _ int) int {
 		return count + 1 // Just count items
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Item counts: ")
 	itemCounts.Println()
@@ -50,7 +50,7 @@ func main() {
 
 	products := factors.Iter().Scan(1, func(acc, factor int) int {
 		return acc * factor
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Running products: ")
 	products.Println()
@@ -61,7 +61,7 @@ func main() {
 
 	balances := transactions.Iter().Scan(0, func(balance, transaction int) int {
 		return balance + transaction
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Balance progression: ")
 	balances.Println()
@@ -72,7 +72,7 @@ func main() {
 
 	runningSum := numbers.Iter().Scan(0, func(sum, num int) int {
 		return sum + num
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Running sum: ")
 	runningSum.Println()
@@ -86,7 +86,7 @@ func main() {
 			return val
 		}
 		return minVal
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Running minimum: ")
 	runningMin.Println()

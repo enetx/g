@@ -4,17 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
 func TestMapOrdered_Iter_Keys(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("first", 1)
 	m.Insert("second", 2)
 	m.Insert("third", 3)
 
-	keys := m.Iter().Keys().Collect()
+	keys := m.Iter().Keys().Collect().Slice()
 
 	if len(keys) != 3 {
 		t.Errorf("Expected 3 keys, got %d", len(keys))
@@ -30,12 +30,12 @@ func TestMapOrdered_Iter_Keys(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Values(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("first", 1)
 	m.Insert("second", 2)
 	m.Insert("third", 3)
 
-	values := m.Iter().Values().Collect()
+	values := m.Iter().Values().Collect().Slice()
 
 	if len(values) != 3 {
 		t.Errorf("Expected 3 values, got %d", len(values))
@@ -51,12 +51,12 @@ func TestMapOrdered_Iter_Values(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Collect(t *testing.T) {
-	original := g.NewMapOrd[string, int]()
+	original := NewMapOrd[string, int]()
 	original.Insert("a", 1)
 	original.Insert("b", 2)
 	original.Insert("c", 3)
 
-	collected := original.Iter().Collect()
+	collected := original.Iter().Collect().MapOrd[string, int]()
 
 	if collected.Len() != 3 {
 		t.Errorf("Expected collected map to have 3 entries, got %d", collected.Len())
@@ -73,7 +73,7 @@ func TestMapOrdered_Iter_Collect(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Filter(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
@@ -81,7 +81,7 @@ func TestMapOrdered_Iter_Filter(t *testing.T) {
 
 	filtered := m.Iter().
 		Filter(func(k string, v int) bool { return v%2 == 0 }).
-		Collect()
+		Collect().MapOrd[string, int]()
 
 	if filtered.Len() != 2 {
 		t.Errorf("Expected 2 even values, got %d", filtered.Len())
@@ -95,7 +95,7 @@ func TestMapOrdered_Iter_Filter(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Count(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
@@ -108,13 +108,13 @@ func TestMapOrdered_Iter_Count(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Take(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("first", 1)
 	m.Insert("second", 2)
 	m.Insert("third", 3)
 	m.Insert("fourth", 4)
 
-	taken := m.Iter().Take(2).Collect()
+	taken := m.Iter().Take(2).Collect().MapOrd[string, int]()
 
 	if taken.Len() != 2 {
 		t.Errorf("Expected 2 entries after Take(2), got %d", taken.Len())
@@ -128,34 +128,34 @@ func TestMapOrdered_Iter_Take(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_EmptyMap(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 
 	count := m.Iter().Count()
 	if count != 0 {
 		t.Errorf("Empty ordered map iterator count should be 0, got %d", count)
 	}
 
-	keys := m.Iter().Keys().Collect()
+	keys := m.Iter().Keys().Collect().Slice()
 	if len(keys) != 0 {
 		t.Error("Empty ordered map should have no keys")
 	}
 
-	values := m.Iter().Values().Collect()
+	values := m.Iter().Values().Collect().Slice()
 	if len(values) != 0 {
 		t.Error("Empty ordered map should have no values")
 	}
 }
 
 func TestMapOrdered_Iter_Chain(t *testing.T) {
-	m1 := g.NewMapOrd[string, int]()
+	m1 := NewMapOrd[string, int]()
 	m1.Insert("a", 1)
 	m1.Insert("b", 2)
 
-	m2 := g.NewMapOrd[string, int]()
+	m2 := NewMapOrd[string, int]()
 	m2.Insert("c", 3)
 	m2.Insert("d", 4)
 
-	chained := m1.Iter().Chain(m2.Iter()).Collect()
+	chained := m1.Iter().Chain(m2.Iter()).Collect().MapOrd[string, int]()
 
 	if chained.Len() != 4 {
 		t.Errorf("Expected 4 entries after chaining, got %d", chained.Len())
@@ -172,7 +172,7 @@ func TestMapOrdered_Iter_Chain(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_Pull(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("first", 1)
 	m.Insert("second", 2)
 	m.Insert("third", 3)
@@ -209,7 +209,7 @@ func TestMapOrdered_Iter_Pull(t *testing.T) {
 
 func TestMapOrderedIterContext(t *testing.T) {
 	t.Run("context cancellation stops iteration", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -218,13 +218,13 @@ func TestMapOrderedIterContext(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		var collected []g.Pair[string, int]
+		var collected []Pair[string, int]
 		iter := m.Iter().Context(ctx)
 
 		// Cancel context after processing 3 elements
 		count := 0
 		iter(func(k string, v int) bool {
-			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			collected = append(collected, Pair[string, int]{Key: k, Value: v})
 			count++
 			if count == 3 {
 				cancel()
@@ -238,7 +238,7 @@ func TestMapOrderedIterContext(t *testing.T) {
 		}
 
 		// Verify order is maintained
-		expected := []g.Pair[string, int]{
+		expected := []Pair[string, int]{
 			{Key: "first", Value: 1},
 			{Key: "second", Value: 2},
 			{Key: "third", Value: 3},
@@ -252,16 +252,16 @@ func TestMapOrderedIterContext(t *testing.T) {
 	})
 
 	t.Run("context timeout", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		var collected []g.Pair[string, int]
+		var collected []Pair[string, int]
 		m.Iter().Context(ctx)(func(k string, v int) bool {
-			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			collected = append(collected, Pair[string, int]{Key: k, Value: v})
 			return true
 		})
 
@@ -274,7 +274,7 @@ func TestMapOrderedIterContext(t *testing.T) {
 
 func TestMapOrderedIterFirst(t *testing.T) {
 	t.Run("first element exists with order preservation", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -292,7 +292,7 @@ func TestMapOrderedIterFirst(t *testing.T) {
 	})
 
 	t.Run("empty map", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 
 		first := m.Iter().First()
 
@@ -302,7 +302,7 @@ func TestMapOrderedIterFirst(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("only", 42)
 
 		first := m.Iter().First()
@@ -320,7 +320,7 @@ func TestMapOrderedIterFirst(t *testing.T) {
 
 func TestMapOrderedIterLast(t *testing.T) {
 	t.Run("last element exists with order preservation", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -338,7 +338,7 @@ func TestMapOrderedIterLast(t *testing.T) {
 	})
 
 	t.Run("empty map", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 
 		last := m.Iter().Last()
 
@@ -348,7 +348,7 @@ func TestMapOrderedIterLast(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("only", 42)
 
 		last := m.Iter().Last()
@@ -366,7 +366,7 @@ func TestMapOrderedIterLast(t *testing.T) {
 
 func TestMapOrderedIterNth(t *testing.T) {
 	t.Run("nth element exists with order preservation", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -387,7 +387,7 @@ func TestMapOrderedIterNth(t *testing.T) {
 	})
 
 	t.Run("nth element maintains insertion order", func(t *testing.T) {
-		m := g.NewMapOrd[int, string]()
+		m := NewMapOrd[int, string]()
 		m.Insert(10, "ten")
 		m.Insert(20, "twenty")
 		m.Insert(30, "thirty")
@@ -395,13 +395,13 @@ func TestMapOrderedIterNth(t *testing.T) {
 
 		// Test each position
 		testCases := []struct {
-			index    g.Int
-			expected g.Pair[int, string]
+			index    Int
+			expected Pair[int, string]
 		}{
-			{0, g.Pair[int, string]{Key: 10, Value: "ten"}},
-			{1, g.Pair[int, string]{Key: 20, Value: "twenty"}},
-			{2, g.Pair[int, string]{Key: 30, Value: "thirty"}},
-			{3, g.Pair[int, string]{Key: 40, Value: "forty"}},
+			{0, Pair[int, string]{Key: 10, Value: "ten"}},
+			{1, Pair[int, string]{Key: 20, Value: "twenty"}},
+			{2, Pair[int, string]{Key: 30, Value: "thirty"}},
+			{3, Pair[int, string]{Key: 40, Value: "forty"}},
 		}
 
 		for _, tc := range testCases {
@@ -419,7 +419,7 @@ func TestMapOrderedIterNth(t *testing.T) {
 	})
 
 	t.Run("nth element out of bounds", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 
@@ -431,7 +431,7 @@ func TestMapOrderedIterNth(t *testing.T) {
 	})
 
 	t.Run("negative index", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 
@@ -443,7 +443,7 @@ func TestMapOrderedIterNth(t *testing.T) {
 	})
 
 	t.Run("empty map", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 
 		nth := m.Iter().Nth(0)
 
@@ -455,7 +455,7 @@ func TestMapOrderedIterNth(t *testing.T) {
 
 func TestSeqMapOrdNext(t *testing.T) {
 	t.Run("Next with non-empty iterator maintains insertion order", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -484,7 +484,7 @@ func TestSeqMapOrdNext(t *testing.T) {
 		}
 
 		// Remaining pairs
-		remaining := iter.Collect()
+		remaining := iter.Collect().MapOrd[string, int]()
 		if remaining.Len() != 1 {
 			t.Errorf("Expected 1 remaining pair, got %d", remaining.Len())
 		}
@@ -497,7 +497,7 @@ func TestSeqMapOrdNext(t *testing.T) {
 	})
 
 	t.Run("Next with empty iterator", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		iter := m.Iter()
 
 		result := iter.Next()
@@ -507,7 +507,7 @@ func TestSeqMapOrdNext(t *testing.T) {
 	})
 
 	t.Run("Next until exhausted", func(t *testing.T) {
-		m := g.NewMapOrd[string, int]()
+		m := NewMapOrd[string, int]()
 		m.Insert("a", 1)
 		m.Insert("b", 2)
 		iter := m.Iter()
@@ -536,7 +536,7 @@ func TestSeqMapOrdNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().MapOrd[string, int]()
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty map, got length %d", remaining.Len())
 		}
@@ -544,47 +544,47 @@ func TestSeqMapOrdNext(t *testing.T) {
 }
 
 func TestMapOrdered_Iter_FilterByKey(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	keys := m.Iter().FilterByKey(f.Eq("b")).Keys().Collect()
+	keys := m.Iter().FilterByKey(f.Eq("b")).Keys().Collect().Slice()
 
-	if !keys.Eq(g.SliceOf("b")) {
+	if !keys.Eq(SliceOf("b")) {
 		t.Errorf("FilterByKey(f.Eq(\"b\")): expected keys [b], got %v", keys)
 	}
 }
 
 func TestMapOrdered_Iter_FilterByValue(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	keys := m.Iter().FilterByValue(f.Gt(1)).Keys().Collect()
+	keys := m.Iter().FilterByValue(f.Gt(1)).Keys().Collect().Slice()
 
-	if !keys.Eq(g.SliceOf("b", "c")) {
+	if !keys.Eq(SliceOf("b", "c")) {
 		t.Errorf("FilterByValue(f.Gt(1)): expected keys [b c] in order, got %v", keys)
 	}
 }
 
 func TestSeqMapOrdSumBy(t *testing.T) {
-	m := g.NewMapOrd[g.String, g.Int]()
+	m := NewMapOrd[String, Int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
-	if got := m.Iter().SumBy(func(_ g.String, v g.Int) g.Int { return v }); got != 6 {
-		t.Errorf("SeqMapOrd.SumBy = %d, want 6", got)
+	if got := m.Iter().SumBy(func(_ String, v Int) Int { return v }); got != 6 {
+		t.Errorf("Seq2.SumBy = %d, want 6", got)
 	}
 }
 
 func TestSeqMapOrdTryMap(t *testing.T) {
-	mo := g.NewMapOrd[g.String, g.String]()
+	mo := NewMapOrd[String, String]()
 	mo.Insert("a", "10")
 	mo.Insert("b", "20")
 	got := mo.Iter().
-		TryMap(func(_ g.String, v g.String) g.Result[g.Int] { return v.TryInt() }).
+		TryMap(func(_ String, v String) Result[Int] { return v.TryInt() }).
 		TryCollect()
 	if got.IsErr() || got.Ok().Len() != 2 {
 		t.Fatalf("MapOrd.TryMap = %v", got)
@@ -592,20 +592,20 @@ func TestSeqMapOrdTryMap(t *testing.T) {
 }
 
 func TestSeqMapOrdProductByFindMap(t *testing.T) {
-	m := g.NewMapOrd[g.String, g.Int]()
+	m := NewMapOrd[String, Int]()
 	m.Insert("a", 2)
 	m.Insert("b", 3)
 	m.Insert("c", 4)
 
-	if got := m.Iter().ProductBy(func(_ g.String, v g.Int) g.Int { return v }); got != 24 {
+	if got := m.Iter().ProductBy(func(_ String, v Int) Int { return v }); got != 24 {
 		t.Errorf("ProductBy = %d, want 24", got)
 	}
 
-	got := m.Iter().FindMap(func(k g.String, v g.Int) g.Option[g.String] {
+	got := m.Iter().FindMap(func(k String, v Int) Option[String] {
 		if v == 3 {
-			return g.Some(k)
+			return Some(k)
 		}
-		return g.None[g.String]()
+		return None[String]()
 	})
 	if got.IsNone() || got.Some() != "b" {
 		t.Fatalf("FindMap = %v, want Some(b)", got)

@@ -14,7 +14,7 @@ func main() {
 	pp := p1.
 		Iter().
 		Chain(p2.Iter().Map(String.Upper).Filter(f.Eq(String("AAA")))).
-		Collect()
+		Collect().Slice()
 
 	// Iterate over the resulting slice pp and print each element
 	for _, v := range pp {

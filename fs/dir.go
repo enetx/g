@@ -1,4 +1,4 @@
-package g
+package fs
 
 import (
 	"fmt"
@@ -6,54 +6,56 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/enetx/g"
 )
 
 // Dir is a struct representing a directory path.
 type Dir struct {
-	path String // Directory path.
+	path g.String // Directory path.
 }
 
 // NewDir returns a new Dir instance with the given path.
-func NewDir(path String) *Dir { return &Dir{path: path} }
+func NewDir(path g.String) *Dir { return &Dir{path: path} }
 
 // Chown changes the ownership of the directory to the specified UID and GID.
 // It uses os.Chown to modify ownership and returns a Result[*Dir] indicating success or failure.
-func (d *Dir) Chown(uid, gid int) Result[*Dir] {
+func (d *Dir) Chown(uid, gid int) g.Result[*Dir] {
 	err := os.Chown(d.path.Std(), uid, gid)
 	if err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(d)
+	return g.Ok(d)
 }
 
 // Stat retrieves information about the directory represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the directory's metadata.
-func (d *Dir) Stat() Result[fs.FileInfo] {
+func (d *Dir) Stat() g.Result[fs.FileInfo] {
 	path := d.Path()
 	if path.IsErr() {
-		return Err[fs.FileInfo](path.err)
+		return g.Err[fs.FileInfo](path.Err())
 	}
 
-	return ResultOf(os.Stat(path.v.Std()))
+	return g.ResultOf(os.Stat(path.Ok().Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the Dir instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
-func (d *Dir) Lstat() Result[fs.FileInfo] {
+func (d *Dir) Lstat() g.Result[fs.FileInfo] {
 	path := d.Path()
 	if path.IsErr() {
-		return Err[fs.FileInfo](path.err)
+		return g.Err[fs.FileInfo](path.Err())
 	}
 
-	return ResultOf(os.Lstat(path.v.Std()))
+	return g.ResultOf(os.Lstat(path.Ok().Std()))
 }
 
 // IsLink checks if the directory is a symbolic link.
 func (d *Dir) IsLink() bool {
 	stat := d.Lstat()
-	return stat.IsOk() && stat.v.Mode()&os.ModeSymlink != 0
+	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
 }
 
 // CreateTempDir creates a new temporary directory in the specified directory with the
@@ -73,10 +75,10 @@ func (d *Dir) IsLink() bool {
 //
 // Example usage:
 //
-// tmpdir := g.CreateTempDir()                     // Creates a temporary directory with default settings
-// tmpdirWithDir := g.CreateTempDir("mydir")       // Creates a temporary directory in "mydir" directory
-// tmpdirWithPattern := g.CreateTempDir("", "tmp") // Creates a temporary directory with "tmp" pattern
-func CreateTempDir(args ...String) Result[*Dir] {
+// tmpdir := fs.CreateTempDir()                     // Creates a temporary directory with default settings
+// tmpdirWithDir := fs.CreateTempDir("mydir")       // Creates a temporary directory in "mydir" directory
+// tmpdirWithPattern := fs.CreateTempDir("", "tmp") // Creates a temporary directory with "tmp" pattern
+func CreateTempDir(args ...g.String) g.Result[*Dir] {
 	dir := ""
 	pattern := "*"
 
@@ -90,10 +92,10 @@ func CreateTempDir(args ...String) Result[*Dir] {
 
 	tmpDir, err := os.MkdirTemp(dir, pattern)
 	if err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(NewDir(String(tmpDir)))
+	return g.Ok(NewDir(g.String(tmpDir)))
 }
 
 // TempDir returns the default directory to use for temporary files.
@@ -105,18 +107,18 @@ func CreateTempDir(args ...String) Result[*Dir] {
 //
 // The directory is neither guaranteed to exist nor have accessible
 // permissions.
-func TempDir() *Dir { return NewDir(String(os.TempDir())) }
+func TempDir() *Dir { return NewDir(g.String(os.TempDir())) }
 
 // Remove attempts to delete the directory and its contents.
 // It returns a Result, which contains either the *Dir or an error.
 // If the directory does not exist, Remove returns a successful Result with *Dir set.
 // Any error that occurs during removal will be of type *PathError.
-func (d *Dir) Remove() Result[*Dir] {
+func (d *Dir) Remove() g.Result[*Dir] {
 	if err := os.RemoveAll(d.String().Std()); err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(d)
+	return g.Ok(d)
 }
 
 // Copy copies the contents of the current directory to the destination directory.
@@ -134,30 +136,30 @@ func (d *Dir) Remove() Result[*Dir] {
 //
 // Example usage:
 //
-//	sourceDir := g.NewDir("path/to/source")
+//	sourceDir := fs.NewDir("path/to/source")
 //	destinationDirResult := sourceDir.Copy("path/to/destination")
 //	if destinationDirResult.IsErr() {
 //		// Handle error
 //	}
 //	destinationDir := destinationDirResult.Ok()
-func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
-	files := NewSlice[*File]()
+func (d *Dir) Copy(dest g.String, followLinks ...bool) g.Result[*Dir] {
+	files := g.NewSlice[*File]()
 
 	for r := range d.Walk() {
 		if r.IsErr() {
-			return Err[*Dir](r.err)
+			return g.Err[*Dir](r.Err())
 		}
-		files.Push(r.v)
+		files.Push(r.Ok())
 	}
 
 	root := d.Path()
 	if root.IsErr() {
-		return Err[*Dir](root.err)
+		return g.Err[*Dir](root.Err())
 	}
 
 	destRoot := NewDir(dest).Path()
 	if destRoot.IsErr() {
-		return Err[*Dir](destRoot.err)
+		return g.Err[*Dir](destRoot.Err())
 	}
 
 	follow := true
@@ -168,15 +170,15 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 	for f := range files.Iter() {
 		path := f.Path()
 		if path.IsErr() {
-			return Err[*Dir](path.err)
+			return g.Err[*Dir](path.Err())
 		}
 
-		relpath, err := filepath.Rel(root.v.Std(), path.v.Std())
+		relpath, err := filepath.Rel(root.Ok().Std(), path.Ok().Std())
 		if err != nil {
-			return Err[*Dir](err)
+			return g.Err[*Dir](err)
 		}
 
-		destpath := String(filepath.Join(destRoot.v.Std(), relpath))
+		destpath := g.String(filepath.Join(destRoot.Ok().Std(), relpath))
 
 		// Skip every symlink (file or directory) when not following links;
 		// a symlink to a regular file is not an IsDir entry, so the skip must
@@ -187,23 +189,23 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 
 		stat := f.Stat()
 		if stat.IsErr() {
-			return Err[*Dir](stat.err)
+			return g.Err[*Dir](stat.Err())
 		}
 
-		if stat.v.IsDir() {
-			if r := NewDir(destpath).CreateAll(stat.v.Mode()); r.IsErr() {
+		if stat.Ok().IsDir() {
+			if r := NewDir(destpath).CreateAll(stat.Ok().Mode()); r.IsErr() {
 				return r
 			}
 
 			continue
 		}
 
-		if r := f.Copy(destpath, stat.v.Mode()); r.IsErr() {
-			return Err[*Dir](r.err)
+		if r := f.Copy(destpath, stat.Ok().Mode()); r.IsErr() {
+			return g.Err[*Dir](r.Err())
 		}
 	}
 
-	return Ok(NewDir(dest))
+	return g.Ok(NewDir(dest))
 }
 
 // Create creates a new directory with the specified mode (optional).
@@ -219,18 +221,18 @@ func (d *Dir) Copy(dest String, followLinks ...bool) Result[*Dir] {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	createdDir := dir.Create(0755) // Optional mode argument
-func (d *Dir) Create(mode ...os.FileMode) Result[*Dir] {
-	dmode := os.FileMode(DirDefault)
+func (d *Dir) Create(mode ...os.FileMode) g.Result[*Dir] {
+	dmode := os.FileMode(g.DirDefault)
 	if len(mode) > 0 {
 		dmode = mode[0]
 	}
 	if err := os.Mkdir(d.path.Std(), dmode); err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(d)
+	return g.Ok(d)
 }
 
 // Join joins the current directory path with the given path elements, returning the joined path.
@@ -246,21 +248,21 @@ func (d *Dir) Create(mode ...os.FileMode) Result[*Dir] {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	joinedPath := dir.Join("subdir", "file.txt")
-func (d *Dir) Join(elem ...String) Result[String] {
+func (d *Dir) Join(elem ...g.String) g.Result[g.String] {
 	path := d.Path()
 	if path.IsErr() {
-		return Err[String](path.err)
+		return g.Err[g.String](path.Err())
 	}
 
 	parts := make([]string, len(elem)+1)
-	parts[0] = path.v.Std()
+	parts[0] = path.Ok().Std()
 	for i, part := range elem {
 		parts[i+1] = part.Std()
 	}
 
-	return Ok(String(filepath.Join(parts...)))
+	return g.Ok(g.String(filepath.Join(parts...)))
 }
 
 // SetPath sets the path of the current directory.
@@ -275,9 +277,9 @@ func (d *Dir) Join(elem ...String) Result[String] {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	dir.SetPath("new/path/to/directory")
-func (d *Dir) SetPath(path String) *Dir {
+func (d *Dir) SetPath(path g.String) *Dir {
 	d.path = path
 	return d
 }
@@ -295,26 +297,26 @@ func (d *Dir) SetPath(path String) *Dir {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	dir.CreateAll()
 //	dir.CreateAll(0755)
-func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
+func (d *Dir) CreateAll(mode ...os.FileMode) g.Result[*Dir] {
 	path := d.Path()
 	if path.IsErr() {
-		return Err[*Dir](path.err)
+		return g.Err[*Dir](path.Err())
 	}
 
-	dmode := os.FileMode(DirDefault)
+	dmode := os.FileMode(g.DirDefault)
 	if len(mode) > 0 {
 		dmode = mode[0]
 	}
 
-	err := os.MkdirAll(path.v.Std(), dmode)
+	err := os.MkdirAll(path.Ok().Std(), dmode)
 	if err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(d)
+	return g.Ok(d)
 }
 
 // Rename renames the current directory to the new path.
@@ -325,48 +327,43 @@ func (d *Dir) CreateAll(mode ...os.FileMode) Result[*Dir] {
 //
 // Returns:
 //
-// - *Dir: A pointer to the Dir instance representing the renamed directory.
-// If an error occurs, the original Dir instance is returned with the error stored in d.err,
-// which can be checked using the Error() method.
+// - Result[*Dir]: A Result containing a pointer to the Dir instance representing
+// the renamed directory, or an error if the rename fails.
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	dir.Rename("path/to/new_directory")
-func (d *Dir) Rename(newpath String) Result[*Dir] {
-	if rd := NewDir(String(filepath.Dir(newpath.Std()))).CreateAll(); rd.IsErr() {
+func (d *Dir) Rename(newpath g.String) g.Result[*Dir] {
+	if rd := NewDir(g.String(filepath.Dir(filepath.Clean(newpath.Std())))).CreateAll(); rd.IsErr() {
 		return rd
 	}
 
 	if err := os.Rename(d.path.Std(), newpath.Std()); err != nil {
-		return Err[*Dir](err)
+		return g.Err[*Dir](err)
 	}
 
-	return Ok(NewDir(newpath))
+	return g.Ok(NewDir(newpath))
 }
-
-// Move function simply calls [Dir.Rename]
-func (d *Dir) Move(newpath String) Result[*Dir] { return d.Rename(newpath) }
 
 // Path returns the absolute path of the current directory.
 //
 // Returns:
 //
-// - String: The absolute path of the current directory as an String.
-// If an error occurs while converting the path to an absolute path,
-// the error is stored in d.err, which can be checked using the Error() method.
+// - Result[String]: The absolute path of the current directory as a String,
+// or an error if the path cannot be converted to an absolute path.
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	absPath := dir.Path()
-func (d *Dir) Path() Result[String] {
+func (d *Dir) Path() g.Result[g.String] {
 	path, err := filepath.Abs(d.path.Std())
 	if err != nil {
-		return Err[String](err)
+		return g.Err[g.String](err)
 	}
 
-	return Ok(String(path))
+	return g.Ok(g.String(path))
 }
 
 // Exists checks if the current directory exists.
@@ -377,7 +374,7 @@ func (d *Dir) Path() Result[String] {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	exists := dir.Exists()
 func (d *Dir) Exists() bool {
 	path := d.Path()
@@ -385,7 +382,7 @@ func (d *Dir) Exists() bool {
 		return false
 	}
 
-	info, err := os.Stat(path.v.Std())
+	info, err := os.Stat(path.Ok().Std())
 	return err == nil && info.IsDir()
 }
 
@@ -399,34 +396,34 @@ func (d *Dir) Exists() bool {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory")
+//	dir := fs.NewDir("path/to/directory")
 //	files := dir.Read()
 //	for file := range files {
 //	    fmt.Println(file.Ok().Name())
 //	}
-func (d *Dir) Read() SeqResult[*File] {
-	return func(yield func(Result[*File]) bool) {
+func (d *Dir) Read() g.SeqResult[*File] {
+	return func(yield func(g.Result[*File]) bool) {
 		dpath := d.Path()
 		if dpath.IsErr() {
-			yield(Err[*File](dpath.err))
+			yield(g.Err[*File](dpath.Err()))
 			return
 		}
 
-		directory, err := os.Open(dpath.v.Std())
+		directory, err := os.Open(dpath.Ok().Std())
 		if err != nil {
-			yield(Err[*File](err))
+			yield(g.Err[*File](err))
 			return
 		}
 
 		defer directory.Close()
 
 		const batchSize = 128
-		base := dpath.v.Std()
+		base := dpath.Ok().Std()
 
 		for {
 			entries, readErr := directory.ReadDir(batchSize)
 			for _, entry := range entries {
-				if !yield(Ok(NewFile(filepath.Join(base, entry.Name())))) {
+				if !yield(g.Ok(NewFile(filepath.Join(base, entry.Name())))) {
 					return
 				}
 			}
@@ -437,7 +434,7 @@ func (d *Dir) Read() SeqResult[*File] {
 			case io.EOF:
 				return
 			default:
-				yield(Err[*File](readErr))
+				yield(g.Err[*File](readErr))
 				return
 			}
 		}
@@ -453,27 +450,27 @@ func (d *Dir) Read() SeqResult[*File] {
 //
 // Example usage:
 //
-//	dir := g.NewDir("path/to/directory/*.txt")
+//	dir := fs.NewDir("path/to/directory/*.txt")
 //	files := dir.Glob()
 //	for file := range files {
 //	    fmt.Println(file.Ok().Name())
 //	}
-func (d *Dir) Glob() SeqResult[*File] {
-	return func(yield func(Result[*File]) bool) {
+func (d *Dir) Glob() g.SeqResult[*File] {
+	return func(yield func(g.Result[*File]) bool) {
 		matches, err := filepath.Glob(d.path.Std())
 		if err != nil {
-			yield(Err[*File](err))
+			yield(g.Err[*File](err))
 			return
 		}
 
 		for _, match := range matches {
-			file := NewFile(String(match)).Path()
+			file := NewFile(g.String(match)).Path()
 			if file.IsErr() {
-				yield(Err[*File](file.err))
+				yield(g.Err[*File](file.Err()))
 				return
 			}
 
-			if !yield(Ok(NewFile(file.v))) {
+			if !yield(g.Ok(NewFile(file.Ok()))) {
 				return
 			}
 		}
@@ -493,17 +490,17 @@ func (d *Dir) Glob() SeqResult[*File] {
 //	          fmt.Println(r.Ok().Path().Ok().Std())
 //	      }
 //	  })
-func (d *Dir) Walk() SeqResult[*File] {
-	return func(yield func(Result[*File]) bool) {
-		stack := SliceOf(d)
+func (d *Dir) Walk() g.SeqResult[*File] {
+	return func(yield func(g.Result[*File]) bool) {
+		stack := g.SliceOf(d)
 		stopped := false
 
 		// Track resolved directory paths already scheduled for traversal so a
 		// symlink (or hardlinked dir) pointing back into an ancestor does not
 		// drive the stack into unbounded recursion.
-		visited := NewSet[String]()
+		visited := g.NewSet[g.String]()
 		if root := d.Path(); root.IsOk() {
-			visited.Insert(root.v)
+			visited.Insert(root.Ok())
 		}
 
 		for !stack.IsEmpty() && !stopped {
@@ -512,7 +509,7 @@ func (d *Dir) Walk() SeqResult[*File] {
 				break
 			}
 
-			current.v.Read().Range(func(r Result[*File]) bool {
+			current.Some().Read().Range(func(r g.Result[*File]) bool {
 				if r.IsErr() {
 					if !yield(r) {
 						stopped = true
@@ -521,8 +518,8 @@ func (d *Dir) Walk() SeqResult[*File] {
 					return true
 				}
 
-				file := r.v
-				if !yield(Ok(file)) {
+				file := r.Ok()
+				if !yield(g.Ok(file)) {
 					stopped = true
 					return false
 				}
@@ -532,33 +529,33 @@ func (d *Dir) Walk() SeqResult[*File] {
 				// symlink cycles loop forever.
 				lstat := file.Lstat()
 				if lstat.IsErr() {
-					if !yield(Err[*File](lstat.err)) {
+					if !yield(g.Err[*File](lstat.Err())) {
 						stopped = true
 						return false
 					}
 					return true
 				}
 
-				if lstat.v.Mode()&os.ModeSymlink != 0 {
+				if lstat.Ok().Mode()&os.ModeSymlink != 0 {
 					return true
 				}
 
-				if lstat.v.IsDir() {
+				if lstat.Ok().IsDir() {
 					path := file.Path()
 					if path.IsErr() {
-						if !yield(Err[*File](path.err)) {
+						if !yield(g.Err[*File](path.Err())) {
 							stopped = true
 							return false
 						}
 						return true
 					}
 
-					if visited.Contains(path.v) {
+					if visited.Contains(path.Ok()) {
 						return true
 					}
 
-					visited.Insert(path.v)
-					stack.Push(NewDir(path.v))
+					visited.Insert(path.Ok())
+					stack.Push(NewDir(path.Ok()))
 				}
 
 				return true
@@ -572,7 +569,7 @@ func (d *Dir) Walk() SeqResult[*File] {
 }
 
 // String returns the String representation of the current directory's path.
-func (d *Dir) String() String { return d.path }
+func (d *Dir) String() g.String { return d.path }
 
 // Print writes the content of the Dir to the standard output (console)
 // and returns the Dir unchanged.

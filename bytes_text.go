@@ -34,7 +34,7 @@ func (bs Bytes) IsDigit() bool {
 //
 // The replacements are provided as pairs of old and new Bytes, in the same
 // order as in String.ReplaceMulti. Replacements are performed in a single pass:
-// at each position the earliest, longest match among the old patterns wins, and
+// at each position the first matching pattern in argument order wins, and
 // matches do not overlap. The number of arguments must be even; otherwise the
 // method panics.
 //
@@ -156,16 +156,15 @@ func (bs Bytes) ReplaceNth(oldB, newB Bytes, n Int) Bytes {
 
 // Chunks splits the Bytes into chunks of the specified size.
 //
-// This function iterates through the Bytes, yielding chunks of the specified size.
-// If size is less than or equal to 0 or the Bytes is empty,
-// it returns an empty SeqSlice[Bytes].
-// If size is greater than or equal to the length of the Bytes,
-// it returns a SeqSlice[Bytes] containing the original Bytes.
+// This function iterates through the Bytes, creating chunks of the specified size.
+// If size is less than or equal to 0 or the Bytes is empty, it returns nil.
+// If size is greater than or equal to the length of the Bytes, it returns the
+// original Bytes as the only chunk.
 //
 // Unlike String.Chunks, which counts runes, the chunk size is measured in
 // bytes, so multibyte UTF-8 sequences may be split across chunks.
 //
-// The yielded chunks are subslices sharing memory with the original Bytes,
+// The returned chunks are subslices sharing memory with the original Bytes,
 // as with Split; clone them if independent copies are needed.
 //
 // Parameters:
@@ -174,74 +173,34 @@ func (bs Bytes) ReplaceNth(oldB, newB Bytes, n Int) Bytes {
 //
 // Returns:
 //
-// - SeqSlice[Bytes]: A sequence of Bytes chunks of the specified size.
+// - []Bytes: the chunks of the specified size.
 //
 // Example usage:
 //
 //	bs := g.Bytes("Hello, World!")
-//	chunks := bs.Chunks(4).Collect()
+//	chunks := bs.Chunks(4)
 //
 // chunks contains {"Hell", "o, W", "orld", "!"}.
-func (bs Bytes) Chunks(size Int) SeqSlice[Bytes] {
+func (bs Bytes) Chunks(size Int) []Bytes {
 	if size.Lte(0) || bs.IsEmpty() {
-		return func(func(Bytes) bool) {}
+		return nil
 	}
 
 	n := size.Std()
 	l := len(bs)
 
 	if n >= l {
-		return func(yield func(Bytes) bool) { yield(bs) }
+		return []Bytes{bs}
 	}
 
-	return func(yield func(Bytes) bool) {
-		for i := 0; i < l; i += n {
-			if !yield(bs[i:min(i+n, l)]) {
-				return
-			}
-		}
+	result := make([]Bytes, 0, (l+n-1)/n)
+	for i := 0; i < l; i += n {
+		result = append(result, bs[i:min(i+n, l)])
 	}
+
+	return result
 }
 
-// Cut returns two Bytes values. The first Bytes contains the remainder of the
-// original Bytes after the cut. The second Bytes contains the bytes between the
-// first occurrences of the 'start' and 'end' markers, with tags removed if specified.
-//
-// The function searches for the 'start' and 'end' markers within the Bytes.
-// If both are found, it returns the first Bytes containing the remainder of the
-// original Bytes after the cut, followed by the second Bytes containing the bytes
-// between the first occurrences of 'start' and 'end' with tags removed if specified.
-//
-// If either 'start' or 'end' is empty or not found in the Bytes, it returns the
-// original Bytes as the first Bytes, and an empty Bytes as the second.
-//
-// Parameters:
-//
-// - start (Bytes): The Bytes marking the beginning of the segment to be cut.
-//
-// - end (Bytes): The Bytes marking the end of the segment to be cut.
-//
-//   - rmtags (bool, optional): An optional boolean parameter indicating whether
-//     to remove the matched region (including the 'start' and 'end' tags) from the
-//     remainder. Defaults to false, in which case the remainder equals the original
-//     Bytes and only the cut content is extracted.
-//
-// Returns:
-//
-//   - Bytes: The first Bytes containing the remainder of the original Bytes.
-//     When rmtags is true the matched region is removed from it; otherwise it is
-//     the original Bytes. Returns the original Bytes if 'start' or 'end' is empty
-//     or not found.
-//
-//   - Bytes: The second Bytes containing the bytes between the first occurrences of
-//     'start' and 'end', or an empty Bytes if 'start' or 'end' is empty or not found.
-//
-// Example usage:
-//
-//	bs := g.Bytes("Hello, [world]! How are you?")
-//	remainder, cut := bs.Cut(g.Bytes("["), g.Bytes("]"), true)
-//	// remainder: "Hello, ! How are you?"
-//	// cut: "world"
 func (bs Bytes) Cut(start, end Bytes, rmtags ...bool) (Bytes, Bytes) {
 	if start.IsEmpty() || end.IsEmpty() {
 		return bs, Bytes("")
@@ -307,7 +266,44 @@ func (bs Bytes) SubBytes(start, end Int, step ...Int) Bytes {
 		return i
 	}
 
-	return Bytes(Slice[byte](bs).SubSlice(clamp(start), clamp(end), step...))
+	start, end = clamp(start), clamp(end)
+
+	st := Int(1)
+	if len(step) > 0 {
+		st = step[0]
+	}
+
+	// For a negative step the iteration starts AT start and moves down,
+	// so a start clamped to n must begin at the last element.
+	if st < 0 && start == n {
+		start--
+	}
+
+	if st == 1 {
+		if start >= end {
+			return Bytes{}
+		}
+
+		return Bytes(append([]byte(nil), bs[start:end]...))
+	}
+
+	if (start >= end && st > 0) || (start <= end && st < 0) || st == 0 {
+		return Bytes{}
+	}
+
+	var out []byte
+
+	if st > 0 {
+		for i := start; i < end; i += st {
+			out = append(out, bs[i])
+		}
+	} else {
+		for i := start; i > end; i += st {
+			out = append(out, bs[i])
+		}
+	}
+
+	return Bytes(out)
 }
 
 // Similarity calculates the similarity between two Bytes using the

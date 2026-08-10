@@ -1,4 +1,4 @@
-package g_test
+package fs_test
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	gfs "github.com/enetx/g/fs"
 )
 
 func TestFileReaderCloseUpdatesFileState(t *testing.T) {
@@ -18,7 +19,7 @@ func TestFileReaderCloseUpdatesFileState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	file := NewFile(path).Guard()
+	file := gfs.NewFile(path).Guard()
 	reader := file.Reader()
 	if reader.IsErr() {
 		t.Fatalf("Reader failed: %v", reader.Err())
@@ -43,7 +44,7 @@ func TestFileReaderCloseUpdatesFileState(t *testing.T) {
 }
 
 func TestFileExistsReturnsFalseForInvalidPath(t *testing.T) {
-	if NewFile("invalid\x00path").Exists() {
+	if gfs.NewFile("invalid\x00path").Exists() {
 		t.Fatal("invalid path must not exist")
 	}
 }
@@ -54,7 +55,7 @@ func TestFile_Dir_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Get the directory of the file
 	result := file.Dir()
@@ -78,7 +79,7 @@ func TestFile_Exists_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Check if the file exists
 	exists := file.Exists()
@@ -95,7 +96,7 @@ func TestFile_MimeType_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Get the MIME type of the file
 	result := file.MimeType()
@@ -119,7 +120,7 @@ func TestFile_Read_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Read the contents of the file
 	result := file.Read()
@@ -151,7 +152,7 @@ func TestFile_IsLink_Success(t *testing.T) {
 	defer os.Remove(symlink)
 
 	// Create a File instance representing the symbolic link
-	file := NewFile(String(symlink))
+	file := gfs.NewFile(String(symlink))
 
 	// Check if the file is a symbolic link
 	isLink := file.IsLink()
@@ -168,7 +169,7 @@ func TestFile_IsLink_Failure(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Check if the file is a symbolic link
 	isLink := file.IsLink()
@@ -209,7 +210,7 @@ func TestFile_Chunks_Success(t *testing.T) {
 	writeToFile(t, tempFile, content)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Define the chunk size
 	chunkSize := Int(5)
@@ -226,7 +227,7 @@ func TestFile_Chunks_Success(t *testing.T) {
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Ok().Collect()
+	iterator := result.Ok().Collect().Slice()
 
 	// Read chunks from the iterator and verify their content
 	expectedChunks := Slice[String]{"abcde", "fghij", "klmno", "pqrst", "uvwxy", "z"}
@@ -250,7 +251,7 @@ func TestFile_Lines_Success(t *testing.T) {
 	writeToFile(t, tempFile, content)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Read the file line by line
 	result := file.Lines()
@@ -264,7 +265,7 @@ func TestFile_Lines_Success(t *testing.T) {
 	}
 
 	// Unwrap the Result type to get the underlying iterator
-	iterator := result.Ok().Collect()
+	iterator := result.Ok().Collect().Slice()
 
 	// Read lines from the iterator and verify their content
 	expectedLines := Slice[String]{"line1", "line2", "line3", "line4", "line5"}
@@ -280,7 +281,7 @@ func TestFile_Lines_Success(t *testing.T) {
 
 func TestFile_Lines_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := NewFile(String("/invalid/path"))
+	file := gfs.NewFile(String("/invalid/path"))
 
 	// Read the file line by line
 	result := file.Lines()
@@ -300,7 +301,7 @@ func TestFile_Append_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Append content to the file
 	content := "appended content"
@@ -330,7 +331,7 @@ func TestFile_Append_Success(t *testing.T) {
 
 func TestFile_Append_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := NewFile(String("/invalid/path"))
+	file := gfs.NewFile(String("/invalid/path"))
 
 	// Append content to the file
 	result := file.Append(String("appended content"))
@@ -353,7 +354,7 @@ func TestFile_Seek_Success(t *testing.T) {
 	writeToFile(t, tempFile, "test content")
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Seek to the middle of the file
 	result := file.Seek(5, io.SeekStart)
@@ -369,7 +370,7 @@ func TestFile_Seek_Success(t *testing.T) {
 
 func TestFile_Seek_Failure(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := NewFile(String("/invalid/path"))
+	file := gfs.NewFile(String("/invalid/path"))
 
 	// Seek to a position in the file
 	result := file.Seek(10, io.SeekStart)
@@ -397,10 +398,10 @@ func TestFile_Rename_Success(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Define the new path for renaming
-	newPath := NewFile(String(tempFile) + "_renamed")
+	newPath := gfs.NewFile(String(tempFile) + "_renamed")
 	defer newPath.Remove()
 
 	// Rename the file
@@ -427,10 +428,10 @@ func TestFile_Rename_Success(t *testing.T) {
 
 func TestFile_Rename_FileNotExist(t *testing.T) {
 	// Create a File instance with an invalid path for testing
-	file := NewFile(String("/invalid/path"))
+	file := gfs.NewFile(String("/invalid/path"))
 
 	// Define the new path for renaming
-	newPath := NewFile(String("/new/path"))
+	newPath := gfs.NewFile(String("/new/path"))
 
 	// Rename the file
 	result := file.Rename(newPath.Path().Ok())
@@ -444,7 +445,7 @@ func TestFile_Rename_FileNotExist(t *testing.T) {
 	}
 
 	// Check if the error is of type ErrFileNotExist
-	_, ok := result.Err().(*ErrFileNotExist)
+	_, ok := result.Err().(*gfs.ErrFileNotExist)
 	if !ok {
 		t.Fatalf("TestFile_Rename_FileNotExist: Expected error of type ErrFileNotExist, got: %v", result.Err())
 	}
@@ -456,7 +457,7 @@ func TestFile_OpenFile_ReadLock(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -479,7 +480,7 @@ func TestFile_OpenFile_WriteLock(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -502,7 +503,7 @@ func TestFile_OpenFile_Truncate(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	file.Guard()
 	defer file.Close()
@@ -530,7 +531,7 @@ func TestFile_OpenFile_Truncate(t *testing.T) {
 
 func TestFile_OpenFile_NonExistentFile(t *testing.T) {
 	// Test OpenFile with a non-existent file (should error)
-	file := NewFile(String("/nonexistent/file/path.txt"))
+	file := gfs.NewFile(String("/nonexistent/file/path.txt"))
 
 	result := file.OpenFile(os.O_RDONLY, 0o644)
 	if result.IsOk() {
@@ -543,7 +544,7 @@ func TestFile_OpenFile_NoGuard(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	defer file.Close()
 
 	// Open without calling Guard() - no file locking
@@ -558,7 +559,7 @@ func TestFile_OpenFile_ReadWriteMode(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Guard()
 	defer file.Close()
 
@@ -574,7 +575,7 @@ func TestFile_OpenFile_CreateFlag(t *testing.T) {
 	os.Remove(tempFile) // Remove it first so we can test creation
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Guard()
 	defer file.Close()
 
@@ -594,7 +595,7 @@ func TestFile_OpenFile_TruncateNoGuard(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "initial content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	defer file.Close()
 
 	// Test truncate without guard
@@ -617,7 +618,7 @@ func TestFile_Name_ClosedFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Get name without opening the file
 	name := file.Name()
@@ -633,7 +634,7 @@ func TestFile_Name_OpenedFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	defer file.Close()
 
 	// Open the file first
@@ -654,7 +655,7 @@ func TestFile_Name_OpenedFile(t *testing.T) {
 func TestFile_Name_WithPath(t *testing.T) {
 	// Test Name() with a complex file path
 	complexPath := "/path/to/directory/filename.txt"
-	file := NewFile(String(complexPath))
+	file := gfs.NewFile(String(complexPath))
 
 	name := file.Name()
 	expectedName := "filename.txt"
@@ -669,7 +670,7 @@ func TestFile_Remove_Success(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	// Don't defer removal since we're testing Remove()
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Remove the file
 	result := file.Remove()
@@ -685,7 +686,7 @@ func TestFile_Remove_Success(t *testing.T) {
 
 func TestFile_Remove_NonExistentFile(t *testing.T) {
 	// Test removal of a non-existent file (should error)
-	file := NewFile(String("/nonexistent/file/path.txt"))
+	file := gfs.NewFile(String("/nonexistent/file/path.txt"))
 
 	result := file.Remove()
 	if result.IsOk() {
@@ -706,7 +707,7 @@ func TestFile_Remove_Directory(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	file := NewFile(String(tempDir))
+	file := gfs.NewFile(String(tempDir))
 
 	result := file.Remove()
 	if result.IsOk() {
@@ -721,7 +722,7 @@ func TestFile_Stat_ClosedFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Get stat without opening the file
 	result := file.Stat()
@@ -743,7 +744,7 @@ func TestFile_Stat_OpenedFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	defer file.Close()
 
 	// Open the file first
@@ -769,7 +770,7 @@ func TestFile_Stat_OpenedFile(t *testing.T) {
 
 func TestFile_Stat_NonExistentFile(t *testing.T) {
 	// Test Stat() on a non-existent file (should error)
-	file := NewFile(String("/nonexistent/file/path.txt"))
+	file := gfs.NewFile(String("/nonexistent/file/path.txt"))
 
 	result := file.Stat()
 	if result.IsOk() {
@@ -783,7 +784,7 @@ func TestFile_Chmod(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Change the mode of the file
 	result := file.Chmod(0o644)
@@ -810,7 +811,7 @@ func TestFile_Chown(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Change the owner of the file
 	result := file.Chown(os.Getuid(), os.Getgid())
@@ -848,7 +849,7 @@ func TestFile_WriteFromReader(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Prepare data to write
 	testData := "Hello, World!"
@@ -887,7 +888,7 @@ func TestFile_Write(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Prepare data to write
 	testData := "Hello, World!"
@@ -918,7 +919,7 @@ func TestFile_Ext(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Extract the file extension
 	extension := file.Ext().Std()
@@ -942,10 +943,10 @@ func TestFile_Copy(t *testing.T) {
 	defer os.Remove(destFile)
 
 	// Create a File instance representing the source file
-	src := NewFile(String(srcFile))
+	src := gfs.NewFile(String(srcFile))
 
 	// Copy the source file to the destination file
-	dest := NewFile(String(destFile))
+	dest := gfs.NewFile(String(destFile))
 	result := src.Copy(dest.Path().Ok())
 
 	// Check if the copy operation was successful
@@ -965,7 +966,7 @@ func TestFile_Split(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Split the file path into its directory and file components
 	dir, fileName := file.Split()
@@ -986,11 +987,11 @@ func TestFile_Move(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// Create a File instance representing the temporary file
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Rename the file
 	newpath := tempFile + ".new"
-	renamedFile := file.Move(String(newpath))
+	renamedFile := file.Rename(String(newpath))
 
 	// Check if the file has been successfully renamed
 	if renamedFile.IsErr() {
@@ -1059,7 +1060,7 @@ func TestFile_LinesRaw(t *testing.T) {
 	defer os.Remove(tempFilePath)
 
 	testContent := "line1\nline2\nline3"
-	file := NewFile(String(tempFilePath))
+	file := gfs.NewFile(String(tempFilePath))
 	file.Write(String(testContent))
 
 	// Test LinesRaw iterator
@@ -1090,7 +1091,7 @@ func TestFile_ChunksRaw(t *testing.T) {
 	defer os.Remove(tempFilePath)
 
 	testContent := "abcdefghijklmnop"
-	file := NewFile(String(tempFilePath))
+	file := gfs.NewFile(String(tempFilePath))
 	file.Write(String(testContent))
 
 	// Test ChunksRaw iterator with chunk size 5
@@ -1134,7 +1135,7 @@ func TestFile_Print(t *testing.T) {
 	tempFilePath := createTempFile(t)
 	defer os.Remove(tempFilePath)
 
-	file := NewFile(String(tempFilePath))
+	file := gfs.NewFile(String(tempFilePath))
 	result := file.Print()
 	if result != file {
 		t.Errorf("Print() should return original file unchanged")
@@ -1145,7 +1146,7 @@ func TestFile_Println(t *testing.T) {
 	tempFilePath := createTempFile(t)
 	defer os.Remove(tempFilePath)
 
-	file := NewFile(String(tempFilePath))
+	file := gfs.NewFile(String(tempFilePath))
 	result := file.Println()
 	if result != file {
 		t.Errorf("Println() should return original file unchanged")
@@ -1157,7 +1158,7 @@ func TestFile_Lines_EmptyFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	linesResult := file.Lines()
 
 	if linesResult.FirstErr().IsSome() {
@@ -1165,7 +1166,7 @@ func TestFile_Lines_EmptyFile(t *testing.T) {
 		return
 	}
 
-	lines := linesResult.Ok().Collect()
+	lines := linesResult.Ok().Collect().Slice()
 	if lines.Len() != 0 {
 		t.Errorf("Empty file should have 0 lines, got %d", lines.Len())
 	}
@@ -1176,7 +1177,7 @@ func TestFile_Lines_SingleLine(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "single line")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	linesResult := file.Lines()
 
 	if linesResult.FirstErr().IsSome() {
@@ -1184,7 +1185,7 @@ func TestFile_Lines_SingleLine(t *testing.T) {
 		return
 	}
 
-	lines := linesResult.Ok().Collect()
+	lines := linesResult.Ok().Collect().Slice()
 	if lines.Len() != 1 {
 		t.Errorf("Single line file should have 1 line, got %d", lines.Len())
 	}
@@ -1198,8 +1199,8 @@ func TestFile_Chunks_SmallFile(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "small")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
-	chunks := file.Chunks(10).Ok().Collect() // chunk size larger than file
+	file := gfs.NewFile(String(tempFile))
+	chunks := file.Chunks(10).Ok().Collect().Slice() // chunk size larger than file
 
 	if chunks.Len() != 1 {
 		t.Errorf("Small file should produce 1 chunk, got %d", chunks.Len())
@@ -1214,7 +1215,7 @@ func TestFile_Chunks_InvalidSize(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Test with chunk size 0
 	result := file.Chunks(0)
@@ -1235,7 +1236,7 @@ func TestFile_Chunks_InvalidSize(t *testing.T) {
 
 func TestFile_Chunks_NonExistentFile(t *testing.T) {
 	// Test Chunks with a non-existent file (should error during Open)
-	file := NewFile(String("/nonexistent/file/path.txt"))
+	file := gfs.NewFile(String("/nonexistent/file/path.txt"))
 
 	result := file.Chunks(5)
 	if result.FirstErr().IsNone() {
@@ -1248,7 +1249,7 @@ func TestFile_Chunks_EarlyExit(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "abcdefghijklmnopqrstuvwxyz")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	var processedChunks []String
 	count := 0
@@ -1278,7 +1279,7 @@ func TestFile_Append_NewContent(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "initial content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	appendContent := String("appended content")
 	result := file.Append(appendContent)
 	defer file.Close()
@@ -1304,7 +1305,7 @@ func TestFile_OpenFile_TruncateErrorHandling(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "test content")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Guard()
 	defer file.Close()
 
@@ -1320,7 +1321,7 @@ func TestFile_OpenFile_ExclusiveFlag(t *testing.T) {
 	tempDir := t.TempDir()
 
 	newFile := filepath.Join(tempDir, "exclusive_test.txt")
-	file := NewFile(String(newFile))
+	file := gfs.NewFile(String(newFile))
 	defer file.Close()
 
 	// Create file with O_CREATE|O_EXCL
@@ -1329,7 +1330,7 @@ func TestFile_OpenFile_ExclusiveFlag(t *testing.T) {
 		t.Errorf("Expected success creating file with O_CREATE|O_EXCL, got: %v", result.Err())
 	}
 
-	file2 := NewFile(String(newFile))
+	file2 := gfs.NewFile(String(newFile))
 	defer file2.Close()
 
 	// Try to create again with O_EXCL - should fail
@@ -1344,7 +1345,7 @@ func TestFile_OpenFile_AppendFlag(t *testing.T) {
 	tempFile := createTempFileWithContent(t, "initial")
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Guard()
 	defer file.Close()
 
@@ -1359,7 +1360,7 @@ func TestFile_OpenFile_DefaultMode(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Guard()
 	defer file.Close()
 
@@ -1378,7 +1379,7 @@ func TestFile_OpenFile_TruncateStatError(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	file := NewFile(String(tempDir))
+	file := gfs.NewFile(String(tempDir))
 	file.Guard()
 	defer file.Close()
 
@@ -1393,7 +1394,7 @@ func TestFile_OpenFile_TruncateStatError(t *testing.T) {
 
 func TestFile_CreateTemp_NoArgs(t *testing.T) {
 	// Test CreateTemp with no arguments (should use default dir and pattern)
-	result := NewFile("").CreateTemp()
+	result := gfs.CreateTempFile()
 	if result.IsErr() {
 		t.Errorf("CreateTemp with no args should succeed, got error: %v", result.Err())
 		return
@@ -1412,7 +1413,7 @@ func TestFile_CreateTemp_NoArgs(t *testing.T) {
 func TestFile_CreateTemp_WithDir(t *testing.T) {
 	// Test CreateTemp with only directory argument
 	tempDir := os.TempDir()
-	result := NewFile("").CreateTemp(String(tempDir))
+	result := gfs.CreateTempFile(String(tempDir))
 	if result.IsErr() {
 		t.Errorf("CreateTemp with dir should succeed, got error: %v", result.Err())
 		return
@@ -1432,7 +1433,7 @@ func TestFile_CreateTemp_WithDirAndPattern(t *testing.T) {
 	// Test CreateTemp with both directory and pattern arguments
 	tempDir := os.TempDir()
 	pattern := "testfile_*.tmp"
-	result := NewFile("").CreateTemp(String(tempDir), String(pattern))
+	result := gfs.CreateTempFile(String(tempDir), String(pattern))
 	if result.IsErr() {
 		t.Errorf("CreateTemp with dir and pattern should succeed, got error: %v", result.Err())
 		return
@@ -1456,7 +1457,7 @@ func TestFile_CreateTemp_WithDirAndPattern(t *testing.T) {
 
 func TestFile_CreateTemp_InvalidDir(t *testing.T) {
 	// Test CreateTemp with invalid directory (should fail)
-	result := NewFile("").CreateTemp(String("/nonexistent/invalid/directory"))
+	result := gfs.CreateTempFile(String("/nonexistent/invalid/directory"))
 	if result.IsOk() {
 		// On some platforms this might succeed, so clean up
 		os.Remove(result.Ok().Path().Ok().Std())
@@ -1471,7 +1472,7 @@ func TestFile_OpenFile_NoGuardMode(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	// Don't call Guard() - this should skip the locking logic
 	defer file.Close()
 
@@ -1503,7 +1504,7 @@ func TestFile_OpenFile_InvalidFileForLocking(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	file := NewFile(String(tempDir))
+	file := gfs.NewFile(String(tempDir))
 	file.Guard()
 	defer file.Close()
 
@@ -1518,7 +1519,7 @@ func TestFile_OpenFile_InvalidFileForLocking(t *testing.T) {
 
 func TestFile_Read_OpenError(t *testing.T) {
 	// Test Read when Open() fails
-	file := NewFile("/nonexistent/file/path.txt")
+	file := gfs.NewFile("/nonexistent/file/path.txt")
 
 	result := file.Read()
 	if result.IsOk() {
@@ -1539,7 +1540,7 @@ func TestFile_Read_ReadAllError(t *testing.T) {
 		t.Fatalf("Failed to write test content: %v", err)
 	}
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// For this test, we'll just test normal operation since simulating ReadAll errors
 	// is complex and platform-dependent
@@ -1556,7 +1557,7 @@ func TestFile_Read_ReadAllError(t *testing.T) {
 
 func TestFile_LinesRaw_OpenError(t *testing.T) {
 	// Test LinesRaw when Open() fails
-	file := NewFile("/nonexistent/path/file.txt")
+	file := gfs.NewFile("/nonexistent/path/file.txt")
 
 	errorFound := false
 	file.LinesRaw().ForEach(func(result Result[Bytes]) {
@@ -1577,7 +1578,7 @@ func TestFile_LinesRaw_EarlyReturn(t *testing.T) {
 
 	// Write multiple lines
 	testContent := "line1\nline2\nline3\nline4\nline5"
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Write(String(testContent))
 
 	linesRead := 0
@@ -1601,7 +1602,7 @@ func TestFile_Chmod_WithOpenFile(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	// Open the file to set f.file != nil
 	if openResult := file.Open(); openResult.IsErr() {
 		t.Fatalf("Failed to open file: %v", openResult.Err())
@@ -1622,7 +1623,7 @@ func TestFile_Chown_WithOpenFile(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	// Open the file to set f.file != nil
 	if openResult := file.Open(); openResult.IsErr() {
 		t.Fatalf("Failed to open file: %v", openResult.Err())
@@ -1641,7 +1642,7 @@ func TestFile_Chown_WithOpenFile(t *testing.T) {
 
 func TestFile_Lines_OpenError(t *testing.T) {
 	// Test Lines when Open() fails
-	file := NewFile("/nonexistent/path/file.txt")
+	file := gfs.NewFile("/nonexistent/path/file.txt")
 
 	errorFound := false
 	for result := range file.Lines() {
@@ -1663,7 +1664,7 @@ func TestFile_Lines_EarlyReturn(t *testing.T) {
 
 	// Write multiple lines
 	testContent := "line1\nline2\nline3\nline4\nline5"
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Write(String(testContent))
 
 	linesRead := 0
@@ -1684,7 +1685,7 @@ func TestFile_Lines_EarlyReturn(t *testing.T) {
 
 func TestFile_Seek_OpenError(t *testing.T) {
 	// Test Seek when Open() fails
-	file := NewFile("/nonexistent/path/file.txt")
+	file := gfs.NewFile("/nonexistent/path/file.txt")
 
 	result := file.Seek(0, 0)
 
@@ -1699,7 +1700,7 @@ func TestFile_Seek_SeekError(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Try various seek operations that might fail
 	result1 := file.Seek(-1, 2) // Seek to invalid position relative to end
@@ -1719,7 +1720,7 @@ func TestFile_ChunksRaw_InvalidSize(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	errorFound := false
 	for result := range file.ChunksRaw(Int(0)) {
@@ -1739,7 +1740,7 @@ func TestFile_ChunksRaw_InvalidSize(t *testing.T) {
 
 func TestFile_ChunksRaw_OpenError(t *testing.T) {
 	// Test ChunksRaw when Open() fails
-	file := NewFile("/nonexistent/path/file.txt")
+	file := gfs.NewFile("/nonexistent/path/file.txt")
 
 	errorFound := false
 	for result := range file.ChunksRaw(Int(1024)) {
@@ -1761,7 +1762,7 @@ func TestFile_ChunksRaw_EarlyReturn(t *testing.T) {
 
 	// Write test content
 	testContent := strings.Repeat("abcdefghij", 100) // 1000 bytes
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 	file.Write(String(testContent))
 
 	chunksRead := 0
@@ -1783,7 +1784,7 @@ func TestFile_ChunksRaw_EarlyReturn(t *testing.T) {
 func TestFile_Append_CreateAllError(t *testing.T) {
 	// Test Append when createAll() fails
 	// Use a path where directory creation might fail
-	file := NewFile("/root/nonexistent/readonly/path/file.txt")
+	file := gfs.NewFile("/root/nonexistent/readonly/path/file.txt")
 
 	result := file.Append("test content")
 
@@ -1799,7 +1800,7 @@ func TestFile_Append_WithOpenFile(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	// Open the file for writing first
 	if openResult := file.OpenFile(os.O_RDWR, 0o644); openResult.IsErr() {
@@ -1826,7 +1827,7 @@ func TestFile_OpenFile_ReopenClosesPriorFd(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	if r := file.OpenFile(os.O_RDWR, 0o644); r.IsErr() {
 		t.Fatalf("First OpenFile failed: %v", r.Err())
@@ -1870,7 +1871,7 @@ func TestFile_WriteFromReader_OnOpenHandle(t *testing.T) {
 	tempFile := createTempFile(t)
 	defer os.Remove(tempFile)
 
-	file := NewFile(String(tempFile))
+	file := gfs.NewFile(String(tempFile))
 
 	if r := file.OpenFile(os.O_RDWR, 0o644); r.IsErr() {
 		t.Fatalf("OpenFile failed: %v", r.Err())

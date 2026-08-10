@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/enetx/g/rand"
 	"time"
 
 	. "github.com/enetx/g"
@@ -44,7 +45,7 @@ func main() {
 	ch := p.Stream(func() {
 		for taskID := range 10 {
 			p.Go(func() Result[int] {
-				time.Sleep(time.Duration(Int(500).RandomRange(1000)) * time.Millisecond)
+				time.Sleep(time.Duration(rand.RangeInclusive(Int(500), 1000)) * time.Millisecond)
 
 				if taskID == 2 {
 					return Err[int](errors.New("case 2"))

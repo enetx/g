@@ -253,7 +253,7 @@ func TestOptionExpect(t *testing.T) {
 func TestOptionResult(t *testing.T) {
 	// Test Some to Result
 	some := Some(42)
-	result := some.OkOr(errors.New("error message"))
+	result := OkOr(some, errors.New("error message"))
 	if result.IsErr() {
 		t.Error("Some should convert to Ok Result")
 	}
@@ -263,7 +263,7 @@ func TestOptionResult(t *testing.T) {
 
 	// Test None to Result
 	none := None[int]()
-	result2 := none.OkOr(errors.New("test error"))
+	result2 := OkOr(none, errors.New("test error"))
 	if result2.IsOk() {
 		t.Error("None should convert to Err Result")
 	}
@@ -449,7 +449,7 @@ func TestOptionReplace(t *testing.T) {
 func TestOptionOkOr(t *testing.T) {
 	opt := Some(5)
 
-	res := opt.OkOr(errors.New("err"))
+	res := OkOr(opt, errors.New("err"))
 
 	if res.IsErr() || res.Unwrap() != 5 {
 		t.Error("Expected Ok(5)")
@@ -457,7 +457,7 @@ func TestOptionOkOr(t *testing.T) {
 
 	none := None[int]()
 
-	res2 := none.OkOr(errors.New("err"))
+	res2 := OkOr(none, errors.New("err"))
 
 	if res2.IsOk() {
 		t.Error("Expected Err")
@@ -469,7 +469,7 @@ func TestOptionOkOrElse(t *testing.T) {
 
 	called := false
 
-	res := opt.OkOrElse(func() error {
+	res := OkOrElse(opt, func() error {
 		called = true
 		return errors.New("generated")
 	})

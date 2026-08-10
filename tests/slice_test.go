@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"fmt"
+	"github.com/enetx/g/rand"
 	"reflect"
 	"strings"
 	"testing"
@@ -83,7 +84,7 @@ func TestSubSliceWithStep(t *testing.T) {
 		{-5, -1, -1, Slice[int]{}},
 		{-1, -5, -1, SliceOf(9, 8, 7, 6)},
 		// regression: start == len(sl) with negative step must begin at the last
-		// element (Python s[len::-1] semantics), not read sl[len]. Out-of-range
+		// element, not read sl[len]. Out-of-range
 		// start (e.g. 100) still panics by contract; clamping to len happens in
 		// String.SubString / Bytes.SubBytes.
 		{9, 0, -1, SliceOf(9, 8, 7, 6, 5, 4, 3, 2)},
@@ -99,39 +100,6 @@ func TestSubSliceWithStep(t *testing.T) {
 		})
 	}
 }
-
-// func TestSortInts(t *testing.T) {
-// 	slice := Slice[int]{5, 2, 8, 1, 6}
-// 	slice.Sort()
-
-// 	expected := Slice[int]{1, 2, 5, 6, 8}
-
-// 	if !reflect.DeepEqual(slice, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, slice)
-// 	}
-// }
-
-// func TestSortStrings(t *testing.T) {
-// 	slice := Slice[string]{"apple", "orange", "banana", "grape"}
-// 	slice.Sort()
-
-// 	expected := Slice[string]{"apple", "banana", "grape", "orange"}
-
-// 	if !reflect.DeepEqual(slice, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, slice)
-// 	}
-// }
-
-// func TestSliceSortFloats(t *testing.T) {
-// 	slice := Slice[float64]{5.6, 2.3, 8.9, 1.2, 6.7}
-// 	slice.Sort()
-
-// 	expected := Slice[float64]{1.2, 2.3, 5.6, 6.7, 8.9}
-
-// 	if !reflect.DeepEqual(slice, expected) {
-// 		t.Errorf("Expected %v but got %v", expected, slice)
-// 	}
-// }
 
 func TestSliceInsert(t *testing.T) {
 	// Test insertion in the middle
@@ -188,15 +156,6 @@ func TestSliceToSlice(t *testing.T) {
 		if v != slice[i] {
 			t.Errorf("Expected value %d at index %d, but got %d", v, i, slice[i])
 		}
-	}
-}
-
-func TestSliceShuffle(t *testing.T) {
-	sl := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	sl.Shuffle()
-
-	if sl.Len() != 10 {
-		t.Error("Expected length of 10, got ", sl.Len())
 	}
 }
 
@@ -359,21 +318,6 @@ func TestSliceIndexFunc(t *testing.T) {
 	}
 }
 
-func TestSliceRandomSample(t *testing.T) {
-	sl := Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	result := sl.RandomSample(5)
-
-	if result.Len() != 5 {
-		t.Errorf("Expected result length to be 5, got %d", result.Len())
-	}
-
-	for _, item := range result {
-		if !sl.Contains(item) {
-			t.Errorf("Expected result to contain only items from the original slice, got %d", item)
-		}
-	}
-}
-
 func TestSliceSortBy(t *testing.T) {
 	sl1 := NewSlice[int]()
 	sl1.Push(3, 1, 4, 1, 5)
@@ -470,7 +414,7 @@ func TestSliceIsSorted(t *testing.T) {
 }
 
 func TestSliceJoin(t *testing.T) {
-	sl := String("12345").Chars().Collect()
+	sl := SliceOf(String("12345").Chars()...).Iter().Collect().Slice()
 	str := sl.Join(",")
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
@@ -479,7 +423,7 @@ func TestSliceJoin(t *testing.T) {
 }
 
 func TestSliceJoinBytes(t *testing.T) {
-	sl := Bytes("12345").Chars().Collect()
+	sl := SliceOf(Bytes("12345").Chars()...).Iter().Collect().Slice()
 	str := sl.Join(Bytes(","))
 
 	if !strings.EqualFold("1,2,3,4,5", str.Std()) {
@@ -1037,7 +981,7 @@ func TestSliceRandom(t *testing.T) {
 	sl := SliceOf(1, 2, 3, 4, 5)
 
 	// Get a random element from the slice
-	randomElement := sl.Random()
+	randomElement := rand.Choice(sl).UnwrapOrDefault()
 
 	// Check if the random element is within the slice
 	found := false
@@ -1055,7 +999,7 @@ func TestSliceRandom(t *testing.T) {
 	emptySlice := NewSlice[int]()
 
 	// Get a random element from the empty slice
-	emptyRandomElement := emptySlice.Random()
+	emptyRandomElement := rand.Choice(emptySlice).UnwrapOrDefault()
 
 	// Check if the random element from an empty slice is zero value
 	if emptyRandomElement != 0 {
@@ -1101,7 +1045,7 @@ func TestSliceIterMapToAny(t *testing.T) {
 }
 
 func testSliceMapToAny[T any](t *testing.T, sl Slice[T], expected []any) {
-	result := sl.Iter().Map(func(v T) any { return v }).Collect()
+	result := sl.Iter().Map(func(v T) any { return v }).Collect().Slice()
 	if !result.Eq(SliceOf(expected...)) {
 		t.Errorf("Map to any failed for type %T. Expected: %v, Got: %v", sl[0], expected, result)
 	}
@@ -1392,7 +1336,7 @@ func BenchmarkMap(b *testing.B) {
 	slice := genSlice()
 
 	for b.Loop() {
-		slice.Iter().Map(func(s String) String { return s }).Collect()
+		slice.Iter().Map(func(s String) String { return s }).Collect().Slice()
 	}
 }
 
@@ -1400,7 +1344,7 @@ func BenchmarkFilter(b *testing.B) {
 	slice := genSlice()
 
 	for b.Loop() {
-		slice.Iter().Filter(func(_ String) bool { return true }).Collect()
+		slice.Iter().Filter(func(_ String) bool { return true }).Collect().Slice()
 	}
 }
 
@@ -1408,7 +1352,7 @@ func BenchmarkUnique(b *testing.B) {
 	slice := genSlice()
 
 	for b.Loop() {
-		slice.Iter().Unique().Collect()
+		slice.Iter().Unique().Collect().Slice()
 	}
 }
 
@@ -1416,15 +1360,16 @@ func BenchmarkDedup(b *testing.B) {
 	slice := genSlice()
 
 	for b.Loop() {
-		slice.Iter().Dedup().Collect()
+		slice.Iter().Dedup().Collect().Slice()
 	}
 }
 
 func TestSliceRandomRange(t *testing.T) {
 	slice := Slice[int]{1, 2, 3, 4, 5}
 
-	// Test valid range - RandomRange(from, to) returns random sample between from and to indices
-	result := slice.RandomRange(1, 4)
+	// A random-size sample: sample size drawn from [1, 4], then that many
+	// distinct elements.
+	result := rand.Sample(slice, rand.RangeInclusive(1, 4))
 
 	// Check length is reasonable (between 1 and 4, since it's random between 1 and 4)
 	if len(result) < 1 || len(result) > 4 {
@@ -1445,38 +1390,10 @@ func TestSliceRandomRange(t *testing.T) {
 		}
 	}
 
-	// Test with bounds larger than slice
-	result2 := slice.RandomRange(0, 10)
+	// Sample size capped at slice length.
+	result2 := rand.Sample(slice, 10)
 	if len(result2) > len(slice) {
-		t.Errorf("RandomRange should not return more elements than in original slice")
-	}
-}
-
-func TestSliceRandomRange_EdgeCases(t *testing.T) {
-	slice := Slice[int]{1, 2, 3, 4, 5}
-
-	// Test negative from value (should be clamped to 0)
-	result := slice.RandomRange(-5, 3)
-	if len(result) < 0 || len(result) > 3 {
-		t.Errorf("RandomRange(-5, 3) should clamp from to 0, got length %d", len(result))
-	}
-
-	// Test negative to value (should be clamped to slice length)
-	result = slice.RandomRange(1, -2)
-	if len(result) < 1 || len(result) > slice.Len().Std() {
-		t.Errorf("RandomRange(1, -2) should clamp to to slice length, got length %d", len(result))
-	}
-
-	// Test from > to (should swap them, so from becomes to)
-	result = slice.RandomRange(4, 2)
-	if len(result) < 0 || len(result) > 2 {
-		t.Errorf("RandomRange(4, 2) should swap values, got length %d", len(result))
-	}
-
-	// Test to > slice length (should be clamped to slice length)
-	result = slice.RandomRange(2, 10)
-	if len(result) < 2 || len(result) > slice.Len().Std() {
-		t.Errorf("RandomRange(2, 10) should clamp to to slice length, got length %d", len(result))
+		t.Errorf("Sample should not return more elements than in original slice")
 	}
 }
 
@@ -1550,7 +1467,7 @@ func TestSliceToHeap(t *testing.T) {
 	slice := Slice[int]{5, 2, 8, 1, 9, 3}
 
 	// Test ToHeap with a comparison function
-	heap := slice.Heap(cmp.Cmp[int])
+	heap := HeapOf(cmp.Cmp[int], slice...)
 
 	// Verify heap is created
 	if heap == nil {

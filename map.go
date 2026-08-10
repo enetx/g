@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
-
-	"github.com/enetx/iter"
 )
 
 // Map is a generic alias for a map.
@@ -32,13 +30,13 @@ func (m Map[K, V]) Entry(key K) Entry[K, V] {
 	return VacantEntry[K, V]{m: m, key: key}
 }
 
-// Iter returns an iterator (SeqMap[K, V]) for the Map, allowing for sequential iteration
+// Iter returns an iterator (Seq2[K, V]) for the Map, allowing for sequential iteration
 // over its key-value pairs. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each key-value pair of the Map.
 //
 // Returns:
 //
-// - SeqMap[K, V], which can be used for sequential iteration over the key-value pairs of the Map.
+// - Seq2[K, V], which can be used for sequential iteration over the key-value pairs of the Map.
 //
 // Example usage:
 //
@@ -51,7 +49,15 @@ func (m Map[K, V]) Entry(key K) Entry[K, V] {
 //
 // The 'Iter' method provides a convenient way to traverse the key-value pairs of a Map
 // in a functional style, enabling operations like mapping or filtering.
-func (m Map[K, V]) Iter() SeqMap[K, V] { return SeqMap[K, V](iter.FromMap(m)) }
+func (m Map[K, V]) Iter() Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for k, v := range m {
+			if !yield(k, v) {
+				return
+			}
+		}
+	}
+}
 
 // Keys returns a slice of the Map's keys.
 func (m Map[K, V]) Keys() Slice[K] {
@@ -105,26 +111,6 @@ func (m Map[K, V]) Remove(key K) Option[V] {
 
 // Std converts the Map to a regular Go map.
 func (m Map[K, V]) Std() map[K]V { return m }
-
-// Ordered converts a standard Map to an ordered Map.
-func (m Map[K, V]) Ordered() MapOrd[K, V] {
-	mo := make(MapOrd[K, V], 0, len(m))
-	for k, v := range m {
-		mo = append(mo, Pair[K, V]{Key: k, Value: v})
-	}
-
-	return mo
-}
-
-// Safe converts a standard Map to a thread-safe Map.
-func (m Map[K, V]) Safe() *MapSafe[K, V] {
-	ms := NewMapSafe[K, V]()
-	for k, v := range m {
-		ms.Insert(k, v)
-	}
-
-	return ms
-}
 
 // Eq checks if two Maps are equal.
 func (m Map[K, V]) Eq(other Map[K, V]) bool {
@@ -237,11 +223,4 @@ func MapOf[K comparable, V any](pairs ...Pair[K, V]) Map[K, V] {
 	}
 
 	return m
-}
-
-// MapFromPairs builds a Map from a slice of pairs. Unlike the variadic MapOf, it
-// takes the slice directly, so it can be passed as a first-class function — e.g.
-// as the collect step after TryMap: res.TryCollect().Map(MapFromPairs).
-func MapFromPairs[K comparable, V any](pairs Slice[Pair[K, V]]) Map[K, V] {
-	return MapOf(pairs...)
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Microsecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	p := pool.New[int]() // Create a new pool for managing tasks
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Wait for all tasks to complete and print the results
-	p.Wait().Collect().Println()
+	p.Wait().Collect().Slice().Println()
 
 	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

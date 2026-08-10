@@ -2,19 +2,20 @@ package main
 
 import (
 	"fmt"
+	"github.com/enetx/g/rand"
 	"math"
 
 	. "github.com/enetx/g"
 )
 
 func main() {
-	NewInt(math.MinInt64).RandomRange(math.MaxInt64).Println()
+	rand.RangeInclusive(NewInt(math.MinInt64), math.MaxInt64).Println()
 
-	NewInt(100).Random().Println()
-	NewInt(5).RandomRange(-10).Println()
+	rand.N(NewInt(100)).Println()
+	rand.RangeInclusive(NewInt(5), -10).Println()
 
-	NewInt(-10).RandomRange(-5).Println()
-	NewInt(-10).RandomRange(5).Println()
+	rand.RangeInclusive(NewInt(-10), -5).Println()
+	rand.RangeInclusive(NewInt(-10), 5).Println()
 
 	NewInt(11).Max(10, 32, 11, 33, 908).Println()
 	NewInt(11).Min(-1, 32, 11, 33, 908).Println()

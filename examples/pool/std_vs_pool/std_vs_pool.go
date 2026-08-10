@@ -82,7 +82,7 @@ func parallel() {
 		})
 	}
 
-	p.Wait().Collect().Println()
+	p.Wait().Collect().Slice().Println()
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -154,7 +154,7 @@ func cancelOnError() {
 		})
 	}
 
-	p.Wait().Collect().Println()
+	p.Wait().Collect().Slice().Println()
 
 	if cause := p.Cause(); cause != nil {
 		fmt.Println("stopped:", cause)

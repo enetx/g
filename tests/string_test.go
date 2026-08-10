@@ -2,6 +2,7 @@ package g_test
 
 import (
 	"errors"
+	"github.com/enetx/g/rand"
 	"io"
 	"math/big"
 	"reflect"
@@ -199,7 +200,7 @@ func TestChars(t *testing.T) {
 	// Testing on a regular string with ASCII characters
 	asciiStr := String("Hello")
 	asciiExpected := Slice[String]{"H", "e", "l", "l", "o"}
-	asciiResult := asciiStr.Chars().Collect()
+	asciiResult := SliceOf(asciiStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(asciiExpected, asciiResult) {
 		t.Errorf("Expected %v, but got %v", asciiExpected, asciiResult)
 	}
@@ -207,7 +208,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with Unicode characters (Russian)
 	unicodeStr := String("Привет")
 	unicodeExpected := Slice[String]{"П", "р", "и", "в", "е", "т"}
-	unicodeResult := unicodeStr.Chars().Collect()
+	unicodeResult := SliceOf(unicodeStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(unicodeExpected, unicodeResult) {
 		t.Errorf("Expected %v, but got %v", unicodeExpected, unicodeResult)
 	}
@@ -215,7 +216,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with Unicode characters (Chinese)
 	chineseStr := String("你好")
 	chineseExpected := Slice[String]{"你", "好"}
-	chineseResult := chineseStr.Chars().Collect()
+	chineseResult := SliceOf(chineseStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(chineseExpected, chineseResult) {
 		t.Errorf("Expected %v, but got %v", chineseExpected, chineseResult)
 	}
@@ -223,7 +224,7 @@ func TestChars(t *testing.T) {
 	// Additional test with a mix of ASCII and Unicode characters
 	mixedStr := String("Hello 你好")
 	mixedExpected := Slice[String]{"H", "e", "l", "l", "o", " ", "你", "好"}
-	mixedResult := mixedStr.Chars().Collect()
+	mixedResult := SliceOf(mixedStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(mixedExpected, mixedResult) {
 		t.Errorf("Expected %v, but got %v", mixedExpected, mixedResult)
 	}
@@ -267,7 +268,7 @@ func TestChars(t *testing.T) {
 		"ち",
 		"は",
 	}
-	specialResult := specialStr.Chars().Collect()
+	specialResult := SliceOf(specialStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(specialExpected, specialResult) {
 		t.Errorf("Expected %v, but got %v", specialExpected, specialResult)
 	}
@@ -275,7 +276,7 @@ func TestChars(t *testing.T) {
 	// Testing on a string with emojis
 	emojiStr := String("Hello, 😊🌍🚀")
 	emojiExpected := Slice[String]{"H", "e", "l", "l", "o", ",", " ", "😊", "🌍", "🚀"}
-	emojiResult := emojiStr.Chars().Collect()
+	emojiResult := SliceOf(emojiStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(emojiExpected, emojiResult) {
 		t.Errorf("Expected %v, but got %v", emojiExpected, emojiResult)
 	}
@@ -283,7 +284,7 @@ func TestChars(t *testing.T) {
 	// Testing on an empty string
 	emptyStr := String("")
 	emptyExpected := Slice[String]{}
-	emptyResult := emptyStr.Chars().Collect()
+	emptyResult := SliceOf(emptyStr.Chars()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(emptyExpected, emptyResult) {
 		t.Errorf("Expected %v, but got %v", emptyExpected, emptyResult)
 	}
@@ -482,7 +483,7 @@ func TestStringAddPrefix(t *testing.T) {
 
 func TestStringRandom(t *testing.T) {
 	for i := range 100 {
-		random := String("").Random(Int(i))
+		random := rand.String(Int(i))
 
 		if random.Len().Std() != i {
 			t.Errorf("Random string length %d is not equal to %d", random.Len(), i)
@@ -499,15 +500,15 @@ func TestStringRandomEdgeCases(t *testing.T) {
 	}{
 		{"zero length", 0, nil, 0},
 		{"negative length", -5, nil, 0},
-		{"negative length with letters", -1, []String{ASCII_LETTERS}, 0},
+		{"negative length with letters", -1, []String{ASCIILetters}, 0},
 		{"empty letter set", 5, []String{""}, 0},
 		{"empty letter set zero length", 0, []String{""}, 0},
-		{"valid custom set", 8, []String{DIGITS}, 8},
+		{"valid custom set", 8, []String{Digits}, 8},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := String("").Random(tt.length, tt.letters...)
+			got := rand.String(tt.length, tt.letters...)
 			if got.LenRunes() != tt.wantLen {
 				t.Errorf("Random(%d, %v) length = %d, want %d", tt.length, tt.letters, got.LenRunes(), tt.wantLen)
 			}
@@ -544,14 +545,14 @@ func TestSubStringClamp(t *testing.T) {
 
 func TestStringChunks(t *testing.T) {
 	str := String("")
-	chunks := str.Chunks(3).Collect()
+	chunks := SliceOf(str.Chunks(3)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(10).Collect()
+	chunks = SliceOf(str.Chunks(10)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -562,7 +563,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(2).Collect()
+	chunks = SliceOf(str.Chunks(2)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 3 {
 		t.Errorf("Expected 3 chunks, but got %v", chunks.Len())
@@ -577,7 +578,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello world")
-	chunks = str.Chunks(3).Collect()
+	chunks = SliceOf(str.Chunks(3)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 4 {
 		t.Errorf("Expected 4 chunks, but got %v", chunks.Len())
@@ -592,7 +593,7 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(5).Collect()
+	chunks = SliceOf(str.Chunks(5)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 1 {
 		t.Errorf("Expected 1 chunk, but got %v", chunks.Len())
@@ -603,10 +604,41 @@ func TestStringChunks(t *testing.T) {
 	}
 
 	str = String("hello")
-	chunks = str.Chunks(-1).Collect()
+	chunks = SliceOf(str.Chunks(-1)...).Iter().Collect().Slice()
 
 	if chunks.Len() != 0 {
 		t.Errorf("Expected empty slice, but got %v", chunks)
+	}
+
+	// Non-ASCII input takes the rune-decoding path: chunks are counted in
+	// runes, not bytes.
+	str = String("Привет")
+	chunks = SliceOf(str.Chunks(2)...).Iter().Collect().Slice()
+
+	expectedChunks = Slice[String]{"Пр", "ив", "ет"}
+
+	if !reflect.DeepEqual(chunks, expectedChunks) {
+		t.Errorf("Expected chunks %v, but got %v", expectedChunks, chunks)
+	}
+
+	// Non-ASCII with size exceeding the rune count returns the whole string.
+	str = String("Привет")
+	chunks = SliceOf(str.Chunks(10)...).Iter().Collect().Slice()
+
+	expectedChunks = Slice[String]{"Привет"}
+
+	if !reflect.DeepEqual(chunks, expectedChunks) {
+		t.Errorf("Expected chunks %v, but got %v", expectedChunks, chunks)
+	}
+
+	// Mixed ASCII and non-ASCII runes still chunk by rune count.
+	str = String("aПbЦc")
+	chunks = SliceOf(str.Chunks(2)...).Iter().Collect().Slice()
+
+	expectedChunks = Slice[String]{"aП", "bЦ", "c"}
+
+	if !reflect.DeepEqual(chunks, expectedChunks) {
+		t.Errorf("Expected chunks %v, but got %v", expectedChunks, chunks)
 	}
 }
 
@@ -1373,7 +1405,7 @@ func TestStringSplitLines(t *testing.T) {
 	// Test case 1: String with multiple lines.
 	str1 := String("hello\nworld\nhow\nare\nyou\n")
 	expected1 := Slice[String]{"hello", "world", "how", "are", "you"}
-	result1 := str1.Lines().Collect()
+	result1 := SliceOf(str1.Lines()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
@@ -1381,9 +1413,59 @@ func TestStringSplitLines(t *testing.T) {
 	// Test case 2: String with single line.
 	str2 := String("hello")
 	expected2 := Slice[String]{"hello"}
-	result2 := str2.Lines().Collect()
+	result2 := SliceOf(str2.Lines()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+
+	// Test case 3: Whitespace-trim divergence from strings.Split: each line is
+	// right-trimmed, \r\n is consumed, a blank middle line survives as "", and
+	// a missing trailing newline still yields the last line.
+	str3 := String("a \t\nb\r\nmid\n\nlast")
+	expected3 := []String{"a", "b", "mid", "", "last"}
+	result3 := str3.Lines()
+	if !reflect.DeepEqual(result3, expected3) {
+		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+
+	// Test case 4: Empty string yields nil, not [""].
+	if result4 := String("").Lines(); result4 != nil {
+		t.Errorf("Test case 4 failed: Expected nil, got %v", result4)
+	}
+}
+
+func TestStringSplit(t *testing.T) {
+	// Test case 1: Basic split on a single-byte separator.
+	expected1 := []String{"a", "b", "c"}
+	result1 := String("a,b,c").Split(",")
+	if !reflect.DeepEqual(result1, expected1) {
+		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
+	}
+
+	// Test case 2: Absent separator returns the whole string as a single element.
+	expected2 := []String{"hello"}
+	result2 := String("hello").Split(",")
+	if !reflect.DeepEqual(result2, expected2) {
+		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
+	}
+
+	// Test case 3: Empty string with non-empty separator yields one empty element.
+	expected3 := []String{""}
+	result3 := String("").Split(",")
+	if !reflect.DeepEqual(result3, expected3) {
+		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+
+	// Test case 4: Multi-byte (unicode) separator.
+	expected4 := []String{"a", "b"}
+	result4 := String("a—b").Split("—")
+	if !reflect.DeepEqual(result4, expected4) {
+		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
+	}
+
+	// Test case 5: Empty string with empty separator yields an empty slice.
+	if result5 := String("").Split(""); len(result5) != 0 {
+		t.Errorf("Test case 5 failed: Expected empty slice, got %v", result5)
 	}
 }
 
@@ -1392,7 +1474,7 @@ func TestStringSplitN(t *testing.T) {
 	str1 := String("hello,world,how,are,you")
 	sep1 := String(",")
 	n1 := Int(3)
-	expected1 := Slice[String]{"hello", "world", "how,are,you"}
+	expected1 := []String{"hello", "world", "how,are,you"}
 	result1 := str1.SplitN(sep1, n1)
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
@@ -1402,7 +1484,7 @@ func TestStringSplitN(t *testing.T) {
 	str2 := String("hello,world,how,are,you")
 	sep2 := String(",")
 	n2 := Int(-1)
-	expected2 := Slice[String]{"hello", "world", "how", "are", "you"}
+	expected2 := []String{"hello", "world", "how", "are", "you"}
 	result2 := str2.SplitN(sep2, n2)
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
@@ -1412,10 +1494,29 @@ func TestStringSplitN(t *testing.T) {
 	str3 := String("hello")
 	sep3 := String(",")
 	n3 := Int(1)
-	expected3 := Slice[String]{"hello"}
+	expected3 := []String{"hello"}
 	result3 := str3.SplitN(sep3, n3)
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
+	}
+
+	// Test case 4: n == 0 yields an empty slice (mirror of the Bytes test).
+	if got := String("a,b,c").SplitN(",", 0); len(got) != 0 {
+		t.Errorf("Test case 4 failed: SplitN(_, 0) = %v, want empty", got)
+	}
+
+	// Test case 5: Empty separator with n limiting splits at rune boundaries.
+	expected5 := []String{"h", "é", "llo"}
+	result5 := String("héllo").SplitN("", 3)
+	if !reflect.DeepEqual(result5, expected5) {
+		t.Errorf("Test case 5 failed: Expected %v, got %v", expected5, result5)
+	}
+
+	// Test case 6: Multi-byte (unicode) separator with n limiting.
+	expected6 := []String{"a", "b—c"}
+	result6 := String("a—b—c").SplitN("—", 2)
+	if !reflect.DeepEqual(result6, expected6) {
+		t.Errorf("Test case 6 failed: Expected %v, got %v", expected6, result6)
 	}
 }
 
@@ -1423,7 +1524,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 1: String with multiple words separated by whitespace.
 	str1 := String("hello world how are you")
 	expected1 := Slice[String]{"hello", "world", "how", "are", "you"}
-	result1 := str1.Fields().Collect()
+	result1 := SliceOf(str1.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result1, expected1) {
 		t.Errorf("Test case 1 failed: Expected %v, got %v", expected1, result1)
 	}
@@ -1431,7 +1532,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 2: String with single word.
 	str2 := String("hello")
 	expected2 := Slice[String]{"hello"}
-	result2 := str2.Fields().Collect()
+	result2 := SliceOf(str2.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result2, expected2) {
 		t.Errorf("Test case 2 failed: Expected %v, got %v", expected2, result2)
 	}
@@ -1439,7 +1540,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 3: Empty strin
 	str3 := String("")
 	expected3 := Slice[String]{}
-	result3 := str3.Fields().Collect()
+	result3 := SliceOf(str3.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result3, expected3) {
 		t.Errorf("Test case 3 failed: Expected %v, got %v", expected3, result3)
 	}
@@ -1447,7 +1548,7 @@ func TestStringFields(t *testing.T) {
 	// Test case 4: String with leading and trailing whitespace.
 	str4 := String("   hello   world   ")
 	expected4 := Slice[String]{"hello", "world"}
-	result4 := str4.Fields().Collect()
+	result4 := SliceOf(str4.Fields()...).Iter().Collect().Slice()
 	if !reflect.DeepEqual(result4, expected4) {
 		t.Errorf("Test case 4 failed: Expected %v, got %v", expected4, result4)
 	}
@@ -1786,7 +1887,7 @@ func TestStringSplitAfter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.SplitAfter(tc.separator).Collect()
+		actual := SliceOf(tc.input.SplitAfter(tc.separator)...).Iter().Collect().Slice()
 
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf(
@@ -1812,7 +1913,7 @@ func TestStringFieldsBy(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := tc.input.FieldsBy(tc.fn).Collect()
+		actual := SliceOf(tc.input.FieldsBy(tc.fn)...).Iter().Collect().Slice()
 
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf("Unexpected result for input: %s\nExpected: %v\nGot: %v", tc.input, tc.expected, actual)
@@ -2044,7 +2145,7 @@ func TestStringTransform(t *testing.T) {
 func genText() String {
 	text := String("").Builder()
 	for range 10000 {
-		text.WriteString(String("").Random(1000))
+		text.WriteString(rand.String(1000))
 		text.WriteByte('\n')
 	}
 
@@ -2055,7 +2156,7 @@ func BenchmarkSplit(b *testing.B) {
 	text := genText()
 
 	for b.Loop() {
-		text.Split("\n").Collect()
+		SliceOf(text.Split("\n")...).Iter().Collect().Slice()
 	}
 }
 
@@ -2071,7 +2172,7 @@ func BenchmarkFields(b *testing.B) {
 	text := genText()
 
 	for b.Loop() {
-		text.Fields().Collect()
+		SliceOf(text.Fields()...).Iter().Collect().Slice()
 	}
 }
 

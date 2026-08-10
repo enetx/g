@@ -25,16 +25,18 @@ func (s String) Encode() encode { return encode{s} }
 func (s String) Decode() decode { return decode{s} }
 
 // Base64 encodes the wrapped String using standard Base64 (with padding).
-func (e encode) Base64() String { return e.str.BytesUnsafe().Encode().Base64() }
+func (e encode) Base64() String { return e.str.BytesUnsafe().Encode().Base64().StringUnsafe() }
 
 // Base64Raw encodes the wrapped String using standard Base64 without padding.
-func (e encode) Base64Raw() String { return e.str.BytesUnsafe().Encode().Base64Raw() }
+func (e encode) Base64Raw() String { return e.str.BytesUnsafe().Encode().Base64Raw().StringUnsafe() }
 
 // Base64URL encodes the wrapped String using URL-safe Base64 (with padding).
-func (e encode) Base64URL() String { return e.str.BytesUnsafe().Encode().Base64URL() }
+func (e encode) Base64URL() String { return e.str.BytesUnsafe().Encode().Base64URL().StringUnsafe() }
 
 // Base64RawURL encodes the wrapped String using URL-safe Base64 without padding.
-func (e encode) Base64RawURL() String { return e.str.BytesUnsafe().Encode().Base64RawURL() }
+func (e encode) Base64RawURL() String {
+	return e.str.BytesUnsafe().Encode().Base64RawURL().StringUnsafe()
+}
 
 // Base64 decodes the wrapped String using standard Base64 (with padding).
 func (d decode) Base64() Result[String] {
@@ -80,7 +82,7 @@ func (e encode) XOR(key String) String {
 func (d decode) XOR(key String) String { return d.str.Encode().XOR(key) }
 
 // Binary converts the wrapped String to its binary representation.
-func (e encode) Binary() String { return e.str.BytesUnsafe().Encode().Binary() }
+func (e encode) Binary() String { return e.str.BytesUnsafe().Encode().Binary().StringUnsafe() }
 
 // Binary converts the wrapped binary String back to its original String.
 func (d decode) Binary() Result[String] {
@@ -120,8 +122,9 @@ func (d decode) JSON() Result[String] {
 	return Ok(data)
 }
 
-// URL encodes the input string, escaping reserved characters as per RFC 2396.
-// If safe characters are provided, they will not be encoded.
+// URL encodes the input string, leaving the RFC 2396 reserved characters
+// (";/?:@&=+$,") unescaped and query-escaping the rest. If safe characters are
+// provided, they replace that default set and will not be encoded.
 //
 // Note: the default reserved set leaves '+' unescaped, while decoding maps '+'
 // to a space (application/x-www-form-urlencoded), so Encode -> Decode is lossy
@@ -222,7 +225,7 @@ func (d decode) Octal() Result[String] {
 
 	var b Builder
 
-	for v := range d.str.Split(" ") {
+	for _, v := range d.str.Split(" ") {
 		n, err := strconv.ParseUint(v.Std(), 8, 32)
 		if err != nil {
 			return Err[String](err)

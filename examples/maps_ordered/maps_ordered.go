@@ -56,7 +56,7 @@ func main() {
 
 	ms.Iter().ForEach(func(k, v Int) { fmt.Println(k, v) })
 
-	ms = ms.Iter().Map(func(k, v Int) (Int, Int) { return k.Mul(2), v.Mul(2) }).Collect()
+	ms = ms.Iter().Map(func(k, v Int) (Int, Int) { return k.Mul(2), v.Mul(2) }).Collect().MapOrd[Int, Int]()
 	ms.Println()
 
 	ms.Remove(22)
@@ -91,8 +91,6 @@ func main() {
 	mss.SortByValue(func(a, b Slice[int]) cmp.Ordering { return cmp.Cmp(a[1], b[1]) })
 	fmt.Println("after sort by second value: ", mss)
 
-	// MapOrdFromStd(mss.Map().Std()).Println()
-
 	// Ordered map iterators re-type keys and values in the chain (Go 1.27)
 	inventory := MapOrdOf(
 		PairOf(String("apple"), 3),
@@ -101,8 +99,7 @@ func main() {
 	)
 
 	inventory.Iter().
-		Map(func(name String, qty int) (String, Float) { return name.Upper(), Float(qty) * 0.5 }).
-		Collect().
+		Map(func(name String, qty int) (String, Float) { return name.Upper(), Float(qty) * 0.5 }).Collect().MapOrd[String, Float]().
 		Println() // MapOrd{APPLE:1.5, BANANA:0, CHERRY:6}
 
 	inventory.Iter().
@@ -111,14 +108,11 @@ func main() {
 				return None[Pair[String, Int]]()
 			}
 			return Some(Pair[String, Int]{Key: name, Value: Int(qty)})
-		}).
-		Collect().
+		}).Collect().MapOrd[String, Int]().
 		Println() // MapOrd{apple:3, cherry:12}
 
 	// FilterByKey with an f predicate factory — no lambda wrapper needed
 	inventory.Iter().
-		FilterByKey(f.StartsWith(String("ba"))).
-		Collect().
+		FilterByKey(f.StartsWith(String("ba"))).Collect().MapOrd[String, int]().
 		Println() // MapOrd{banana:0}
-
 }

@@ -5,18 +5,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestSeqDeque_All(t *testing.T) {
-	deque := g.DequeOf(2, 4, 6, 8)
+	deque := DequeOf(2, 4, 6, 8)
 	allEven := deque.Iter().All(func(v int) bool { return v%2 == 0 })
 	if !allEven {
 		t.Error("Expected all elements to be even")
 	}
 
-	deque2 := g.DequeOf(1, 2, 3, 4)
+	deque2 := DequeOf(1, 2, 3, 4)
 	allEven2 := deque2.Iter().All(func(v int) bool { return v%2 == 0 })
 	if allEven2 {
 		t.Error("Expected not all elements to be even")
@@ -24,13 +24,13 @@ func TestSeqDeque_All(t *testing.T) {
 }
 
 func TestSeqDeque_Any(t *testing.T) {
-	deque := g.DequeOf(1, 3, 5, 7)
+	deque := DequeOf(1, 3, 5, 7)
 	anyEven := deque.Iter().Any(func(v int) bool { return v%2 == 0 })
 	if anyEven {
 		t.Error("Expected no even elements")
 	}
 
-	deque2 := g.DequeOf(1, 2, 3, 5)
+	deque2 := DequeOf(1, 2, 3, 5)
 	anyEven2 := deque2.Iter().Any(func(v int) bool { return v%2 == 0 })
 	if !anyEven2 {
 		t.Error("Expected at least one even element")
@@ -38,8 +38,8 @@ func TestSeqDeque_Any(t *testing.T) {
 }
 
 func TestSeqDeque_Chain(t *testing.T) {
-	deque1 := g.DequeOf(1, 2, 3)
-	deque2 := g.DequeOf(4, 5, 6)
+	deque1 := DequeOf(1, 2, 3)
+	deque2 := DequeOf(4, 5, 6)
 
 	result := make([]int, 0)
 	deque1.Iter().Chain(deque2.Iter()).ForEach(func(v int) {
@@ -59,8 +59,8 @@ func TestSeqDeque_Chain(t *testing.T) {
 }
 
 func TestSeqDeque_Chunks(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
-	chunks := deque.Iter().Chunks(2).Collect()
+	deque := DequeOf(1, 2, 3, 4, 5, 6)
+	chunks := deque.Iter().Chunks(2).Collect().Slices()
 
 	if len(chunks) != 3 {
 		t.Errorf("Expected 3 chunks, got %d", len(chunks))
@@ -75,8 +75,8 @@ func TestSeqDeque_Chunks(t *testing.T) {
 }
 
 func TestSeqDeque_Collect(t *testing.T) {
-	deque := g.DequeOf(3, 1, 4, 1, 5)
-	collected := deque.Iter().Collect()
+	deque := DequeOf(3, 1, 4, 1, 5)
+	collected := deque.Iter().Collect().Deque()
 
 	if collected.Len() != 5 {
 		t.Errorf("Expected collected deque length 5, got %d", collected.Len())
@@ -97,7 +97,7 @@ func TestSeqDeque_Collect(t *testing.T) {
 }
 
 func TestSeqDeque_Count(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	count := deque.Iter().Count()
 	if count != 5 {
 		t.Errorf("Expected count 5, got %d", count)
@@ -105,14 +105,14 @@ func TestSeqDeque_Count(t *testing.T) {
 }
 
 func TestSeqDeque_Counter(t *testing.T) {
-	deque := g.DequeOf(1, 2, 1, 3, 2, 1)
-	counts := make(map[int]g.Int)
+	deque := DequeOf(1, 2, 1, 3, 2, 1)
+	counts := make(map[int]Int)
 
-	deque.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+	deque.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v Int) {
 		counts[k] = v
 	})
 
-	expected := map[int]g.Int{1: 3, 2: 2, 3: 1}
+	expected := map[int]Int{1: 3, 2: 2, 3: 1}
 	for k, v := range expected {
 		if counts[k] != v {
 			t.Errorf("Counter for %d: expected %d, got %d", k, v, counts[k])
@@ -121,7 +121,7 @@ func TestSeqDeque_Counter(t *testing.T) {
 }
 
 func TestSeqDeque_Dedup(t *testing.T) {
-	deque := g.DequeOf(1, 1, 2, 2, 3, 3, 3)
+	deque := DequeOf(1, 1, 2, 2, 3, 3, 3)
 	result := make([]int, 0)
 
 	deque.Iter().Dedup().ForEach(func(v int) {
@@ -135,14 +135,14 @@ func TestSeqDeque_Dedup(t *testing.T) {
 }
 
 func TestSeqDeque_Enumerate(t *testing.T) {
-	deque := g.DequeOf("a", "b", "c")
-	pairs := make(map[g.Int]string)
+	deque := DequeOf("a", "b", "c")
+	pairs := make(map[Int]string)
 
-	deque.Iter().Enumerate().ForEach(func(i g.Int, v string) {
+	deque.Iter().Enumerate().ForEach(func(i Int, v string) {
 		pairs[i] = v
 	})
 
-	expected := map[g.Int]string{0: "a", 1: "b", 2: "c"}
+	expected := map[Int]string{0: "a", 1: "b", 2: "c"}
 	for k, v := range expected {
 		if pairs[k] != v {
 			t.Errorf("Enumerate at %d: expected %s, got %s", k, v, pairs[k])
@@ -151,7 +151,7 @@ func TestSeqDeque_Enumerate(t *testing.T) {
 }
 
 func TestSeqDeque_Filter(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	deque := DequeOf(1, 2, 3, 4, 5, 6)
 	result := make([]int, 0)
 
 	deque.Iter().Filter(func(v int) bool { return v%2 == 0 }).ForEach(func(v int) {
@@ -165,7 +165,7 @@ func TestSeqDeque_Filter(t *testing.T) {
 }
 
 func TestSeqDeque_Exclude(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	result := make([]int, 0)
 
 	deque.Iter().Exclude(func(v int) bool { return v%2 == 0 }).ForEach(func(v int) {
@@ -179,7 +179,7 @@ func TestSeqDeque_Exclude(t *testing.T) {
 }
 
 func TestSeqDeque_Find(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	found := deque.Iter().Find(func(v int) bool { return v > 3 })
 
 	if !found.IsSome() {
@@ -192,7 +192,7 @@ func TestSeqDeque_Find(t *testing.T) {
 }
 
 func TestSeqDeque_Fold(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	sum := deque.Iter().Fold(0, func(acc, val int) int {
 		return acc + val
 	})
@@ -203,7 +203,7 @@ func TestSeqDeque_Fold(t *testing.T) {
 }
 
 func TestSeqDeque_Reduce(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	product := deque.Iter().Reduce(func(a, b int) int {
 		return a * b
 	})
@@ -218,7 +218,7 @@ func TestSeqDeque_Reduce(t *testing.T) {
 }
 
 func TestSeqDeque_ForEach(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	sum := 0
 
 	deque.Iter().ForEach(func(v int) {
@@ -231,7 +231,7 @@ func TestSeqDeque_ForEach(t *testing.T) {
 }
 
 func TestSeqDeque_Map(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	result := make([]int, 0)
 
 	deque.Iter().Map(func(v int) int {
@@ -247,7 +247,7 @@ func TestSeqDeque_Map(t *testing.T) {
 }
 
 func TestSeqDeque_Skip(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	result := make([]int, 0)
 
 	deque.Iter().Skip(2).ForEach(func(v int) {
@@ -261,7 +261,7 @@ func TestSeqDeque_Skip(t *testing.T) {
 }
 
 func TestSeqDeque_Take(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	result := make([]int, 0)
 
 	deque.Iter().Take(3).ForEach(func(v int) {
@@ -275,7 +275,7 @@ func TestSeqDeque_Take(t *testing.T) {
 }
 
 func TestSeqDeque_StepBy(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	deque := DequeOf(1, 2, 3, 4, 5, 6)
 	result := make([]int, 0)
 
 	deque.Iter().StepBy(2).ForEach(func(v int) {
@@ -289,7 +289,7 @@ func TestSeqDeque_StepBy(t *testing.T) {
 }
 
 func TestSeqDeque_Unique(t *testing.T) {
-	deque := g.DequeOf(1, 2, 1, 3, 2, 4)
+	deque := DequeOf(1, 2, 1, 3, 2, 4)
 	result := make([]int, 0)
 
 	deque.Iter().Unique().ForEach(func(v int) {
@@ -304,8 +304,8 @@ func TestSeqDeque_Unique(t *testing.T) {
 }
 
 func TestSeqDeque_Windows(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
-	windows := deque.Iter().Windows(3).Collect()
+	deque := DequeOf(1, 2, 3, 4, 5)
+	windows := deque.Iter().Windows(3).Collect().Slices()
 
 	if len(windows) != 3 { // [1,2,3], [2,3,4], [3,4,5]
 		t.Errorf("Expected 3 windows, got %d", len(windows))
@@ -319,8 +319,8 @@ func TestSeqDeque_Windows(t *testing.T) {
 }
 
 func TestSeqDeque_Zip(t *testing.T) {
-	deque1 := g.DequeOf(1, 2, 3)
-	deque2 := g.DequeOf(4, 5, 6)
+	deque1 := DequeOf(1, 2, 3)
+	deque2 := DequeOf(4, 5, 6)
 
 	pairs := make([][2]int, 0)
 	deque1.Iter().Zip(deque2.Iter()).ForEach(func(a, b int) {
@@ -334,7 +334,7 @@ func TestSeqDeque_Zip(t *testing.T) {
 }
 
 func TestSeqDeque_Intersperse(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	result := make([]int, 0)
 
 	deque.Iter().Intersperse(0).ForEach(func(v int) {
@@ -349,7 +349,7 @@ func TestSeqDeque_Intersperse(t *testing.T) {
 
 func TestSeqDeque_First(t *testing.T) {
 	t.Run("first element exists", func(t *testing.T) {
-		deque := g.DequeOf(10, 20, 30, 40, 50)
+		deque := DequeOf(10, 20, 30, 40, 50)
 
 		first := deque.Iter().First()
 
@@ -361,7 +361,7 @@ func TestSeqDeque_First(t *testing.T) {
 	})
 
 	t.Run("empty deque", func(t *testing.T) {
-		deque := g.DequeOf[int]()
+		deque := DequeOf[int]()
 
 		first := deque.Iter().First()
 
@@ -371,7 +371,7 @@ func TestSeqDeque_First(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		deque := g.DequeOf(42)
+		deque := DequeOf(42)
 
 		first := deque.Iter().First()
 
@@ -385,7 +385,7 @@ func TestSeqDeque_First(t *testing.T) {
 
 func TestSeqDeque_Last(t *testing.T) {
 	t.Run("last element exists", func(t *testing.T) {
-		deque := g.DequeOf(10, 20, 30, 40, 50)
+		deque := DequeOf(10, 20, 30, 40, 50)
 
 		last := deque.Iter().Last()
 
@@ -397,7 +397,7 @@ func TestSeqDeque_Last(t *testing.T) {
 	})
 
 	t.Run("empty deque", func(t *testing.T) {
-		deque := g.DequeOf[int]()
+		deque := DequeOf[int]()
 
 		last := deque.Iter().Last()
 
@@ -407,7 +407,7 @@ func TestSeqDeque_Last(t *testing.T) {
 	})
 
 	t.Run("single element", func(t *testing.T) {
-		deque := g.DequeOf(42)
+		deque := DequeOf(42)
 
 		last := deque.Iter().Last()
 
@@ -420,7 +420,7 @@ func TestSeqDeque_Last(t *testing.T) {
 }
 
 func TestSeqDeque_Nth(t *testing.T) {
-	deque := g.DequeOf(10, 20, 30, 40, 50)
+	deque := DequeOf(10, 20, 30, 40, 50)
 	second := deque.Iter().Nth(1)
 
 	if !second.IsSome() {
@@ -433,7 +433,7 @@ func TestSeqDeque_Nth(t *testing.T) {
 }
 
 func TestSeqDeque_Partition(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5, 6)
+	deque := DequeOf(1, 2, 3, 4, 5, 6)
 	evens, odds := deque.Iter().Partition(func(v int) bool { return v%2 == 0 })
 
 	if evens.Len() != 3 {
@@ -446,7 +446,7 @@ func TestSeqDeque_Partition(t *testing.T) {
 }
 
 func TestSeqDeque_Context(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
@@ -462,7 +462,7 @@ func TestSeqDeque_Context(t *testing.T) {
 }
 
 func TestSeqDeque_Pull(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	next, stop := deque.Iter().Pull()
 	defer stop()
 
@@ -478,7 +478,7 @@ func TestSeqDeque_Pull(t *testing.T) {
 }
 
 func TestSeqDeque_ToChan(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -496,8 +496,8 @@ func TestSeqDeque_ToChan(t *testing.T) {
 }
 
 func TestSeqDeque_Combinations(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
-	combos := deque.Iter().Combinations(2).Collect()
+	deque := DequeOf(1, 2, 3)
+	combos := deque.Iter().Combinations(2).Collect().Slices()
 
 	if len(combos) != 3 { // C(3,2) = 3
 		t.Errorf("Expected 3 combinations, got %d", len(combos))
@@ -511,7 +511,7 @@ func TestSeqDeque_Combinations(t *testing.T) {
 }
 
 func TestSeqDeque_Cycle(t *testing.T) {
-	deque := g.DequeOf(1, 2)
+	deque := DequeOf(1, 2)
 	result := make([]int, 0)
 
 	deque.Iter().Cycle().Take(6).ForEach(func(v int) {
@@ -526,7 +526,7 @@ func TestSeqDeque_Cycle(t *testing.T) {
 
 func TestSeqDeque_Flatten(t *testing.T) {
 	// Test with deque containing nested any elements that can be flattened
-	deque := g.DequeOf[any](1, []any{2, 3}, 4, []any{5, 6})
+	deque := DequeOf[any](1, []any{2, 3}, 4, []any{5, 6})
 	result := make([]any, 0)
 
 	deque.Iter().Flatten().ForEach(func(v any) {
@@ -540,8 +540,8 @@ func TestSeqDeque_Flatten(t *testing.T) {
 }
 
 func TestSeqDeque_ChunkBy(t *testing.T) {
-	deque := g.DequeOf(1, 1, 2, 3, 2, 3, 4)
-	groups := deque.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect()
+	deque := DequeOf(1, 1, 2, 3, 2, 3, 4)
+	groups := deque.Iter().ChunkBy(func(a, b int) bool { return a <= b }).Collect().Slices()
 
 	if len(groups) == 0 {
 		t.Error("Expected at least one group")
@@ -559,7 +559,7 @@ func TestSeqDeque_ChunkBy(t *testing.T) {
 }
 
 func TestSeqDeque_Inspect(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
+	deque := DequeOf(1, 2, 3)
 	inspected := make([]int, 0)
 	result := make([]int, 0)
 
@@ -574,7 +574,7 @@ func TestSeqDeque_Inspect(t *testing.T) {
 }
 
 func TestSeqDeque_MaxBy(t *testing.T) {
-	deque := g.DequeOf("a", "bb", "ccc", "dd")
+	deque := DequeOf("a", "bb", "ccc", "dd")
 
 	// Find max by string length
 	maxByLen := deque.Iter().MaxBy(func(a, b string) cmp.Ordering {
@@ -587,7 +587,7 @@ func TestSeqDeque_MaxBy(t *testing.T) {
 }
 
 func TestSeqDeque_MinBy(t *testing.T) {
-	deque := g.DequeOf("a", "bb", "ccc", "dd")
+	deque := DequeOf("a", "bb", "ccc", "dd")
 
 	// Find min by string length
 	minByLen := deque.Iter().MinBy(func(a, b string) cmp.Ordering {
@@ -600,8 +600,8 @@ func TestSeqDeque_MinBy(t *testing.T) {
 }
 
 func TestSeqDeque_Permutations(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3)
-	perms := deque.Iter().Permutations().Collect()
+	deque := DequeOf(1, 2, 3)
+	perms := deque.Iter().Permutations().Collect().Slices()
 
 	if len(perms) != 6 { // 3! = 6
 		t.Errorf("Expected 6 permutations, got %d", len(perms))
@@ -615,7 +615,7 @@ func TestSeqDeque_Permutations(t *testing.T) {
 }
 
 func TestSeqDeque_Range(t *testing.T) {
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	result := make([]int, 0)
 
 	deque.Iter().Range(func(val int) bool {
@@ -630,7 +630,7 @@ func TestSeqDeque_Range(t *testing.T) {
 }
 
 func TestSeqDeque_SortBy(t *testing.T) {
-	deque := g.DequeOf("apple", "banana", "cherry")
+	deque := DequeOf("apple", "banana", "cherry")
 	result := make([]string, 0)
 
 	// Sort by string length (ascending)
@@ -650,10 +650,10 @@ func TestSeqDeque_SortBy(t *testing.T) {
 
 func TestSeqDeque_CounterEdgeCases(t *testing.T) {
 	// Test Counter on empty deque
-	empty := g.NewDeque[int]()
-	counts := make(map[int]g.Int)
+	empty := NewDeque[int]()
+	counts := make(map[int]Int)
 
-	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v g.Int) {
+	empty.Iter().CounterBy(func(v int) int { return v }).ForEach(func(k int, v Int) {
 		counts[k] = v
 	})
 
@@ -664,7 +664,7 @@ func TestSeqDeque_CounterEdgeCases(t *testing.T) {
 
 func TestSeqDeque_DedupEdgeCases(t *testing.T) {
 	// Test Dedup on empty deque
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	result := make([]int, 0)
 
 	empty.Iter().Dedup().ForEach(func(v int) {
@@ -676,7 +676,7 @@ func TestSeqDeque_DedupEdgeCases(t *testing.T) {
 	}
 
 	// Test Dedup on single element
-	single := g.DequeOf(42)
+	single := DequeOf(42)
 	result = nil
 
 	single.Iter().Dedup().ForEach(func(v int) {
@@ -691,7 +691,7 @@ func TestSeqDeque_DedupEdgeCases(t *testing.T) {
 
 func TestSeqDeque_FlattenEdgeCases(t *testing.T) {
 	// Test Flatten on empty deque
-	empty := g.NewDeque[any]()
+	empty := NewDeque[any]()
 	result := make([]any, 0)
 
 	empty.Iter().Flatten().ForEach(func(v any) {
@@ -703,7 +703,7 @@ func TestSeqDeque_FlattenEdgeCases(t *testing.T) {
 	}
 
 	// Test Flatten with non-slice elements
-	simple := g.DequeOf[any](1, 2, 3)
+	simple := DequeOf[any](1, 2, 3)
 	result = nil
 
 	simple.Iter().Flatten().ForEach(func(v any) {
@@ -718,10 +718,10 @@ func TestSeqDeque_FlattenEdgeCases(t *testing.T) {
 
 func TestSeqDequeFlatMap(t *testing.T) {
 	// Test FlatMap with expanding elements
-	deque := g.DequeOf(1, 2, 3)
-	result := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
-		return g.DequeOf(n, n*10).Iter()
-	}).Collect()
+	deque := DequeOf(1, 2, 3)
+	result := deque.Iter().FlatMap(func(n int) Seq[int] {
+		return DequeOf(n, n*10).Iter()
+	}).Collect().Deque()
 
 	expected := []int{1, 10, 2, 20, 3, 30}
 	actual := make([]int, 0)
@@ -739,18 +739,18 @@ func TestSeqDequeFlatMap(t *testing.T) {
 	}
 
 	// Test FlatMap with empty results
-	emptyResult := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
-		return g.NewDeque[int]().Iter()
-	}).Collect()
+	emptyResult := deque.Iter().FlatMap(func(n int) Seq[int] {
+		return NewDeque[int]().Iter()
+	}).Collect().Slice()
 
 	if emptyResult.Len() != 0 {
 		t.Errorf("FlatMap empty: expected 0 elements, got %d", emptyResult.Len())
 	}
 
 	// Test FlatMap with single elements
-	singleResult := deque.Iter().FlatMap(func(n int) g.SeqDeque[int] {
-		return g.DequeOf(n * 2).Iter()
-	}).Collect()
+	singleResult := deque.Iter().FlatMap(func(n int) Seq[int] {
+		return DequeOf(n * 2).Iter()
+	}).Collect().Slice()
 
 	expectedSingle := []int{2, 4, 6}
 	actualSingle := make([]int, 0)
@@ -763,10 +763,10 @@ func TestSeqDequeFlatMap(t *testing.T) {
 	}
 
 	// Test FlatMap on empty deque
-	empty := g.NewDeque[int]()
-	emptyFlatMapped := empty.Iter().FlatMap(func(n int) g.SeqDeque[int] {
-		return g.DequeOf(n).Iter()
-	}).Collect()
+	empty := NewDeque[int]()
+	emptyFlatMapped := empty.Iter().FlatMap(func(n int) Seq[int] {
+		return DequeOf(n).Iter()
+	}).Collect().Slice()
 
 	if emptyFlatMapped.Len() != 0 {
 		t.Errorf("FlatMap empty input: expected 0 elements, got %d", emptyFlatMapped.Len())
@@ -775,13 +775,13 @@ func TestSeqDequeFlatMap(t *testing.T) {
 
 func TestSeqDequeFilterMap(t *testing.T) {
 	// Test FilterMap with transformation and filtering
-	deque := g.DequeOf(1, 2, 3, 4, 5)
-	result := deque.Iter().FilterMap(func(n int) g.Option[int] {
+	deque := DequeOf(1, 2, 3, 4, 5)
+	result := deque.Iter().FilterMap(func(n int) Option[int] {
 		if n%2 == 0 {
-			return g.Some(n * 10)
+			return Some(n * 10)
 		}
-		return g.None[int]()
-	}).Collect()
+		return None[int]()
+	}).Collect().Slice()
 
 	expected := []int{20, 40}
 	actual := make([]int, 0)
@@ -799,18 +799,18 @@ func TestSeqDequeFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap that filters all elements
-	allFiltered := deque.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.None[int]()
-	}).Collect()
+	allFiltered := deque.Iter().FilterMap(func(n int) Option[int] {
+		return None[int]()
+	}).Collect().Slice()
 
 	if allFiltered.Len() != 0 {
 		t.Errorf("FilterMap all filtered: expected 0 elements, got %d", allFiltered.Len())
 	}
 
 	// Test FilterMap that keeps all elements with transformation
-	allKept := deque.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.Some(n * 2)
-	}).Collect()
+	allKept := deque.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * 2)
+	}).Collect().Slice()
 
 	expectedAll := []int{2, 4, 6, 8, 10}
 	actualAll := make([]int, 0)
@@ -821,24 +821,24 @@ func TestSeqDequeFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap on empty deque
-	empty := g.NewDeque[int]()
-	emptyFiltered := empty.Iter().FilterMap(func(n int) g.Option[int] {
-		return g.Some(n * 2)
-	}).Collect()
+	empty := NewDeque[int]()
+	emptyFiltered := empty.Iter().FilterMap(func(n int) Option[int] {
+		return Some(n * 2)
+	}).Collect().Slice()
 
 	if emptyFiltered.Len() != 0 {
 		t.Errorf("FilterMap empty input: expected 0 elements, got %d", emptyFiltered.Len())
 	}
 
 	// Test FilterMap with string processing
-	words := g.DequeOf("hello", "", "world", "   ", "go")
-	processedWords := words.Iter().FilterMap(func(s string) g.Option[string] {
-		trimmed := g.String(s).Trim()
+	words := DequeOf("hello", "", "world", "   ", "go")
+	processedWords := words.Iter().FilterMap(func(s string) Option[string] {
+		trimmed := String(s).Trim()
 		if !trimmed.IsEmpty() {
-			return g.Some(string(trimmed.Upper()))
+			return Some(string(trimmed.Upper()))
 		}
-		return g.None[string]()
-	}).Collect()
+		return None[string]()
+	}).Collect().Slice()
 
 	expectedWords := []string{"HELLO", "WORLD", "GO"}
 	actualWords := make([]string, 0)
@@ -857,10 +857,10 @@ func TestSeqDequeFilterMap(t *testing.T) {
 
 func TestSeqDequeScan(t *testing.T) {
 	// Test Scan with sum accumulation
-	deque := g.DequeOf(1, 2, 3, 4, 5)
+	deque := DequeOf(1, 2, 3, 4, 5)
 	result := deque.Iter().Scan(0, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expected := []int{0, 1, 3, 6, 10, 15}
 	actual := make([]int, 0)
@@ -878,10 +878,10 @@ func TestSeqDequeScan(t *testing.T) {
 	}
 
 	// Test Scan with multiplication
-	small := g.DequeOf(2, 3, 4)
+	small := DequeOf(2, 3, 4)
 	product := small.Iter().Scan(1, func(acc, val int) int {
 		return acc * val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedProduct := []int{1, 2, 6, 24}
 	actualProduct := make([]int, 0)
@@ -898,10 +898,10 @@ func TestSeqDequeScan(t *testing.T) {
 	}
 
 	// Test Scan on empty deque (should just return initial value)
-	empty := g.NewDeque[int]()
+	empty := NewDeque[int]()
 	emptyScanned := empty.Iter().Scan(42, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Deque()
 
 	if emptyScanned.Len() != 1 {
 		t.Errorf("Scan empty length: expected 1, got %d", emptyScanned.Len())
@@ -912,10 +912,10 @@ func TestSeqDequeScan(t *testing.T) {
 	}
 
 	// Test Scan with single element
-	single := g.DequeOf(10)
+	single := DequeOf(10)
 	singleScanned := single.Iter().Scan(5, func(acc, val int) int {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedSingle := []int{5, 15}
 	actualSingle := make([]int, 0)
@@ -932,10 +932,10 @@ func TestSeqDequeScan(t *testing.T) {
 	}
 
 	// Test Scan with string concatenation
-	stringDeque := g.DequeOf("a", "b", "c")
+	stringDeque := DequeOf("a", "b", "c")
 	concatenated := stringDeque.Iter().Scan("", func(acc, val string) string {
 		return acc + val
-	}).Collect()
+	}).Collect().Slice()
 
 	expectedConcat := []string{"", "a", "ab", "abc"}
 	actualConcat := make([]string, 0)
@@ -954,7 +954,7 @@ func TestSeqDequeScan(t *testing.T) {
 
 func TestSeqDequeNext(t *testing.T) {
 	t.Run("Next with non-empty iterator", func(t *testing.T) {
-		iter := g.DequeOf(1, 2, 3, 4, 5).Iter()
+		iter := DequeOf(1, 2, 3, 4, 5).Iter()
 
 		// First element
 		first := iter.Next()
@@ -969,15 +969,15 @@ func TestSeqDequeNext(t *testing.T) {
 		}
 
 		// Remaining elements
-		remaining := iter.Collect()
-		expected := g.DequeOf(3, 4, 5)
+		remaining := iter.Collect().Deque()
+		expected := DequeOf(3, 4, 5)
 		if !remaining.Eq(expected) {
 			t.Errorf("Expected remaining %v, got %v", expected, remaining)
 		}
 	})
 
 	t.Run("Next with empty iterator", func(t *testing.T) {
-		deque := g.Deque[int]{}
+		deque := Deque[int]{}
 		iter := deque.Iter()
 
 		result := iter.Next()
@@ -987,7 +987,7 @@ func TestSeqDequeNext(t *testing.T) {
 	})
 
 	t.Run("Next until exhausted", func(t *testing.T) {
-		iter := g.DequeOf(1, 2).Iter()
+		iter := DequeOf(1, 2).Iter()
 
 		// Extract all elements
 		first := iter.Next()
@@ -1005,7 +1005,7 @@ func TestSeqDequeNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().Deque()
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty deque, got %v", remaining)
 		}
@@ -1013,14 +1013,14 @@ func TestSeqDequeNext(t *testing.T) {
 }
 
 func TestSeqDequeTryMap(t *testing.T) {
-	got := g.DequeOf[g.String]("1", "2", "3").Iter().
-		TryMap(g.String.TryInt).
-		SumBy(func(v g.Int) g.Int { return v })
+	got := DequeOf[String]("1", "2", "3").Iter().
+		TryMap(String.TryInt).
+		SumBy(func(v Int) Int { return v })
 	if got.IsErr() || got.Ok() != 6 {
 		t.Fatalf("Deque.TryMap = %v", got)
 	}
 
-	bad := g.DequeOf[g.String]("1", "x", "3").Iter().TryMap(g.String.TryInt).TryCollect()
+	bad := DequeOf[String]("1", "x", "3").Iter().TryMap(String.TryInt).TryCollect()
 	if bad.IsOk() {
 		t.Fatalf("Deque.TryMap err = %v, want Err", bad)
 	}

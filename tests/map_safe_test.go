@@ -437,7 +437,7 @@ func TestMapSafeToMap(t *testing.T) {
 	ms.Insert("b", 2)
 	ms.Insert("c", 3)
 
-	m := ms.Map()
+	m := MapFromMapSafe(ms)
 	if m.Len() != 3 {
 		t.Fatalf("expected 3 entries, got %d", m.Len())
 	}
@@ -456,7 +456,7 @@ func TestMapSafeToMap(t *testing.T) {
 		t.Error("Map snapshot should be independent of later MapSafe mutations")
 	}
 
-	if NewMapSafe[string, int]().Map().Len() != 0 {
+	if MapFromMapSafe(NewMapSafe[string, int]()).Len() != 0 {
 		t.Error("expected empty Map from empty MapSafe")
 	}
 }
@@ -467,7 +467,7 @@ func TestMapSafeToOrdered(t *testing.T) {
 	ms.Insert("b", 2)
 	ms.Insert("c", 3)
 
-	mo := ms.Ordered()
+	mo := MapOrdFromMapSafe(ms)
 	if mo.Len() != 3 {
 		t.Fatalf("expected 3 entries, got %d", mo.Len())
 	}
@@ -487,7 +487,7 @@ func TestMapSafeToOrdered(t *testing.T) {
 		t.Error("Ordered snapshot should be independent of later MapSafe mutations")
 	}
 
-	if NewMapSafe[string, int]().Ordered().Len() != 0 {
+	if MapOrdFromMapSafe(NewMapSafe[string, int]()).Len() != 0 {
 		t.Error("expected empty MapOrd from empty MapSafe")
 	}
 }
@@ -512,8 +512,44 @@ func TestMapSafeOf(t *testing.T) {
 	}
 }
 
-func TestMapSafeFromPairs(t *testing.T) {
-	res := pairsResult().TryCollect().Map(MapSafeFromPairs)
+func TestMapSafeCollect(t *testing.T) {
+	// basic: key-value sequence -> thread-safe MapSafe
+	ms := MapOf(PairOf[String, Int]("a", 1), PairOf[String, Int]("b", 2)).
+		Iter().
+		Collect().
+		MapSafe[String, Int]()
+
+	if ms.Len() != 2 {
+		t.Fatalf("Len = %d, want 2", ms.Len())
+	}
+	if ms.Get("a").UnwrapOr(0) != 1 || ms.Get("b").UnwrapOr(0) != 2 {
+		t.Fatalf("MapSafe contents = %v", ms)
+	}
+
+	// overwrite: later keys win
+	seq := Seq2[String, Int](func(yield func(String, Int) bool) {
+		_ = yield("k", 1) && yield("k", 9)
+	})
+
+	dup := seq.Collect().MapSafe[String, Int]()
+	if dup.Len() != 1 || dup.Get("k").UnwrapOr(0) != 9 {
+		t.Fatalf("dup = %v, want {k:9}", dup)
+	}
+
+	// round trip: MapSafe -> Iter -> Collect -> MapSafe
+	src := NewMapSafe[String, Int]()
+	src.Insert("x", 10)
+	src.Insert("y", 20)
+	src.Insert("z", 30)
+
+	rt := src.Iter().Collect().MapSafe[String, Int]()
+	if !rt.Eq(src) {
+		t.Fatalf("round trip = %v, want %v", rt, src)
+	}
+}
+
+func TestMapSafeOfPairs(t *testing.T) {
+	res := pairsResult().TryCollect().Map(func(p Slice[Pair[String, Int]]) *MapSafe[String, Int] { return MapSafeOf(p...) })
 	if res.IsErr() || res.Ok().Len() != 2 {
 		t.Fatalf("MapSafeFromPairs = %v", res)
 	}
@@ -526,7 +562,7 @@ func TestMapSafeFromPairs(t *testing.T) {
 			return v.TryInt().Map(func(n Int) Pair[String, Int] { return PairOf(k, n) })
 		}).
 		TryCollect().
-		Map(MapSafeFromPairs)
+		Map(func(p Slice[Pair[String, Int]]) *MapSafe[String, Int] { return MapSafeOf(p...) })
 	if bad.IsOk() {
 		t.Fatalf("expected Err, got %v", bad.Ok())
 	}

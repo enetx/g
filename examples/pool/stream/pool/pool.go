@@ -54,7 +54,7 @@ func main() {
 
 	// Cause reports why the pool was canceled:
 	// - context.DeadlineExceeded if the timeout fired
-	// - context.Canceled if we called p.Cancel()
+	// - the error passed to p.Cancel() if the consumer stopped the pool
 	// - ErrAllTasksDone if all tasks completed normally
 	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

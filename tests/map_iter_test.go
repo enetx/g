@@ -5,23 +5,23 @@ import (
 	"math"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
 func TestMap_Iter_Keys(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
 
-	keys := m.Iter().Keys().Collect()
+	keys := m.Iter().Keys().Collect().Slice()
 
 	if len(keys) != 3 {
 		t.Errorf("Expected 3 keys, got %d", len(keys))
 	}
 
-	keySet := g.NewSet[string]()
+	keySet := NewSet[string]()
 	for _, key := range keys {
 		keySet.Insert(key)
 	}
@@ -32,18 +32,18 @@ func TestMap_Iter_Keys(t *testing.T) {
 }
 
 func TestMap_Iter_Values(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
 
-	values := m.Iter().Values().Collect()
+	values := m.Iter().Values().Collect().Slice()
 
 	if len(values) != 3 {
 		t.Errorf("Expected 3 values, got %d", len(values))
 	}
 
-	valueSet := g.NewSet[int]()
+	valueSet := NewSet[int]()
 	for _, value := range values {
 		valueSet.Insert(value)
 	}
@@ -54,11 +54,11 @@ func TestMap_Iter_Values(t *testing.T) {
 }
 
 func TestMap_Iter_Collect(t *testing.T) {
-	original := g.NewMap[string, int]()
+	original := NewMap[string, int]()
 	original.Insert("a", 1)
 	original.Insert("b", 2)
 
-	collected := original.Iter().Collect()
+	collected := original.Iter().Collect().Map[string, int]()
 
 	if collected.Len() != 2 {
 		t.Errorf("Expected collected map to have 2 entries, got %d", collected.Len())
@@ -74,7 +74,7 @@ func TestMap_Iter_Collect(t *testing.T) {
 }
 
 func TestMap_Iter_Filter(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
@@ -82,7 +82,7 @@ func TestMap_Iter_Filter(t *testing.T) {
 
 	filtered := m.Iter().
 		Filter(func(k string, v int) bool { return v%2 == 0 }).
-		Collect()
+		Collect().Map[string, int]()
 
 	if filtered.Len() != 2 {
 		t.Errorf("Expected 2 even values, got %d", filtered.Len())
@@ -94,7 +94,7 @@ func TestMap_Iter_Filter(t *testing.T) {
 }
 
 func TestMap_Iter_Count(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
@@ -107,13 +107,13 @@ func TestMap_Iter_Count(t *testing.T) {
 }
 
 func TestMap_Iter_Take(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
 	m.Insert("four", 4)
 
-	taken := m.Iter().Take(2).Collect()
+	taken := m.Iter().Take(2).Collect().Map[string, int]()
 
 	if taken.Len() != 2 {
 		t.Errorf("Expected 2 entries after Take(2), got %d", taken.Len())
@@ -121,26 +121,26 @@ func TestMap_Iter_Take(t *testing.T) {
 }
 
 func TestMap_Iter_EmptyMap(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 
 	count := m.Iter().Count()
 	if count != 0 {
 		t.Errorf("Empty map iterator count should be 0, got %d", count)
 	}
 
-	keys := m.Iter().Keys().Collect()
+	keys := m.Iter().Keys().Collect().Slice()
 	if len(keys) != 0 {
 		t.Error("Empty map should have no keys")
 	}
 
-	values := m.Iter().Values().Collect()
+	values := m.Iter().Values().Collect().Slice()
 	if len(values) != 0 {
 		t.Error("Empty map should have no values")
 	}
 }
 
 func TestMap_Iter_Pull(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
@@ -170,7 +170,7 @@ func TestMap_Iter_Pull(t *testing.T) {
 
 func TestMapIterContext(t *testing.T) {
 	t.Run("context cancellation stops iteration", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 		m.Insert("three", 3)
@@ -179,13 +179,13 @@ func TestMapIterContext(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 
-		var collected []g.Pair[string, int]
+		var collected []Pair[string, int]
 		iter := m.Iter().Context(ctx)
 
 		// Cancel context after processing 2 elements
 		count := 0
 		iter(func(k string, v int) bool {
-			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			collected = append(collected, Pair[string, int]{Key: k, Value: v})
 			count++
 			if count == 2 {
 				cancel()
@@ -200,16 +200,16 @@ func TestMapIterContext(t *testing.T) {
 	})
 
 	t.Run("context timeout", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		var collected []g.Pair[string, int]
+		var collected []Pair[string, int]
 		m.Iter().Context(ctx)(func(k string, v int) bool {
-			collected = append(collected, g.Pair[string, int]{Key: k, Value: v})
+			collected = append(collected, Pair[string, int]{Key: k, Value: v})
 			return true
 		})
 
@@ -222,7 +222,7 @@ func TestMapIterContext(t *testing.T) {
 
 func TestMapIterNth(t *testing.T) {
 	t.Run("nth element exists", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		m.Insert("first", 1)
 		m.Insert("second", 2)
 		m.Insert("third", 3)
@@ -244,7 +244,7 @@ func TestMapIterNth(t *testing.T) {
 	})
 
 	t.Run("nth element out of bounds", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 
@@ -256,7 +256,7 @@ func TestMapIterNth(t *testing.T) {
 	})
 
 	t.Run("negative index", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		m.Insert("one", 1)
 		m.Insert("two", 2)
 
@@ -268,7 +268,7 @@ func TestMapIterNth(t *testing.T) {
 	})
 
 	t.Run("empty map", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 
 		nth := m.Iter().Nth(0)
 
@@ -280,19 +280,19 @@ func TestMapIterNth(t *testing.T) {
 
 func TestSeqMapFilterMap(t *testing.T) {
 	// Test FilterMap with config validation
-	configs := g.NewMap[string, string]()
+	configs := NewMap[string, string]()
 	configs.Insert("host", "localhost")
 	configs.Insert("port", "8080")
 	configs.Insert("debug", "invalid")
 	configs.Insert("timeout", "30")
 
-	validConfigs := configs.Iter().FilterMap(func(k, v string) g.Option[g.Pair[string, string]] {
+	validConfigs := configs.Iter().FilterMap(func(k, v string) Option[Pair[string, string]] {
 		// Keep only port and host configs with validation suffix
 		if k == "port" || k == "host" {
-			return g.Some(g.Pair[string, string]{Key: k, Value: v + "_validated"})
+			return Some(Pair[string, string]{Key: k, Value: v + "_validated"})
 		}
-		return g.None[g.Pair[string, string]]()
-	}).Collect()
+		return None[Pair[string, string]]()
+	}).Collect().Map[string, string]()
 
 	if validConfigs.Len() != 2 {
 		t.Errorf("Expected 2 valid configs, got %d", validConfigs.Len())
@@ -314,18 +314,18 @@ func TestSeqMapFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap with age filtering
-	users := g.NewMap[string, int]()
+	users := NewMap[string, int]()
 	users.Insert("alice", 25)
 	users.Insert("bob", 17)
 	users.Insert("charlie", 30)
 	users.Insert("diana", 16)
 
-	adults := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
+	adults := users.Iter().FilterMap(func(name string, age int) Option[Pair[string, int]] {
 		if age >= 18 {
-			return g.Some(g.Pair[string, int]{Key: name, Value: age})
+			return Some(Pair[string, int]{Key: name, Value: age})
 		}
-		return g.None[g.Pair[string, int]]()
-	}).Collect()
+		return None[Pair[string, int]]()
+	}).Collect().Map[string, int]()
 
 	if adults.Len() != 2 {
 		t.Errorf("Expected 2 adults, got %d", adults.Len())
@@ -339,18 +339,18 @@ func TestSeqMapFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap that filters all elements
-	allFiltered := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
-		return g.None[g.Pair[string, int]]() // Filter all out
-	}).Collect()
+	allFiltered := users.Iter().FilterMap(func(name string, age int) Option[Pair[string, int]] {
+		return None[Pair[string, int]]() // Filter all out
+	}).Collect().Map[string, int]()
 
 	if allFiltered.Len() != 0 {
 		t.Errorf("Expected empty map, got %d elements", allFiltered.Len())
 	}
 
 	// Test FilterMap that keeps all elements with transformation
-	doubled := users.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
-		return g.Some(g.Pair[string, int]{Key: name + "_user", Value: age * 2})
-	}).Collect()
+	doubled := users.Iter().FilterMap(func(name string, age int) Option[Pair[string, int]] {
+		return Some(Pair[string, int]{Key: name + "_user", Value: age * 2})
+	}).Collect().Map[string, int]()
 
 	if doubled.Len() != users.Len() {
 		t.Errorf("Expected %d elements, got %d", users.Len(), doubled.Len())
@@ -361,10 +361,10 @@ func TestSeqMapFilterMap(t *testing.T) {
 	}
 
 	// Test FilterMap with empty input
-	emptyMap := g.NewMap[string, int]()
-	emptyResult := emptyMap.Iter().FilterMap(func(name string, age int) g.Option[g.Pair[string, int]] {
-		return g.Some(g.Pair[string, int]{Key: name, Value: age * 2})
-	}).Collect()
+	emptyMap := NewMap[string, int]()
+	emptyResult := emptyMap.Iter().FilterMap(func(name string, age int) Option[Pair[string, int]] {
+		return Some(Pair[string, int]{Key: name, Value: age * 2})
+	}).Collect().Map[string, int]()
 
 	if emptyResult.Len() != 0 {
 		t.Errorf("FilterMap on empty map should return empty, got %d elements", emptyResult.Len())
@@ -373,7 +373,7 @@ func TestSeqMapFilterMap(t *testing.T) {
 
 func TestSeqMapNext(t *testing.T) {
 	t.Run("Next with non-empty iterator", func(t *testing.T) {
-		m := g.Map[string, int]{"x": 100}
+		m := Map[string, int]{"x": 100}
 		iter := m.Iter()
 
 		// Extract first pair
@@ -395,7 +395,7 @@ func TestSeqMapNext(t *testing.T) {
 	})
 
 	t.Run("Next with empty iterator", func(t *testing.T) {
-		m := g.NewMap[string, int]()
+		m := NewMap[string, int]()
 		iter := m.Iter()
 
 		result := iter.Next()
@@ -405,7 +405,7 @@ func TestSeqMapNext(t *testing.T) {
 	})
 
 	t.Run("Next until exhausted", func(t *testing.T) {
-		m := g.Map[string, int]{"a": 1, "b": 2}
+		m := Map[string, int]{"a": 1, "b": 2}
 		iter := m.Iter()
 
 		// Extract all pairs
@@ -424,7 +424,7 @@ func TestSeqMapNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().Map[string, int]()
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty map, got length %d", remaining.Len())
 		}
@@ -432,44 +432,43 @@ func TestSeqMapNext(t *testing.T) {
 }
 
 func TestMap_Iter_TakeOverflowClamp(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
 
-	// A huge n would overflow int(n) to a negative value without the clamp,
-	// causing Take to yield nothing. With the clamp it must yield all elements.
-	taken := m.Iter().Take(uint(math.MaxUint64)).Collect()
+	// A huge n must simply yield every element; a negative n clamps to zero.
+	taken := m.Iter().Take(math.MaxInt).Collect().Map[string, int]()
 	if taken.Len() != 3 {
 		t.Errorf("Expected all 3 entries with clamped Take, got %d", taken.Len())
 	}
 }
 
 func TestMap_Iter_Skip(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("one", 1)
 	m.Insert("two", 2)
 	m.Insert("three", 3)
 	m.Insert("four", 4)
 
-	skipped := m.Iter().Skip(2).Collect()
+	skipped := m.Iter().Skip(2).Collect().Map[string, int]()
 	if skipped.Len() != 2 {
 		t.Errorf("Expected 2 entries after Skip(2), got %d", skipped.Len())
 	}
 
-	none := m.Iter().Skip(100).Collect()
+	none := m.Iter().Skip(100).Collect().Map[string, int]()
 	if none.Len() != 0 {
 		t.Errorf("Expected empty map after Skip(100), got %d", none.Len())
 	}
 }
 
 func TestMap_Iter_StepBy(t *testing.T) {
-	m := g.NewMap[int, int]()
+	m := NewMap[int, int]()
 	for i := range 6 {
 		m.Insert(i, i*i)
 	}
 
-	stepped := m.Iter().StepBy(2).Collect()
+	stepped := m.Iter().StepBy(2).Collect().Map[int, int]()
 	if stepped.Len() != 3 {
 		t.Errorf("Expected 3 entries after StepBy(2), got %d", stepped.Len())
 	}
@@ -483,7 +482,7 @@ func TestMap_Iter_StepBy(t *testing.T) {
 }
 
 func TestMap_Iter_First(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("solo", 7)
 
 	first := m.Iter().First()
@@ -494,31 +493,31 @@ func TestMap_Iter_First(t *testing.T) {
 		t.Errorf("Expected (solo,7), got (%v,%v)", first.Some().Key, first.Some().Value)
 	}
 
-	empty := g.NewMap[string, int]()
+	empty := NewMap[string, int]()
 	if empty.Iter().First().IsSome() {
 		t.Error("Expected None for empty map First()")
 	}
 }
 
 func TestSeqMapLastChanFold(t *testing.T) {
-	m := g.Map[string, int]{"a": 1}
+	m := Map[string, int]{"a": 1}
 
 	last := m.Iter().Last()
 	if last.IsNone() || last.Some().Key != "a" || last.Some().Value != 1 {
 		t.Errorf("Last = %v", last)
 	}
-	if empty := g.NewMap[string, int]().Iter().Last(); empty.IsSome() {
+	if empty := NewMap[string, int]().Iter().Last(); empty.IsSome() {
 		t.Errorf("Last on empty = %v, want None", empty)
 	}
 
-	total := g.Map[string, int]{"a": 1, "b": 2}.Iter().
+	total := Map[string, int]{"a": 1, "b": 2}.Iter().
 		Fold("", func(acc string, k string, v int) string { return acc + k })
 	if len(total) != 2 {
 		t.Errorf("Fold = %q, want 2 keys concatenated", total)
 	}
 
 	var sum int
-	mm := g.Map[string, int]{"x": 5, "y": 7}
+	mm := Map[string, int]{"x": 5, "y": 7}
 	for p := range mm.Iter().Chan() {
 		sum += p.Value
 	}
@@ -528,7 +527,7 @@ func TestSeqMapLastChanFold(t *testing.T) {
 }
 
 func TestMap_Iter_All(t *testing.T) {
-	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
 	if !m.Iter().All(func(_ string, v int) bool { return v > 0 }) {
 		t.Error("Expected All to be true for positive values")
@@ -538,13 +537,13 @@ func TestMap_Iter_All(t *testing.T) {
 		t.Error("Expected All to be false when a value fails the predicate")
 	}
 
-	if !g.NewMap[string, int]().Iter().All(func(string, int) bool { return false }) {
+	if !NewMap[string, int]().Iter().All(func(string, int) bool { return false }) {
 		t.Error("Expected All to be true for an empty map")
 	}
 }
 
 func TestMap_Iter_Any(t *testing.T) {
-	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
 	if !m.Iter().Any(func(k string, v int) bool { return k == "b" && v == 2 }) {
 		t.Error("Expected Any to be true for pair (b, 2)")
@@ -554,53 +553,53 @@ func TestMap_Iter_Any(t *testing.T) {
 		t.Error("Expected Any to be false when no pair matches")
 	}
 
-	if g.NewMap[string, int]().Iter().Any(func(string, int) bool { return true }) {
+	if NewMap[string, int]().Iter().Any(func(string, int) bool { return true }) {
 		t.Error("Expected Any to be false for an empty map")
 	}
 }
 
 func TestMap_Iter_TakeWhile(t *testing.T) {
-	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
 	// Map iteration order is not deterministic, so use order-independent predicates.
-	all := m.Iter().TakeWhile(func(string, int) bool { return true }).Collect()
+	all := m.Iter().TakeWhile(func(string, int) bool { return true }).Collect().Map[string, int]()
 	if all.Len() != 3 {
 		t.Errorf("Expected all 3 pairs, got %v", all)
 	}
 
-	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect()
+	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect().Map[string, int]()
 	if none.Len() != 0 {
 		t.Errorf("Expected no pairs, got %v", none)
 	}
 
-	single := g.Map[string, int]{"a": 1}.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	single := Map[string, int]{"a": 1}.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect().Map[string, int]()
 	if single.Len() != 1 || single.Get("a").UnwrapOr(0) != 1 {
 		t.Errorf("Expected Map{a:1}, got %v", single)
 	}
 }
 
 func TestMap_Iter_SkipWhile(t *testing.T) {
-	m := g.Map[string, int]{"a": 1, "b": 2, "c": 3}
+	m := Map[string, int]{"a": 1, "b": 2, "c": 3}
 
 	// Map iteration order is not deterministic, so use order-independent predicates.
-	none := m.Iter().SkipWhile(func(string, int) bool { return true }).Collect()
+	none := m.Iter().SkipWhile(func(string, int) bool { return true }).Collect().Map[string, int]()
 	if none.Len() != 0 {
 		t.Errorf("Expected no pairs, got %v", none)
 	}
 
-	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect()
+	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect().Map[string, int]()
 	if all.Len() != 3 {
 		t.Errorf("Expected all 3 pairs, got %v", all)
 	}
 
-	single := g.Map[string, int]{"a": 1}.Iter().SkipWhile(func(_ string, v int) bool { return v > 1 }).Collect()
+	single := Map[string, int]{"a": 1}.Iter().SkipWhile(func(_ string, v int) bool { return v > 1 }).Collect().Map[string, int]()
 	if single.Len() != 1 || single.Get("a").UnwrapOr(0) != 1 {
 		t.Errorf("Expected Map{a:1}, got %v", single)
 	}
 }
 
 func TestMapOrd_Iter_All(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
@@ -613,14 +612,14 @@ func TestMapOrd_Iter_All(t *testing.T) {
 		t.Error("Expected All to be false when a value fails the predicate")
 	}
 
-	empty := g.NewMapOrd[string, int]()
+	empty := NewMapOrd[string, int]()
 	if !empty.Iter().All(func(string, int) bool { return false }) {
 		t.Error("Expected All to be true for an empty ordered map")
 	}
 }
 
 func TestMapOrd_Iter_Any(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
@@ -633,54 +632,54 @@ func TestMapOrd_Iter_Any(t *testing.T) {
 		t.Error("Expected Any to be false when no pair matches")
 	}
 
-	empty := g.NewMapOrd[string, int]()
+	empty := NewMapOrd[string, int]()
 	if empty.Iter().Any(func(string, int) bool { return true }) {
 		t.Error("Expected Any to be false for an empty ordered map")
 	}
 }
 
 func TestMapOrd_Iter_TakeWhile(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 1)
 
-	head := m.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	head := m.Iter().TakeWhile(func(_ string, v int) bool { return v < 2 }).Collect().Map[string, int]()
 	if head.Len() != 1 || head.Get("a").UnwrapOr(0) != 1 {
 		t.Errorf("Expected MapOrd{a:1}, got %v", head)
 	}
 
-	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect()
+	none := m.Iter().TakeWhile(func(string, int) bool { return false }).Collect().Map[string, int]()
 	if none.Len() != 0 {
 		t.Errorf("Expected no pairs, got %v", none)
 	}
 }
 
 func TestMapOrd_Iter_SkipWhile(t *testing.T) {
-	m := g.NewMapOrd[string, int]()
+	m := NewMapOrd[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 1)
 
 	// Once the predicate fails at (b, 2), the trailing (c, 1) is still yielded.
-	tail := m.Iter().SkipWhile(func(_ string, v int) bool { return v < 2 }).Collect()
+	tail := m.Iter().SkipWhile(func(_ string, v int) bool { return v < 2 }).Collect().Map[string, int]()
 	if tail.Len() != 2 || tail.Get("b").UnwrapOr(0) != 2 || tail.Get("c").UnwrapOr(0) != 1 {
 		t.Errorf("Expected MapOrd{b:2, c:1}, got %v", tail)
 	}
 
-	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect()
+	all := m.Iter().SkipWhile(func(string, int) bool { return false }).Collect().Map[string, int]()
 	if all.Len() != 3 {
 		t.Errorf("Expected all 3 pairs, got %v", all)
 	}
 }
 
 func TestMap_Iter_FilterByKey(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	got := m.Iter().FilterByKey(f.Eq("b")).Collect()
+	got := m.Iter().FilterByKey(f.Eq("b")).Collect().Map[string, int]()
 
 	if len(got) != 1 {
 		t.Fatalf("FilterByKey(f.Eq(\"b\")): expected 1 pair, got %d: %v", len(got), got)
@@ -691,12 +690,12 @@ func TestMap_Iter_FilterByKey(t *testing.T) {
 }
 
 func TestMap_Iter_FilterByValue(t *testing.T) {
-	m := g.NewMap[string, int]()
+	m := NewMap[string, int]()
 	m.Insert("a", 1)
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	got := m.Iter().FilterByValue(f.Gt(1)).Collect()
+	got := m.Iter().FilterByValue(f.Gt(1)).Collect().Map[string, int]()
 
 	if len(got) != 2 {
 		t.Fatalf("FilterByValue(f.Gt(1)): expected 2 pairs, got %d: %v", len(got), got)
@@ -706,15 +705,15 @@ func TestMap_Iter_FilterByValue(t *testing.T) {
 	}
 }
 
-// SeqMap.Next advances by exactly one pair and does not drain the source.
+// Seq2.Next advances by exactly one pair and does not drain the source.
 func TestSeqMapNextStepwise(t *testing.T) {
-	m := g.NewMap[g.Int, g.Int]()
-	for i := range g.Int(5) {
+	m := NewMap[Int, Int]()
+	for i := range Int(5) {
 		m.Insert(i, i*10)
 	}
 
 	seq := m.Iter()
-	seen := g.NewMap[g.Int, g.Int]()
+	seen := NewMap[Int, Int]()
 	for {
 		p := seq.Next()
 		if p.IsNone() {
@@ -726,18 +725,18 @@ func TestSeqMapNextStepwise(t *testing.T) {
 	if seen.Len() != 5 {
 		t.Fatalf("Next visited %d pairs, want 5", seen.Len())
 	}
-	for i := range g.Int(5) {
+	for i := range Int(5) {
 		if seen.Get(i).UnwrapOr(-1) != i*10 {
 			t.Fatalf("missing/incorrect pair for %d: %v", i, seen)
 		}
 	}
 }
 
-// SeqMap.Next must pull lazily (one step), not drain the whole source at once.
+// Seq2.Next must pull lazily (one step), not drain the whole source at once.
 func TestSeqMapNextIsLazy(t *testing.T) {
 	pulls := 0
-	var src g.SeqMap[g.Int, g.Int] = func(yield func(g.Int, g.Int) bool) {
-		for i := range g.Int(10) {
+	var src Seq2[Int, Int] = func(yield func(Int, Int) bool) {
+		for i := range Int(10) {
 			pulls++
 			if !yield(i, i) {
 				return

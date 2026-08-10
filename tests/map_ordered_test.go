@@ -77,7 +77,7 @@ func TestMapOrdIterSortBy(t *testing.T) {
 
 	sortedItems := data.Iter().
 		SortBy(func(a, b Pair[int, string]) cmp.Ordering { return cmp.Cmp(a.Key, b.Key) }).
-		Collect()
+		Collect().MapOrd[int, string]()
 
 	// Check if the result matches the expected output
 	if !reflect.DeepEqual(sortedItems, expected) {
@@ -93,14 +93,13 @@ func TestMapOrdIterSortBy(t *testing.T) {
 
 	sortedItems = data.Iter().
 		SortBy(func(a, b Pair[int, string]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) }).
-		Collect()
+		Collect().MapOrd[int, string]()
 
 	// Check if the result matches the expected output
 	if !reflect.DeepEqual(sortedItems, expected) {
 		t.Errorf("Expected %v, got %v", expected, sortedItems)
 	}
 }
-
 func TestMapOrdIterStepBy(t *testing.T) {
 	// Test case 1: StepBy with a step size of 2
 	mapData := NewMapOrd[string, int]()
@@ -116,7 +115,7 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	expectedResult.Insert("five", 5)
 
 	iter := mapData.Iter().StepBy(2)
-	result := iter.Collect()
+	result := iter.Collect().MapOrd[string, int]()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -135,7 +134,7 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	expectedResult.Insert("four", 4)
 
 	iter = mapData.Iter().StepBy(3)
-	result = iter.Collect()
+	result = iter.Collect().MapOrd[string, int]()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -152,7 +151,7 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	expectedResult.Insert("one", 1)
 
 	iter = mapData.Iter().StepBy(5)
-	result = iter.Collect()
+	result = iter.Collect().MapOrd[string, int]()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
@@ -170,13 +169,12 @@ func TestMapOrdIterStepBy(t *testing.T) {
 	expectedResult.Insert("three", 3)
 
 	iter = mapData.Iter().StepBy(1)
-	result = iter.Collect()
+	result = iter.Collect().MapOrd[string, int]()
 
 	if !reflect.DeepEqual(result, expectedResult) {
 		t.Errorf("StepBy failed. Expected %v, got %v", expectedResult, result)
 	}
 }
-
 func TestMapOrdIterRange(t *testing.T) {
 	// Test scenario: Function stops at a specific key-value pair
 	t.Run("FunctionStopsAtSpecificPair", func(t *testing.T) {
@@ -578,7 +576,7 @@ func TestSortIterByKey(t *testing.T) {
 	mo.Insert("c", 3)
 
 	// Sort the MapOrd by keys using the custom comparison function
-	mo = mo.Iter().SortByKey(cmp.Cmp).Collect()
+	mo = mo.Iter().SortByKey(cmp.Cmp).Collect().Pairs()
 
 	// Expected sorted order by keys
 	expected := NewMapOrd[string, int]()
@@ -610,7 +608,7 @@ func TestSortIterByValue(t *testing.T) {
 	}
 
 	// Sort the MapOrd by values using the custom comparison function
-	mo = mo.Iter().SortByValue(customIntCmp).Collect()
+	mo = mo.Iter().SortByValue(customIntCmp).Collect().Pairs()
 
 	// Expected sorted order by values
 	expected := NewMapOrd[string, int]()
@@ -631,7 +629,7 @@ func TestMapOrdFromMap(t *testing.T) {
 	m.Insert("b", 2)
 	m.Insert("c", 3)
 
-	mapOrd := m.Ordered()
+	mapOrd := MapOrdFromMap(m)
 	mapOrd.SortBy(func(a, b Pair[string, int]) cmp.Ordering { return cmp.Cmp(a.Value, b.Value) })
 
 	expected := []Pair[string, int]{
@@ -650,16 +648,16 @@ func TestMapOrdFromMap(t *testing.T) {
 
 	// Test case 2: Empty Map
 	m2 := NewMap[string, int]()
-	mapOrd2 := m2.Ordered()
+	mapOrd2 := MapOrdFromMap(m2)
 	if mapOrd2.Len() != 0 {
 		t.Errorf("Expected mapOrd2 to be empty")
 	}
 }
 
-func TestMapOrdFromStd(t *testing.T) {
+func TestMapOrdFromStdMap(t *testing.T) {
 	// Test case 1: Map with elements
 	inputMap := map[string]int{"a": 1, "b": 2, "c": 3}
-	orderedMap := MapOrdFromStd(inputMap)
+	orderedMap := MapOrdFromMap(Map[string, int](inputMap))
 	if int(orderedMap.Len()) != len(inputMap) {
 		t.Errorf("Expected ordered map to have length %d, got %d", len(inputMap), orderedMap.Len())
 	}
@@ -671,7 +669,7 @@ func TestMapOrdFromStd(t *testing.T) {
 
 	// Test case 2: Empty Map
 	emptyMap := make(map[string]int)
-	orderedEmptyMap := MapOrdFromStd(emptyMap)
+	orderedEmptyMap := MapOrdFromMap(Map[string, int](emptyMap))
 	if orderedEmptyMap.Len() != 0 {
 		t.Errorf("Expected ordered map of an empty map to be empty")
 	}
@@ -731,7 +729,7 @@ func TestMapOrdIterInspect(t *testing.T) {
 	// Create a new iterator with Inspect and collect the key-value pairs
 	mo.Iter().Inspect(func(k int, v string) {
 		inspectedPairs.Insert(k, v)
-	}).Collect()
+	}).Collect().Pairs()
 
 	if mo.Len() != inspectedPairs.Len() {
 		t.Errorf("Expected inspected pairs to have length %d, got %d", mo.Len(), inspectedPairs.Len())
@@ -753,7 +751,7 @@ func TestMapOrdIterChain(t *testing.T) {
 
 	// Concatenate the iterators and collect the elements
 	chainedIter := iter1.Iter().Chain(iter2.Iter())
-	collected := chainedIter.Collect()
+	collected := chainedIter.Collect().MapOrd[int, string]()
 
 	// Verify the concatenated elements
 	expected := NewMapOrd[int, string]()
@@ -794,7 +792,7 @@ func TestMapOrdIterSkip(t *testing.T) {
 	skipped := seq.Iter().Skip(2)
 
 	// Collect the elements after skipping
-	collected := skipped.Collect()
+	collected := skipped.Collect().MapOrd[int, string]()
 
 	// Verify the collected elements
 	expected := NewMapOrd[int, string]()
@@ -821,7 +819,7 @@ func TestMapOrdIterExclude(t *testing.T) {
 	})
 
 	// Collect the resulting elements
-	collected := notEven.Collect()
+	collected := notEven.Collect().MapOrd[int, int]()
 
 	// Verify the collected elements
 	expected := NewMapOrd[int, int]()
@@ -849,7 +847,7 @@ func TestMapOrdIterFilter(t *testing.T) {
 	})
 
 	// Collect the resulting elements
-	collected := even.Collect()
+	collected := even.Collect().MapOrd[int, int]()
 
 	// Verify the collected elements
 	expected := NewMapOrd[int, int]()
@@ -898,7 +896,7 @@ func TestMapOrdIterMap(t *testing.T) {
 	})
 
 	// Collect the resulting elements
-	collected := squared.Collect()
+	collected := squared.Collect().MapOrd[int, int]()
 
 	// Verify the collected elements
 	expected := NewMapOrd[int, int]()
@@ -926,7 +924,7 @@ func TestMapOrdIterTake(t *testing.T) {
 	taken := mo.Iter().Take(3)
 
 	// Collect the resulting elements
-	collected := taken.Collect()
+	collected := taken.Collect().MapOrd[int, int]()
 
 	// Verify the collected elements
 	expected := NewMapOrd[int, int]()
@@ -995,20 +993,6 @@ func TestMapOrdIterUnzip(t *testing.T) {
 	}
 }
 
-func TestMapOrdShuffle(t *testing.T) {
-	mo := NewMapOrd[int, int]()
-	for i := 1; i <= 5; i++ {
-		mo.Insert(i, i)
-	}
-
-	clone := mo.Clone()
-	mo.Shuffle()
-
-	if mo.Eq(clone) {
-		t.Errorf("The order of elements has not changed after shuffle")
-	}
-}
-
 func TestMapOrdTransform(t *testing.T) {
 	// Исходные данные
 	original := NewMapOrd[string, int]()
@@ -1055,13 +1039,13 @@ func TestMapOrdTransform(t *testing.T) {
 }
 
 func TestSortByKeyIterator(t *testing.T) {
-	// Test SeqMapOrd.SortByKey method
+	// Test Seq2.SortByKey method
 	mo := NewMapOrd[string, int]()
 	mo.Insert("c", 3)
 	mo.Insert("a", 1)
 	mo.Insert("b", 2)
 
-	sorted := mo.Iter().SortByKey(cmp.Cmp).Collect()
+	sorted := mo.Iter().SortByKey(cmp.Cmp).Collect().MapOrd[string, int]()
 
 	expected := NewMapOrd[string, int]()
 	expected.Insert("a", 1)
@@ -1074,20 +1058,20 @@ func TestSortByKeyIterator(t *testing.T) {
 
 	// Test with empty map
 	empty := NewMapOrd[string, int]()
-	emptySorted := empty.Iter().SortByKey(cmp.Cmp).Collect()
+	emptySorted := empty.Iter().SortByKey(cmp.Cmp).Collect().MapOrd[string, int]()
 	if !emptySorted.IsEmpty() {
 		t.Errorf("SortByKey on empty map should return empty map")
 	}
 }
 
 func TestSortByValueIterator(t *testing.T) {
-	// Test SeqMapOrd.SortByValue method
+	// Test Seq2.SortByValue method
 	mo := NewMapOrd[string, int]()
 	mo.Insert("a", 3)
 	mo.Insert("b", 1)
 	mo.Insert("c", 2)
 
-	sorted := mo.Iter().SortByValue(cmp.Cmp).Collect()
+	sorted := mo.Iter().SortByValue(cmp.Cmp).Collect().MapOrd[string, int]()
 
 	expected := NewMapOrd[string, int]()
 	expected.Insert("b", 1)
@@ -1100,7 +1084,7 @@ func TestSortByValueIterator(t *testing.T) {
 
 	// Test with empty map
 	empty := NewMapOrd[string, int]()
-	emptySorted := empty.Iter().SortByValue(cmp.Cmp).Collect()
+	emptySorted := empty.Iter().SortByValue(cmp.Cmp).Collect().MapOrd[string, int]()
 	if !emptySorted.IsEmpty() {
 		t.Errorf("SortByValue on empty map should return empty map")
 	}
@@ -1231,7 +1215,7 @@ func TestIsSortedByValue(t *testing.T) {
 	}
 }
 
-func TestSeqMapOrdFindEdgeCases(t *testing.T) {
+func TestSeq2FindEdgeCases(t *testing.T) {
 	// Test Find with no matching elements
 	mo := NewMapOrd[string, int]()
 	mo.Insert("a", 1)
@@ -1537,7 +1521,7 @@ func TestMapOrdToMap(t *testing.T) {
 	mo.Insert("y", 20)
 	mo.Insert("z", 30)
 
-	m := mo.Map()
+	m := MapFromMapOrd(mo)
 
 	if m.Len() != 3 {
 		t.Fatalf("expected 3 entries, got %d", m.Len())
@@ -1551,7 +1535,7 @@ func TestMapOrdToMap(t *testing.T) {
 	}
 
 	empty := NewMapOrd[string, int]()
-	if empty.Map().Len() != 0 {
+	if MapFromMapOrd(empty).Len() != 0 {
 		t.Error("expected empty map from empty MapOrd")
 	}
 }
@@ -1562,7 +1546,7 @@ func TestMapOrdToSafe(t *testing.T) {
 	mo.Insert("b", 2)
 	mo.Insert("c", 3)
 
-	ms := mo.Safe()
+	ms := MapSafeFromMapOrd(mo)
 
 	if ms.Len() != 3 {
 		t.Fatalf("expected 3 entries, got %d", ms.Len())
@@ -1576,7 +1560,7 @@ func TestMapOrdToSafe(t *testing.T) {
 	}
 
 	empty := NewMapOrd[string, int]()
-	if empty.Safe().Len() != 0 {
+	if MapSafeFromMapOrd(empty).Len() != 0 {
 		t.Error("expected empty MapSafe from empty MapOrd")
 	}
 }
@@ -1688,14 +1672,63 @@ func TestMapOrdClearReleasesElements(t *testing.T) {
 	}
 }
 
-func TestMapOrdFromPairs(t *testing.T) {
+func TestMapOrdOfPairs(t *testing.T) {
 	// order preserved: z before a
-	res := pairsResult().TryCollect().Map(MapOrdFromPairs)
+	res := pairsResult().TryCollect().Map(func(p Slice[Pair[String, Int]]) MapOrd[String, Int] { return MapOrdOf(p...) })
 	if res.IsErr() {
 		t.Fatalf("err: %v", res.Err())
 	}
 	got := res.Ok()
 	if got.Len() != 2 || got[0].Key != "z" || got[1].Key != "a" {
-		t.Fatalf("MapOrdFromPairs order = %v", got)
+		t.Fatalf("MapOrdOf order = %v", got)
+	}
+}
+
+func TestMapFromMapOrdDuplicateKeys(t *testing.T) {
+	mo := MapOrd[string, int]{{Key: "a", Value: 1}, {Key: "a", Value: 2}}
+
+	m := MapFromMapOrd(mo)
+	if m.Len() != 1 {
+		t.Fatalf("MapFromMapOrd len = %d, want 1", m.Len())
+	}
+
+	if got := m.Get("a").UnwrapOr(0); got != 2 {
+		t.Errorf("MapFromMapOrd last-wins = %d, want 2", got)
+	}
+}
+
+func TestPairUnpack(t *testing.T) {
+	p := PairOf(String("answer"), Int(42))
+
+	k, v := p.Unpack()
+	if k != "answer" || v != 42 {
+		t.Errorf("Unpack() = (%v, %v), want (answer, 42)", k, v)
+	}
+
+	// The two-value result feeds a (K, V) call site directly.
+	called := false
+	check := func(key String, value Int) {
+		called = true
+		if key != "answer" || value != 42 {
+			t.Errorf("passthrough = (%v, %v), want (answer, 42)", key, value)
+		}
+	}
+	check(p.Unpack())
+
+	if !called {
+		t.Error("expected the passthrough call to run")
+	}
+
+	// A zero-value pair unpacks to zero values.
+	var zero Pair[String, Int]
+
+	zk, zv := zero.Unpack()
+	if zk != "" || zv != 0 {
+		t.Errorf("zero Unpack() = (%q, %v), want (\"\", 0)", zk, zv)
+	}
+
+	// Unpack must not alias or mutate the pair.
+	if p.Key != "answer" || p.Value != 42 {
+		t.Errorf("pair changed after Unpack: %v", p)
 	}
 }

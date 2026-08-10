@@ -3,6 +3,7 @@ package g
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
@@ -26,7 +27,7 @@ type Deque[T any] struct {
 //
 // Returns:
 //
-// - Deque[T]: A new Deque of the specified generic type T with the given capacity
+// - *Deque[T]: A new Deque of the specified generic type T with the given capacity
 //
 // Example usage:
 //
@@ -58,11 +59,6 @@ func DequeOf[T any](elements ...T) *Deque[T] {
 		len:   n,
 	}
 }
-
-// DequeFromSlice builds a Deque from a slice. Unlike the variadic DequeOf, it
-// takes the slice directly, so it can be passed as a first-class function — e.g.
-// as the collect step after a chain: res.TryCollect().Map(DequeFromSlice).
-func DequeFromSlice[T any](s Slice[T]) *Deque[T] { return DequeOf(s...) }
 
 // Len returns the number of elements in the Deque.
 func (dq *Deque[T]) Len() Int {
@@ -180,7 +176,7 @@ func (dq *Deque[T]) PopBack() Option[T] {
 	return Some(value)
 }
 
-// Front returns a reference to the first element.
+// Front returns the first element of the Deque.
 // Returns None if the Deque is empty.
 func (dq *Deque[T]) Front() Option[T] {
 	if dq.IsEmpty() {
@@ -190,7 +186,7 @@ func (dq *Deque[T]) Front() Option[T] {
 	return Some(dq.data[dq.front])
 }
 
-// Back returns a reference to the last element.
+// Back returns the last element of the Deque.
 // Returns None if the Deque is empty.
 func (dq *Deque[T]) Back() Option[T] {
 	if dq.IsEmpty() {
@@ -410,7 +406,7 @@ func (dq *Deque[T]) Clone() *Deque[T] {
 
 // Iter returns an iterator for the Deque, allowing for sequential iteration
 // over its elements from front to back.
-func (dq *Deque[T]) Iter() SeqDeque[T] {
+func (dq *Deque[T]) Iter() Seq[T] {
 	return func(yield func(T) bool) {
 		cap := Int(len(dq.data))
 		if cap == 0 || dq.len == 0 {
@@ -443,7 +439,7 @@ func (dq *Deque[T]) Iter() SeqDeque[T] {
 
 // IterReverse returns an iterator for the Deque that allows for sequential iteration
 // over its elements in reverse order (from back to front).
-func (dq *Deque[T]) IterReverse() SeqDeque[T] {
+func (dq *Deque[T]) IterReverse() Seq[T] {
 	return func(yield func(T) bool) {
 		for i := dq.len - 1; i >= 0; i-- {
 			value := dq.data[dq.realIndex(i)]
@@ -542,13 +538,7 @@ func (dq *Deque[T]) ContainsAny(values ...T) bool {
 		return false
 	}
 
-	for _, v := range values {
-		if dq.Contains(v) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(values, dq.Contains)
 }
 
 // ContainsAll checks if the Deque contains all of the provided values.
@@ -592,7 +582,8 @@ func (dq *Deque[T]) Index(value T) Int {
 }
 
 // BinarySearch searches for a value in a sorted Deque using binary search.
-// Returns the index where the value is found, or where it should be inserted.
+// Returns the index where the value is found, or where it should be inserted,
+// and a boolean reporting whether the value was found.
 func (dq *Deque[T]) BinarySearch(value T, fn func(T, T) cmp.Ordering) (Int, bool) {
 	left, right := Int(0), dq.len
 	for left < right {
@@ -616,14 +607,6 @@ func reverseDequeSlice[T any](values Slice[T]) {
 	for left, right := 0, len(values)-1; left < right; left, right = left+1, right-1 {
 		values[left], values[right] = values[right], values[left]
 	}
-}
-
-// Slice converts the Deque to a Slice, maintaining element order.
-func (dq *Deque[T]) Slice() Slice[T] {
-	result := make(Slice[T], dq.len)
-	dq.copyToContiguous(result)
-
-	return result
 }
 
 // Transform applies a transformation function to the Deque and returns the result.

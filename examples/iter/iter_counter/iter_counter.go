@@ -16,14 +16,14 @@ func main() {
 
 	slice.Iter().
 		CounterBy(f.Id).
-		Collect().
+		Collect().MapOrd[int, Int]().
 		Println() // MapOrd{1:3, 2:2, 3:1}
 
 	// Sort a histogram by key descending:
 	slice.Iter().
 		CounterBy(f.Id).
 		SortBy(func(a, b Pair[int, Int]) cmp.Ordering { return cmp.Cmp(b.Key, a.Key) }).
-		Collect().
+		Collect().MapOrd[int, Int]().
 		Println() // MapOrd{3:1, 2:2, 1:3}
 
 	// ── CounterBy: counting by a category key ────────────────────────────────
@@ -37,15 +37,15 @@ func main() {
 
 	statuses.Iter().
 		CounterBy(func(s int) int { return s / 100 }).
-		Collect().
+		Collect().MapOrd[int, Int]().
 		Println() // MapOrd{2:4, 4:1, 5:2}
 
 	// 2. Words by length
-	words := SliceOf[String]("go", "rust", "zig", "gleam", "c")
+	words := SliceOf[String]("go", "dart", "zig", "gleam", "c")
 
 	words.Iter().
 		CounterBy(String.Len).
-		Collect().
+		Collect().MapOrd[Int, Int]().
 		Println() // MapOrd{2:1, 4:1, 3:1, 5:1, 1:1}
 
 	// 3. Emails by domain
@@ -53,16 +53,16 @@ func main() {
 
 	emails.Iter().
 		CounterBy(func(e String) String {
-			return e.Split("@").Collect().Last().UnwrapOrDefault()
+			return SliceOf(e.Split("@")...).Iter().Collect().Slice().Last().UnwrapOrDefault()
 		}).
-		Collect().
+		Collect().MapOrd[String, Int]().
 		Println() // MapOrd{gmail.com:3, mail.ru:1}
 
 	// 4. Numbers by parity — the key can be any comparable type, even bool
 	SliceOf(1, 2, 3, 4, 5, 6, 7).
 		Iter().
 		CounterBy(func(i int) bool { return i%2 == 0 }).
-		Collect().
+		Collect().MapOrd[bool, Int]().
 		Println() // MapOrd{false:4, true:3}
 
 	// 5. Structs by field — count log entries per level, most frequent first
@@ -82,7 +82,7 @@ func main() {
 	byLevel := logs.Iter().
 		CounterBy(func(e entry) String { return e.level }).
 		SortBy(func(a, b Pair[String, Int]) cmp.Ordering { return b.Value.Cmp(a.Value) }).
-		Collect()
+		Collect().MapOrd[String, Int]()
 
 	byLevel.Println() // MapOrd{INFO:3, ERROR:1, WARN:1}
 

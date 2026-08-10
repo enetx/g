@@ -16,7 +16,7 @@ func main() {
 		fmt.Println(i)
 	})
 
-	even := s.Iter().Filter(func(val int) bool { return val%2 == 0 }).Collect()
+	even := s.Iter().Filter(func(val int) bool { return val%2 == 0 }).Collect().Slice()
 
 	s.Iter().
 		Filter(func(val int) bool { return val%2 == 0 }).
@@ -25,21 +25,22 @@ func main() {
 			fmt.Println(i)
 		}).
 		Collect().
+		Slice().
 		Println()
 
 	s2 := SetOf(4, 5, 6, 7, 8)
-	s.SymmetricDifference(s2).Collect().Println()
+	s.SymmetricDifference(s2).Iter().Collect().Slice().Println()
 
 	set5 := SetOf(1, 2)
 	set6 := SetOf(2, 3, 4, 9)
 
-	s.Iter().Chain(set5.Iter(), set6.Iter()).Map(func(i int) int { return i + i }).Collect().Println()
+	s.Iter().Chain(set5.Iter(), set6.Iter()).Map(func(i int) int { return i + i }).Collect().Slice().Println()
 
-	set7 := set5.Difference(set6).Collect()
+	set7 := set5.Difference(set6).Iter().Collect().Slice()
 	set7.Println()
 
 	s = SetOf(1, 2, 3, 4, 5)
-	even = s.Iter().Filter(f.IsEven).Collect()
+	even = s.Iter().Filter(f.IsEven).Collect().Slice()
 	even.Println()
 
 	s.Remove(1)
@@ -51,7 +52,7 @@ func main() {
 	}
 
 	s = SetOf(1, 2, 3)
-	s.Iter().Map(NewInt).Collect() // Set[g.Int]
+	s.Iter().Map(NewInt).Collect().Set[Int]().Println() // Set[g.Int]
 
 	// Disjoint: true when two sets share no elements
 	fmt.Println(SetOf(1, 2).Disjoint(SetOf(3, 4))) // true

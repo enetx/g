@@ -22,7 +22,7 @@ func TestGoPanic(t *testing.T) {
 			panic("test panic")
 		})
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -58,7 +58,7 @@ func TestGoPanic(t *testing.T) {
 			return Ok(42)
 		})
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 
 		if len(results) != 1 {
 			t.Fatalf("Expected 1 result, got %d", len(results))
@@ -96,7 +96,7 @@ func TestPool(t *testing.T) {
 		})
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if p.ActiveTasks() != 0 {
 		t.Errorf("expected no active tasks after Wait, got %d", p.ActiveTasks())
 	}
@@ -176,7 +176,7 @@ func TestPoolReset(t *testing.T) {
 		return Ok(2)
 	})
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 1 {
 		t.Errorf("expected 1 result after new task, got %d", len(results))
 	}
@@ -199,7 +199,7 @@ func TestPoolCancel(t *testing.T) {
 		})
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 4 {
 		t.Errorf("expected 4 results, got %d", len(results))
@@ -236,7 +236,7 @@ func TestPoolCancelOnError(t *testing.T) {
 		return Ok(42)
 	})
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 1 {
 		t.Errorf("Expected 1 results, got %d", len(results))
@@ -382,7 +382,7 @@ func TestPoolGoWithNilFunction(t *testing.T) {
 
 	p.Go(nil) // Pass nil function
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 1 {
 		t.Fatalf("Expected 1 result, got %d", len(results))
@@ -435,7 +435,7 @@ func TestPoolEpanicTypes(t *testing.T) {
 				panic(tc.panicVal)
 			})
 
-			results := p.Wait().Collect()
+			results := p.Wait().Collect().Slice()
 
 			if len(results) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(results))
@@ -461,7 +461,7 @@ func TestPoolLimitEdgeCases(t *testing.T) {
 			return Ok(1)
 		})
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 		if len(results) != 1 {
 			t.Errorf("Expected 1 result with negative limit, got %d", len(results))
 		}
@@ -475,7 +475,7 @@ func TestPoolLimitEdgeCases(t *testing.T) {
 			return Ok(1)
 		})
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 		if len(results) != 1 {
 			t.Errorf("Expected 1 result with zero limit, got %d", len(results))
 		}
@@ -494,7 +494,7 @@ func TestPoolContextCancellation(t *testing.T) {
 		return Ok(1)
 	})
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	// Should get no results since context was cancelled
 	if len(results) != 0 {
@@ -813,7 +813,7 @@ func TestPoolStream_ResetAfterStream(t *testing.T) {
 
 	p.Go(func() Result[int] { return Ok(2) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 1 {
 		t.Errorf("Expected 1 result after reset, got %d", len(results))
 	}
@@ -934,7 +934,7 @@ func TestCancelOn_SuccessPredicate(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	// Should stop early once a value > 5 is produced.
 	if len(results) >= 100 {
@@ -967,7 +967,7 @@ func TestCancelOn_SpecificErrorType(t *testing.T) {
 	p.Go(func() Result[int] { return Err[int](errCritical) })
 	p.Go(func() Result[int] { return Ok(42) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	// Minor error should not trigger cancellation, critical should.
 	hasCritical := false
@@ -994,7 +994,7 @@ func TestCancelOn_NoMatch(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 10 {
 		t.Errorf("Expected all 10 results (predicate never matched), got %d", len(results))
@@ -1008,7 +1008,7 @@ func TestCancelOn_PredicatePanic(t *testing.T) {
 
 	p.Go(func() Result[int] { return Ok(1) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	// Pool should be cancelled due to predicate panic.
 	cause := p.Cause()
@@ -1034,7 +1034,7 @@ func TestCancelOn_PredicatePanicOnError(t *testing.T) {
 	p.Go(func() Result[int] { return Err[int](errors.New("task error")) })
 	p.Go(func() Result[int] { return Ok(2) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	cause := p.Cause()
 	if cause == nil {
@@ -1203,7 +1203,7 @@ func TestCancelOn_WrappedError(t *testing.T) {
 	})
 	p.Go(func() Result[int] { return Ok(3) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) >= 3 {
 		t.Errorf("Expected early cancellation on wrapped error, got %d results", len(results))
@@ -1234,7 +1234,7 @@ func TestCancelOn_CountingPredicate(t *testing.T) {
 		})
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) >= 20 {
 		t.Errorf("Expected cancellation after 3 failures, got all %d results", len(results))
@@ -1262,7 +1262,7 @@ func TestCancelOn_ResetClearsPredicate(t *testing.T) {
 	p.Go(func() Result[int] { return Err[int](errors.New("fail2")) })
 	p.Go(func() Result[int] { return Ok(42) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 3 {
 		t.Errorf("Expected 3 results after reset (no predicate), got %d", len(results))
@@ -1279,7 +1279,7 @@ func TestPoolWait_Order(t *testing.T) {
 			p.Go(func() Result[int] { return Ok(i) })
 		}
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 
 		if len(results) != n {
 			t.Fatalf("Expected %d results, got %d", n, len(results))
@@ -1300,7 +1300,7 @@ func TestPoolWait_Order(t *testing.T) {
 			p.Go(func() Result[int] { return Ok(i) })
 		}
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 
 		if len(results) != n {
 			t.Fatalf("Expected %d results, got %d", n, len(results))
@@ -1326,7 +1326,7 @@ func TestPoolWait_Order(t *testing.T) {
 			})
 		}
 
-		results := p.Wait().Collect()
+		results := p.Wait().Collect().Slice()
 
 		if len(results) != 10 {
 			t.Fatalf("Expected 10 results, got %d", len(results))
@@ -1376,7 +1376,7 @@ func TestLimit_HighRequest_StaysUsable(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 50 {
 		t.Errorf("expected 50 results with a very high Limit, got %d", len(results))
 	}

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// Bytes is an alias for the []byte type.
+// Bytes is a wrapper around the []byte type.
 type Bytes []byte
 
 var (
@@ -26,22 +26,10 @@ var (
 	title = cases.Title(language.Und)
 )
 
-// NewBytes creates a new Bytes value.
-func NewBytes(size ...Int) Bytes {
-	var (
-		length   Int
-		capacity Int
-	)
-
-	switch {
-	case len(size) > 1:
-		length, capacity = size[0], size[1]
-	case len(size) == 1:
-		length, capacity = size[0], size[0]
-	}
-
-	return make([]byte, length, capacity)
-}
+// NewBytes creates a Bytes from the provided string or byte slice, mirroring
+// NewString. For an empty pre-sized buffer use make(Bytes, n) or
+// make(Bytes, n, cap) directly.
+func NewBytes[T ~string | ~[]byte](b T) Bytes { return Bytes(b) }
 
 // Transform applies a transformation function to the Bytes and returns the result.
 func (bs Bytes) Transform[U any](fn func(Bytes) U) U { return fn(bs) }
@@ -52,7 +40,7 @@ func (bs Bytes) Min(b ...Bytes) Bytes { return cmp.MinBy(Bytes.Cmp, append(b, bs
 // Max returns the maximum of Bytes.
 func (bs Bytes) Max(b ...Bytes) Bytes { return cmp.MaxBy(Bytes.Cmp, append(b, bs)...) }
 
-// Reverse reverses bytes for ASCII or invalid UTF-8 for valid UTF-8 it reverses by runes.
+// Reverse reverses bytes for ASCII or invalid UTF-8; for valid UTF-8 it reverses by runes.
 func (bs Bytes) Reverse() Bytes {
 	n := len(bs)
 	out := make(Bytes, n)
@@ -222,41 +210,58 @@ func (bs Bytes) EndsWithAny(suffixes ...Bytes) bool {
 	return false
 }
 
-// Split splits the Bytes by the specified separator and returns the iterator.
-// If sep is empty, the Bytes are split after each UTF-8 rune; Chars is the
-// canonical way to iterate runes.
-func (bs Bytes) Split(sep Bytes) SeqSlice[Bytes] {
-	return SeqSlice[[]byte](bytes.SplitSeq(bs, sep)).Map(func(b []byte) Bytes { return Bytes(b) })
+// Split splits the Bytes by the specified separator. If sep is empty, the
+// Bytes are split after each UTF-8 rune. See [String.Lines] for why the return
+// type is a plain slice.
+func (bs Bytes) Split(sep Bytes) []Bytes {
+	return castBytesSlices(bytes.Split(bs, sep))
 }
 
-// SplitAfter splits the Bytes after each instance of the specified separator and returns the iterator.
-func (bs Bytes) SplitAfter(sep Bytes) SeqSlice[Bytes] {
-	return SeqSlice[[]byte](bytes.SplitAfterSeq(bs, sep)).Map(func(b []byte) Bytes { return Bytes(b) })
+// SplitAfter splits the Bytes after each instance of the specified separator.
+// See [String.Lines] for why the return type is a plain slice.
+func (bs Bytes) SplitAfter(sep Bytes) []Bytes {
+	return castBytesSlices(bytes.SplitAfter(bs, sep))
 }
 
-// SplitN splits the Bytes into substrings using the provided separator and returns an Slice[Bytes] of the results.
-// The n parameter controls the number of substrings to return:
-// - If n is negative, there is no limit on the number of substrings returned.
-// - If n is zero, an empty Slice[Bytes] is returned.
-// - If n is positive, at most n substrings are returned.
-func (bs Bytes) SplitN(sep Bytes, n Int) Slice[Bytes] {
-	return transformSlice(bytes.SplitN(bs, sep, n.Std()), func(b []byte) Bytes { return Bytes(b) })
+// SplitN splits the Bytes into subslices using the provided separator and
+// returns a plain []Bytes of the results (convert with Slice[Bytes] for
+// chaining). The n parameter controls the number of subslices to return:
+// - If n is negative, there is no limit on the number of subslices returned.
+// - If n is zero, an empty slice is returned.
+// - If n is positive, at most n subslices are returned.
+func (bs Bytes) SplitN(sep Bytes, n Int) []Bytes {
+	parts := bytes.SplitN(bs, sep, n.Std())
+
+	result := make([]Bytes, len(parts))
+	for i, p := range parts {
+		result[i] = Bytes(p)
+	}
+
+	return result
 }
 
-// Lines splits the Bytes by lines and returns the iterator.
-func (bs Bytes) Lines() SeqSlice[Bytes] {
-	return SeqSlice[[]byte](bytes.Lines(bs)).Map(func(b []byte) Bytes { return Bytes(b) }).Map(Bytes.TrimEnd)
+// Lines splits the Bytes by lines, with trailing whitespace trimmed per line.
+// See [String.Lines] for why the return type is a plain slice.
+func (bs Bytes) Lines() []Bytes {
+	var result []Bytes
+
+	for line := range bytes.Lines(bs) {
+		result = append(result, Bytes(line).TrimEnd())
+	}
+
+	return result
 }
 
-// Fields splits the Bytes into a slice of substrings, removing any whitespace, and returns the iterator.
-func (bs Bytes) Fields() SeqSlice[Bytes] {
-	return SeqSlice[[]byte](bytes.FieldsSeq(bs)).Map(func(b []byte) Bytes { return Bytes(b) })
+// Fields splits the Bytes around whitespace. See [String.Lines] for why the
+// return type is a plain slice.
+func (bs Bytes) Fields() []Bytes {
+	return castBytesSlices(bytes.Fields(bs))
 }
 
-// FieldsBy splits the Bytes into a slice of substrings using a custom function to determine the field boundaries,
-// and returns the iterator.
-func (bs Bytes) FieldsBy(fn func(r rune) bool) SeqSlice[Bytes] {
-	return SeqSlice[[]byte](bytes.FieldsFuncSeq(bs, fn)).Map(func(b []byte) Bytes { return Bytes(b) })
+// FieldsBy splits the Bytes using a custom function to determine the field
+// boundaries. See [String.Lines] for why the return type is a plain slice.
+func (bs Bytes) FieldsBy(fn func(r rune) bool) []Bytes {
+	return castBytesSlices(bytes.FieldsFunc(bs, fn))
 }
 
 // Append appends the given Bytes to the current Bytes.
@@ -401,9 +406,6 @@ func (bs Bytes) Lte(obs Bytes) bool { return !bs.Cmp(obs).IsGt() }
 // Map applies a function to each rune in the Bytes and returns the modified Bytes.
 func (bs Bytes) Map(fn func(rune) rune) Bytes { return bytes.Map(fn, bs) }
 
-// NormalizeNFC returns a new Bytes with its Unicode characters normalized using the NFC form.
-func (bs Bytes) NormalizeNFC() Bytes { return norm.NFC.Bytes(bs) }
-
 // Ne checks if the Bytes is not equal to another Bytes.
 func (bs Bytes) Ne(obs Bytes) bool { return !bs.Eq(obs) }
 
@@ -413,19 +415,21 @@ func (bs Bytes) Reader() *bytes.Reader { return bytes.NewReader(bs) }
 // Repeat returns a new Bytes consisting of the current Bytes repeated 'count' times.
 func (bs Bytes) Repeat(count Int) Bytes { return bytes.Repeat(bs, count.Std()) }
 
+// Title converts the Bytes to title case.
+func (bs Bytes) Title() Bytes { return title.Bytes(bs) }
+
+// NormalizeNFC returns a new Bytes with its Unicode characters normalized using the NFC form.
+func (bs Bytes) NormalizeNFC() Bytes { return norm.NFC.Bytes(bs) }
+
 // Reset resets the length of the Bytes slice to zero, preserving its capacity.
 func (bs *Bytes) Reset() { *bs = (*bs)[:0] }
 
-// Runes returns the Bytes as a slice of runes.
-func (bs Bytes) Runes() Slice[rune] { return bytes.Runes(bs) }
+// Runes returns the Bytes as a plain slice of runes.
+func (bs Bytes) Runes() []rune { return bytes.Runes(bs) }
 
-// Chars splits the Bytes into individual UTF-8 characters and returns the iterator.
-// It is the canonical way to iterate runes of Bytes, equivalent to bs.Split(Bytes(""))
-// and mirrors String.Chars.
-func (bs Bytes) Chars() SeqSlice[Bytes] { return bs.Split(Bytes("")) }
-
-// Title converts the Bytes to title case.
-func (bs Bytes) Title() Bytes { return title.Bytes(bs) }
+// Chars splits the Bytes into individual UTF-8 characters, equivalent to
+// bs.Split(Bytes("")) and mirroring String.Chars.
+func (bs Bytes) Chars() []Bytes { return bs.Split(Bytes("")) }
 
 func convertCase(bs Bytes, from byte, diff int8, ucFn func([]byte) []byte) Bytes {
 	for i, b := range bs {
@@ -630,3 +634,10 @@ func (bs *Bytes) Scan(src any) error {
 //   - Returns the underlying byte slice, ready for database insertion.
 //   - Always returns a value compatible with SQL BLOB / BYTEA types.
 func (bs Bytes) Value() (driver.Value, error) { return []byte(bs), nil }
+
+// castBytesSlices reinterprets a [][]byte as []Bytes without copying: Bytes is
+// defined as `type Bytes []byte`, so the two slice types share one memory
+// layout.
+func castBytesSlices(bss [][]byte) []Bytes {
+	return unsafe.Slice((*Bytes)(unsafe.SliceData(bss)), len(bss))
+}

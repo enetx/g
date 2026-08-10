@@ -22,9 +22,9 @@ func main() {
 			Map[int, int]{2: 2},
 		),
 	}.
-		Iter().    // creates an iterator for subsequent operations
-		Flatten(). // flattens nested slices, transforming them into a flat slice
-		Collect(). // gathers the elements of the iterator into a new slice.
+		Iter().            // creates an iterator for subsequent operations
+		Flatten().         // flattens nested slices, transforming them into a flat slice
+		Collect().Slice(). // gathers the elements of the iterator into a new slice.
 		Println()
 		// outputs the elements of the slice to the console. Slice[1, 2, 3, abc, awe, som, e, co, ol, 4.5, 6.7, map[a:ss], Map{1:1}, Map{2:2}]
 
@@ -35,9 +35,10 @@ func main() {
 	// fully typed, no any round-trips (generic methods, Go 1.27).
 	words.Iter().
 		Map(NewString).
-		FlatMap(String.Chars).
+		FlatMap(func(s String) Seq[String] { return SliceOf(s.Chars()...).Iter() }).
 		Map(String.Upper).
 		Collect().
+		Slice().
 		Join().
 		Println() // ALPHABETAGAMMA💛💚💙💜世界
 
@@ -46,7 +47,7 @@ func main() {
 	ch := Slice[Slice[string]]{{"a", "b", "c"}, {"d", "f", "g"}}.
 		Iter().
 		FlatMap(Slice[string].Iter).
-		Collect() // Slice[string]{"a", "b", "c", "d", "f", "g"}
+		Collect().Slice() // Slice[string]{"a", "b", "c", "d", "f", "g"}
 
 	fmt.Println(ch.Contains("x"))         // false
 	fmt.Println(ch.Contains("a"))         // true

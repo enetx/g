@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 
+	"github.com/enetx/g/rand"
+
 	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
 func main() {
-	String("foo\r\nbar\n\nbaz\n").
-		Lines().
+	SliceOf(String("foo\r\nbar\n\nbaz\n").Lines()...).Iter().
 		Exclude(f.IsZero).
 		Collect().
+		Slice().
 		Println() // Slice[foo, bar, baz]
 
 	s := NewString("💛💚💙💜")
@@ -41,10 +43,10 @@ func main() {
 	NewString([]rune("hello")).Println()
 	NewString([]byte("hello")).Println()
 
-	String("").Random(10).Println()
-	String("").Random(10, ASCII_LETTERS).Println()
-	String("").Random(10, DIGITS).Println()
-	String("").Random(10, PUNCTUATION).Println()
+	rand.String(10).Println()
+	rand.String(10, ASCIILetters).Println()
+	rand.String(10, Digits).Println()
+	rand.String(10, Punctuation).Println()
 
 	String("https://www.test.com/?query=Hellö Wörld&param=value").
 		Encode().
@@ -66,10 +68,10 @@ func main() {
 
 	num.Transform(String.Title).Println() // String type
 
-	String("a1b2c3d4e5").
-		Chars().
+	SliceOf(String("a1b2c3d4e5").Chars()...).Iter().
 		Filter(String.IsDigit).
 		Collect().
+		Slice().
 		Join().
 		Println()
 

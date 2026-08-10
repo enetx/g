@@ -29,7 +29,7 @@ func main() {
 	})
 
 	orders.Iter().ForEach(func(v Order) {
-		Print("{} {} {.RoundDecimal(2)}\n", v.Product, v.Customer, v.Price)
+		Print("{} {} {}\n", v.Product, v.Customer, v.Price.RoundDecimal(2))
 	})
 
 	// Output:

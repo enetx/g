@@ -1,4 +1,2 @@
-github.com/enetx/iter v0.0.0-20260703211843-75f7a9fffd6d h1:ptvk/92iNcyubDfBHV6eEh796xDpPJ/PowNmEycFt1M=
-github.com/enetx/iter v0.0.0-20260703211843-75f7a9fffd6d/go.mod h1:qcO9U79Yz3D3F5BoKu2C2tI63lh0PqxkJpupmPGXb3E=
 golang.org/x/text v0.40.0 h1:Ub2Z6/xjgF1WrYQz2nuITOEegKFtiIy+rieRJ5lHZKs=
 golang.org/x/text v0.40.0/go.mod h1:hpnzDAfGV753zIKo+wk3u1bVKCGPbrnF7+7LBF/UHVY=

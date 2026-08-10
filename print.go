@@ -103,9 +103,9 @@ func Errorf[T ~string](format T, args ...any) error {
 }
 
 // Format processes a template string and replaces placeholders with corresponding values from the provided arguments.
-// It supports numeric, named, and auto-indexed placeholders, as well as dynamic invocation of methods on values.
+// It supports numeric, named, and auto-indexed placeholders, with dot-access into map keys, slice/array indices, and struct fields.
 //
-// If a placeholder cannot resolve a value or an invoked method fails, the placeholder remains unchanged in the output.
+// If a placeholder cannot resolve a value, it remains unchanged in the output.
 //
 // Parameters:
 //   - template (T ~string): A string containing placeholders enclosed in `{}`.
@@ -115,27 +115,26 @@ func Errorf[T ~string](format T, args ...any) error {
 //
 // Placeholder Forms:
 //   - Numeric: `{1}`, `{2}` - References positional arguments by their 1-based index.
-//   - Named: `{key}`, `{key.MethodName(param1, param2)}` - References keys from a `Named` map and allows method invocation.
-//   - Fallback: `{key?fallback}` - Uses `fallback` if the key is not found in the named map.
+//   - Named: `{key}`, `{key.field}`, `{key.0}` - References keys from a `Named` map with data access into struct fields, map/MapOrd keys, and slice indices (methods are never invoked).
+//   - Fallback: `{key?fallback}` - If `key` is not found in the named map, uses the value
+//     of the named key `fallback` instead (not the literal text).
 //   - Auto-index: `{}` - Automatically uses the next positional argument if the placeholder is empty.
-//   - Escaping: `{{` and `}}` - Emits literal braces, matching Rust formatting.
+//   - Escaping: `{{` and `}}` - Emits literal braces.
 //
 // Returns:
 //   - String: A formatted string with all resolved placeholders replaced by their corresponding values.
 //
 // Notes:
 //   - If a placeholder cannot resolve a value (e.g., missing key or out-of-range index), it remains unchanged in the output.
-//   - Method invocation supports any type with accessible methods. If the method or its parameters are invalid, the value remains unmodified.
+//   - Dot-segments access data only (struct fields, map keys, MapOrd keys, slice/array indices); methods are never invoked. An unresolvable segment leaves the value unmodified.
 //   - Only a single `Named` map is used for named placeholders. If multiple `Named`
 //     maps are passed in args, the last one silently wins; merge them into one map
 //     beforehand if you need keys from several sources.
 //
 // Security:
-//   - Templates can invoke arbitrary exported methods on the supplied arguments via
-//     reflection (e.g. `{key.MethodName(...)}`). A template must therefore be treated
-//     as code: never pass untrusted or user-controlled input as the template string.
-//     Untrusted data is safe only as an argument VALUE (a positional argument or a
-//     `Named` map value), never as the template itself.
+//   - Placeholders resolve data only: map keys, MapOrd keys, slice/array indices,
+//     and struct fields. Methods are never invoked, so a template cannot execute
+//     code on the supplied arguments.
 //
 // Usage:
 //
@@ -149,15 +148,17 @@ func Errorf[T ~string](format T, args ...any) error {
 //	}
 //	result := g.Format("My name is {name} and I am {age} years old.", named)
 //
-//	// Example 3: Method invocation on values
-//	result := g.Format("Hex: {1.Hex}, Binary: {1.Binary}", g.Int(255))
+//	// Example 3: Field/key access
+//	type User struct{ Name g.String }
+//	user := User{Name: "Alice"}
+//	result := g.Format("Name: {1.Name}", user)
 //
-//	// Example 4: Fallbacks and chaining
+//	// Example 4: Fallbacks
 //	named := g.Named{
-//		"name": g.String("   john  "),
+//		"name": g.String("John"),
 //		"city": g.String("New York"),
 //	}
-//	result := g.Format("Hello, {name.Trim.Title}. Welcome to {city?Unknown}!", named)
+//	result := g.Format("Hello, {name}. Welcome to {city?Unknown}!", named)
 func Format[T ~string](template T, args ...any) String {
 	return formatTemplate(template, args, "")
 }
@@ -482,8 +483,8 @@ func processPlaceholder(placeholder String, named Named, positional Slice[any], 
 func formatResolved(value any, mods, formatSpec String, wraps *[]error) String {
 	if !mods.IsEmpty() {
 		forEachMod(mods, func(segment String) {
-			name, params := parseMod(segment)
-			value = applyMod(value, name, params)
+			name, _ := parseMod(segment)
+			value = applyMod(value, name)
 		})
 	}
 
@@ -721,84 +722,22 @@ func resolveIndirect(targetType reflect.Value) reflect.Value {
 	return targetType
 }
 
-func callMethod(method reflect.Value, params Slice[String]) Option[any] {
-	methodType := method.Type()
-
-	// Methods without return values would be invoked purely for their side
-	// effects while leaving the placeholder empty; never call them.
-	if methodType.NumOut() == 0 {
-		return None[any]()
-	}
-
-	numIn := methodType.NumIn()
-	isVariadic := methodType.IsVariadic()
-
-	if isVariadic {
-		numIn--
-	}
-
-	if int(params.Len()) < numIn {
-		return None[any]()
-	}
-
-	args := make([]reflect.Value, 0, params.Len())
-
-	for i := range numIn {
-		arg := toType(params[i], methodType.In(i))
-		if arg.IsErr() {
-			return None[any]()
-		}
-
-		args = append(args, arg.v)
-	}
-
-	if isVariadic {
-		elemType := methodType.In(numIn).Elem()
-		for _, param := range params[numIn:] {
-			arg := toType(param, elemType)
-			if arg.IsErr() {
-				return None[any]()
-			}
-
-			args = append(args, arg.v)
-		}
-	}
-
-	results := method.Call(args)
-
-	if len(results) > 0 {
-		return Some(results[0].Interface())
-	}
-
-	return None[any]()
-}
-
-func applyMod(value any, name String, params Slice[String]) any {
+// applyMod resolves one dot-segment of a placeholder as DATA access only: a
+// map key, a MapOrd key, a slice/array index, or a struct field.
+//
+// It deliberately does NOT invoke methods. Method modifiers ({x.Trim.Upper})
+// were removed: they silently broke whenever a method moved out of the root
+// package, and their dynamic MethodByName call disabled the linker's
+// dead-method elimination for every binary linking g, bloating binaries far
+// beyond this package. Transform the value before handing it to Format.
+func applyMod(value any, name String) any {
 	current := reflect.ValueOf(value)
-
-	// Methods with no return values are treated as not found: calling them
-	// would execute side effects without producing a replacement value.
-	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func &&
-		method.Type().NumOut() > 0 {
-		if result := callMethod(method, params); result.IsSome() {
-			return result.v
-		}
-		return value
-	}
 
 	for current.Kind() == reflect.Pointer || current.Kind() == reflect.Interface {
 		if current.IsNil() {
 			return value
 		}
 		current = current.Elem()
-	}
-
-	if method := current.MethodByName(name.Std()); method.IsValid() && method.Kind() == reflect.Func &&
-		method.Type().NumOut() > 0 {
-		if result := callMethod(method, params); result.IsSome() {
-			return result.v
-		}
-		return value
 	}
 
 	switch current.Kind() {

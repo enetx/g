@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/f"
 )
 
@@ -388,21 +388,21 @@ func TestMatch_NamedTypes(t *testing.T) {
 	pattern := regexp.MustCompile(`^\d+$`)
 
 	t.Run("g.String matches", func(t *testing.T) {
-		matchString := f.Match[g.String](pattern)
-		if !matchString(g.String("12345")) {
+		matchString := f.Match[String](pattern)
+		if !matchString(String("12345")) {
 			t.Errorf("Match[g.String](%q) = false, want true", "12345")
 		}
-		if matchString(g.String("12a45")) {
+		if matchString(String("12a45")) {
 			t.Errorf("Match[g.String](%q) = true, want false", "12a45")
 		}
 	})
 
 	t.Run("g.Bytes matches", func(t *testing.T) {
-		matchBytes := f.Match[g.Bytes](pattern)
-		if !matchBytes(g.Bytes("12345")) {
+		matchBytes := f.Match[Bytes](pattern)
+		if !matchBytes(Bytes("12345")) {
 			t.Errorf("Match[g.Bytes](%q) = false, want true", "12345")
 		}
-		if matchBytes(g.Bytes("12a45")) {
+		if matchBytes(Bytes("12a45")) {
 			t.Errorf("Match[g.Bytes](%q) = true, want false", "12a45")
 		}
 	})
@@ -523,15 +523,15 @@ func TestId(t *testing.T) {
 		t.Errorf("f.Id(42) = %v, want 42", got)
 	}
 
-	words := g.SliceOf[g.String]("go", "rust", "go", "zig", "go")
-	counts := words.Iter().CounterBy(f.Id).Collect()
+	words := SliceOf[String]("go", "dart", "go", "zig", "go")
+	counts := words.Iter().CounterBy(f.Id).Collect().MapOrd[String, Int]()
 
 	if got := counts.Get("go"); got.IsNone() || got.Unwrap() != 3 {
 		t.Errorf("CounterBy(f.Id) for \"go\" = %v, want Some(3)", got)
 	}
 
-	if got := counts.Get("rust"); got.IsNone() || got.Unwrap() != 1 {
-		t.Errorf("CounterBy(f.Id) for \"rust\" = %v, want Some(1)", got)
+	if got := counts.Get("dart"); got.IsNone() || got.Unwrap() != 1 {
+		t.Errorf("CounterBy(f.Id) for \"dart\" = %v, want Some(1)", got)
 	}
 
 	if got := counts.Get("zig"); got.IsNone() || got.Unwrap() != 1 {

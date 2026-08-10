@@ -260,7 +260,7 @@ func FeatureFlagsExample() {
 	toggle := func(flag string) {
 		flags.With(func(m *Map[string, bool]) {
 			current := m.Get(flag).UnwrapOr(false)
-			m.Entry(flag).OrInsert(!current)
+			m.Insert(flag, !current)
 		})
 	}
 

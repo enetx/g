@@ -21,7 +21,7 @@ type Heap[T any] struct {
 // - cmp.Greater if the second argument should have higher priority
 // - cmp.Equal if they have equal priority
 //
-// NewHeap panics if compareFn is nil, mirroring Slice.Heap, since a nil
+// NewHeap panics if compareFn is nil, since a nil
 // comparison function would otherwise nil-deref on the first Push.
 func NewHeap[T any](compareFn func(T, T) cmp.Ordering) *Heap[T] {
 	if compareFn == nil {
@@ -49,7 +49,7 @@ func (h *Heap[T]) Transform[U any](fn func(*Heap[T]) U) U { return fn(h) }
 //
 // Returns:
 //
-// - SeqHeap[T]: An iterator that yields elements in sorted order
+// - Seq[T]: An iterator that yields elements in sorted order
 //
 // Example usage:
 //
@@ -64,12 +64,12 @@ func (h *Heap[T]) Transform[U any](fn func(*Heap[T]) U) U { return fn(h) }
 //	fmt.Printf("Heap still has %d elements\n", heap.Len()) // Output: 5
 //
 //	// Can be used with other iterator methods
-//	// (Collect requires a comparison function to build the new heap)
-//	firstThree := heap.Iter().Take(3).Collect(cmp.Cmp[int]) // [1, 5, 8]
+//	// (the Heap materializer requires a comparison function)
+//	firstThree := heap.Iter().Take(3).Collect().Heap(cmp.Cmp) // [1, 5, 8]
 //	evenNumbers := heap.Iter().Filter(func(x int) bool {
 //		return x%2 == 0
-//	}).Collect(cmp.Cmp[int]) // [8, 10]
-func (h *Heap[T]) Iter() SeqHeap[T] {
+//	}).Collect().Heap(cmp.Cmp) // [8, 10]
+func (h *Heap[T]) Iter() Seq[T] {
 	return func(yield func(T) bool) {
 		clone := h.Clone()
 		for !clone.IsEmpty() {
@@ -95,7 +95,7 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //
 // Returns:
 //
-// - SeqHeap[T]: An iterator that yields elements in sorted order while consuming the heap
+// - Seq[T]: An iterator that yields elements in sorted order while consuming the heap
 //
 // Example usage:
 //
@@ -103,8 +103,7 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //	heap.Push(10, 5, 15, 1, 8)
 //
 //	// Consume the heap while iterating
-//	// (Collect requires a comparison function to build the new heap)
-//	result := heap.IntoIter().Collect(cmp.Cmp[int]) // [1, 5, 8, 10, 15]
+//	result := heap.IntoIter().Collect().Heap(cmp.Cmp) // [1, 5, 8, 10, 15]
 //
 //	fmt.Printf("Heap now has %d elements\n", heap.Len()) // Output: 0
 //
@@ -116,7 +115,7 @@ func (h *Heap[T]) Iter() SeqHeap[T] {
 //		fmt.Printf("%d ", x) // Output: 15 20
 //	})
 //	fmt.Printf("Remaining: %d elements\n", heap2.Len()) // Output: 2
-func (h *Heap[T]) IntoIter() SeqHeap[T] {
+func (h *Heap[T]) IntoIter() Seq[T] {
 	return func(yield func(T) bool) {
 		for !h.IsEmpty() {
 			if !yield(h.Pop().Some()) {
@@ -192,7 +191,7 @@ func (h *Heap[T]) Contains(value T) bool { return h.data.Contains(value) }
 
 // Remove removes and returns the element at index i in the heap's backing
 // storage. Indices follow the internal heap layout (index 0 is the root);
-// use Iter or Slice to observe element positions.
+// use Slice to observe element positions.
 //
 // Returns None if i is out of range. After removal the heap property is
 // restored in O(log n).
@@ -242,7 +241,7 @@ func (h *Heap[T]) Len() Int {
 	return h.data.Len()
 }
 
-// Empty returns true if the heap contains no elements.
+// IsEmpty returns true if the heap contains no elements.
 func (h *Heap[T]) IsEmpty() bool {
 	return len(h.data) == 0
 }
@@ -393,12 +392,4 @@ func HeapOf[T any](compareFn func(T, T) cmp.Ordering, values ...T) *Heap[T] {
 	h.Push(values...)
 
 	return h
-}
-
-// HeapFromSlice builds a Heap from a slice using compareFn. Unlike the variadic
-// HeapOf, it takes the slice directly; because it also needs compareFn it must be
-// curried to serve as a collector, e.g.
-// res.TryCollect().Map(func(s Slice[T]) *Heap[T] { return HeapFromSlice(cmp.Cmp, s) }).
-func HeapFromSlice[T any](compareFn func(T, T) cmp.Ordering, s Slice[T]) *Heap[T] {
-	return HeapOf(compareFn, s...)
 }

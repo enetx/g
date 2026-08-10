@@ -295,27 +295,6 @@ func (o *Option[T]) Replace(value T) Option[T] {
 	return old
 }
 
-// OkOr converts the Option into a Result.
-// Returns Ok(value) if Some, otherwise returns Err(err).
-func (o Option[T]) OkOr(err error) Result[T] {
-	if o.isSome {
-		return Ok(o.v)
-	}
-
-	return Err[T](err)
-}
-
-// OkOrElse converts the Option into a Result.
-// Returns Ok(value) if Some.
-// Otherwise, it calls fn and returns Err(fn()).
-func (o Option[T]) OkOrElse(fn func() error) Result[T] {
-	if o.isSome {
-		return Ok(o.v)
-	}
-
-	return Err[T](fn())
-}
-
 // Ptr returns a pointer to the contained value if Some.
 // Otherwise, it returns nil.
 func (o Option[T]) Ptr() *T {

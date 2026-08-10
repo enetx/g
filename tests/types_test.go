@@ -48,23 +48,6 @@ func TestUnit_Type(t *testing.T) {
 	}
 }
 
-func TestFile_Type(t *testing.T) {
-	// Test File struct has expected fields
-	var file File
-
-	// Should be able to access fields (compile-time test)
-	_ = file
-
-	// Test that File can be created
-	// (We can't test actual file operations without creating real files)
-}
-
-func TestDir_Type(t *testing.T) {
-	// Test Dir struct
-	var dir Dir
-	_ = dir
-}
-
 func TestString_Type(t *testing.T) {
 	// Test String type alias
 	var gStr String = "test"

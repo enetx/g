@@ -17,8 +17,8 @@ func main() {
 	}
 
 	s1 := status{time.Now(), "s1", "good"}
-	s2 := status{time.Now(), "s2", "bad"}
-	s3 := status{time.Now().Add(time.Second * 10), "s3", "bad"}
+	s2 := status{time.Now().Add(time.Second * 10), "s2", "bad"}
+	s3 := status{time.Now(), "s3", "bad"}
 
 	SliceOf(s3, s1, s2).Iter().
 		SortBy(
@@ -40,18 +40,21 @@ func main() {
 				}
 
 				return astatus.Cmp(bstatus).Then(cmp.Cmp(a.date.Unix(), b.date.Unix()))
-			}).
+			},
+		).
 		Collect().
+		Slice().
 		Println()
 
-	// Example 3: Sort a slice of time.Time, deduplicate, and print the result
+	// Example 2: Sort a slice of time.Time, deduplicate, and print the result
 	SliceOf(time.Now().Add(time.Second*20), time.Now()).
 		Iter().
 		SortBy(func(a, b time.Time) cmp.Ordering { return cmp.Cmp(a.Second(), b.Second()) }).
 		Collect().
+		Slice().
 		Println()
 
-	// Example 4: Sort and deduplicate a slice of integers and print the result
+	// Example 3: Sort and deduplicate a slice of integers and print the result
 	SliceOf(9, 8, 9, 8, 0, 1, 1, 1, 2, 7, 2, 2, 2, 3, 4, 5).
 		Iter().
 		// SortBy(func(a, b int) cmp.Ordering { return cmp.Cmp(a, b) }). // or
@@ -59,12 +62,14 @@ func main() {
 		Dedup().
 		Filter(f.IsOdd).
 		Collect().
+		Slice().
 		Println() // Slice[1, 3, 5, 7, 9]
 
-	// Example 5: Sort a slice of strings in descending order and print the result
+	// Example 4: Sort a slice of strings in descending order and print the result
 	SliceOf("a", "c", "b").
 		Iter().
-		SortBy(cmp.Cmp).
+		SortBy(func(a, b string) cmp.Ordering { return cmp.Cmp(b, a) }).
 		Collect().
+		Slice().
 		Println() // Slice[c, b, a]
 }

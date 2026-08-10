@@ -4,17 +4,17 @@ import (
 	"context"
 	"testing"
 
-	"github.com/enetx/g"
+	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
 )
 
 func TestSet_Iter_Collect(t *testing.T) {
-	original := g.NewSet[string]()
+	original := NewSet[string]()
 	original.Insert("a")
 	original.Insert("b")
 	original.Insert("c")
 
-	collected := original.Iter().Collect()
+	collected := original.Iter().Collect().Set[string]()
 
 	if collected.Len() != 3 {
 		t.Errorf("Expected collected set to have 3 elements, got %d", collected.Len())
@@ -26,7 +26,7 @@ func TestSet_Iter_Collect(t *testing.T) {
 }
 
 func TestSet_Iter_Filter(t *testing.T) {
-	set := g.NewSet[int]()
+	set := NewSet[int]()
 	set.Insert(1)
 	set.Insert(2)
 	set.Insert(3)
@@ -35,14 +35,14 @@ func TestSet_Iter_Filter(t *testing.T) {
 
 	filtered := set.Iter().
 		Filter(func(v int) bool { return v%2 == 0 }).
-		Collect()
+		Collect().Set[int]()
 
 	if filtered.Len() != 2 {
 		t.Errorf("Expected 2 even numbers, got %d", filtered.Len())
 	}
 
 	// Check that only even numbers are present
-	slice := filtered.Slice()
+	slice := filtered.Iter().Collect().Slice()
 	for _, num := range slice {
 		if num%2 != 0 {
 			t.Errorf("Filtered result should only contain even numbers, found %d", num)
@@ -51,7 +51,7 @@ func TestSet_Iter_Filter(t *testing.T) {
 }
 
 func TestSet_Iter_Count(t *testing.T) {
-	set := g.NewSet[string]()
+	set := NewSet[string]()
 	set.Insert("one")
 	set.Insert("two")
 	set.Insert("three")
@@ -64,7 +64,7 @@ func TestSet_Iter_Count(t *testing.T) {
 }
 
 func TestSet_Iter_Find(t *testing.T) {
-	set := g.NewSet[int]()
+	set := NewSet[int]()
 	set.Insert(1)
 	set.Insert(3)
 	set.Insert(5)
@@ -82,34 +82,34 @@ func TestSet_Iter_Find(t *testing.T) {
 }
 
 func TestSet_Iter_Filter_AllEven(t *testing.T) {
-	set := g.NewSet[int]()
+	set := NewSet[int]()
 	set.Insert(2)
 	set.Insert(4)
 	set.Insert(6)
 	set.Insert(8)
 
 	// Filter to get only even numbers - should be all of them
-	evenSet := set.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect()
+	evenSet := set.Iter().Filter(func(v int) bool { return v%2 == 0 }).Collect().Set[int]()
 	if evenSet.Len() != 4 {
 		t.Error("Set of even numbers should have all even numbers")
 	}
 
 	// Filter to get only odd numbers - should be empty
-	oddSet := set.Iter().Filter(func(v int) bool { return v%2 == 1 }).Collect()
+	oddSet := set.Iter().Filter(func(v int) bool { return v%2 == 1 }).Collect().Set[int]()
 	if oddSet.Len() != 0 {
 		t.Error("Set of even numbers should not have any odd numbers")
 	}
 }
 
 func TestSet_Iter_ToSlice(t *testing.T) {
-	set := g.NewSet[string]()
+	set := NewSet[string]()
 	set.Insert("a")
 	set.Insert("b")
 	set.Insert("c")
 	set.Insert("d")
 	set.Insert("e")
 
-	slice := set.Slice()
+	slice := set.Iter().Collect().Slice()
 
 	if len(slice) != 5 {
 		t.Errorf("Expected 5 elements in slice, got %d", len(slice))
@@ -117,14 +117,14 @@ func TestSet_Iter_ToSlice(t *testing.T) {
 }
 
 func TestSet_Iter_EmptySet(t *testing.T) {
-	set := g.NewSet[string]()
+	set := NewSet[string]()
 
 	count := set.Iter().Count()
 	if count != 0 {
 		t.Errorf("Empty set iterator count should be 0, got %d", count)
 	}
 
-	collected := set.Iter().Collect()
+	collected := set.Iter().Collect().Set[string]()
 	if collected.Len() != 0 {
 		t.Error("Empty set iterator should collect empty set")
 	}
@@ -136,14 +136,14 @@ func TestSet_Iter_EmptySet(t *testing.T) {
 }
 
 func TestSet_Iter_Map(t *testing.T) {
-	set := g.NewSet[int]()
+	set := NewSet[int]()
 	set.Insert(1)
 	set.Insert(2)
 	set.Insert(3)
 
 	doubled := set.Iter().
 		Map(func(v int) int { return v * 2 }).
-		Collect()
+		Collect().Set[int]()
 
 	if doubled.Len() != 3 {
 		t.Errorf("Expected 3 doubled elements, got %d", doubled.Len())
@@ -155,15 +155,15 @@ func TestSet_Iter_Map(t *testing.T) {
 }
 
 func TestSet_Iter_Chain(t *testing.T) {
-	set1 := g.NewSet[string]()
+	set1 := NewSet[string]()
 	set1.Insert("a")
 	set1.Insert("b")
 
-	set2 := g.NewSet[string]()
+	set2 := NewSet[string]()
 	set2.Insert("c")
 	set2.Insert("d")
 
-	chained := set1.Iter().Chain(set2.Iter()).Collect()
+	chained := set1.Iter().Chain(set2.Iter()).Collect().Set[string]()
 
 	if chained.Len() != 4 {
 		t.Errorf("Expected 4 elements after chaining, got %d", chained.Len())
@@ -178,7 +178,7 @@ func TestSet_Iter_Chain(t *testing.T) {
 }
 
 func TestSet_Iter_Pull(t *testing.T) {
-	set := g.NewSet[string]()
+	set := NewSet[string]()
 	set.Insert("a")
 	set.Insert("b")
 	set.Insert("c")
@@ -211,7 +211,7 @@ func TestSet_Iter_Pull(t *testing.T) {
 
 func TestSetIterContext(t *testing.T) {
 	t.Run("context cancellation stops iteration", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 		set.Insert(3)
@@ -248,7 +248,7 @@ func TestSetIterContext(t *testing.T) {
 	})
 
 	t.Run("context timeout", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 
@@ -270,14 +270,14 @@ func TestSetIterContext(t *testing.T) {
 
 func TestSetIterTake(t *testing.T) {
 	t.Run("take first n elements", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 		set.Insert(3)
 		set.Insert(4)
 		set.Insert(5)
 
-		taken := set.Iter().Take(3).Collect()
+		taken := set.Iter().Take(3).Collect().Set[int]()
 
 		if taken.Len() != 3 {
 			t.Errorf("Expected 3 elements, got %d", taken.Len())
@@ -292,11 +292,11 @@ func TestSetIterTake(t *testing.T) {
 	})
 
 	t.Run("take more than available", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 
-		taken := set.Iter().Take(5).Collect()
+		taken := set.Iter().Take(5).Collect().Set[int]()
 
 		if taken.Len() != 2 {
 			t.Errorf("Expected 2 elements (all available), got %d", taken.Len())
@@ -304,11 +304,11 @@ func TestSetIterTake(t *testing.T) {
 	})
 
 	t.Run("take zero elements", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 
-		taken := set.Iter().Take(0).Collect()
+		taken := set.Iter().Take(0).Collect().Set[int]()
 
 		if taken.Len() != 0 {
 			t.Errorf("Expected 0 elements, got %d", taken.Len())
@@ -318,7 +318,7 @@ func TestSetIterTake(t *testing.T) {
 
 func TestSetIterNth(t *testing.T) {
 	t.Run("nth element exists", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(10)
 		set.Insert(20)
 		set.Insert(30)
@@ -339,7 +339,7 @@ func TestSetIterNth(t *testing.T) {
 	})
 
 	t.Run("nth element out of bounds", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 
@@ -351,7 +351,7 @@ func TestSetIterNth(t *testing.T) {
 	})
 
 	t.Run("negative index", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		set.Insert(1)
 		set.Insert(2)
 
@@ -363,7 +363,7 @@ func TestSetIterNth(t *testing.T) {
 	})
 
 	t.Run("empty set", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 
 		nth := set.Iter().Nth(0)
 
@@ -375,7 +375,7 @@ func TestSetIterNth(t *testing.T) {
 
 func TestSeqSetNext(t *testing.T) {
 	t.Run("Next with non-empty iterator", func(t *testing.T) {
-		set := g.SetOf(1, 2, 3, 4, 5)
+		set := SetOf(1, 2, 3, 4, 5)
 		iter := set.Iter()
 
 		// Extract first element (set order is not guaranteed)
@@ -401,14 +401,14 @@ func TestSeqSetNext(t *testing.T) {
 		}
 
 		// Remaining elements
-		remaining := iter.Collect()
+		remaining := iter.Collect().Set[int]()
 		if remaining.Len() != 3 {
 			t.Errorf("Expected 3 remaining elements, got %d", remaining.Len())
 		}
 	})
 
 	t.Run("Next with empty iterator", func(t *testing.T) {
-		set := g.NewSet[int]()
+		set := NewSet[int]()
 		iter := set.Iter()
 
 		result := iter.Next()
@@ -418,7 +418,7 @@ func TestSeqSetNext(t *testing.T) {
 	})
 
 	t.Run("Next until exhausted", func(t *testing.T) {
-		set := g.SetOf(1, 2)
+		set := SetOf(1, 2)
 		iter := set.Iter()
 
 		// Extract all elements
@@ -437,7 +437,7 @@ func TestSeqSetNext(t *testing.T) {
 		}
 
 		// Iterator should be empty now
-		remaining := iter.Collect()
+		remaining := iter.Collect().Set[int]()
 		if remaining.Len() != 0 {
 			t.Errorf("Expected empty set, got length %d", remaining.Len())
 		}
@@ -447,13 +447,13 @@ func TestSeqSetNext(t *testing.T) {
 func TestSet_Iter_All(t *testing.T) {
 	tests := []struct {
 		name string
-		set  g.Set[int]
+		set  Set[int]
 		fn   func(int) bool
 		want bool
 	}{
-		{"all_positive", g.SetOf(1, 2, 3, 4), func(v int) bool { return v > 0 }, true},
-		{"not_all_even", g.SetOf(2, 4, 5, 6), func(v int) bool { return v%2 == 0 }, false},
-		{"empty_is_true", g.NewSet[int](), func(int) bool { return false }, true},
+		{"all_positive", SetOf(1, 2, 3, 4), func(v int) bool { return v > 0 }, true},
+		{"not_all_even", SetOf(2, 4, 5, 6), func(v int) bool { return v%2 == 0 }, false},
+		{"empty_is_true", NewSet[int](), func(int) bool { return false }, true},
 	}
 
 	for _, tt := range tests {
@@ -468,13 +468,13 @@ func TestSet_Iter_All(t *testing.T) {
 func TestSet_Iter_Any(t *testing.T) {
 	tests := []struct {
 		name string
-		set  g.Set[int]
+		set  Set[int]
 		fn   func(int) bool
 		want bool
 	}{
-		{"has_even", g.SetOf(1, 3, 4, 5), func(v int) bool { return v%2 == 0 }, true},
-		{"none_negative", g.SetOf(1, 2, 3), func(v int) bool { return v < 0 }, false},
-		{"empty_is_false", g.NewSet[int](), func(int) bool { return true }, false},
+		{"has_even", SetOf(1, 3, 4, 5), func(v int) bool { return v%2 == 0 }, true},
+		{"none_negative", SetOf(1, 2, 3), func(v int) bool { return v < 0 }, false},
+		{"empty_is_false", NewSet[int](), func(int) bool { return true }, false},
 	}
 
 	for _, tt := range tests {
@@ -487,37 +487,37 @@ func TestSet_Iter_Any(t *testing.T) {
 }
 
 func TestSet_Iter_Fold(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
 	sum := set.Iter().Fold(0, func(acc, val int) int { return acc + val })
 	if sum != 15 {
 		t.Errorf("Fold sum = %d, want 15", sum)
 	}
 
-	empty := g.NewSet[int]()
+	empty := NewSet[int]()
 	if got := empty.Iter().Fold(42, func(acc, val int) int { return acc + val }); got != 42 {
 		t.Errorf("Fold on empty = %d, want 42", got)
 	}
 }
 
 func TestSet_Iter_Reduce(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
 	product := set.Iter().Reduce(func(a, b int) int { return a * b })
 	if !product.IsSome() || product.Some() != 120 {
 		t.Errorf("Reduce product = %v, want Some(120)", product)
 	}
 
-	empty := g.NewSet[int]()
+	empty := NewSet[int]()
 	if empty.Iter().Reduce(func(a, b int) int { return a + b }).IsSome() {
 		t.Error("Reduce on empty set should return None")
 	}
 }
 
 func TestSet_Iter_Skip(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5, 6)
+	set := SetOf(1, 2, 3, 4, 5, 6)
 
-	skipped := set.Iter().Skip(4).Collect()
+	skipped := set.Iter().Skip(4).Collect().Set[int]()
 	if skipped.Len() != 2 {
 		t.Errorf("Expected 2 elements after Skip(4), got %d", skipped.Len())
 	}
@@ -529,21 +529,21 @@ func TestSet_Iter_Skip(t *testing.T) {
 		}
 	})
 
-	none := set.Iter().Skip(100).Collect()
+	none := set.Iter().Skip(100).Collect().Set[int]()
 	if none.Len() != 0 {
 		t.Errorf("Expected empty set after Skip(100), got %d", none.Len())
 	}
 }
 
 func TestSet_Iter_FilterMap(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
-	result := set.Iter().FilterMap(func(n int) g.Option[int] {
+	result := set.Iter().FilterMap(func(n int) Option[int] {
 		if n%2 == 0 {
-			return g.Some(n * 10)
+			return Some(n * 10)
 		}
-		return g.None[int]()
-	}).Collect()
+		return None[int]()
+	}).Collect().Set[int]()
 
 	if result.Len() != 2 {
 		t.Errorf("Expected 2 mapped elements, got %d", result.Len())
@@ -555,7 +555,7 @@ func TestSet_Iter_FilterMap(t *testing.T) {
 }
 
 func TestSeqSetConsistency127(t *testing.T) {
-	s := g.SetOf(1, 2, 3, 4, 5)
+	s := SetOf(1, 2, 3, 4, 5)
 
 	// Fold with a foreign accumulator type
 	joined := s.Iter().Fold("", func(acc string, v int) string { return acc + "x" })
@@ -563,25 +563,25 @@ func TestSeqSetConsistency127(t *testing.T) {
 		t.Errorf("Fold cross-type = %q, want 5 x's", joined)
 	}
 
-	// Difference / Intersection on the iterator
-	if got := s.Iter().Difference(g.SetOf(1, 2, 3, 4)).Collect(); !got.Eq(g.SetOf(5)) {
+	// Difference / Intersection are eager Set methods now
+	if got := s.Difference(SetOf(1, 2, 3, 4)); !got.Eq(SetOf(5)) {
 		t.Errorf("Difference = %v, want Set{5}", got)
 	}
-	if got := s.Iter().Intersection(g.SetOf(4, 5, 6)).Collect(); !got.Eq(g.SetOf(4, 5)) {
+	if got := s.Intersection(SetOf(4, 5, 6)); !got.Eq(SetOf(4, 5)) {
 		t.Errorf("Intersection = %v, want Set{4, 5}", got)
 	}
 
 	// Partition
 	even, odd := s.Iter().Partition(func(v int) bool { return v%2 == 0 })
-	if !even.Eq(g.SetOf(2, 4)) || !odd.Eq(g.SetOf(1, 3, 5)) {
+	if !SetOf(even...).Eq(SetOf(2, 4)) || !SetOf(odd...).Eq(SetOf(1, 3, 5)) {
 		t.Errorf("Partition = %v / %v", even, odd)
 	}
 }
 
 func TestSet_Iter_CounterBy(t *testing.T) {
-	set := g.SetOf("a", "bb", "cc", "d", "eee")
+	set := SetOf("a", "bb", "cc", "d", "eee")
 
-	counts := set.Iter().CounterBy(func(s string) int { return len(s) }).Collect()
+	counts := set.Iter().CounterBy(func(s string) int { return len(s) }).Collect().MapOrd[int, Int]()
 
 	if counts.Len() != 3 {
 		t.Fatalf("Expected 3 buckets, got %d: %v", counts.Len(), counts)
@@ -600,8 +600,8 @@ func TestSet_Iter_CounterBy(t *testing.T) {
 	}
 
 	// Identity counting: a set has no duplicates, so every count is 1.
-	identity := g.SetOf(1, 2, 3).Iter().CounterBy(func(v int) int { return v }).Collect()
-	identity.Iter().ForEach(func(k int, count g.Int) {
+	identity := SetOf(1, 2, 3).Iter().CounterBy(func(v int) int { return v }).Collect().MapOrd[int, Int]()
+	identity.Iter().ForEach(func(k int, count Int) {
 		if count != 1 {
 			t.Errorf("Expected count 1 for key %d, got %d", k, count)
 		}
@@ -609,9 +609,9 @@ func TestSet_Iter_CounterBy(t *testing.T) {
 }
 
 func TestSet_Iter_Chan(t *testing.T) {
-	set := g.SetOf(1, 2, 3)
+	set := SetOf(1, 2, 3)
 
-	collected := g.NewSet[int]()
+	collected := NewSet[int]()
 	for v := range set.Iter().Chan() {
 		collected.Insert(v)
 	}
@@ -635,31 +635,31 @@ func TestSet_Iter_Chan(t *testing.T) {
 }
 
 func TestSet_Iter_MaxBy(t *testing.T) {
-	max := g.SetOf(3, 1, 4, 1, 5).Iter().MaxBy(cmp.Cmp[int])
+	max := SetOf(3, 1, 4, 1, 5).Iter().MaxBy(cmp.Cmp[int])
 	if max.IsNone() || max.Some() != 5 {
 		t.Errorf("Expected Some(5), got %v", max)
 	}
 
-	empty := g.NewSet[int]().Iter().MaxBy(cmp.Cmp[int])
+	empty := NewSet[int]().Iter().MaxBy(cmp.Cmp[int])
 	if empty.IsSome() {
 		t.Errorf("Expected None for empty set, got %v", empty)
 	}
 }
 
 func TestSet_Iter_MinBy(t *testing.T) {
-	min := g.SetOf(3, 1, 4, 5).Iter().MinBy(cmp.Cmp[int])
+	min := SetOf(3, 1, 4, 5).Iter().MinBy(cmp.Cmp[int])
 	if min.IsNone() || min.Some() != 1 {
 		t.Errorf("Expected Some(1), got %v", min)
 	}
 
-	empty := g.NewSet[int]().Iter().MinBy(cmp.Cmp[int])
+	empty := NewSet[int]().Iter().MinBy(cmp.Cmp[int])
 	if empty.IsSome() {
 		t.Errorf("Expected None for empty set, got %v", empty)
 	}
 }
 
 func TestSet_Iter_First(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
 	// Iteration order is nondeterministic, so First may yield any element of the set.
 	first := set.Iter().First()
@@ -671,19 +671,19 @@ func TestSet_Iter_First(t *testing.T) {
 		t.Errorf("Expected First to yield an element of the set, got %v", first.Some())
 	}
 
-	single := g.SetOf(42).Iter().First()
+	single := SetOf(42).Iter().First()
 	if single.IsNone() || single.Some() != 42 {
 		t.Errorf("Expected Some(42), got %v", single)
 	}
 
-	empty := g.NewSet[int]().Iter().First()
+	empty := NewSet[int]().Iter().First()
 	if empty.IsSome() {
 		t.Errorf("Expected None for empty set, got %v", empty)
 	}
 }
 
 func TestSet_Iter_Last(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
 	// Iteration order is nondeterministic, so Last may yield any element of the set.
 	last := set.Iter().Last()
@@ -695,28 +695,28 @@ func TestSet_Iter_Last(t *testing.T) {
 		t.Errorf("Expected Last to yield an element of the set, got %v", last.Some())
 	}
 
-	single := g.SetOf(42).Iter().Last()
+	single := SetOf(42).Iter().Last()
 	if single.IsNone() || single.Some() != 42 {
 		t.Errorf("Expected Some(42), got %v", single)
 	}
 
-	empty := g.NewSet[int]().Iter().Last()
+	empty := NewSet[int]().Iter().Last()
 	if empty.IsSome() {
 		t.Errorf("Expected None for empty set, got %v", empty)
 	}
 }
 
 func TestSet_Iter_StepBy(t *testing.T) {
-	set := g.SetOf(1, 2, 3, 4, 5)
+	set := SetOf(1, 2, 3, 4, 5)
 
 	// Step 1 yields every element.
-	all := set.Iter().StepBy(1).Collect()
+	all := set.Iter().StepBy(1).Collect().Set[int]()
 	if all.Ne(set) {
 		t.Errorf("Expected StepBy(1) to yield all elements, got %v", all)
 	}
 
 	// Step 2 over 5 elements yields 3 of them; which ones depends on iteration order.
-	stepped := set.Iter().StepBy(2).Collect()
+	stepped := set.Iter().StepBy(2).Collect().Set[int]()
 	if stepped.Len() != 3 {
 		t.Errorf("Expected 3 elements from StepBy(2), got %d", stepped.Len())
 	}
@@ -726,28 +726,28 @@ func TestSet_Iter_StepBy(t *testing.T) {
 	}
 
 	// Step larger than the set yields only the first element.
-	one := set.Iter().StepBy(10).Collect()
+	one := set.Iter().StepBy(10).Collect().Set[int]()
 	if one.Len() != 1 {
 		t.Errorf("Expected 1 element from StepBy(10), got %d", one.Len())
 	}
 
-	empty := g.NewSet[int]().Iter().StepBy(2).Collect()
+	empty := NewSet[int]().Iter().StepBy(2).Collect().Set[int]()
 	if !empty.IsEmpty() {
 		t.Errorf("Expected empty result for empty set, got %v", empty)
 	}
 }
 
 func TestSeqSetSumBy(t *testing.T) {
-	set := g.SetOf[g.Int](1, 2, 3, 4)
-	if got := set.Iter().SumBy(func(v g.Int) g.Int { return v }); got != 10 {
-		t.Errorf("SeqSet.SumBy = %d, want 10", got)
+	set := SetOf[Int](1, 2, 3, 4)
+	if got := set.Iter().SumBy(func(v Int) Int { return v }); got != 10 {
+		t.Errorf("Seq.SumBy = %d, want 10", got)
 	}
 }
 
 func TestSeqSetTryMap(t *testing.T) {
-	got := g.SetOf[g.String]("1", "2", "3").Iter().
-		TryMap(g.String.TryInt).
-		SumBy(func(v g.Int) g.Int { return v })
+	got := SetOf[String]("1", "2", "3").Iter().
+		TryMap(String.TryInt).
+		SumBy(func(v Int) Int { return v })
 	if got.IsErr() || got.Ok() != 6 {
 		t.Fatalf("Set.TryMap = %v", got)
 	}

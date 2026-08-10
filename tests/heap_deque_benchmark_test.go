@@ -23,7 +23,7 @@ func BenchmarkHeapOperations(b *testing.B) {
 		}
 		b.ResetTimer()
 		for b.Loop() {
-			heap := HeapFromSlice(cmp.Cmp[int], base)
+			heap := HeapOf(cmp.Cmp[int], base...)
 			heap.Push(-2, -1)
 		}
 	})

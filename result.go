@@ -311,3 +311,28 @@ func (r Result[T]) UnwrapErr() error {
 	resultPanic(2, out, out)
 	panic("unreachable")
 }
+
+// OkOr converts an Option into a Result: Ok(value) if Some, otherwise
+// Err(err).
+//
+// It is a free function rather than an Option method: as a method every
+// Option[T] instantiation would also instantiate Result[T] (and everything
+// Result's methods mention), even in packages that never convert between the
+// two.
+func OkOr[T any](o Option[T], err error) Result[T] {
+	if o.isSome {
+		return Ok(o.v)
+	}
+
+	return Err[T](err)
+}
+
+// OkOrElse converts an Option into a Result: Ok(value) if Some, otherwise
+// Err(fn()). See [OkOr] for why this is not a method.
+func OkOrElse[T any](o Option[T], fn func() error) Result[T] {
+	if o.isSome {
+		return Ok(o.v)
+	}
+
+	return Err[T](fn())
+}

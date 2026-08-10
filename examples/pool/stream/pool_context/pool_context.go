@@ -51,7 +51,7 @@ func main() {
 	}
 
 	// Cause reports the reason for cancellation:
-	// - "case 7, cancel" if consumer stopped the pool
+	// - "critical task" if consumer stopped the pool
 	// - context.DeadlineExceeded if the 100μs timeout fired first
 	// - ErrAllTasksDone if all 10 tasks completed before either
 	if cause := p.Cause(); cause != nil {

@@ -1,4 +1,4 @@
-package g_test
+package fs_test
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	. "github.com/enetx/g"
+	gfs "github.com/enetx/g/fs"
 )
 
 func TestNewDir(t *testing.T) {
@@ -14,7 +15,7 @@ func TestNewDir(t *testing.T) {
 	testPath := String("/")
 
 	// Create a new Dir instance using NewDir
-	dir := NewDir(testPath)
+	dir := gfs.NewDir(testPath)
 
 	// Check if the path of the created Dir instance matches the expected path
 	if dir.Path().Ok() != testPath {
@@ -28,7 +29,7 @@ func TestDir_Chown_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Perform chown operation
 	uid := os.Getuid() // Current user's UID
@@ -43,7 +44,7 @@ func TestDir_Chown_Success(t *testing.T) {
 
 func TestDir_Chown_Failure(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := NewDir("/nonexistent/path")
+	dir := gfs.NewDir("/nonexistent/path")
 
 	// Perform chown operation
 	uid := os.Getuid() // Current user's UID
@@ -62,7 +63,7 @@ func TestDir_Stat_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -75,7 +76,7 @@ func TestDir_Stat_Success(t *testing.T) {
 
 func TestDir_Stat_Failure(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := NewDir("/nonexistent/path")
+	dir := gfs.NewDir("/nonexistent/path")
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -90,7 +91,7 @@ func TestDir_Stat_InvalidPath(t *testing.T) {
 	// Test Stat with an invalid path that might cause Path() to fail
 	// Create a Dir instance with a path containing null bytes which might cause filepath.Abs to fail
 	invalidPath := String("/invalid/path\x00with/null/byte")
-	dir := NewDir(invalidPath)
+	dir := gfs.NewDir(invalidPath)
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -109,7 +110,7 @@ func TestDir_Stat_InvalidPath(t *testing.T) {
 
 func TestDir_Stat_EmptyPath(t *testing.T) {
 	// Test Stat with empty path - this should work fine and return current directory info
-	dir := NewDir("")
+	dir := gfs.NewDir("")
 
 	// Get directory information using Stat
 	result := dir.Stat()
@@ -129,7 +130,7 @@ func TestDir_Stat_PathError(t *testing.T) {
 	// Test Stat when Path() returns an error
 	// Try to create a path that might cause filepath.Abs to fail
 	invalidPath := String("\x00invalid")
-	dir := NewDir(invalidPath)
+	dir := gfs.NewDir(invalidPath)
 
 	// Try to get the path first to see if it fails
 	pathResult := dir.Path()
@@ -154,7 +155,7 @@ func TestDir_Path_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Get the absolute path of the directory using Path
 	result := dir.Path()
@@ -172,7 +173,7 @@ func TestDir_Path_Failure(t *testing.T) {
 	}
 
 	for i, invalidPath := range testCases {
-		dir := NewDir(invalidPath)
+		dir := gfs.NewDir(invalidPath)
 		result := dir.Path()
 
 		// We expect this might fail on some systems, but if it doesn't that's OK too
@@ -198,7 +199,7 @@ func TestDir_Lstat_IsLink_Success(t *testing.T) {
 	}
 
 	// Create a Dir instance with the symbolic link path
-	dir := NewDir(String(linkPath))
+	dir := gfs.NewDir(String(linkPath))
 
 	// Call Lstat to get information about the symbolic link
 	result := dir.Lstat()
@@ -220,7 +221,7 @@ func TestDir_Lstat_IsLink_NotLink(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Call Lstat to get information about the directory
 	result := dir.Lstat()
@@ -238,7 +239,7 @@ func TestDir_Lstat_IsLink_NotLink(t *testing.T) {
 
 func TestCreateTempDir_Success(t *testing.T) {
 	// Create a temporary directory using CreateTempDir
-	result := CreateTempDir()
+	result := gfs.CreateTempDir()
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -258,7 +259,7 @@ func TestCreateTempDir_WithCustomDir(t *testing.T) {
 	defer os.RemoveAll(parentDir)
 
 	// Create a temporary directory with custom parent directory
-	result := CreateTempDir(String(parentDir))
+	result := gfs.CreateTempDir(String(parentDir))
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -285,7 +286,7 @@ func TestCreateTempDir_WithDirAndPattern(t *testing.T) {
 	pattern := String("testpattern")
 
 	// Create a temporary directory with custom parent directory and pattern
-	result := CreateTempDir(String(parentDir), pattern)
+	result := gfs.CreateTempDir(String(parentDir), pattern)
 
 	// Check if the operation succeeded
 	if result.IsErr() {
@@ -312,7 +313,7 @@ func TestCreateTempDir_WithDirAndPattern(t *testing.T) {
 
 func TestCreateTempDir_InvalidDirectory(t *testing.T) {
 	// Try to create a temporary directory in a non-existent parent directory
-	result := CreateTempDir(String("/nonexistent/invalid/path"))
+	result := gfs.CreateTempDir(String("/nonexistent/invalid/path"))
 
 	// Check if the operation failed as expected
 	if result.IsOk() {
@@ -322,7 +323,7 @@ func TestCreateTempDir_InvalidDirectory(t *testing.T) {
 
 func TestTempDir(t *testing.T) {
 	// Get the default temporary directory using TempDir
-	tmpDir := TempDir()
+	tmpDir := gfs.TempDir()
 
 	// Check if the returned directory exists
 	if _, err := os.Stat(tmpDir.String().Std()); os.IsNotExist(err) {
@@ -336,7 +337,7 @@ func TestDir_Remove_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Remove the temporary directory using Remove
 	result := dir.Remove()
@@ -349,7 +350,7 @@ func TestDir_Remove_Success(t *testing.T) {
 
 func TestDir_Remove_NotExist(t *testing.T) {
 	// Create a Dir instance with a non-existent directory path
-	dir := NewDir("/nonexistent/path")
+	dir := gfs.NewDir("/nonexistent/path")
 
 	// Remove the non-existent directory using Remove
 	result := dir.Remove()
@@ -381,7 +382,7 @@ func TestDir_Remove_WithSubdirectories(t *testing.T) {
 	}
 
 	// Create a Dir instance
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Remove the directory and all its contents
 	result := dir.Remove()
@@ -405,7 +406,7 @@ func TestDir_Create_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with the temporary directory path
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Create a new directory using Create
 	result := dir.Create()
@@ -424,7 +425,7 @@ func TestDir_Create_Success(t *testing.T) {
 
 func TestDir_Create_Failure(t *testing.T) {
 	// Attempt to create a directory in a non-existent parent directory
-	nonExistentDir := NewDir("/nonexistent/parent")
+	nonExistentDir := gfs.NewDir("/nonexistent/parent")
 	result := nonExistentDir.Create()
 
 	// Check if the operation failed as expected
@@ -435,7 +436,7 @@ func TestDir_Create_Failure(t *testing.T) {
 
 func TestDir_Join_Success(t *testing.T) {
 	// Create a Dir instance representing an existing directory
-	dir := NewDir("/path/to/directory")
+	dir := gfs.NewDir("/path/to/directory")
 
 	// Join the directory path with additional elements
 	result := dir.Join("subdir", "file.txt")
@@ -455,7 +456,7 @@ func TestDir_Join_Success(t *testing.T) {
 func TestDir_Join_ErrorCase(t *testing.T) {
 	// Create a Dir instance with a path containing null bytes which might cause filepath.Abs to fail
 	invalidPath := String("/invalid/path\x00with/null/byte")
-	dir := NewDir(invalidPath)
+	dir := gfs.NewDir(invalidPath)
 
 	// Join should propagate the error from Path()
 	result := dir.Join("subdir", "file.txt")
@@ -474,7 +475,7 @@ func TestDir_Join_ErrorCase(t *testing.T) {
 
 func TestDir_SetPath(t *testing.T) {
 	// Create a Dir instance representing an existing directory
-	dir := NewDir("/path/to/directory")
+	dir := gfs.NewDir("/path/to/directory")
 
 	// Set a new path for the directory
 	newPath := String("/new/path/to/directory")
@@ -493,7 +494,7 @@ func TestDir_CreateAll_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Create all directories along the path
 	result := dir.CreateAll()
@@ -516,7 +517,7 @@ func TestDir_CreateAll_Mode_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Create all directories along the path with custom mode
 	result := dir.CreateAll(0o700)
@@ -543,16 +544,16 @@ func TestDirCreateAllRejectsExistingFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if result := NewDir(String(path)).CreateAll(); result.IsOk() {
+	if result := gfs.NewDir(String(path)).CreateAll(); result.IsOk() {
 		t.Fatal("CreateAll must fail when the path is an existing file")
 	}
-	if NewDir(String(path)).Exists() {
+	if gfs.NewDir(String(path)).Exists() {
 		t.Fatal("Dir.Exists must be false for a regular file")
 	}
 }
 
 func TestDirExistsReturnsFalseForInvalidPath(t *testing.T) {
-	if NewDir("invalid\x00path").Exists() {
+	if gfs.NewDir("invalid\x00path").Exists() {
 		t.Fatal("invalid directory path must not exist")
 	}
 }
@@ -566,7 +567,7 @@ func TestDir_Read_Success(t *testing.T) {
 	createTestFiles(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Read the content of the directory
 	result := dir.Read()
@@ -577,7 +578,7 @@ func TestDir_Read_Success(t *testing.T) {
 	}
 
 	// Directory iteration follows filesystem order, so compare as a set.
-	files := result.Ok().Collect()
+	files := result.Ok().Collect().Slice()
 	expectedFileNames := map[string]bool{"file1.txt": true, "file2.txt": true, "subdir1": true, "subdir2": true}
 	if len(files) != len(expectedFileNames) {
 		t.Fatalf("TestDir_Read_Success: expected %d entries, got %d", len(expectedFileNames), len(files))
@@ -600,7 +601,7 @@ func TestDirReadMultipleBatches(t *testing.T) {
 	}
 
 	count := 0
-	for result := range NewDir(String(tempDir)).Read() {
+	for result := range gfs.NewDir(String(tempDir)).Read() {
 		if result.IsErr() {
 			t.Fatalf("Read failed: %v", result.Err())
 		}
@@ -613,7 +614,7 @@ func TestDirReadMultipleBatches(t *testing.T) {
 
 func TestDir_Read_NonExistentDirectory(t *testing.T) {
 	// Create a Dir instance representing a non-existent directory
-	dir := NewDir(String("/nonexistent/directory/path"))
+	dir := gfs.NewDir(String("/nonexistent/directory/path"))
 
 	// Try to read the content of the non-existent directory
 	result := dir.Read()
@@ -632,7 +633,7 @@ func TestDir_Read_EmptyDirectory(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the empty directory
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Read the content of the empty directory
 	result := dir.Read()
@@ -643,7 +644,7 @@ func TestDir_Read_EmptyDirectory(t *testing.T) {
 	}
 
 	// Check if the returned slice is empty
-	files := result.Ok().Collect()
+	files := result.Ok().Collect().Slice()
 	if len(files) != 0 {
 		t.Errorf("TestDir_Read_EmptyDirectory: Expected empty directory, got %d files", len(files))
 	}
@@ -658,7 +659,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	createTestFiles(tempDir)
 
 	// Create a Dir instance representing the temporary directory with a glob pattern
-	dir := NewDir(String(filepath.Join(tempDir, "*.txt")))
+	dir := gfs.NewDir(String(filepath.Join(tempDir, "*.txt")))
 
 	// Retrieve files matching the glob pattern
 	result := dir.Glob()
@@ -669,7 +670,7 @@ func TestDir_Glob_Success(t *testing.T) {
 	}
 
 	// Check if the returned slice of File instances is accurate
-	files := result.Ok().Collect()
+	files := result.Ok().Collect().Slice()
 	expectedFileNames := []string{"file1.txt", "file2.txt"}
 	for i, file := range files {
 		if file.Name().Std() != expectedFileNames[i] {
@@ -680,7 +681,7 @@ func TestDir_Glob_Success(t *testing.T) {
 
 func TestDir_Glob_InvalidPattern(t *testing.T) {
 	// Test with an invalid glob pattern
-	dir := NewDir(String("["))
+	dir := gfs.NewDir(String("["))
 
 	// Retrieve files matching the invalid glob pattern
 	result := dir.Glob()
@@ -697,7 +698,7 @@ func TestDir_Glob_EmptyResult(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance with a pattern that won't match anything
-	dir := NewDir(String(filepath.Join(tempDir, "*.nonexistent")))
+	dir := gfs.NewDir(String(filepath.Join(tempDir, "*.nonexistent")))
 
 	// Retrieve files matching the glob pattern
 	result := dir.Glob()
@@ -708,7 +709,7 @@ func TestDir_Glob_EmptyResult(t *testing.T) {
 	}
 
 	// Check if the returned slice is empty
-	files := result.Ok().Collect()
+	files := result.Ok().Collect().Slice()
 	if len(files) != 0 {
 		t.Errorf("TestDir_Glob_EmptyResult: Expected empty result, got %d files", len(files))
 	}
@@ -720,7 +721,7 @@ func TestDir_Rename(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// Create a Dir instance representing the temporary directory
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Rename the directory
 	newpath := tempDir + "_new"
@@ -762,7 +763,7 @@ func TestDir_Copy(t *testing.T) {
 	defer os.RemoveAll(destDir)
 
 	// Create a Dir instance representing the source directory
-	source := NewDir(String(sourceDir))
+	source := gfs.NewDir(String(sourceDir))
 
 	// Copy the contents of the source directory to the destination directory
 	result := source.Copy(String(destDir))
@@ -811,7 +812,7 @@ func TestDir_Copy_WithFollowLinks(t *testing.T) {
 	destDir := createTempDir(t)
 	defer os.RemoveAll(destDir)
 
-	source := NewDir(String(sourceDir))
+	source := gfs.NewDir(String(sourceDir))
 
 	// Test with followLinks = true (default)
 	result := source.Copy(String(destDir), true)
@@ -831,7 +832,7 @@ func TestDir_Copy_WithFollowLinks(t *testing.T) {
 
 func TestDir_Copy_NonExistentSource(t *testing.T) {
 	// Test Copy with non-existent source directory
-	source := NewDir(String("/nonexistent/source/directory"))
+	source := gfs.NewDir(String("/nonexistent/source/directory"))
 	destDir := createTempDir(t)
 	defer os.RemoveAll(destDir)
 
@@ -851,7 +852,7 @@ func TestDir_Copy_InvalidDestination(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	source := NewDir(String(sourceDir))
+	source := gfs.NewDir(String(sourceDir))
 
 	// Try to copy to an invalid destination (path with null byte)
 	result := source.Copy(String("/invalid\x00path"))
@@ -884,7 +885,7 @@ func TestDir_Copy_WithSymlinks(t *testing.T) {
 	destDir := createTempDir(t)
 	defer os.RemoveAll(destDir)
 
-	source := NewDir(String(sourceDir))
+	source := gfs.NewDir(String(sourceDir))
 
 	// Test copy with followLinks = false (should skip symlinked directories)
 	result := source.Copy(String(destDir), false)
@@ -909,9 +910,9 @@ func TestDir_Walk(t *testing.T) {
 
 	var visited Slice[string]
 
-	NewDir(String(testDir)).Walk().
-		Exclude(func(f *File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
-		ForEach(func(r Result[*File]) {
+	gfs.NewDir(String(testDir)).Walk().
+		Exclude(func(f *gfs.File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
+		ForEach(func(r Result[*gfs.File]) {
 			if r.IsErr() {
 				t.Fatalf("unexpected error during Walk: %v", r.Err())
 			}
@@ -949,7 +950,7 @@ func createTempDir(t *testing.T) string {
 
 func TestDirMove(t *testing.T) {
 	// Create source directory
-	srcDir := NewDir(String(createTempDir(t)))
+	srcDir := gfs.NewDir(String(createTempDir(t)))
 	defer srcDir.Remove()
 
 	// Create a test file in source directory
@@ -957,16 +958,16 @@ func TestDirMove(t *testing.T) {
 	if testFilePath.IsErr() {
 		t.Fatalf("Failed to join path: %v", testFilePath.Err())
 	}
-	testFile := NewFile(testFilePath.Ok())
+	testFile := gfs.NewFile(testFilePath.Ok())
 	testFile.Write(String("test content"))
 
 	// Create destination directory path
 	destPath := String(createTempDir(t) + "_moved")
-	destDir := NewDir(destPath)
+	destDir := gfs.NewDir(destPath)
 	defer destDir.Remove()
 
 	// Move directory
-	result := srcDir.Move(destPath)
+	result := srcDir.Rename(destPath)
 	if result.IsErr() {
 		t.Errorf("Move should succeed, got error: %v", result.Err())
 	}
@@ -986,14 +987,14 @@ func TestDirMove(t *testing.T) {
 	if movedFilePath.IsErr() {
 		t.Fatalf("Failed to join moved file path: %v", movedFilePath.Err())
 	}
-	movedFile := NewFile(movedFilePath.Ok())
+	movedFile := gfs.NewFile(movedFilePath.Ok())
 	if !movedFile.Exists() {
 		t.Error("File should exist in moved directory")
 	}
 }
 
 func TestDirPrint(t *testing.T) {
-	dir := NewDir("testdir")
+	dir := gfs.NewDir("testdir")
 	result := dir.Print()
 	if result != dir {
 		t.Errorf("Print() should return original dir unchanged")
@@ -1001,7 +1002,7 @@ func TestDirPrint(t *testing.T) {
 }
 
 func TestDirPrintln(t *testing.T) {
-	dir := NewDir("testdir")
+	dir := gfs.NewDir("testdir")
 	result := dir.Println()
 	if result != dir {
 		t.Errorf("Println() should return original dir unchanged")
@@ -1011,7 +1012,7 @@ func TestDirPrintln(t *testing.T) {
 func TestDir_Remove_Error(t *testing.T) {
 	// Test Remove with a path that might cause permission errors
 	// Use an invalid path that would cause os.RemoveAll to fail
-	dir := NewDir("/root/nonexistent/readonly/path")
+	dir := gfs.NewDir("/root/nonexistent/readonly/path")
 
 	// Try to remove - might fail depending on platform
 	result := dir.Remove()
@@ -1029,7 +1030,7 @@ func TestDir_Rename_CreateAllError(t *testing.T) {
 	tempDir := createTempDir(t)
 	defer os.RemoveAll(tempDir)
 
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Try to rename to a path where CreateAll might fail
 	// Use a path with invalid characters or very long path
@@ -1045,7 +1046,7 @@ func TestDir_Rename_CreateAllError(t *testing.T) {
 
 func TestDir_Rename_OsRenameError(t *testing.T) {
 	// Test Rename when os.Rename fails
-	dir := NewDir("/nonexistent/source/path")
+	dir := gfs.NewDir("/nonexistent/source/path")
 
 	// Try to rename nonexistent directory
 	tempDir := createTempDir(t)
@@ -1061,7 +1062,7 @@ func TestDir_Rename_OsRenameError(t *testing.T) {
 
 func TestDir_Read_PathError(t *testing.T) {
 	// Test Read when Path() returns an error
-	dir := NewDir("\x00invalid")
+	dir := gfs.NewDir("\x00invalid")
 
 	errorFound := false
 	for result := range dir.Read() {
@@ -1089,7 +1090,7 @@ func TestDir_Read_EarlyReturn(t *testing.T) {
 		}
 	}
 
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	filesRead := 0
 	for result := range dir.Read() {
@@ -1109,7 +1110,7 @@ func TestDir_Read_EarlyReturn(t *testing.T) {
 
 func TestDir_Join_PathError(t *testing.T) {
 	// Test Join when Path() returns an error
-	dir := NewDir("\x00invalid")
+	dir := gfs.NewDir("\x00invalid")
 
 	result := dir.Join("subdir", "file.txt")
 
@@ -1122,7 +1123,7 @@ func TestDir_Join_PathError(t *testing.T) {
 
 func TestDir_Exists_PathError(t *testing.T) {
 	// Test Exists when Path() returns an error
-	dir := NewDir("\x00invalid")
+	dir := gfs.NewDir("\x00invalid")
 
 	exists := dir.Exists()
 
@@ -1136,7 +1137,7 @@ func TestDir_Exists_PathError(t *testing.T) {
 
 func TestDir_Copy_WalkError(t *testing.T) {
 	// Test Copy when Walk() returns an error
-	dir := NewDir("/nonexistent/source/path")
+	dir := gfs.NewDir("/nonexistent/source/path")
 
 	tempDir := createTempDir(t)
 	defer os.RemoveAll(tempDir)
@@ -1152,7 +1153,7 @@ func TestDir_Copy_WalkError(t *testing.T) {
 
 func TestDir_Copy_PathError(t *testing.T) {
 	// Test Copy when Path() returns an error
-	dir := NewDir("\x00invalid")
+	dir := gfs.NewDir("\x00invalid")
 
 	tempDir := createTempDir(t)
 	defer os.RemoveAll(tempDir)
@@ -1168,7 +1169,7 @@ func TestDir_Copy_PathError(t *testing.T) {
 
 func TestDir_Glob_InvalidPatternError(t *testing.T) {
 	// Test Glob with invalid pattern that might cause filepath.Glob to fail
-	dir := NewDir("[\x00")
+	dir := gfs.NewDir("[\x00")
 
 	errorFound := false
 	for result := range dir.Glob() {
@@ -1198,7 +1199,7 @@ func TestDir_Glob_EarlyReturn(t *testing.T) {
 
 	// Use glob pattern to find files
 	pattern := filepath.Join(tempDir, "*.txt")
-	dir := NewDir(String(pattern))
+	dir := gfs.NewDir(String(pattern))
 
 	filesRead := 0
 	for result := range dir.Glob() {
@@ -1218,7 +1219,7 @@ func TestDir_Glob_EarlyReturn(t *testing.T) {
 
 func TestDir_Walk_ReadError(t *testing.T) {
 	// Test Walk when Read() returns an error
-	dir := NewDir("/nonexistent/path")
+	dir := gfs.NewDir("/nonexistent/path")
 
 	errorFound := false
 	for result := range dir.Walk() {
@@ -1259,7 +1260,7 @@ func TestDir_Walk_EarlyReturn(t *testing.T) {
 		}
 	}
 
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	filesRead := 0
 	for result := range dir.Walk() {
@@ -1305,7 +1306,7 @@ func TestDir_Walk_EarlyBreakWithPushedSubdir(t *testing.T) {
 		}
 	}
 
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Break on the very first yielded entry (the pushed subdir). If Walk does not
 	// honor the stop in the outer loop, this panics.
@@ -1344,7 +1345,7 @@ func TestDir_Walk_SymlinkCycle(t *testing.T) {
 		t.Skipf("symlinks unsupported on this platform: %v", err)
 	}
 
-	dir := NewDir(String(tempDir))
+	dir := gfs.NewDir(String(tempDir))
 
 	// Cap the iteration count: with the cycle guard the walk terminates quickly;
 	// without it the loop would not stop. We assert it completes under the cap.
@@ -1386,7 +1387,7 @@ func TestDir_Copy_FileSymlinkNoFollow(t *testing.T) {
 	destDir := createTempDir(t)
 	defer os.RemoveAll(destDir)
 
-	source := NewDir(String(sourceDir))
+	source := gfs.NewDir(String(sourceDir))
 
 	result := source.Copy(String(destDir), false)
 	if result.IsErr() {
@@ -1414,7 +1415,7 @@ func BenchmarkDirRead(b *testing.B) {
 		}
 	}
 
-	d := NewDir(String(dir))
+	d := gfs.NewDir(String(dir))
 	b.ReportAllocs()
 	b.ResetTimer()
 

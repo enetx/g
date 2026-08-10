@@ -103,10 +103,10 @@ func HeapFromSlice() {
 	fmt.Printf("Original slice: %v\n", numbers)
 
 	// Convert to min heap in O(n) time
-	heap := numbers.Heap(cmp.Cmp[int])
+	heap := HeapOf(cmp.Cmp[int], numbers...)
 
 	// Get all elements in sorted order
-	sorted := heap.Iter().Collect(cmp.Cmp)
+	sorted := heap.Iter().Collect().Heap(cmp.Cmp)
 	fmt.Printf("Sorted: %v\n", sorted)
 	// Output: [5, 11, 12, 22, 25, 30, 34, 64, 77, 90]
 }
@@ -131,12 +131,12 @@ func TaskScheduler() {
 	)
 
 	// Create priority queue: higher priority first, then by deadline
-	scheduler := tasks.Heap(func(a, b Task) cmp.Ordering {
+	scheduler := HeapOf(func(a, b Task) cmp.Ordering {
 		// First by priority (higher = better)
 		return cmp.Cmp(b.Priority, a.Priority).
 			// Then by deadline (earlier = better)
 			Then(cmp.Cmp(a.Deadline.Unix(), b.Deadline.Unix()))
-	})
+	}, tasks...)
 
 	fmt.Println("Tasks in execution order:")
 	for i := 1; !scheduler.IsEmpty(); i++ {
@@ -170,13 +170,13 @@ func TopKElements() {
 		}
 	}
 
-	topK := minHeap.Iter().Collect(cmp.Cmp)
+	topK := minHeap.Iter().Collect().Heap(cmp.Cmp)
 	fmt.Printf("Top %d elements: %v\n", k, topK)
 
 	// Method 2: Using full heap (simpler but uses more memory)
-	allSorted := data.Heap(func(a, b int) cmp.Ordering {
+	allSorted := HeapOf(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a) // Max heap
-	}).Iter().Take(uint(k)).Collect(cmp.Cmp)
+	}, data...).Iter().Take(k).Collect().Slice()
 
 	fmt.Printf("Top %d (method 2): %v\n", k, allSorted)
 }
@@ -201,9 +201,9 @@ func EventScheduler() {
 	)
 
 	// Schedule events by time (earliest first)
-	scheduler := events.Heap(func(a, b Event) cmp.Ordering {
+	scheduler := HeapOf(func(a, b Event) cmp.Ordering {
 		return cmp.Cmp(a.Time.Unix(), b.Time.Unix())
-	})
+	}, events...)
 
 	fmt.Println("Events in chronological order:")
 	for !scheduler.IsEmpty() {
@@ -223,13 +223,13 @@ func HeapSort() {
 	fmt.Printf("Unsorted: %v\n", unsorted)
 
 	// Heap sort in ascending order
-	ascending := unsorted.Heap(cmp.Cmp).Iter().Collect(cmp.Cmp)
+	ascending := HeapOf(cmp.Cmp, unsorted...).Iter().Collect().Slice()
 	fmt.Printf("Ascending: %v\n", ascending)
 
 	// Heap sort in descending order
-	descending := unsorted.Heap(func(a, b int) cmp.Ordering {
+	descending := HeapOf(func(a, b int) cmp.Ordering {
 		return cmp.Cmp(b, a)
-	}).Iter().Collect(cmp.Reverse)
+	}, unsorted...).Iter().Collect().Slice()
 	fmt.Printf("Descending: %v\n", descending)
 }
 
@@ -238,7 +238,7 @@ func HeapIterators() {
 	fmt.Println("\n=== Heap Iterators ===")
 
 	numbers := SliceOf(1, 5, 3, 8, 2, 9, 4, 7, 6)
-	heap := numbers.Heap(cmp.Cmp)
+	heap := HeapOf(cmp.Cmp, numbers...)
 
 	// Non-consuming iteration (heap remains intact)
 	fmt.Print("All elements (heap unchanged): ")
@@ -251,11 +251,11 @@ func HeapIterators() {
 	// Functional operations on heap iterator
 	evenNumbers := heap.Iter().
 		Filter(func(x int) bool { return x%2 == 0 }).
-		Collect(cmp.Cmp)
+		Collect().Slice()
 	fmt.Printf("Even numbers: %v\n", evenNumbers)
 
 	// Take first N elements
-	firstThree := heap.Iter().Take(3).Collect(cmp.Cmp)
+	firstThree := heap.Iter().Take(3).Collect().Slice()
 	fmt.Printf("First 3 smallest: %v\n", firstThree)
 
 	// Consuming iteration (empties the heap)
@@ -286,14 +286,14 @@ func CustomTypes() {
 	)
 
 	// Multi-level comparison: Grade (desc), then Age (asc), then Name (asc)
-	topStudents := students.Heap(func(a, b Student) cmp.Ordering {
+	topStudents := HeapOf(func(a, b Student) cmp.Ordering {
 		// Primary: Grade (higher is better)
 		return b.Grade.Cmp(a.Grade).
 			// Secondary: Age (younger is better)
 			Then(a.Age.Cmp(b.Age)).
 			// Tertiary: Name (alphabetical)
 			Then(a.Name.Cmp(b.Name))
-	})
+	}, students...)
 
 	fmt.Println("Students by rank:")
 	for i := 1; !topStudents.IsEmpty(); i++ {
@@ -309,13 +309,13 @@ func PerformanceComparison() {
 	fmt.Println("\n=== Performance Comparison ===")
 
 	// Large dataset
-	data := RangeInclusive(1000, 0, -1).Collect()
+	data := RangeInclusive(1000, 0, -1).Collect().Slice()
 
 	fmt.Printf("Dataset size: %d elements\n", len(data))
 
 	// Method 1: Build heap from slice - O(n)
 	start := time.Now()
-	heap1 := data.Heap(cmp.Cmp)
+	heap1 := HeapOf(cmp.Cmp, data...)
 	duration1 := time.Since(start)
 	fmt.Printf("Heap() construction: %v\n", duration1)
 
@@ -332,8 +332,8 @@ func PerformanceComparison() {
 	// Verify both heaps produce same result
 	result1 := heap1.Iter().Take(10)
 	result2 := heap2.Iter().Take(10)
-	fmt.Printf("Results identical: %v\n", result1.Collect(cmp.Cmp).Eq(result2.Collect(cmp.Cmp)))
-	fmt.Printf("First 10 elements: %v\n", result1.Collect(cmp.Cmp))
+	fmt.Printf("Results identical: %v\n", result1.Collect().Slice().Eq(result2.Collect().Slice()))
+	fmt.Printf("First 10 elements: %v\n", result1.Collect().Slice())
 }
 
 // Example 11: Error Handling and Edge Cases
@@ -363,8 +363,8 @@ func ErrorHandling() {
 
 	// Duplicate elements
 	duplicates := SliceOf[Int](5, 3, 5, 1, 3, 5, 1, 1)
-	dupHeap := duplicates.Heap(Int.Cmp)
-	sorted := dupHeap.Iter().Collect(Int.Cmp)
+	dupHeap := HeapOf(Int.Cmp, duplicates...)
+	sorted := dupHeap.Iter().Collect().Heap(Int.Cmp)
 	fmt.Printf("✓ Handles duplicates: %v\n", sorted)
 }
 

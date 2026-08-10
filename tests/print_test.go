@@ -6,7 +6,6 @@ import (
 	"math"
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/enetx/g"
 )
@@ -42,27 +41,27 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 		},
 		{
 			name:     "Numeric placeholders",
-			format:   "Values: {1}, {2}, {1.Lower}",
+			format:   "Values: {1}, {2}, {1}",
 			args:     []any{String("X"), "Y"},
-			expected: "Values: X, Y, x",
+			expected: "Values: X, Y, X",
 		},
 		{
-			name:     "Rust escaped braces around placeholder",
-			format:   "Show literal {{{.Upper}}} here",
+			name:     "escaped braces around placeholder",
+			format:   "Show literal {{{}}} here",
 			args:     []any{String("upper")},
-			expected: "Show literal {UPPER} here",
+			expected: "Show literal {upper} here",
 		},
 		{
-			name:     "Rust escaped placeholder is literal",
+			name:     "escaped placeholder is literal",
 			format:   "Show literal {{name}} here",
 			args:     []any{Named{"name": "value"}},
 			expected: "Show literal {name} here",
 		},
 		{
-			name:     "Autoindex with modifier {.Upper}",
+			name:     "Autoindex keeps unknown segment inert",
 			format:   "{.Upper} and {.Lower}",
 			args:     []any{String("hello"), String("WORLD")},
-			expected: "HELLO and world",
+			expected: "hello and WORLD",
 		},
 		{
 			name:     "Zero positional index {0}",
@@ -107,7 +106,7 @@ func TestFormatAutoIndexAndNumeric(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "Rust escaped closing brace",
+			name:     "escaped closing brace",
 			format:   "literal }}",
 			args:     nil,
 			expected: "literal }",
@@ -218,33 +217,9 @@ func TestFormat(t *testing.T) {
 			expected: "Hello, Guest!",
 		},
 		// Placeholder with modifier: upper
-		{
-			name:     "Modifier: upper",
-			format:   "Name: {name.Upper}",
-			args:     Named{"name": String("john")},
-			expected: "Name: JOHN",
-		},
 		// Placeholder with modifier: trim and title
-		{
-			name:     "Modifier: trim and title",
-			format:   "Title: {work.Trim.Title}",
-			args:     Named{"work": String(" developer ")},
-			expected: "Title: Developer",
-		},
 		// Nested modifiers: trim and len
-		{
-			name:     "Nested modifiers",
-			format:   "Length: {input.Trim.Len}",
-			args:     Named{"input": String("  data  ")},
-			expected: "Length: 4",
-		},
 		// Placeholder with fallback and modifier
-		{
-			name:     "Fallback with modifier",
-			format:   "Name: {name?fallback.Upper}",
-			args:     Named{"fallback": String("guest")},
-			expected: "Name: GUEST",
-		},
 		// Multiple placeholders
 		{
 			name:     "Multiple placeholders",
@@ -260,74 +235,14 @@ func TestFormat(t *testing.T) {
 			expected: "Hello, {unknown}!",
 		},
 		// Modifier: round for float values
-		{
-			name:     "Modifier: round",
-			format:   "Value: {number.Round}",
-			args:     Named{"number": Float(12.7)},
-			expected: "Value: 13",
-		},
 		// Modifier: abs for negative numbers
-		{
-			name:     "Modifier: abs",
-			format:   "Absolute: {value.Abs}",
-			args:     Named{"value": Int(-42)},
-			expected: "Absolute: 42",
-		},
 		// Modifier: reverse for strings
-		{
-			name:     "Modifier: reverse",
-			format:   "Reversed: {word.Reverse}",
-			args:     Named{"word": String("hello")},
-			expected: "Reversed: olleh",
-		},
 		// Modifier: hex for integers
-		{
-			name:     "Modifier: hex",
-			format:   "Hex: {number.Hex}",
-			args:     Named{"number": Int(255)},
-			expected: "Hex: ff",
-		},
 		// Modifier: bin for integers
-		{
-			name:     "Modifier: bin",
-			format:   "Binary: {number.Binary}",
-			args:     Named{"number": Int(5)},
-			expected: "Binary: 00000101",
-		},
 		// Modifier: url encoding
-		{
-			name:     "Modifier: url",
-			format:   "URL: {input.Encode.URL}",
-			args:     Named{"input": String("hello world")},
-			expected: "URL: hello+world",
-		},
 		// Modifier: base64 encoding
-		{
-			name:     "Modifier: base64",
-			format:   "Base64: {input.Encode.Base64}",
-			args:     Named{"input": String("hello")},
-			expected: "Base64: aGVsbG8=",
-		},
 		// Modifier: format for dates
-		{
-			name:     "Modifier: format date",
-			format:   "Date: {today.Format(2006-01-02)}",
-			args:     Named{"today": time.Date(2025, 1, 17, 0, 0, 0, 0, time.UTC)},
-			expected: "Date: 2025-01-17",
-		},
 		// Test for $replace
-		{
-			name:     "Modifier: replace",
-			format:   "Result: {input.Replace(a,b,-1)}",
-			args:     Named{"input": String("banana")},
-			expected: "Result: bbnbnb",
-		},
-		{
-			name:     "Modifier: replace with empty string",
-			format:   "Result: {input.ReplaceAll(a,)}",
-			args:     Named{"input": String("banana")},
-			expected: "Result: bnn",
-		},
 		{
 			name:     "Modifier: replace no matches",
 			format:   "Result: {input.ReplaceAll(x,y)}",
@@ -336,31 +251,13 @@ func TestFormat(t *testing.T) {
 		},
 		// Test for $repeat
 		{
-			name:     "Modifier: repeat string",
-			format:   "Repeated: {input.Repeat(3)}",
-			args:     Named{"input": String("ha")},
-			expected: "Repeated: hahaha",
-		},
-		{
 			name:     "Modifier: repeat with invalid count",
 			format:   "Repeated: {input.Repeat(abc)}",
 			args:     Named{"input": String("ha")},
 			expected: "Repeated: ha",
 		},
 		// Test for $substring
-		{
-			name:     "Modifier: substring",
-			format:   "Result: {input.SubString(0,-1,2)}",
-			args:     Named{"input": String("Hello, World!")},
-			expected: "Result: Hlo ol",
-		},
 		// Test for $truncate
-		{
-			name:     "Modifier: truncate string",
-			format:   "Truncated: {input.Truncate(5)}",
-			args:     Named{"input": String("Hello, World!")},
-			expected: "Truncated: Hello...",
-		},
 		{
 			name:     "Modifier: truncate with exact length",
 			format:   "Truncated: {input.Truncate(5)}",
@@ -394,17 +291,6 @@ func TestFormat(t *testing.T) {
 			expected: "Hello, {}!",
 		},
 		//  Multiple chained modifiers (e.g., trim, lower, replace, reverse).
-		{
-			name:   "Multiple chain modifiers",
-			format: "{word.Trim.Lower.ReplaceAll(e,a).Reverse}",
-			args:   Named{"word": String("  EXAMPLE ")},
-			// Explanation:
-			//   "  EXAMPLE " -> $trim => "EXAMPLE"
-			//   -> $lower => "example"
-			//   -> $replace(e,a) => "axampla"
-			//   -> $reverse => "alpmaxa"
-			expected: "alpmaxa",
-		},
 		{
 			name:     "Named nil value",
 			format:   "Value: {key}",
@@ -512,62 +398,6 @@ func TestFormatFormatWithErrors(t *testing.T) {
 		})
 	}
 }
-
-func TestFormatTrimSetModifier(t *testing.T) {
-	tests := []struct {
-		name     string
-		format   string
-		args     Named
-		expected string
-	}{
-		// Basic trimming
-		{
-			name:   "Trim specific characters",
-			format: "Result: {value.TrimSet(#)}",
-			args:   Named{"value": String("###Hello###")}, expected: "Result: Hello",
-		},
-		// Trim multiple characters
-		{
-			name:     "Trim multiple characters",
-			format:   "Result: {value.TrimSet(#$)}",
-			args:     Named{"value": String("$$#Hello#$")},
-			expected: "Result: Hello",
-		},
-		// No trimming (no matching characters)
-		{
-			name:     "No trimming needed",
-			format:   "Result: {value.TrimSet(%)}",
-			args:     Named{"value": String("Hello")},
-			expected: "Result: Hello",
-		},
-		// Empty value
-		{
-			name:     "Empty value",
-			format:   "Result: {value.TrimSet(#)}",
-			args:     Named{"value": String("")},
-			expected: "Result: ",
-		},
-		// Empty set
-		{
-			name:     "Empty trim set",
-			format:   "Result: {value.Trim}",
-			args:     Named{"value": String("###Hello###")},
-			expected: "Result: ###Hello###",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := Format(tt.format, tt.args)
-			if result != String(tt.expected) {
-				t.Errorf("expected '%s', got '%s'", tt.expected, result)
-			}
-		})
-	}
-}
-
-// go test -bench=. -benchmem -count=4
-
 func BenchmarkSprintf(b *testing.B) {
 	name := "World"
 
@@ -782,7 +612,7 @@ func TestFormatGet(t *testing.T) {
 	}{
 		{
 			name:     "Simple Map Access",
-			template: "Value: {1.Get(key).Some}",
+			template: "Value: {1.key}",
 			args: []any{
 				Map[String, String]{"key": "value"},
 			},
@@ -790,7 +620,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Simple Map Any Access",
-			template: "Value: {1.Get(key).Some}",
+			template: "Value: {1.key}",
 			args: []any{
 				Map[String, any]{"key": "value"},
 			},
@@ -798,7 +628,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Nested Map Access",
-			template: "Deep Value: {1.Get(key).Some.Get(subkey).Some}",
+			template: "Deep Value: {1.key.subkey}",
 			args: []any{
 				Map[string, Map[String, string]]{
 					"key": {"subkey": "deepvalue"},
@@ -808,7 +638,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Map with Float Keys",
-			template: "Float Key: {1.Get(3_14).Some}",
+			template: "Float Key: {1.3_14}",
 			args: []any{
 				Map[Float, string]{3.14: "pi"},
 			},
@@ -816,7 +646,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Slice Index Access",
-			template: "Index 1: {1.Get(1).Some}",
+			template: "Index 1: {1.1}",
 			args: []any{
 				Slice[string]{"first", "second", "third"},
 			},
@@ -824,7 +654,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Nested Slice Access",
-			template: "Nested Index: {1.Get(1).Some.Get(0).Some}",
+			template: "Nested Index: {1.1.0}",
 			args: []any{
 				Slice[Slice[Int]]{{100, 200}, {300, 400}},
 			},
@@ -832,7 +662,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Map with Int Keys",
-			template: "Int Key: {1.Get(42).Some}",
+			template: "Int Key: {1.42}",
 			args: []any{
 				Map[int, string]{42: "intvalue"},
 			},
@@ -840,7 +670,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Boolean Key Map",
-			template: "Bool Key: {1.Get(true).Some}",
+			template: "Bool Key: {1.true}",
 			args: []any{
 				Map[bool, string]{true: "boolvalue"},
 			},
@@ -848,7 +678,7 @@ func TestFormatGet(t *testing.T) {
 		},
 		{
 			name:     "Full Complexity",
-			template: "Access: {1.Get(map).Some.Get(slice).Some.Get(1).Some.Get(0).Some.Get(field).Some}",
+			template: "Access: {1.map.slice.1.0.field}",
 			args: []any{
 				Map[String, Map[string, Map[String, Slice[Map[string, string]]]]]{
 					"map": {
@@ -883,7 +713,7 @@ func TestFormatGetNamed(t *testing.T) {
 	}{
 		{
 			name:     "Simple Map Access",
-			template: "Value: {map.Get(key).Some}",
+			template: "Value: {map.key}",
 			named:    Named{"map": Map[String, String]{"key": "value"}},
 			expected: "Value: value",
 		},
@@ -1546,16 +1376,7 @@ func TestFormatSpec(t *testing.T) {
 		{name: "g.Float sign", format: "{:+}", args: []any{Float(3.14)}, expected: "+3.14"},
 
 		// ── Modifier + spec combinations ──
-		{name: "mod Abs + 0pad", format: "{1.Abs:05}", args: []any{Int(-42)}, expected: "00042"},
-		{name: "mod Upper + right", format: "{.Upper:>10}", args: []any{String("hello")}, expected: "     HELLO"},
-		{name: "mod chain + spec", format: "{.Trim.Upper:>10}", args: []any{String("  go  ")}, expected: "        GO"},
 		{name: "named + spec", format: "{num:x}", args: []any{Named{"num": 255}}, expected: "ff"},
-		{
-			name:     "named mod + spec",
-			format:   "{name.Upper:>10}",
-			args:     []any{Named{"name": String("go")}},
-			expected: "        GO",
-		},
 		{name: "fallback + spec", format: "{x?y:x}", args: []any{Named{"y": 255}}, expected: "ff"},
 
 		// ── Auto-index + spec ──
@@ -1588,12 +1409,6 @@ func TestFormatSpec(t *testing.T) {
 		// ── Edge cases ──
 		{name: "empty spec", format: "{:}", args: []any{"hello"}, expected: "hello"},
 		{name: "empty spec int", format: "{:}", args: []any{42}, expected: "42"},
-		{
-			name:     "colon in parens",
-			format:   "{1.Format(15:04:05)}",
-			args:     []any{time.Date(2025, 1, 17, 14, 30, 45, 0, time.UTC)},
-			expected: "14:30:45",
-		},
 		{name: "+#x combined", format: "{:+#x}", args: []any{255}, expected: "+0xff"},
 		{name: " #x combined", format: "{: #x}", args: []any{255}, expected: " 0xff"},
 		{

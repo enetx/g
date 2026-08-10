@@ -14,7 +14,12 @@
 go get github.com/enetx/g
 ```
 
-Requires **Go 1.27+** (generic methods: `Map`, `Then`, `Fold`, `Zip` and friends change element types right in the chain — no more package-level `Transform*` workarounds)
+Requires **Go 1.27+** (generic methods: `Map`, `Then`, `Fold`, `Zip` and friends change element types right in the chain — no more package-level `Transform*` workarounds).
+
+Designed to be cheap to compile: the type graph is deliberately de-welded, so a
+package that only uses `g.String` compiles ~1.5k functions instead of ~33k, and
+heavyweight areas (filesystem, regex) live in subpackages (`g/fs`, `g/rx`).
+The only non-stdlib dependency is `golang.org/x/text`.
 
 ---
 
@@ -35,6 +40,7 @@ func main() {
         Filter(func(x int) bool { return x%2 == 0 }).
         Map(func(x int) int { return x * x }).
         Collect().
+        Slice().
         Println() // Slice[4, 16]
 
     // Safe map access with Option
@@ -61,8 +67,8 @@ func main() {
 | [Option](#option) | [Slice](#slice) | [Mutex](#mutex) | [String](#string) |
 | [Result](#result) | [Map](#map) | [RwLock](#rwlock) | [Int/Float](#int--float) |
 | [Iterators](#iterators) | [Set](#set) | [Pool](#pool) | [Bytes](#bytes) |
-| | [Heap](#heap) | | [File/Dir](#file--directory) |
-| | [Deque](#deque) | | |
+| | [Deque](#deque) | | [Regex (g/rx)](#regular-expressions--grx) |
+| | [Heap](#heap) | | [File/Dir (g/fs)](#file--directory) |
 
 ---
 
@@ -105,7 +111,7 @@ g.Some(5).Then(func(x int) g.Option[int] {
 | `Filter(pred)` | Returns None if predicate fails |
 | `Or(other)` / `OrElse(fn)` | Fallback Option |
 | `Inspect(fn)` | Side effect on Some, returns self |
-| `OkOr(err)` / `OkOrElse(fn)` | Converts to Result |
+| `g.OkOr(opt, err)` / `g.OkOrElse(opt, fn)` | Converts to Result (free functions) |
 | `Take()` / `Replace(v)` / `Insert(v)` | In-place mutation |
 | `Option()` | Returns (value, bool) |
 
@@ -160,7 +166,7 @@ opt := result.Option()      // Some(42)
 | `ErrIs(target)` / `ErrAs(target)` | errors.Is / errors.As integration |
 | `Option()` / `Result()` | Converts to Option / (value, error) |
 
-JSON: `Ok(v)` ⇄ `{"ok": v}`, `Err(e)` ⇄ `{"err": "msg"}` (externally tagged, like serde; duplicate keys rejected).
+JSON: `Ok(v)` ⇄ `{"ok": v}`, `Err(e)` ⇄ `{"err": "msg"}` (externally tagged; duplicate keys rejected).
 
 </details>
 
@@ -187,7 +193,7 @@ s.Clone()                       // safe copy
 // Sorting
 s.SortBy(cmp.Cmp)               // ascending
 s.Reverse()                     // in place
-s.Shuffle()                     // random order
+rand.Shuffle(s)                 // random order (g/rand)
 ```
 
 <details>
@@ -195,11 +201,11 @@ s.Shuffle()                     // random order
 
 | Category | Methods |
 |----------|---------|
-| **Access** | `Get`, `Last`, `First`, `Random`, `RandomSample` |
-| **Modify** | `Set`, `Push`, `Pop`, `Insert`, `Remove`, `Clear` |
+| **Access** | `Get`, `Last`, `First` |
+| **Modify** | `Set`, `Push`, `Pop`, `Insert`, `Remove` |
 | **Search** | `Contains`, `ContainsBy`, `Index`, `IndexBy` |
-| **Transform** | `Clone`, `Reverse`, `Shuffle`, `SortBy`, `SubSlice` |
-| **Convert** | `Iter`, `Heap`, `Std` |
+| **Transform** | `Clone`, `Reverse`, `SortBy`, `SubSlice` |
+| **Convert** | `Iter`, `Std` |
 | **Info** | `Len`, `Cap`, `IsEmpty` |
 
 </details>
@@ -280,7 +286,7 @@ s.Insert(4)                     // add
 s.Remove(1)                     // remove
 s.Contains(2)                   // true
 
-// Set algebra (lazy sequences)
+// Set algebra (eager, returns Set)
 s.Union(other)                  // A ∪ B
 s.Intersection(other)           // A ∩ B
 s.Difference(other)             // A \ B
@@ -294,10 +300,10 @@ s.Disjoint(other)               // no common elements?
 a := g.SetOf(1, 2, 3, 4)
 b := g.SetOf(3, 4, 5, 6)
 
-a.Union(b).Collect()            // {1, 2, 3, 4, 5, 6}
-a.Intersection(b).Collect()     // {3, 4}
-a.Difference(b).Collect()       // {1, 2}
-a.SymmetricDifference(b).Collect() // {1, 2, 5, 6}
+a.Union(b)                      // Set{1, 2, 3, 4, 5, 6}
+a.Intersection(b)               // Set{3, 4}
+a.Difference(b)                 // Set{1, 2}
+a.SymmetricDifference(b)        // Set{1, 2, 5, 6}
 
 a.Subset(b)                     // false
 a.Superset(b)                   // false
@@ -326,8 +332,9 @@ maxH := g.NewHeap(func(a, b int) cmp.Ordering {
     return cmp.Cmp(b, a)
 })
 
-// From slice
-heap := g.SliceOf(5, 3, 8, 1).Heap(cmp.Cmp)
+// From a slice — spread into the variadic constructor
+s := g.SliceOf(5, 3, 8, 1)
+heap := g.HeapOf(cmp.Cmp[int], s...)
 ```
 
 ---
@@ -366,18 +373,20 @@ g.SliceOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10).
     Filter(func(x int) bool { return x%2 == 0 }).
     Map(func(x int) int { return x * x }).
     Take(3).
-    Collect()
-// [4, 16, 36]
+    Collect().
+    Slice()
+// Slice[4, 16, 36]
 ```
 
 Thanks to generic methods (Go 1.27+), transformations can change the element type
-right in the chain — just like Rust iterators:
+right in the chain:
 
 ```go
 g.SliceOf(1, 2, 3).
     Iter().
-    Map(func(x int) g.String { return g.Int(x).String() }). // SeqSlice[int] -> SeqSlice[g.String]
+    Map(func(x int) g.String { return g.Int(x).String() }). // Seq[int] -> Seq[g.String]
     Collect().
+    Slice().
     Join(", ").
     Println() // 1, 2, 3
 
@@ -394,12 +403,33 @@ nums.Iter().Zip(names.Iter()).ForEach(func(n int, s string) {
 })
 ```
 
+### Collecting
+
+`Collect()` returns a collector; pick the container to materialize into. `Set`,
+`Map`, `MapOrd` and `MapSafe` take explicit type arguments — a method of
+`Seq[V any]` cannot constrain V to `comparable`, so the constraint lives on the
+collector method and the type is spelled at the call site:
+
+```go
+s.Iter().Filter(fn).Collect().Slice()          // Slice[int]
+s.Iter().Filter(fn).Collect().Set[int]()       // Set[int]
+s.Iter().Collect().Deque()                     // *Deque[int]
+s.Iter().Collect().Heap(cmp.Cmp)               // *Heap[int]
+
+m.Iter().FilterByKey(fn).Collect().Pairs()               // []Pair[K, V]
+m.Iter().FilterByKey(fn).Collect().Map[string, int]()    // Map[string, int]
+m.Iter().Collect().MapOrd[string, int]()                 // MapOrd[string, int]
+m.Iter().Collect().MapSafe[string, int]()                // *MapSafe[string, int]
+```
+
+Note: `Collect()` alone is lazy — nothing runs until a materializer is called.
+
 ### Common Patterns
 
 ```go
 // Chain iterators
-g.SliceOf(1, 2).Iter().Chain(g.SliceOf(3, 4).Iter()).Collect()
-// [1, 2, 3, 4]
+g.SliceOf(1, 2).Iter().Chain(g.SliceOf(3, 4).Iter()).Collect().Slice()
+// Slice[1, 2, 3, 4]
 
 // Sum with Fold
 g.SliceOf(1, 2, 3, 4, 5).Iter().Fold(0, func(acc, x int) int { return acc + x })
@@ -413,8 +443,8 @@ g.SliceOf("a", "b", "c").Iter().Enumerate().ForEach(func(i g.Int, v string) {
 // Using f package predicates
 import "github.com/enetx/g/f"
 
-g.SliceOf(1, 2, 3, 4, 5).Iter().Filter(f.Ne(3)).Collect()       // [1, 2, 4, 5]
-g.SliceOf("", "a", "").Iter().Exclude(f.IsZero).Collect()       // ["a"]
+g.SliceOf(1, 2, 3, 4, 5).Iter().Filter(f.Ne(3)).Collect().Slice() // Slice[1, 2, 4, 5]
+g.SliceOf("", "a", "").Iter().Exclude(f.IsZero).Collect().Slice()  // Slice["a"]
 ```
 
 <details>
@@ -588,8 +618,18 @@ s.Len()                         // 13
 s.Upper()                       // "HELLO, WORLD!"
 s.Lower()                       // "hello, world!"
 s.Contains("World")             // true
-s.Split(", ").Collect()         // ["Hello", "World!"]
 s.Trim()                        // remove whitespace
+
+// Splitters return a plain []String — index, len and range work directly
+parts := s.Split(", ")          // []String{"Hello", "World!"}
+parts[0]                        // "Hello"
+
+for _, part := range s.Split(", ") {
+    part.Println()              // Hello / World!
+}
+
+// For chains, lift the slice into an iterator
+g.SliceOf(s.Split(", ")...).Iter().Map(g.String.Upper).Collect().Slice()
 
 // Conversions
 s.Std()                         // Go string
@@ -600,6 +640,54 @@ g.String("42").TryInt()         // Result[Int]
 s.Hash().MD5()                  // hash
 s.Encode().Base64()             // encode
 s.Compress().Gzip()             // compress
+```
+
+### Randomness — `g/rand`
+
+All randomness lives in one package (math/rand/v2 under the hood; the
+`Secure*` helpers draw from crypto/rand):
+
+```go
+import "github.com/enetx/g/rand"
+
+rand.N(10)                    // [0, 10)
+rand.Range(5, 10)             // half-open [5, 10)
+rand.RangeInclusive(1, 6)     // closed [1, 6]
+rand.Float()                  // [0, 1)
+rand.Chance(0.25)             // true with probability 0.25
+rand.String(10)               // 10 alphanumeric characters
+rand.SecureString(32)         // crypto/rand-backed token (keys, codes)
+rand.SecureBytes(16)          // crypto/rand-backed raw bytes
+rand.String(6, g.Digits)      // 6-digit code
+
+users := g.SliceOf("ann", "bob", "eve")
+rand.Choice(users)            // Option[string]
+rand.Sample(users, 2)         // 2 distinct elements
+rand.Shuffle(users)           // in place; accepts Slice, MapOrd, plain slices
+```
+
+The container types deliberately carry no random methods — one way to do it.
+
+### Regular expressions — `g/rx`
+
+Compile a pattern once, then run it anywhere — patterns live in their own package:
+
+```go
+import "github.com/enetx/g/rx"
+
+re := rx.New(`[0-9]{4}-[0-9]{2}-[0-9]{2}`).Unwrap()
+
+re.IsMatch("2026-08-09")                   // true
+re.Find("on 2026-08-09 at noon")           // Option[String]
+re.FindIter(hay).Take(2).Collect().Slice() // first two matches
+re.Replace(s, "$1")                        // FIRST match only
+re.ReplaceBy(s, fn)                        // FIRST match through a function
+re.ReplaceAll(s, "$1")                     // every match
+
+digits := rx.New(`[0-9]`).Unwrap()
+digits.Split("a1b2c3").Collect().Slice()   // Slice[a, b, c]
+
+// Bytes haystacks: IsMatchBytes, FindBytes, FindIterBytes, ...
 ```
 
 ---
@@ -639,7 +727,7 @@ f.Round()                       // Int(3)
 f.RoundDecimal(2)               // Float(3.14)
 f.Sqrt()                        // square root
 
-// Float math & classification (Rust f64 parity)
+// Float math & classification
 g.Float(1).Div(0).IsInf()       // true
 g.Float(-3.75).Fract()          // -0.75
 g.Float(2.5).Clamp(0, 2)        // 2
@@ -673,16 +761,23 @@ b.Std()                         // to []byte
 
 ## File / Directory
 
+Filesystem types live in the `g/fs` subpackage, so only programs that touch
+files pay for them:
+
+```go
+import "github.com/enetx/g/fs"
+```
+
 ### File
 
 ```go
 // Read/Write
-content := g.NewFile("config.json").Read()      // Result[String]
-g.NewFile("output.txt").Write("Hello")
-g.NewFile("log.txt").Append("line\n")
+content := fs.NewFile("config.json").Read()      // Result[String]
+fs.NewFile("output.txt").Write("Hello")
+fs.NewFile("log.txt").Append("line\n")
 
 // Open a new file with the specified name "text.txt" and process it line by line.
-g.NewFile("text.txt").
+fs.NewFile("text.txt").
 	Lines().                            // Reads the file line by line.
 	Skip(2).                            // Skips the first 2 lines in the iterator.
 	Exclude(f.IsZero).                  // Excludes lines that are empty or contain only whitespaces.
@@ -703,43 +798,43 @@ g.NewFile("text.txt").
 	})
 
 // Properties
-f := g.NewFile("test.txt")
-f.Exists()                       // check existence
-f.Stat()                        // file info
-f.Copy("backup.txt")            // copy
-f.Rename("new.txt")             // rename
-f.Remove()                      // delete
+file := fs.NewFile("test.txt")
+file.Exists()                   // check existence
+file.Stat()                     // file info
+file.Copy("backup.txt")         // copy
+file.Rename("new.txt")          // rename
+file.Remove()                   // delete
 ```
 
 ### File Guard (Exclusive Lock)
 
 ```go
-f := g.NewFile("data.txt").Guard()  // holds exclusive lock
-f.Write("exclusive data")
-f.Close()                           // release lock
+locked := fs.NewFile("data.txt").Guard()  // holds exclusive lock
+locked.Write("exclusive data")
+locked.Close()                            // release lock
 ```
 
 ### Directory
 
 ```go
-g.NewDir("mydir").Create()
-g.NewDir("path/to/deep").CreateAll()
+fs.NewDir("mydir").Create()
+fs.NewDir("path/to/deep").CreateAll()
 
 // Read contents
-for file := range g.NewDir(".").Read() {
+for file := range fs.NewDir(".").Read() {
     if file.IsOk() {
         file.Ok().Name().Println()
     }
 }
 
 // Recursively walk through the directory tree starting from the current directory
-g.NewDir(".").Walk().
+fs.NewDir(".").Walk().
 	// Exclude directories and symlinked directories
-	Exclude(func(f *g.File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
-    // Exclude file symlinks
-	Exclude((*File).IsLink).
+	Exclude(func(f *fs.File) bool { return f.IsDir() && f.Dir().Ok().IsLink() }).
+	// Exclude file symlinks
+	Exclude((*fs.File).IsLink).
 	// Process each walk result
-	ForEach(func(v g.Result[*g.File]) {
+	ForEach(func(v g.Result[*fs.File]) {
 		if v.IsOk() {
 			// Print the path of the file if no error occurred
 			v.Ok().Path().Ok().Println()
@@ -747,21 +842,30 @@ g.NewDir(".").Walk().
 	})
 
 // Iterate over and print the names of files in the current directory with a *.go extension
-g.NewDir("*.go").Glob().ForEach(func(f g.Result[*g.File]) { f.Ok().Name().Println() })
+fs.NewDir("*.go").Glob().ForEach(func(f g.Result[*fs.File]) { f.Ok().Name().Println() })
 
 // Copy the contents of the current directory to a new directory named "copy".
-g.NewDir(".").Copy("copy").Unwrap()
+fs.NewDir(".").Copy("copy").Unwrap()
 ```
 
 ---
 
 ## Formatting and Print
 
-Rust-inspired placeholders support automatic, positional, and named values:
+Placeholders support automatic, positional, and named values:
 
 ```go
 g.Format("{} {2} {name}", "auto", "positional", g.Named{"name": "named"})
 g.Format("{{{name}}}", g.Named{"name": "value"}) // {value}
+```
+
+Dotted placeholders access DATA — struct fields, map keys, slice indices —
+never methods (transform values before formatting):
+
+```go
+g.Format("{1.Field}", structVal)          // struct field
+g.Format("{.outer.inner}", nestedMap)     // map keys
+g.Format("{.1.2}", nestedSlice)           // slice indices
 ```
 
 Format specs include alignment, width, precision, signs, alternate prefixes,

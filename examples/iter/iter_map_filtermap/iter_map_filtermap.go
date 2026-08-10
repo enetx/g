@@ -20,10 +20,9 @@ func main() {
 			}
 
 			return None[Pair[String, String]]()
-		}).
-		Collect()
+		})
 
-	validConfigs.Println() // Map[host:localhost_validated port:8080_validated]
+	validConfigs.Collect().MapOrd[String, String]().Println() // MapOrd{host:localhost_validated, port:8080_validated} (order varies)
 
 	// Example 2: FilterMap for user age filtering
 	users := NewMap[String, Int]()
@@ -39,10 +38,9 @@ func main() {
 				return Some(Pair[String, Int]{Key: name, Value: age})
 			}
 			return None[Pair[String, Int]]()
-		}).
-		Collect()
+		})
 
-	adults.Println() // Map[alice:25 charlie:30]
+	adults.Collect().MapOrd[String, Int]().Println() // MapOrd{alice:25, charlie:30} (order varies)
 
 	// Example 3: FilterMap for URL validation
 	urls := NewMap[String, String]()
@@ -58,8 +56,7 @@ func main() {
 				return Some(Pair[String, String]{Key: name + "_secure", Value: url})
 			}
 			return None[Pair[String, String]]()
-		}).
-		Collect()
+		})
 
-	validUrls.Println() // Map[github_secure:https://github.com google_secure:https://google.com]
+	validUrls.Collect().MapOrd[String, String]().Println() // MapOrd{github_secure:https://github.com, google_secure:https://google.com} (order varies)
 }

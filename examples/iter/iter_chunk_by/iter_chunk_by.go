@@ -49,7 +49,7 @@ func main() {
 	// Group consecutive employees with the same department
 	departmentGroups := employees.Iter().ChunkBy(func(a, b Person) bool {
 		return a.Department.Eq(b.Department)
-	}).Collect()
+	}).Collect().Slices()
 
 	for _, group := range departmentGroups {
 		if !group.IsEmpty() {
@@ -71,7 +71,7 @@ func main() {
 			return "experienced"
 		}
 		return ageCategory(a.Age) == ageCategory(b.Age)
-	}).Collect()
+	}).Collect().Slices()
 
 	for _, group := range ageGroups {
 		if !group.IsEmpty() {
@@ -102,7 +102,7 @@ func main() {
 	// Group consecutive transactions of the same type
 	transactionGroups := transactions.Iter().ChunkBy(func(a, b Transaction) bool {
 		return a.Type.Eq(b.Type)
-	}).Collect()
+	}).Collect().Slices()
 
 	for _, group := range transactionGroups {
 		if !group.IsEmpty() {
@@ -112,7 +112,7 @@ func main() {
 				total += t.Amount
 			}
 
-			Println("Type '{}': {} transactions, total amount: ${.RoundDecima(2)}", group[0].Type, group.Len(), total)
+			Println("Type '{}': {} transactions, total amount: ${}", group[0].Type, group.Len(), total.RoundDecimal(2))
 		}
 	}
 
@@ -135,7 +135,7 @@ func main() {
 	// Group consecutive log entries with the same severity level
 	logGroups := logs.Iter().ChunkBy(func(a, b LogEntry) bool {
 		return a.Level == b.Level
-	}).Collect()
+	}).Collect().Slices()
 
 	for _, group := range logGroups {
 		if !group.IsEmpty() {
@@ -152,7 +152,7 @@ func main() {
 	salaryTrendGroups := employees.Iter().ChunkBy(func(a, b Person) bool {
 		// Group while salary doesn't increase (descending or equal trend)
 		return a.Salary >= b.Salary
-	}).Collect()
+	}).Collect().Slices()
 
 	for i, group := range salaryTrendGroups {
 		Println("Group {} (salary trend):", i+1)
@@ -177,14 +177,14 @@ func main() {
 	nameGroups := employees.Iter().ChunkBy(func(a, b Person) bool {
 		// Group consecutive employees whose names start with the same letter
 		return a.Name[0] == b.Name[0]
-	}).Collect()
+	}).Collect().Slices()
 
 	for _, group := range nameGroups {
 		if !group.IsEmpty() {
 			firstLetter := string(group[0].Name[0])
 			Println("Names starting with '{}': {}", firstLetter, group.Len())
 			// Extract names and join them with commas
-			names := group.Iter().Map(func(person Person) String { return person.Name }).Collect().Join(", ")
+			names := group.Iter().Map(func(person Person) String { return person.Name }).Collect().Slice().Join(", ")
 			Println("  {}", names)
 		}
 	}

@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
-	"regexp"
+	"github.com/enetx/g/rand"
+
+	"github.com/enetx/g/rx"
 
 	. "github.com/enetx/g"
 	"github.com/enetx/g/cmp"
@@ -12,7 +14,7 @@ func main() {
 	// strings
 	str := NewString("") // declaration and assignation
 
-	String("").Random(9).Println()
+	rand.String(9).Println()
 	str.Hash().MD5().Println()
 
 	str.Compress().Flate().Decompress().Flate().Unwrap().Println()
@@ -42,7 +44,8 @@ func main() {
 	d := NewString("ddd")
 	e := NewString("eee")
 
-	str3 := a.ReplaceAll("a", "zzz").Upper().Fields().Collect().Random().Split("").Collect()[0].Lower().Std()
+	str3 := SliceOf(rand.Choice(SliceOf(a.ReplaceAll("a", "zzz").Upper().Fields()...).Iter().Collect().Slice()).UnwrapOrDefault().Split("")...).Iter().Collect().Slice()[0].Lower().
+		Std()
 
 	fmt.Println(str3)
 
@@ -54,10 +57,10 @@ func main() {
 	n.Binary().Println()
 	n.String().Println()
 
-	rn := NewInt(10).Random()
+	rn := rand.N(NewInt(10))
 	fmt.Println("random number: ", rn)
 
-	rrn := NewInt(10).RandomRange(100)
+	rrn := rand.RangeInclusive(NewInt(10), 100)
 	fmt.Println("random range number: ", rrn)
 
 	var n2 Int = 321
@@ -74,20 +77,20 @@ func main() {
 	// slices
 	sl := Slice[String]{a, b, c, d, e} // declaration and assignation
 
-	sl.Shuffle()
+	rand.Shuffle(sl)
 
 	fmt.Println(sl.Get(-1).Some() == "eee")
 	fmt.Println(sl.Get(1).Some() == "bbb")
 	fmt.Println(sl.Get(-2).Some() == "ddd")
 
-	sl.Iter().Map(String.Upper).Collect().Println()
+	sl.Iter().Map(String.Upper).Collect().Slice().Println()
 
 	slc := sl.Clone()
 	slc.Push(sl...)
 	slc.Push("ddd")
 
 	// Typed counter: keys stay String, first-seen order, no any casts.
-	counter := slc.Iter().CounterBy(func(s String) String { return s }).Collect()
+	counter := slc.Iter().CounterBy(func(s String) String { return s }).Collect().MapOrd[String, Int]()
 
 	counter.SortBy(func(a, b Pair[String, Int]) cmp.Ordering {
 		return b.Value.Cmp(a.Value).Then(a.Key.Cmp(b.Key))
@@ -99,7 +102,7 @@ func main() {
 
 	sl.Iter().ForEach(func(v String) { v.Println() })
 
-	sl = sl.Iter().Unique().Collect()
+	sl = sl.Iter().Unique().Collect().Slice()
 	sl.Reverse()
 
 	sl = sl.Iter().
@@ -108,11 +111,12 @@ func main() {
 				return s != "bbb"
 			},
 		).
-		Collect()
+		Collect().
+		Slice()
 
 	sl.Println()
 
-	fmt.Println(sl.Random())
+	fmt.Println(rand.Choice(sl).UnwrapOrDefault())
 
 	sl1 := SliceOf(1, 2, 3, 4, 5) // declaration and assignation
 
@@ -123,18 +127,18 @@ func main() {
 
 	fmt.Println(sl3.Last().Some().Count("b")) // 5
 
-	sl4 := SliceOf([]string{"root", "toor"}...).Random()
+	sl4 := rand.Choice(SliceOf([]string{"root", "toor"}...)).UnwrapOrDefault()
 	NewString(sl4).Upper().Println()
 
-	sl3.Iter().Map(func(s String) String { return s + "MAPMAPMAP" }).Collect().Println()
+	sl3.Iter().Map(func(s String) String { return s + "MAPMAPMAP" }).Collect().Slice().Println()
 
 	empsl := NewSlice[String]()
 	fmt.Println(empsl.IsEmpty())
 
 	// maps
 	m1 := Map[int, string](map[int]string{1: "root", 22: "toor"}) // declaration and assignation
-	m1.Iter().Values().Collect().Println()
-	m1.Iter().Keys().Collect().Println()
+	m1.Iter().Values().Collect().Slice().Println()
+	m1.Iter().Keys().Collect().Slice().Println()
 
 	m2 := NewMap[int, string]() // declaration and assignation
 
@@ -144,7 +148,7 @@ func main() {
 
 	m2.Remove(99)
 	m2.Println()
-	m2.Iter().Keys().Collect().Println()
+	m2.Iter().Keys().Collect().Slice().Println()
 
 	m2.Println()
 	fmt.Println(m2.Std())
@@ -183,7 +187,7 @@ func main() {
 	to.Encode().Octal().Println()
 	to.Encode().Octal().Decode().Octal().Unwrap().Println()
 
-	to.Encode().Binary().Chunks(8).Collect().Join(" ").Println()
+	SliceOf(to.Encode().Binary().Chunks(8)...).Iter().Collect().Slice().Join(" ").Println()
 	to.Encode().Binary().Decode().Binary().Unwrap().Println()
 
 	toi := Int(1234567890)
@@ -195,7 +199,7 @@ func main() {
 	ascii := String("💛💚💙💜")
 	fmt.Println(ascii.IsASCII())
 
-	match := NewString("some text").Regexp().Match(regexp.MustCompile(`\w+`))
+	match := rx.New(`\w+`).Unwrap().IsMatch(NewString("some text"))
 	fmt.Println(match)
 
 	fmt.Println(String("example.com").EndsWithAny(".com", ".net"))

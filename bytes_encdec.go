@@ -25,31 +25,31 @@ func (bs Bytes) Encode() bencode { return bencode{bs} }
 func (bs Bytes) Decode() bdecode { return bdecode{bs} }
 
 // Base64 encodes the wrapped Bytes using standard Base64 (with padding).
-func (e bencode) Base64() String {
+func (e bencode) Base64() Bytes {
 	out := make(Bytes, base64.StdEncoding.EncodedLen(len(e.bytes)))
 	base64.StdEncoding.Encode(out, e.bytes)
-	return out.StringUnsafe()
+	return out
 }
 
 // Base64Raw encodes the wrapped Bytes using standard Base64 without padding.
-func (e bencode) Base64Raw() String {
+func (e bencode) Base64Raw() Bytes {
 	out := make(Bytes, base64.RawStdEncoding.EncodedLen(len(e.bytes)))
 	base64.RawStdEncoding.Encode(out, e.bytes)
-	return out.StringUnsafe()
+	return out
 }
 
 // Base64URL encodes the wrapped Bytes using URL-safe Base64 (with padding).
-func (e bencode) Base64URL() String {
+func (e bencode) Base64URL() Bytes {
 	out := make(Bytes, base64.URLEncoding.EncodedLen(len(e.bytes)))
 	base64.URLEncoding.Encode(out, e.bytes)
-	return out.StringUnsafe()
+	return out
 }
 
 // Base64RawURL encodes the wrapped Bytes using URL-safe Base64 without padding.
-func (e bencode) Base64RawURL() String {
+func (e bencode) Base64RawURL() Bytes {
 	out := make(Bytes, base64.RawURLEncoding.EncodedLen(len(e.bytes)))
 	base64.RawURLEncoding.Encode(out, e.bytes)
-	return out.StringUnsafe()
+	return out
 }
 
 // Base64 decodes the wrapped Bytes as standard Base64 (with padding) and returns Result[Bytes].
@@ -135,8 +135,8 @@ func (e bencode) XOR(key Bytes) Bytes {
 // XOR decodes the wrapped Bytes using XOR cipher with the given key.
 func (d bdecode) XOR(key Bytes) Bytes { return d.bytes.Encode().XOR(key) }
 
-// Binary converts the wrapped Bytes to its binary representation as String.
-func (e bencode) Binary() String {
+// Binary converts the wrapped Bytes to its binary representation as Bytes.
+func (e bencode) Binary() Bytes {
 	var b Builder
 	b.Grow(e.bytes.Len() * 8)
 
@@ -146,7 +146,7 @@ func (e bencode) Binary() String {
 		}
 	}
 
-	return b.String()
+	return b.String().Bytes()
 }
 
 // Binary converts the wrapped binary Bytes back to raw Bytes as Result[Bytes].
@@ -207,8 +207,9 @@ func (d bdecode) JSON() Result[Bytes] {
 	return Ok(data.Bytes())
 }
 
-// URL encodes the wrapped Bytes, escaping reserved characters as per RFC 2396.
-// If safe characters are provided, they will not be encoded.
+// URL encodes the wrapped Bytes, leaving the RFC 2396 reserved characters
+// (";/?:@&=+$,") unescaped and query-escaping the rest. If safe characters are
+// provided, they replace that default set and will not be encoded.
 //
 // Unlike String.Encode().URL, which matches safe characters by rune, matching
 // here is byte-wise; with ASCII-only safe sets the output is identical to the
@@ -330,7 +331,7 @@ func (d bdecode) Octal() Result[Bytes] {
 
 	out := make(Bytes, 0, (len(d.bytes)+1)/2)
 
-	for v := range d.bytes.Split(Bytes(" ")) {
+	for _, v := range d.bytes.Split(Bytes(" ")) {
 		n, err := strconv.ParseUint(v.StringUnsafe().Std(), 8, 8)
 		if err != nil {
 			return Err[Bytes](err)

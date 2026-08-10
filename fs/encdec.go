@@ -1,9 +1,10 @@
-package g
+package fs
 
 import (
 	"encoding/gob"
-
 	json "encoding/json/v2"
+
+	"github.com/enetx/g"
 )
 
 type (
@@ -23,28 +24,28 @@ func (f *File) Decode() fdecode { return fdecode{f} }
 // Gob encodes the provided data using the encoding/gob package and writes it to the file.
 // It returns a Result[*File] indicating the success or failure of the encoding operation.
 //
-// If the encoding operation is successful, the created file is closed automatically.
+// The created file is closed automatically before the method returns.
 //
 // Usage:
 //
 //	data := g.SliceOf(1, 2, 3, 4)
-//	result := g.NewFile("somefile.gob").Encode().Gob(data)
+//	result := fs.NewFile("somefile.gob").Encode().Gob(data)
 //
 // Parameters:
 //   - data: The data to be encoded and written to the file.
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fe fencode) Gob(data any) Result[*File] {
+func (fe fencode) Gob(data any) g.Result[*File] {
 	r := fe.f.Create()
 	if r.IsErr() {
 		return r
 	}
 
-	defer r.v.Close()
+	defer r.Ok().Close()
 
-	if err := gob.NewEncoder(r.v.Std()).Encode(data); err != nil {
-		return Err[*File](err)
+	if err := gob.NewEncoder(r.Ok().Std()).Encode(data); err != nil {
+		return g.Err[*File](err)
 	}
 
 	return r
@@ -53,28 +54,28 @@ func (fe fencode) Gob(data any) Result[*File] {
 // Gob decodes data from the file using the encoding/gob package and populates the provided data structure.
 // It returns a Result[*File] indicating the success or failure of the decoding operation.
 //
-// If the decoding operation is successful, the file is closed automatically.
+// The file is closed automatically before the method returns.
 //
 // Usage:
 //
 //	var data g.Slice[int]
-//	result := g.NewFile("somefile.gob").Decode().Gob(&data)
+//	result := fs.NewFile("somefile.gob").Decode().Gob(&data)
 //
 // Parameters:
 //   - data: A pointer to the data structure where the decoded data will be stored.
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fd fdecode) Gob(data any) Result[*File] {
+func (fd fdecode) Gob(data any) g.Result[*File] {
 	r := fd.f.Open()
 	if r.IsErr() {
 		return r
 	}
 
-	defer r.v.Close()
+	defer r.Ok().Close()
 
-	if err := gob.NewDecoder(r.v.Std()).Decode(data); err != nil {
-		return Err[*File](err)
+	if err := gob.NewDecoder(r.Ok().Std()).Decode(data); err != nil {
+		return g.Err[*File](err)
 	}
 
 	return r
@@ -83,7 +84,7 @@ func (fd fdecode) Gob(data any) Result[*File] {
 // JSON encodes the provided data using the encoding/json/v2 package and writes it to the file.
 // It returns a Result[*File] indicating the success or failure of the encoding operation.
 //
-// If the encoding operation is successful, the created file is closed automatically.
+// The created file is closed automatically before the method returns.
 //
 // Breaking changes (v2 semantics) compared to the previous encoding/json v1 implementation:
 //   - nil slices are marshaled as [] and nil maps as {} (v1 emitted null for both);
@@ -94,23 +95,23 @@ func (fd fdecode) Gob(data any) Result[*File] {
 // Usage:
 //
 //	data := g.SliceOf(1, 2, 3, 4)
-//	result := g.NewFile("somefile.json").Encode().JSON(data)
+//	result := fs.NewFile("somefile.json").Encode().JSON(data)
 //
 // Parameters:
 //   - data: The data to be encoded and written to the file.
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fe fencode) JSON(data any) Result[*File] {
+func (fe fencode) JSON(data any) g.Result[*File] {
 	r := fe.f.Create()
 	if r.IsErr() {
 		return r
 	}
 
-	defer r.v.Close()
+	defer r.Ok().Close()
 
-	if err := json.MarshalWrite(r.v.Std(), data); err != nil {
-		return Err[*File](err)
+	if err := json.MarshalWrite(r.Ok().Std(), data); err != nil {
+		return g.Err[*File](err)
 	}
 
 	return r
@@ -119,7 +120,7 @@ func (fe fencode) JSON(data any) Result[*File] {
 // JSON decodes data from the file using the encoding/json/v2 package and populates the provided data structure.
 // It returns a Result[*File] indicating the success or failure of the decoding operation.
 //
-// If the decoding operation is successful, the file is closed automatically.
+// The file is closed automatically before the method returns.
 //
 // Breaking changes (v2 semantics) compared to the previous encoding/json v1 implementation:
 //   - duplicate object member names yield Err (v1 silently kept the last value);
@@ -131,23 +132,23 @@ func (fe fencode) JSON(data any) Result[*File] {
 // Usage:
 //
 //	var data g.Slice[int]
-//	result := g.NewFile("somefile.json").Decode().JSON(&data)
+//	result := fs.NewFile("somefile.json").Decode().JSON(&data)
 //
 // Parameters:
 //   - data: A pointer to the data structure where the decoded data will be stored.
 //
 // Returns:
 //   - Result[*File]: A Result containing a *File if the operation is successful; otherwise, an error Result.
-func (fd fdecode) JSON(data any) Result[*File] {
+func (fd fdecode) JSON(data any) g.Result[*File] {
 	r := fd.f.Open()
 	if r.IsErr() {
 		return r
 	}
 
-	defer r.v.Close()
+	defer r.Ok().Close()
 
-	if err := json.UnmarshalRead(r.v.Std(), data); err != nil {
-		return Err[*File](err)
+	if err := json.UnmarshalRead(r.Ok().Std(), data); err != nil {
+		return g.Err[*File](err)
 	}
 
 	return r

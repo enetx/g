@@ -10,8 +10,9 @@ import (
 )
 
 // The sniffer here is a verbatim copy of the standard library's, kept out of
-// the production closure so that root g does not import net/http. Only a test
-// may import net/http, so the equivalence is asserted here rather than assumed.
+// the production closure so that the fs package does not import net/http. Only
+// a test may import net/http, so the equivalence is asserted here rather than
+// assumed.
 //
 // If this ever fails, the copy has drifted from the toolchain: re-copy
 // sniff.go from GOROOT instead of patching it.

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/enetx/g/rand"
 	"time"
 
 	. "github.com/enetx/g"
@@ -42,7 +43,7 @@ func main() {
 	for taskID := range 10 {
 		p.Go(func() Result[int] {
 			// Simulate task execution with a random delay
-			time.Sleep(time.Duration(Int(500).RandomRange(1000)) * time.Millisecond)
+			time.Sleep(time.Duration(rand.RangeInclusive(Int(500), 1000)) * time.Millisecond)
 
 			// Simulate an error for task ID 2
 			if taskID == 2 {
@@ -60,9 +61,9 @@ func main() {
 		})
 	}
 
-	results := p.Wait().Collect() // Wait for all tasks to complete
-	<-metricsDone                 // Wait for the metrics goroutine to finish
-	results.Println()             // Print the results
+	results := p.Wait().Collect().Slice() // Wait for all tasks to complete
+	<-metricsDone                         // Wait for the metrics goroutine to finish
+	results.Println()                     // Print the results
 
 	if cause := p.Cause(); cause != nil {
 		fmt.Println("Pool was canceled due to:", cause)

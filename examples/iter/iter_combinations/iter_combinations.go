@@ -11,7 +11,7 @@ func main() {
 	slice := Slice[int]{0, 1, 2, 3}
 
 	// Get an iterator for the slice, generate combinations, and collect the result
-	perms := slice.Iter().Combinations(3).Collect()
+	perms := slice.Iter().Combinations(3).Collect().Slices()
 
 	// Iterate over the combinations and print each one
 	// 012 013 023 123
@@ -29,7 +29,8 @@ func main() {
 		Chain(p2.Iter()).
 		Map(String.Upper).
 		Combinations(2).
-		Collect()
+		Collect().
+		Slices()
 
 	// Iterate over the combinations and print each one
 	// AB AC AD BC BD CD

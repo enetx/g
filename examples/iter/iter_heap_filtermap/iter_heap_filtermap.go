@@ -15,7 +15,7 @@ func main() {
 			return Some(priority * 100) // Convert to high priority codes
 		}
 		return None[int]()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("High priority codes: ")
 	highPriorityTasks.Println()
@@ -29,7 +29,7 @@ func main() {
 			return Some(score) // Keep excellent scores
 		}
 		return None[int]()
-	}).Collect(cmp.Reverse)
+	}).Collect().Heap(cmp.Reverse)
 
 	Print("Excellent grades: ")
 	excellentGrades.Println()
@@ -43,7 +43,7 @@ func main() {
 			return Some(word)
 		}
 		return None[string]()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Long words: ")
 	longWords.Println()
@@ -57,7 +57,7 @@ func main() {
 			return Some(code)
 		}
 		return None[int]()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Error codes: ")
 	errorCodes.Println()
@@ -71,7 +71,7 @@ func main() {
 			return Some(celsius)
 		}
 		return None[int]()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Hot temperatures: ")
 	hotTemps.Println()
@@ -86,7 +86,7 @@ func main() {
 			return Some(userID)
 		}
 		return None[int]()
-	}).Collect(cmp.Cmp)
+	}).Collect().Heap(cmp.Cmp)
 
 	Print("Admin user IDs: ")
 	adminUserIDs.Println()
@@ -100,7 +100,7 @@ func main() {
 			return Some(sizeInKB)
 		}
 		return None[int]()
-	}).Collect(cmp.Reverse)
+	}).Collect().Heap(cmp.Reverse)
 
 	Print("Large file sizes: ")
 	largeSizes.Println()

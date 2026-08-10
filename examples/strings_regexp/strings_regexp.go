@@ -3,77 +3,61 @@ package main
 import (
 	"fmt"
 
-	. "github.com/enetx/g"
+	"github.com/enetx/g/rx"
 )
 
 func main() {
-	// Define a regular expression pattern
-	pattern := String(`(?m)(post-)(?:\d+)`).Regexp().Compile().Unwrap()
+	// Compile a pattern once, then run it against haystacks.
+	re := rx.New(`(?m)(post-)(?:\d+)`).Unwrap()
 
-	// Replace the first occurrence of the pattern in the string
-	String("post-55").Regexp().Replace(pattern, "${1}38").Println()
-	// Output: post-38
+	// Replace the first match; $-references expand capture groups.
+	re.Replace("post-55 post-66", "${1}38").Println() // post-38 post-66
 
-	// Find the first match of the pattern in the string
-	o := String("x post-55 x").Regexp().Find(pattern)
-	// Output: post-55
+	// ReplaceAll replaces every match.
+	re.ReplaceAll("post-55 post-66", "${1}38").Println() // post-38 post-38
 
-	// switch pattern
-	switch {
-	case o.IsSome():
-		o.Some().Println()
-	default:
-		fmt.Println("not found")
-	}
+	// Find returns the first match as an Option.
+	re.Find("x post-55 x").Some().Println() // post-55
 
-	// If no match is found, provide a default value
-	String("post-not-found").Regexp().Find(pattern).UnwrapOr("post-333").Println()
-	// Output: post-333
+	// A miss is None; UnwrapOr supplies a default.
+	re.Find("post-not-found").UnwrapOr("post-333").Println() // post-333
 
-	// Find all matches of the pattern in the string
-	String("some post-55 not found post-31 post-22").Regexp().FindAll(pattern).Unwrap().Println()
-	// Output: Slice[post-55, post-31, post-22]
+	// FindIter is a lazy sequence over all matches.
+	re.FindIter("some post-55 not found post-31 post-22").
+		Collect().
+		Slice().
+		Println()
+		// Slice[post-55, post-31, post-22]
 
-	// Find a specific number of matches of the pattern in the string
-	String("some post-55 not found post-31 post-22").Regexp().FindAllN(pattern, 2).Some().Println()
-	// Output: Slice[post-55, post-31]
+	// Iterator adapters compose before collection.
+	re.FindIter("some post-55 not found post-31 post-22").Take(2).Collect().Slice().Println() // Slice[post-55, post-31]
 
-	// Get the starting indices of the first match of the pattern in the string
-	String("post-55").Regexp().Index(pattern).Some().Println()
-	// Output: Slice[0, 7]
+	// Index reports the [start, end) offsets of the first match.
+	re.Index("post-55").Some().Println() // Slice[0, 7]
 
-	// Find the submatches of the first match of the pattern in the string
-	String("some post-55 not found post-31").Regexp().FindSubmatch(pattern).Some().Println()
-	// Output: Slice[post-55, post-]
+	// Captures returns the full match followed by capture groups.
+	re.Captures("some post-55 not found post-31").Some().Println() // Slice[post-55, post-]
 
-	// Find all submatches of the pattern in the string
-	String("some post-55 not found post-31 post-22").Regexp().FindAllSubmatch(pattern).Some().Println()
-	// Output: Slice[Slice[post-55, post-], Slice[post-31, post-], Slice[post-22, post-]]
+	// CapturesIter yields capture groups for every match.
+	re.CapturesIter("some post-55 not found post-31 post-22").
+		Collect().
+		Slice().
+		Println()
+		// Slice[Slice[post-55, post-], ...]
 
-	// Find a specific number of submatches of the pattern in the string
-	String("some post-55 not found post-31 post-22").Regexp().FindAllSubmatchN(pattern, 2).Some().Println()
-	// Output: Slice[Slice[post-55, post-], Slice[post-31, post-]]
+	// Split slices the haystack around matches.
+	spaces := rx.New(`\s`).Unwrap()
+	digits := rx.New(`\d`).Unwrap()
 
-	patterns := String(`\s`).Regexp().Compile().Unwrap()
-	patternd := String(`\d`).Regexp().Compile().Unwrap()
+	spaces.Split("some test for split n").Collect().Slice().Println() // Slice[some, test, for, split, n]
 
-	// Split the string using the regular expression pattern
-	String("some test for split n").Regexp().Split(patterns).Println()
-	// Output: Slice[some, test, for, split, n]
+	// SplitN keeps the unsplit remainder in the last element.
+	spaces.SplitN("some test for split n", 2).Collect().Slice().Println() // Slice[some, test for split n]
 
-	// Split the string using the regular expression pattern, limiting the number of splits
-	String("some test for split n").Regexp().SplitN(patterns, 2).Some().Println()
-	// Output: Slice[some, test for split n]
+	// IsMatch reports whether the pattern matches.
+	fmt.Println(spaces.IsMatch("some test")) // true
 
-	// Check if the string contains a match of the regular expression
-	fmt.Println(String("some test").Regexp().Match(patterns))
-	// Output: true
-
-	// Check if the string contains matches for all the provided regular expressions
-	fmt.Println(String("some test 1").Regexp().MatchAll(patterns, patternd))
-	// Output: true
-
-	// Check if the string contains a match for any of the provided regular expressions
-	fmt.Println(String("some test").Regexp().MatchAny(patterns, patternd))
-	// Output: true
+	// MatchAll / MatchAny take several compiled patterns.
+	fmt.Println(rx.MatchAll("some test 1", spaces, digits)) // true
+	fmt.Println(rx.MatchAny("some_test", spaces, digits))   // false
 }

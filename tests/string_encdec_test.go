@@ -1,6 +1,7 @@
 package g_test
 
 import (
+	"github.com/enetx/g/rand"
 	"testing"
 
 	. "github.com/enetx/g"
@@ -147,8 +148,8 @@ func TestStringRot13Decoding(t *testing.T) {
 
 func TestStringXOR(t *testing.T) {
 	for range 100 {
-		input := String("").Random(Int(30).RandomRange(100))
-		key := String("").Random(10)
+		input := rand.String(rand.RangeInclusive(Int(30), 100))
+		key := rand.String(10)
 		obfuscated := input.Encode().XOR(key)
 		deobfuscated := obfuscated.Decode().XOR(key)
 

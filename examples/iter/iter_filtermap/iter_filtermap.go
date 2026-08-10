@@ -17,6 +17,7 @@ func main() {
 			return None[String]()
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[1_valid, 2_valid, 3_valid, 4_valid]
 
 	// Example 2: FilterMap to get positive doubled values
@@ -30,6 +31,7 @@ func main() {
 			return None[int]()
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[2, 6, 10]
 
 	// Example 3: FilterMap to extract valid email domains
@@ -37,13 +39,14 @@ func main() {
 		Iter().
 		FilterMap(func(email String) Option[String] {
 			// Extract domain if email contains @
-			parts := email.Split("@").Collect()
+			parts := SliceOf(email.Split("@")...).Iter().Collect().Slice()
 			if parts.Len() == 2 {
 				return Some(parts[1])
 			}
 			return None[String]()
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[example.com, test.org]
 
 	// Example 4: FilterMap to calculate safe division
@@ -63,6 +66,7 @@ func main() {
 			return None[Pair[int, int]]()
 		}).
 		Collect().
+		Slice().
 		Println()
 		// Results for safe divisions
 
@@ -78,6 +82,7 @@ func main() {
 			return None[String]()
 		}).
 		Collect().
+		Slice().
 		Println() // Slice[HELLO, WORLD, GO]
 
 	// FilterMap can also change the element type: parse and filter in one
@@ -86,6 +91,7 @@ func main() {
 		Iter().
 		FilterMap(func(s String) Option[Int] { return s.TryInt().Option() }).
 		Collect().
+		Slice().
 		Println() // Slice[10, 20, 30]
 
 }

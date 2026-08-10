@@ -1,16 +1,13 @@
 // Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
 
 // Package mimesniff is a verbatim copy of the Go standard library's content
 // sniffer (`net/http/internal/sniff.go`), reproduced here under the Go BSD-3
-// licence; see LICENSE-go in the repository root.
+// licence; see the Go Authors copyright header at the top of this file.
 //
-// It exists so that File.MimeType does not have to import net/http. That one
-// import pulled crypto/tls, crypto/x509 and the whole FIPS-140 tree into the
-// dependency closure of the root g package — and therefore into every package
-// that imports g for nothing more than a Slice. The sniffer itself needs only
-// bytes and encoding/binary.
+// It exists so that fs.File.MimeType does not have to import net/http. That
+// one import would pull crypto/tls, crypto/x509 and the whole FIPS-140 tree
+// into the dependency closure of the fs package and everything that imports
+// it. The sniffer itself needs only bytes and encoding/binary.
 //
 // Keep this file a verbatim copy: it implements https://mimesniff.spec.whatwg.org/
 // and any local edit silently diverges File.MimeType from net/http's result.

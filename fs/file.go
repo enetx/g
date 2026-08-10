@@ -1,4 +1,6 @@
-package g
+// Package fs provides chainable, Result-based filesystem operations (File, Dir),
+// including lazy SeqResult iterators over file lines and chunks.
+package fs
 
 import (
 	"bufio"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/enetx/g"
 	"github.com/enetx/g/internal/filelock"
 	"github.com/enetx/g/internal/mimesniff"
 )
@@ -17,10 +20,10 @@ import (
 // when the requested chunk size is not positive.
 var errChunkSize = errors.New("chunk size must be > 0")
 
-// File is a struct that represents a file along with an iterator for reading lines.
+// File is a struct that represents a file.
 type File struct {
 	file  *os.File // Underlying os.File.
-	name  String   // File name.
+	name  g.String // File name.
 	guard bool     // Guard indicates whether the file is protected against concurrent access.
 }
 
@@ -39,7 +42,7 @@ func (r fileReader) Close() error {
 }
 
 // NewFile returns a new File instance with the given name.
-func NewFile[T ~string](name T) *File { return &File{name: String(name)} }
+func NewFile[T ~string](name T) *File { return &File{name: g.String(name)} }
 
 // Lines returns a new iterator instance that can be used to read the file
 // line by line.
@@ -47,26 +50,23 @@ func NewFile[T ~string](name T) *File { return &File{name: String(name)} }
 // Example usage:
 //
 //	// Open a new file with the specified name "text.txt"
-//	g.NewFile("text.txt").
+//	fs.NewFile("text.txt").
 //		Lines().                 // Read the file line by line
 //		Skip(3).                 // Skip the first 3 lines
-//		Exclude(f.Zero).         // Exclude lines that are empty or contain only whitespaces
+//		Exclude(f.IsZero).       // Exclude empty lines
 //		Dedup().                 // Remove consecutive duplicate lines
 //		Map(g.String.Upper).     // Convert each line to uppercase
-//		ForEach(                 // For each line, print it
-//			func(func(s Result[String]) {
-//				s.Ok().Print()
-//			})
+//		ForEach(func(s g.Result[g.String]) { s.Ok().Print() }) // For each line, print it
 //
 //	// Output:
 //	// UPPERCASED_LINE4
 //	// UPPERCASED_LINE5
 //	// UPPERCASED_LINE6
-func (f *File) Lines() SeqResult[String] {
-	return func(yield func(Result[String]) bool) {
+func (f *File) Lines() g.SeqResult[g.String] {
+	return func(yield func(g.Result[g.String]) bool) {
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[String](r.err))
+				yield(g.Err[g.String](r.Err()))
 				return
 			}
 		}
@@ -77,13 +77,13 @@ func (f *File) Lines() SeqResult[String] {
 		scanner.Split(bufio.ScanLines)
 
 		for scanner.Scan() {
-			if !yield(Ok(String(scanner.Text()))) {
+			if !yield(g.Ok(g.String(scanner.Text()))) {
 				return
 			}
 		}
 
 		if err := scanner.Err(); err != nil {
-			yield(Err[String](err))
+			yield(g.Err[g.String](err))
 			return
 		}
 	}
@@ -101,7 +101,7 @@ func (f *File) Lines() SeqResult[String] {
 //
 // Example usage:
 //
-//	g.NewFile("text.txt").
+//	fs.NewFile("text.txt").
 //		LinesRaw().                // Read raw byte lines
 //		Filter(func(b g.Bytes) bool {
 //			return len(b) > 0
@@ -116,11 +116,11 @@ func (f *File) Lines() SeqResult[String] {
 // ...
 //
 // Note: Each line is copied before yielding to avoid scanner buffer reuse issues.
-func (f *File) LinesRaw() SeqResult[Bytes] {
-	return func(yield func(Result[Bytes]) bool) {
+func (f *File) LinesRaw() g.SeqResult[g.Bytes] {
+	return func(yield func(g.Result[g.Bytes]) bool) {
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[Bytes](r.err))
+				yield(g.Err[g.Bytes](r.Err()))
 				return
 			}
 		}
@@ -131,15 +131,15 @@ func (f *File) LinesRaw() SeqResult[Bytes] {
 		scanner.Split(bufio.ScanLines)
 
 		for scanner.Scan() {
-			line := make(Bytes, len(scanner.Bytes()))
+			line := make(g.Bytes, len(scanner.Bytes()))
 			copy(line, scanner.Bytes())
-			if !yield(Ok(line)) {
+			if !yield(g.Ok(line)) {
 				return
 			}
 		}
 
 		if err := scanner.Err(); err != nil {
-			yield(Err[Bytes](err))
+			yield(g.Err[g.Bytes](err))
 			return
 		}
 	}
@@ -155,28 +155,25 @@ func (f *File) LinesRaw() SeqResult[Bytes] {
 // Example usage:
 //
 //	// Open a new file with the specified name "text.txt"
-//	g.NewFile("text.txt").
+//	fs.NewFile("text.txt").
 //		Chunks(100).              // Read the file in chunks of 100 bytes
 //		Map(g.String.Upper).      // Convert each chunk to uppercase
-//		ForEach(                  // For each line, print it
-//			func(func(s Result[String]) {
-//				s.Ok().Print()
-//			})
+//		ForEach(func(s g.Result[g.String]) { s.Ok().Print() }) // For each chunk, print it
 //
 //	// Output:
 //	// UPPERCASED_CHUNK1
 //	// UPPERCASED_CHUNK2
 //	// UPPERCASED_CHUNK3
-func (f *File) Chunks(size Int) SeqResult[String] {
-	return func(yield func(Result[String]) bool) {
+func (f *File) Chunks(size g.Int) g.SeqResult[g.String] {
+	return func(yield func(g.Result[g.String]) bool) {
 		if size.Lte(0) {
-			yield(Err[String](errChunkSize))
+			yield(g.Err[g.String](errChunkSize))
 			return
 		}
 
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[String](r.err))
+				yield(g.Err[g.String](r.Err()))
 				return
 			}
 		}
@@ -188,7 +185,7 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 		for {
 			n, err := f.file.Read(buffer)
 			if err != nil && err != io.EOF {
-				yield(Err[String](err))
+				yield(g.Err[g.String](err))
 				return
 			}
 
@@ -196,7 +193,7 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 				break
 			}
 
-			if !yield(Ok(String(buffer[:n]))) {
+			if !yield(g.Ok(g.String(buffer[:n]))) {
 				return
 			}
 		}
@@ -219,7 +216,7 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 //
 // Example usage:
 //
-//	g.NewFile("text.txt").
+//	fs.NewFile("text.txt").
 //		ChunksRaw(128).            // Read raw 128-byte chunks
 //		ForEach(func(chunk g.Result[g.Bytes]) {
 //			chunk.Ok().Print()
@@ -231,16 +228,16 @@ func (f *File) Chunks(size Int) SeqResult[String] {
 // ...
 //
 // Note: Each chunk is copied from the buffer to ensure memory safety.
-func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
-	return func(yield func(Result[Bytes]) bool) {
+func (f *File) ChunksRaw(size g.Int) g.SeqResult[g.Bytes] {
+	return func(yield func(g.Result[g.Bytes]) bool) {
 		if size.Lte(0) {
-			yield(Err[Bytes](errChunkSize))
+			yield(g.Err[g.Bytes](errChunkSize))
 			return
 		}
 
 		if f.file == nil {
 			if r := f.Open(); r.IsErr() {
-				yield(Err[Bytes](r.err))
+				yield(g.Err[g.Bytes](r.Err()))
 				return
 			}
 		}
@@ -252,7 +249,7 @@ func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
 		for {
 			n, err := f.file.Read(buf)
 			if err != nil && err != io.EOF {
-				yield(Err[Bytes](err))
+				yield(g.Err[g.Bytes](err))
 				return
 			}
 
@@ -260,10 +257,10 @@ func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
 				break
 			}
 
-			chunk := make(Bytes, n)
+			chunk := make(g.Bytes, n)
 			copy(chunk, buf[:n])
 
-			if !yield(Ok(chunk)) {
+			if !yield(g.Ok(chunk)) {
 				return
 			}
 		}
@@ -273,13 +270,13 @@ func (f *File) ChunksRaw(size Int) SeqResult[Bytes] {
 // Append appends the given content to the file, with the specified mode (optional).
 // If no FileMode is provided, the default FileMode (0644) is used.
 // Don't forget to close the file!
-func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
+func (f *File) Append(content g.String, mode ...os.FileMode) g.Result[*File] {
 	if f.file == nil {
 		if r := f.createAll(); r.IsErr() {
 			return r
 		}
 
-		fmode := os.FileMode(FileDefault)
+		fmode := os.FileMode(g.FileDefault)
 		if len(mode) > 0 {
 			fmode = mode[0]
 		}
@@ -290,14 +287,14 @@ func (f *File) Append(content String, mode ...os.FileMode) Result[*File] {
 	}
 
 	if _, err := f.file.WriteString(content.Std()); err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Chmod changes the mode of the file.
-func (f *File) Chmod(mode os.FileMode) Result[*File] {
+func (f *File) Chmod(mode os.FileMode) g.Result[*File] {
 	var err error
 	if f.file != nil {
 		err = f.file.Chmod(mode)
@@ -306,14 +303,14 @@ func (f *File) Chmod(mode os.FileMode) Result[*File] {
 	}
 
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Chown changes the owner of the file.
-func (f *File) Chown(uid, gid int) Result[*File] {
+func (f *File) Chown(uid, gid int) g.Result[*File] {
 	var err error
 	if f.file != nil {
 		err = f.file.Chown(uid, gid)
@@ -322,10 +319,10 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 	}
 
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Seek sets the file offset for the next Read or Write operation. The offset
@@ -344,7 +341,7 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 //
 // Example:
 //
-//	file := g.NewFile("example.txt")
+//	file := fs.NewFile("example.txt")
 //	result := file.Seek(100, io.SeekStart)
 //	if result.Err() != nil {
 //	    log.Fatal(result.Err())
@@ -355,7 +352,7 @@ func (f *File) Chown(uid, gid int) Result[*File] {
 //   - whence: The reference point for the offset (io.SeekStart, io.SeekCurrent, or io.SeekEnd).
 //
 // Don't forget to close the file!
-func (f *File) Seek(offset int64, whence int) Result[*File] {
+func (f *File) Seek(offset int64, whence int) g.Result[*File] {
 	if f.file == nil {
 		if r := f.Open(); r.IsErr() {
 			return r
@@ -364,10 +361,10 @@ func (f *File) Seek(offset int64, whence int) Result[*File] {
 
 	if _, err := f.file.Seek(offset, whence); err != nil {
 		f.Close()
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Close closes the File and unlocks its underlying file, if it is not already closed.
@@ -393,7 +390,7 @@ func (f *File) Close() error {
 
 // Copy copies the file to the specified destination, with the specified mode (optional).
 // If no mode is provided, the default FileMode (0644) is used.
-func (f *File) Copy(dest String, mode ...os.FileMode) Result[*File] {
+func (f *File) Copy(dest g.String, mode ...os.FileMode) g.Result[*File] {
 	if r := f.Open(); r.IsErr() {
 		return r
 	}
@@ -408,20 +405,20 @@ func (f *File) Copy(dest String, mode ...os.FileMode) Result[*File] {
 	return nf.WriteFromReader(f.file, mode...)
 }
 
-// Create is similar to os.Create, but it returns a write-locked file.
+// Create is similar to os.Create; if the file is guarded, the returned file is write-locked.
 // Don't forget to close the file!
-func (f *File) Create() Result[*File] {
-	return f.OpenFile(os.O_RDWR|os.O_CREATE|os.O_TRUNC, FileCreate)
+func (f *File) Create() g.Result[*File] {
+	return f.OpenFile(os.O_RDWR|os.O_CREATE|os.O_TRUNC, g.FileCreate)
 }
 
-// Dir returns the directory the file is in as an Dir instance.
-func (f *File) Dir() Result[*Dir] {
+// Dir returns the directory the file is in as a Dir instance.
+func (f *File) Dir() g.Result[*Dir] {
 	dirPath := f.dirPath()
 	if dirPath.IsErr() {
-		return Err[*Dir](dirPath.err)
+		return g.Err[*Dir](dirPath.Err())
 	}
 
-	return Ok(NewDir(dirPath.v))
+	return g.Ok(NewDir(dirPath.Ok()))
 }
 
 // Exists checks if the file exists.
@@ -431,7 +428,7 @@ func (f *File) Exists() bool {
 }
 
 // Ext returns the file extension.
-func (f *File) Ext() String { return String(filepath.Ext(f.name.Std())) }
+func (f *File) Ext() g.String { return g.String(filepath.Ext(f.name.Std())) }
 
 // Guard sets a lock on the file to protect it from concurrent access.
 // It returns the File instance with the guard enabled.
@@ -441,9 +438,9 @@ func (f *File) Guard() *File {
 }
 
 // MimeType returns the MIME type of the file as Result[String].
-func (f *File) MimeType() Result[String] {
+func (f *File) MimeType() g.Result[g.String] {
 	if r := f.Open(); r.IsErr() {
-		return Err[String](r.err)
+		return g.Err[g.String](r.Err())
 	}
 
 	defer f.Close()
@@ -452,38 +449,35 @@ func (f *File) MimeType() Result[String] {
 
 	bytesRead, err := f.file.ReadAt(buff, 0)
 	if err != nil && err != io.EOF {
-		return Err[String](err)
+		return g.Err[g.String](err)
 	}
 
 	buff = buff[:bytesRead]
 
-	return Ok(String(mimesniff.DetectContentType(buff)))
+	return g.Ok(g.String(mimesniff.DetectContentType(buff)))
 }
-
-// Move function simply calls [File.Rename]
-func (f *File) Move(newpath String) Result[*File] { return f.Rename(newpath) }
 
 // Name returns the name of the file.
-func (f *File) Name() String {
+func (f *File) Name() g.String {
 	if f.file != nil {
-		return String(filepath.Base(f.file.Name()))
+		return g.String(filepath.Base(f.file.Name()))
 	}
 
-	return String(filepath.Base(f.name.Std()))
+	return g.String(filepath.Base(f.name.Std()))
 }
 
-// Open is like os.Open, but returns a read-locked file.
+// Open is like os.Open; if the file is guarded, the returned file is read-locked.
 // Don't forget to close the file!
-func (f *File) Open() Result[*File] { return f.OpenFile(os.O_RDONLY, 0) }
+func (f *File) Open() g.Result[*File] { return f.OpenFile(os.O_RDONLY, 0) }
 
-// OpenFile is like os.OpenFile, but returns a locked file.
-// If flag includes os.O_WRONLY or os.O_RDWR, the file is write-locked
+// OpenFile is like os.OpenFile; if the file is guarded, the returned file is locked.
+// If flag includes os.O_WRONLY or os.O_RDWR, the file is write-locked;
 // otherwise, it is read-locked.
 // Don't forget to close the file!
-func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
+func (f *File) OpenFile(flag int, perm fs.FileMode) g.Result[*File] {
 	file, err := os.OpenFile(f.name.Std(), flag&^os.O_TRUNC, perm)
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
 	if f.guard {
@@ -496,7 +490,7 @@ func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
 
 		if err != nil {
 			file.Close()
-			return Err[*File](err)
+			return g.Err[*File](err)
 		}
 	}
 
@@ -509,7 +503,7 @@ func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
 
 				file.Close()
 
-				return Err[*File](err)
+				return g.Err[*File](err)
 			}
 		}
 	}
@@ -527,11 +521,11 @@ func (f *File) OpenFile(flag int, perm fs.FileMode) Result[*File] {
 
 	f.file = file
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Path returns the absolute path of the file.
-func (f *File) Path() Result[String] { return f.filePath() }
+func (f *File) Path() g.Result[g.String] { return f.filePath() }
 
 // Print writes the content of the File to the standard output (console)
 // and returns the File unchanged.
@@ -541,48 +535,48 @@ func (f *File) Print() *File { fmt.Print(f.Read().UnwrapOrDefault()); return f }
 // and returns the File unchanged.
 func (f *File) Println() *File { fmt.Println(f.Read().UnwrapOrDefault()); return f }
 
-// Read opens the named file with a read-lock and returns its contents.
-func (f *File) Read() Result[String] {
+// Read opens the named file (read-locked if the file is guarded) and returns its contents.
+func (f *File) Read() g.Result[g.String] {
 	if r := f.Open(); r.IsErr() {
-		return Err[String](r.err)
+		return g.Err[g.String](r.Err())
 	}
 
 	defer f.Close()
 
 	content, err := io.ReadAll(f.file)
 	if err != nil {
-		return Err[String](err)
+		return g.Err[g.String](err)
 	}
 
-	return Ok(String(content))
+	return g.Ok(g.String(content))
 }
 
 // Reader returns an io.ReadCloser for reading the file's contents.
 // If the file is not already open, it attempts to open it automatically.
 // The caller is responsible for closing the returned reader to release system resources.
-func (f *File) Reader() Result[io.ReadCloser] {
+func (f *File) Reader() g.Result[io.ReadCloser] {
 	if f.file == nil {
 		if r := f.Open(); r.IsErr() {
-			return Err[io.ReadCloser](r.err)
+			return g.Err[io.ReadCloser](r.Err())
 		}
 	}
 
-	return Ok[io.ReadCloser](fileReader{owner: f, file: f.file})
+	return g.Ok[io.ReadCloser](fileReader{owner: f, file: f.file})
 }
 
 // Remove removes the file.
-func (f *File) Remove() Result[*File] {
+func (f *File) Remove() g.Result[*File] {
 	if err := os.Remove(f.name.Std()); err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // Rename renames the file to the specified new path.
-func (f *File) Rename(newpath String) Result[*File] {
+func (f *File) Rename(newpath g.String) g.Result[*File] {
 	if !f.Exists() {
-		return Err[*File](&ErrFileNotExist{f.name.Std()})
+		return g.Err[*File](&ErrFileNotExist{f.name.Std()})
 	}
 
 	nf := NewFile(newpath)
@@ -595,10 +589,10 @@ func (f *File) Rename(newpath String) Result[*File] {
 	}
 
 	if err := os.Rename(f.name.Std(), newpath.Std()); err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(nf)
+	return g.Ok(nf)
 }
 
 // Split splits the file path into its directory and file components.
@@ -608,42 +602,42 @@ func (f *File) Split() (*Dir, *File) {
 		return nil, nil
 	}
 
-	dir, file := filepath.Split(path.v.Std())
+	dir, file := filepath.Split(path.Ok().Std())
 
-	return NewDir(String(dir)), NewFile(String(file))
+	return NewDir(g.String(dir)), NewFile(g.String(file))
 }
 
 // Stat returns the fs.FileInfo of the file.
 // It calls the file's Stat method if the file is open, or os.Stat otherwise.
-func (f *File) Stat() Result[fs.FileInfo] {
+func (f *File) Stat() g.Result[fs.FileInfo] {
 	if f.file != nil {
-		return ResultOf(f.file.Stat())
+		return g.ResultOf(f.file.Stat())
 	}
 
-	return ResultOf(os.Stat(f.name.Std()))
+	return g.ResultOf(os.Stat(f.name.Std()))
 }
 
 // Lstat retrieves information about the symbolic link represented by the *File instance.
 // It returns a Result[fs.FileInfo] containing details about the symbolic link's metadata.
 // Unlike Stat, Lstat does not follow the link and provides information about the link itself.
-func (f *File) Lstat() Result[fs.FileInfo] {
-	return ResultOf(os.Lstat(f.name.Std()))
+func (f *File) Lstat() g.Result[fs.FileInfo] {
+	return g.ResultOf(os.Lstat(f.name.Std()))
 }
 
 // IsDir checks if the file is a directory.
 func (f *File) IsDir() bool {
 	stat := f.Stat()
-	return stat.IsOk() && stat.v.IsDir()
+	return stat.IsOk() && stat.Ok().IsDir()
 }
 
 // IsLink checks if the file is a symbolic link.
 func (f *File) IsLink() bool {
 	stat := f.Lstat()
-	return stat.IsOk() && stat.v.Mode()&os.ModeSymlink != 0
+	return stat.IsOk() && stat.Ok().Mode()&os.ModeSymlink != 0
 }
 
 // Std returns the underlying *os.File instance.
-// Don't forget to close the file with g.File().Close()!
+// Don't forget to close the file with Close!
 func (f *File) Std() *os.File { return f.file }
 
 // CreateTemp creates a new temporary file in the specified directory with the
@@ -663,11 +657,12 @@ func (f *File) Std() *os.File { return f.file }
 //
 // Example usage:
 //
-//	f := g.NewFile("")
-//	tmpfile := f.CreateTemp()                     // Creates a temporary file with default settings
-//	tmpfileWithDir := f.CreateTemp("mydir")       // Creates a temporary file in "mydir" directory
-//	tmpfileWithPattern := f.CreateTemp("", "tmp") // Creates a temporary file with "tmp" pattern
-func (f *File) CreateTemp(args ...String) Result[*File] {
+//	tmpfile := fs.CreateTempFile()                     // Creates a temporary file with default settings
+//	tmpfileWithDir := fs.CreateTempFile("mydir")       // Creates a temporary file in "mydir" directory
+//	tmpfileWithPattern := fs.CreateTempFile("", "tmp") // Creates a temporary file with "tmp" pattern
+//
+// Call .Guard() on the result to lock it; no guard state is set implicitly.
+func CreateTempFile(args ...g.String) g.Result[*File] {
 	dir := ""
 	pattern := "*"
 
@@ -681,38 +676,27 @@ func (f *File) CreateTemp(args ...String) Result[*File] {
 
 	tmpfile, err := os.CreateTemp(dir, pattern)
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	ntmpfile := NewFile(String(tmpfile.Name()))
+	ntmpfile := NewFile(g.String(tmpfile.Name()))
 	ntmpfile.file = tmpfile
-
-	if f.guard {
-		ntmpfile.guard = true
-
-		// os.CreateTemp returns an unlocked descriptor; acquire the advisory
-		// lock so the deferred Close's Unlock has a registered lock to release
-		// (otherwise fcntl platforms panic in unlock).
-		if err := filelock.Lock(tmpfile); err != nil {
-			tmpfile.Close()
-			return Err[*File](err)
-		}
-	}
 
 	defer ntmpfile.Close()
 
-	return Ok(ntmpfile)
+	return g.Ok(ntmpfile)
 }
 
-// Write opens the named file (creating it with the given permissions if needed),
-// then write-locks it and overwrites it with the given content.
-func (f *File) Write(content String, mode ...os.FileMode) Result[*File] {
+// Write opens the named file (creating it with the given permissions if needed)
+// and overwrites it with the given content; if the file is guarded, it is
+// write-locked while writing.
+func (f *File) Write(content g.String, mode ...os.FileMode) g.Result[*File] {
 	return f.WriteFromReader(content.Reader(), mode...)
 }
 
 // WriteFromReader takes an io.Reader (scr) as input and writes the data from the reader into the file.
 // If no FileMode is provided, the default FileMode (0644) is used.
-func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File] {
+func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) g.Result[*File] {
 	if f.file == nil {
 		if r := f.createAll(); r.IsErr() {
 			return r
@@ -721,75 +705,74 @@ func (f *File) WriteFromReader(scr io.Reader, mode ...os.FileMode) Result[*File]
 
 	filePath := f.filePath()
 	if filePath.IsErr() {
-		return Err[*File](filePath.err)
+		return g.Err[*File](filePath.Err())
 	}
 
-	fmode := os.FileMode(FileDefault)
+	fmode := os.FileMode(g.FileDefault)
 	if len(mode) > 0 {
 		fmode = mode[0]
 	}
 
 	if r := f.OpenFile(os.O_WRONLY|os.O_CREATE|os.O_TRUNC, fmode); r.IsErr() {
-		return Err[*File](r.err)
+		return g.Err[*File](r.Err())
 	}
 
 	defer f.Close()
 
 	_, err := io.Copy(f.file, scr)
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
 	err = f.file.Sync()
 	if err != nil {
-		return Err[*File](err)
+		return g.Err[*File](err)
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }
 
 // dirPath returns the absolute path of the directory containing the file.
-func (f *File) dirPath() Result[String] {
+func (f *File) dirPath() g.Result[g.String] {
 	name := f.name.Std()
 	if info, err := os.Stat(name); err == nil && info.IsDir() {
 		path, err := filepath.Abs(name)
 		if err != nil {
-			return Err[String](err)
+			return g.Err[g.String](err)
 		}
 
-		return Ok(String(path))
+		return g.Ok(g.String(path))
 	}
 
 	path, err := filepath.Abs(filepath.Dir(name))
-
 	if err != nil {
-		return Err[String](err)
+		return g.Err[g.String](err)
 	}
 
-	return Ok(String(path))
+	return g.Ok(g.String(path))
 }
 
 // filePath returns the full file path, including the directory and file name.
-func (f *File) filePath() Result[String] {
+func (f *File) filePath() g.Result[g.String] {
 	path, err := filepath.Abs(f.name.Std())
 	if err != nil {
-		return Err[String](err)
+		return g.Err[g.String](err)
 	}
 
-	return Ok(String(path))
+	return g.Ok(g.String(path))
 }
 
-func (f *File) createAll() Result[*File] {
+func (f *File) createAll() g.Result[*File] {
 	dirPath := f.dirPath()
 	if dirPath.IsErr() {
-		return Err[*File](dirPath.err)
+		return g.Err[*File](dirPath.Err())
 	}
 
 	if !f.Exists() {
-		if err := os.MkdirAll(dirPath.v.Std(), DirDefault); err != nil {
-			return Err[*File](err)
+		if err := os.MkdirAll(dirPath.Ok().Std(), g.DirDefault); err != nil {
+			return g.Err[*File](err)
 		}
 	}
 
-	return Ok(f)
+	return g.Ok(f)
 }

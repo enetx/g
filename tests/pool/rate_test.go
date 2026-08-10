@@ -198,7 +198,7 @@ func TestRate_Wait_OnlyRate_NoLimit(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 10 {
 		t.Errorf("expected 10 results, got %d", len(results))
 	}
@@ -237,7 +237,7 @@ func TestRate_Wait_ContextTimeout(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) >= 5 {
 		t.Errorf("expected few results before timeout, got %d", len(results))
@@ -254,7 +254,7 @@ func TestRate_ContextKeepsLimiterRunning(t *testing.T) {
 	p.Go(func() Result[int] { return Ok(1) })
 	p.Go(func() Result[int] { return Ok(2) })
 
-	if got := len(p.Wait().Collect()); got != 2 {
+	if got := len(p.Wait().Collect().Slice()); got != 2 {
 		t.Fatalf("expected limiter to continue after Context, got %d results", got)
 	}
 }
@@ -304,7 +304,7 @@ func TestRate_Wait_ContextAlreadyCanceled(t *testing.T) {
 
 	p.Go(func() Result[int] { return Ok(1) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 0 {
 		t.Errorf("expected 0 results with pre-canceled context, got %d", len(results))
@@ -320,7 +320,7 @@ func TestRate_Wait_CancelOnError(t *testing.T) {
 	p.Go(func() Result[int] { return Err[int](errors.New("boom")) })
 	p.Go(func() Result[int] { return Ok(3) })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) >= 3 {
 		t.Errorf("expected early cancellation, got %d results", len(results))
@@ -395,7 +395,7 @@ func TestRate_Wait_CancelOn(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) >= 100 {
 		t.Errorf("expected early cancellation, got all %d results", len(results))
@@ -451,7 +451,7 @@ func TestRate_Wait_NilFunction(t *testing.T) {
 
 	p.Go(nil)
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
@@ -469,7 +469,7 @@ func TestRate_Wait_Panic(t *testing.T) {
 
 	p.Go(func() Result[int] { panic("rate panic") })
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
@@ -552,7 +552,7 @@ func TestRate_ZeroRemovesLimit(t *testing.T) {
 	for i := range 10 {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 10 {
 		t.Errorf("expected 10 results, got %d", len(results))
@@ -569,7 +569,7 @@ func TestRate_NegativeRemovesLimit(t *testing.T) {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
 
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 5 {
 		t.Errorf("expected 5 results, got %d", len(results))
 	}
@@ -584,7 +584,7 @@ func TestRate_ReplaceStopsOldLimiter(t *testing.T) {
 	for i := range 10 {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 10 {
 		t.Errorf("expected 10 results, got %d", len(results))
@@ -607,7 +607,7 @@ func TestRate_ResetClearsRate(t *testing.T) {
 	for i := range 10 {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 10 {
 		t.Errorf("expected 10 results after reset, got %d", len(results))
@@ -642,7 +642,7 @@ func TestRate_ResetThenStream(t *testing.T) {
 	p := pool.New[int]().Rate(20, time.Second, 20)
 
 	p.Go(func() Result[int] { return Ok(1) })
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
 	}
@@ -797,7 +797,7 @@ func TestRate_HighRate_MultiTokenTick(t *testing.T) {
 	for i := range 2000 {
 		p.Go(func() Result[int] { return Ok(i) })
 	}
-	results := p.Wait().Collect()
+	results := p.Wait().Collect().Slice()
 
 	if len(results) != 2000 {
 		t.Fatalf("expected 2000 results, got %d", len(results))

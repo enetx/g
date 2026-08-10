@@ -1,22 +1,26 @@
 package main
 
-import . "github.com/enetx/g"
+import (
+	. "github.com/enetx/g"
+
+	"github.com/enetx/g/fs"
+)
 
 func main() {
 	// Iterate over and print the names of files in the current directory
-	NewDir(".").Read().ForEach(func(f Result[*File]) { f.Ok().Name().Println() })
+	fs.NewDir(".").Read().ForEach(func(f Result[*fs.File]) { f.Ok().Name().Println() })
 
 	// Iterate over and print the full paths of files in the current directory
-	NewDir(".").Read().ForEach(func(f Result[*File]) { f.Ok().Path().Ok().Println() })
+	fs.NewDir(".").Read().ForEach(func(f Result[*fs.File]) { f.Ok().Path().Ok().Println() })
 
 	// Iterate over and print the names of files in the current directory with a *.go extension
-	NewDir("*.go").Glob().ForEach(func(f Result[*File]) { f.Ok().Name().Println() })
+	fs.NewDir("*.go").Glob().ForEach(func(f Result[*fs.File]) { f.Ok().Name().Println() })
 
 	// Iterate over and print the full paths of files in the current directory with a *.go extension
-	NewDir("*.go").Glob().ForEach(func(f Result[*File]) { f.Ok().Path().Ok().Println() })
+	fs.NewDir("*.go").Glob().ForEach(func(f Result[*fs.File]) { f.Ok().Path().Ok().Println() })
 
 	// Iterate over and print the full paths of non-directory files in the current directory
-	NewDir(".").Read().ForEach(func(f Result[*File]) {
+	fs.NewDir(".").Read().ForEach(func(f Result[*fs.File]) {
 		if !f.Ok().Stat().Unwrap().IsDir() {
 			f.Ok().Path().Unwrap().Println()
 		}

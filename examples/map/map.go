@@ -35,15 +35,13 @@ func main() {
 	// Map iterators can change BOTH key and value types in one pass (Go 1.27)
 	users := Map[int, String]{1: "alice", 2: "bob"}
 	users.Iter().
-		Map(func(id int, name String) (String, int) { return name, id }). // swap key/value types
-		Collect().
-		Println() // Map{alice:1, bob:2} (order may vary)
+		Map(func(id int, name String) (String, int) { return name, id }).Collect().Map[String, int](). // swap key/value types
+		Println()                                                                                      // Map{alice:1, bob:2} (order may vary)
 
 	// FilterByValue with a one-place f predicate — no lambda wrapper needed
 	scores := Map[String, Int]{"alice": 90, "bob": 65, "carol": 78}
 	scores.Iter().
-		FilterByValue(f.Gt(Int(70))).
-		Collect().
+		FilterByValue(f.Gt(Int(70))).Collect().Map[String, Int]().
 		Println() // Map{alice:90, carol:78} (order may vary)
 
 }

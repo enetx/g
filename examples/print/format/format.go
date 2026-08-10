@@ -35,7 +35,6 @@ func main() {
 	// --- Positional placeholders ---
 	// {N} references argument N (1-based). The same argument can be reused.
 	Println("{2} comes before {1}", "world", "hello") // hello comes before world
-	Println("{1.Hex}, {1.Binary}", Int(255))          // ff, 11111111
 
 	// --- Named placeholders ---
 	// Pass a Named map alongside positional args.
@@ -52,7 +51,7 @@ func main() {
 	// --- Escape literal braces ---
 	Println("template syntax: {{{value}}}", Named{"value": "example"}) // template syntax: {example}
 
-	// --- Additional Rust/Go-style representations ---
+	// --- Additional representations ---
 	Println("decimal={:d} char={:c} quoted={:q} unicode={:U}", 42, 65, "go\n", 'A')
 
 	// FormatTo appends into an existing reusable builder.
@@ -68,18 +67,20 @@ func main() {
 	Println("default={} currency={:currency} cents={:cents}", price, price, price)
 	// default=19.95 currency=$19.95 cents=1995
 
-	// --- Modifier chains ---
-	// Modifiers call methods on the value via reflection — any method works.
-	Println("{.Trim.Title}", String("  hello world  ")) // Hello World
-	Println("{.Upper.Reverse}", String("gopher"))       // REHPOG
-	Println("{.Repeat(3)}", String("ha"))               // hahaha
-	Println("{.Truncate(5)}", String("Hello, World!"))  // Hello...
+	// --- Transform, then format ---
+	// Placeholders resolve data only (fields, keys, indices) — methods are
+	// never invoked. Apply transformations to the value
+	// before formatting.
+	Println("{}", String("  hello world  ").Trim().Title()) // Hello World
+	Println("{}", String("gopher").Upper().Reverse())       // REHPOG
+	Println("{}", String("ha").Repeat(3))                   // hahaha
+	Println("{}", String("Hello, World!").Truncate(5))      // Hello...
 
 	// --- Numeric type formatters ---
-	Println("dec={} hex={.Hex} bin={.Binary} oct={.Octal}", Int(42), Int(42), Int(42), Int(42))
+	Println("dec={} hex={} bin={} oct={}", Int(42), Int(42).Hex(), Int(42).Binary(), Int(42).Octal())
 
 	// --- Float modifiers ---
-	Println("{.Round} / {.RoundDecimal(2)}", Float(3.14159), Float(3.14159)) // 3 / 3.14
+	Println("{} / {}", Float(3.14159).Round(), Float(3.14159).RoundDecimal(2)) // 3 / 3.14
 
 	// --- Struct field access ---
 	type Point struct{ X, Y int }
@@ -88,16 +89,15 @@ func main() {
 
 	// --- Map access ---
 	m := Map[String, String]{"key": "value"}
-	Println("map[key] = {.key}", m)           // map[key] = value
-	Println("map[key] = {.Get(key).Some}", m) // same via method
+	Println("map[key] = {.key}", m) // map[key] = value
 
 	// --- Slice access ---
 	s := Slice[String]{"alpha", "beta", "gamma"}
 	Println("index 0={.0} index 2={.2}", s, s) // index 0=alpha index 2=gamma
 
-	// --- Date formatting via method call ---
-	today := Named{"today": time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC)}
-	Println("today is {today.Format(2006-01-02)}", today) // today is 2025-06-15
+	// --- Date formatting: format the value first, then hand it to Format ---
+	today := Named{"today": time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC).Format("2006-01-02")}
+	Println("today is {today}", today) // today is 2025-06-15
 
 	// --- type and debug format specs ---
 	// {:T} → fmt.Sprintf("%T", v), {:?} → fmt.Sprintf("%#v", v)

@@ -12,7 +12,8 @@ func main() {
 		Iter().
 		Unique().  // Remove duplicates from the slice
 		Chunks(2). // Split the slice into chunks of size 2
-		Collect()
+		Collect().
+		Slices()
 
 	// Print the resulting chunks
 	fmt.Println(chunks)

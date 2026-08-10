@@ -2,14 +2,12 @@ package g
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"reflect"
 	"slices"
 	"strings"
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/f"
-	"github.com/enetx/iter"
 )
 
 // Slice is a generic alias for a slice.
@@ -52,10 +50,13 @@ func NewSlice[T any](size ...Int) Slice[T] {
 	return make(Slice[T], length, capacity)
 }
 
-// transformSlice is an internal eager map for conversions where the result size is
-// known up front (e.g. wrapping regexp/strings results); the public transformation
-// API is Iter().Map().Collect().
-func transformSlice[T, U any](sl []T, fn func(T) U) Slice[U] {
+// SliceOf creates a new generic slice containing the provided elements.
+func SliceOf[T any](slice ...T) Slice[T] { return slice }
+
+// TransformSlice maps a plain Go slice into a Slice through fn. It is the
+// exported bridge between stdlib-shaped results and g containers, shared with
+// the subpackages (rx uses it for its match groups).
+func TransformSlice[T, U any](sl []T, fn func(T) U) Slice[U] {
 	if len(sl) == 0 {
 		return NewSlice[U]()
 	}
@@ -68,56 +69,16 @@ func transformSlice[T, U any](sl []T, fn func(T) U) Slice[U] {
 	return result
 }
 
-// SliceOf creates a new generic slice containing the provided elements.
-func SliceOf[T any](slice ...T) Slice[T] { return slice }
-
-// Heap converts the slice to a min/max heap with the specified comparison function.
-//
-// The comparison function should return:
-//   - cmp.Less if a < b (for min heap)
-//   - cmp.Greater if a > b (for max heap)
-//   - cmp.Equal if a == b
-//
-// Example usage:
-//
-//	slice := g.SliceOf(5, 2, 8, 1, 9)
-//
-//	minHeap := slice.Heap(cmp.Cmp[int])	// Min heap: Pop() returns smallest
-//	maxHeap := slice.Heap(func(a, b int) cmp.Ordering {
-//		return cmp.Cmp(b, a)
-//	})	// Max heap: Pop() returns largest
-//
-// Time complexity: O(n)
-// Space complexity: O(n) - creates a copy of the slice
-//
-// Heap panics if compareFn is nil, mirroring NewHeap, since a nil
-// comparison function would otherwise nil-deref on the first Push.
-func (sl Slice[T]) Heap(compareFn func(T, T) cmp.Ordering) *Heap[T] {
-	if compareFn == nil {
-		panic("g.Slice.Heap: compareFn cannot be nil")
-	}
-
-	h := &Heap[T]{
-		data: make(Slice[T], len(sl)),
-		cmp:  compareFn,
-	}
-
-	copy(h.data, sl)
-	h.heapify()
-
-	return h
-}
-
 // Transform applies a transformation function to the Slice and returns the result.
 func (sl Slice[T]) Transform[U any](fn func(Slice[T]) U) U { return fn(sl) }
 
-// Iter returns an iterator (SeqSlice[T]) for the Slice, allowing for sequential iteration
+// Iter returns an iterator (Seq[T]) for the Slice, allowing for sequential iteration
 // over its elements. It is commonly used in combination with higher-order functions,
 // such as 'ForEach', to perform operations on each element of the Slice.
 //
 // Returns:
 //
-// A SeqSlice[T], which can be used for sequential iteration over the elements of the Slice.
+// A Seq[T], which can be used for sequential iteration over the elements of the Slice.
 //
 // Example usage:
 //
@@ -130,15 +91,15 @@ func (sl Slice[T]) Transform[U any](fn func(Slice[T]) U) U { return fn(sl) }
 //
 // The 'Iter' method provides a convenient way to traverse the elements of a Slice
 // in a functional style, enabling operations like mapping or filtering.
-func (sl Slice[T]) Iter() SeqSlice[T] { return SeqSlice[T](iter.FromSlice(sl)) }
+func (sl Slice[T]) Iter() Seq[T] { return Seq[T](seqFromSlice(sl)) }
 
-// IterReverse returns an iterator (SeqSlice[T]) for the Slice that allows for sequential iteration
+// IterReverse returns an iterator (Seq[T]) for the Slice that allows for sequential iteration
 // over its elements in reverse order. This method is useful when you need to traverse the elements
 // from the end to the beginning.
 //
 // Returns:
 //
-// A SeqSlice[T], which can be used for sequential iteration over the elements of the Slice in reverse order.
+// A Seq[T], which can be used for sequential iteration over the elements of the Slice in reverse order.
 //
 // Example usage:
 //
@@ -151,7 +112,15 @@ func (sl Slice[T]) Iter() SeqSlice[T] { return SeqSlice[T](iter.FromSlice(sl)) }
 //
 // The 'IterReverse' method enhances the functionality of the Slice by providing an alternative
 // way to iterate through its elements, enhancing flexibility in how data within a Slice is accessed and manipulated.
-func (sl Slice[T]) IterReverse() SeqSlice[T] { return SeqSlice[T](iter.FromSliceReverse(sl)) }
+func (sl Slice[T]) IterReverse() Seq[T] {
+	return func(yield func(T) bool) {
+		for _, v := range slices.Backward(sl) {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+}
 
 // Fill fills the slice with the specified value.
 // This function is useful when you want to create an Slice with all elements having the same
@@ -161,10 +130,6 @@ func (sl Slice[T]) IterReverse() SeqSlice[T] { return SeqSlice[T](iter.FromSlice
 // Parameters:
 //
 // - val T: The value to fill the Slice with.
-//
-// Returns:
-//
-// - Slice[T]: A reference to the original Slice filled with the specified value.
 //
 // Example usage:
 //
@@ -208,91 +173,11 @@ func (sl Slice[T]) Index(val T) Int {
 }
 
 // IndexBy returns the index of the first element in the slice
-// satisfying the custom comparison function provided by the user.
-// It iterates through the slice and applies the comparison function to each element and the target value.
-// If the comparison function returns true for any pair of elements, it returns the index of that element.
+// satisfying the predicate function provided by the user.
+// It iterates through the slice and applies the predicate to each element.
+// If the predicate returns true for an element, it returns the index of that element.
 // If no such element is found, it returns -1.
 func (sl Slice[T]) IndexBy(fn func(t T) bool) Int { return Int(slices.IndexFunc(sl, fn)) }
-
-// RandomSample returns a new slice containing a random sample of elements from the original slice.
-// The sampling is done without replacement, meaning that each element can only appear once in the result.
-//
-// Parameters:
-//
-// - sequence int: The number of unique elements to include in the random sample.
-//
-// Returns:
-//
-// - Slice[T]: A new Slice containing the random sample of unique elements.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5, 6, 7, 8, 9}
-//	sample := slice.RandomSample(3)
-//
-// The resulting sample will contain 3 unique elements randomly selected from the original slice.
-func (sl Slice[T]) RandomSample(sequence Int) Slice[T] {
-	if sequence.Gte(sl.Len()) {
-		return sl.Clone()
-	}
-
-	if sequence.Lte(0) {
-		return Slice[T]{}
-	}
-
-	n := len(sl)
-
-	if Float(sequence).Lt(Float(n) * 0.25) {
-		result := make(Slice[T], sequence)
-		swapped := make(map[int]int, sequence)
-
-		for i := range int(sequence) {
-			j := i + rand.N(n-i)
-
-			vi, foundI := swapped[i]
-			if !foundI {
-				vi = i
-			}
-
-			vj, foundJ := swapped[j]
-			if !foundJ {
-				vj = j
-			}
-
-			swapped[i] = vj
-			if i != j {
-				swapped[j] = vi
-			}
-
-			result[i] = sl[vj]
-		}
-
-		return result
-	}
-
-	result := sl.Clone()
-	result.Shuffle()
-
-	return result[:sequence]
-}
-
-// RandomRange returns a new slice containing a random sample of elements from a subrange of the original slice.
-// The sampling is done without replacement, meaning that each element can only appear once in the result.
-func (sl Slice[T]) RandomRange(from, to Int) Slice[T] {
-	if from < 0 {
-		from = 0
-	}
-
-	if to < 0 || to > sl.Len() {
-		to = sl.Len()
-	}
-
-	if from > to {
-		from = to
-	}
-
-	return sl.RandomSample(from.RandomRange(to))
-}
 
 // Insert inserts values at the specified index in the slice and modifies the original
 // slice.
@@ -331,9 +216,9 @@ func (sl *Slice[T]) Insert(i Int, values ...T) {
 //
 // Parameters:
 //
-// - i int: The starting index of the slice to be replaced.
+// - i Int: The starting index of the slice to be replaced.
 //
-// - j int: The ending index of the slice to be replaced.
+// - j Int: The ending index of the slice to be replaced.
 //
 // - values ...T: A variadic list of values to replace the existing slice.
 //
@@ -415,29 +300,8 @@ func (sl Slice[T]) Get(index Int) Option[T] {
 	return Some(sl[i])
 }
 
-// Shuffle shuffles the elements in the slice randomly.
-// This method modifies the original slice in place.
-//
-// Example usage:
-//
-// slice := g.Slice[int]{1, 2, 3, 4, 5}
-// slice.Shuffle()
-// fmt.Println(slice)
-//
-// Output: A randomly shuffled version of the original slice, e.g., [4 1 5 2 3].
-func (sl Slice[T]) Shuffle() {
-	for i := sl.Len() - 1; i > 0; i-- {
-		j := rand.N(i + 1)
-		sl[i], sl[j] = sl[j], sl[i]
-	}
-}
-
 // Reverse reverses the order of the elements in the slice.
 // This method modifies the original slice in place.
-//
-// Returns:
-//
-// - Slice[T]: The modified slice with the elements reversed.
 //
 // Example usage:
 //
@@ -539,7 +403,7 @@ func (sl *Slice[T]) Retain(fn func(T) bool) {
 
 // DedupBy removes consecutive elements considered equal by eq, keeping the first
 // of each run, in place. It is the eager, in-place counterpart of the lazy
-// SeqSlice.Dedup. Only adjacent duplicates are removed, so sort first for a
+// Seq.Dedup. Only adjacent duplicates are removed, so sort first for a
 // global dedup.
 func (sl *Slice[T]) DedupBy(eq func(a, b T) bool) {
 	*sl = slices.CompactFunc(*sl, eq)
@@ -675,8 +539,8 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	start, end = ii, jj
 
 	// For a negative step the iteration starts AT start and moves down, so a
-	// start clamped to len(sl) must begin at the last element (Python slicing
-	// semantics: s[100:0:-1] starts at the final index, not one past it).
+	// start clamped to len(sl) must begin at the last element (s[100:0:-1]
+	// starts at the final index, not one past it).
 	if _step < 0 && start == sl.Len() {
 		start--
 	}
@@ -713,29 +577,6 @@ func (sl Slice[T]) SubSlice(start, end Int, step ...Int) Slice[T] {
 	}
 
 	return slice
-}
-
-// Random returns a random element from the slice.
-// If the slice is empty, the zero value of type T is returned.
-//
-// Returns:
-//
-// - T: A random element from the slice.
-//
-// Example usage:
-//
-//	slice := g.Slice[int]{1, 2, 3, 4, 5}
-//	randomElement := slice.Random()
-//	fmt.Println(randomElement)
-//
-// Output: <any random element from the slice>.
-func (sl Slice[T]) Random() T {
-	if sl.IsEmpty() {
-		var zero T
-		return zero
-	}
-
-	return sl[rand.N(len(sl))]
 }
 
 // Clone returns a copy of the slice.
@@ -965,18 +806,6 @@ func (sl Slice[T]) ContainsAll(values ...T) bool {
 	return true
 }
 
-// Remove removes an element or a range of elements from the Slice in-place.
-// It modifies the original Slice by creating two slices: one from the
-// beginning of the Slice up to the specified `start` index (exclusive),
-// and another from the `end` index (inclusive) to the end of the Slice.
-// These two slices are then concatenated to form the modified Slice.
-//
-// Parameters:
-//
-//   - start (Int): The starting index of the element or range to be removed.
-//   - end (Int, optional): The end index of the range to be removed.
-//     If omitted, only the element at the `start` index is removed.
-//
 // Remove removes and returns the element at the specified index.
 // Returns None if index is out of bounds.
 // Negative indices are supported: -1 refers to the last element, etc.
@@ -1081,10 +910,6 @@ func (sl Slice[T]) Len() Int { return Int(len(sl)) }
 // - i (Int): The index of the first element to be swapped.
 //
 // - j (Int): The index of the second element to be swapped.
-//
-// Returns:
-//
-// - Slice[T]: The modified slice with the elements at the specified indices swapped.
 //
 // Example usage:
 //

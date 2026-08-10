@@ -6,11 +6,10 @@ import (
 
 	"github.com/enetx/g/cmp"
 	"github.com/enetx/g/constraints"
-	"github.com/enetx/iter"
 )
 
 // SeqResult is an iterator over sequences of Result[V] values.
-type SeqResult[V any] iter.Seq[Result[V]]
+type SeqResult[V any] func(yield func(Result[V]) bool)
 
 // OkSeq wraps a single Ok value into a SeqResult iterator.
 // Useful for returning a successful single-element sequence without manually
@@ -43,7 +42,7 @@ func ErrSeq[V any](err error) SeqResult[V] {
 // Example:
 //
 //	seq.FlatMap(Slice[Int].Iter) // SeqResult[Slice[Int]] -> SeqResult[Int]
-func (seq SeqResult[V]) FlatMap[U any](fn func(V) SeqSlice[U]) SeqResult[U] {
+func (seq SeqResult[V]) FlatMap[U any](fn func(V) Seq[U]) SeqResult[U] {
 	return func(yield func(Result[U]) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
@@ -76,7 +75,7 @@ func (seq SeqResult[V]) FlatMap[U any](fn func(V) SeqSlice[U]) SeqResult[U] {
 //
 // It is an error to call next or stop from multiple goroutines simultaneously.
 func (seq SeqResult[V]) Pull() (func() (Result[V], bool), func()) {
-	return iter.Seq[Result[V]](seq).Pull()
+	return Seq[Result[V]](seq).seqPull()
 }
 
 // All checks whether all Ok values in the sequence satisfy the provided condition.
@@ -127,9 +126,14 @@ func (seq SeqResult[V]) Any(fn func(v V) bool) Result[bool] {
 	return result
 }
 
-// Collect gathers all elements from the iterator into a Slice of Result values.
-// Both Ok and Err elements are collected as-is; encountering an Err does not stop the collection.
-func (seq SeqResult[V]) Collect() Slice[Result[V]] { return iter.Seq[Result[V]](seq).ToSlice() }
+// Collect returns a collector over the raw Result elements, matching the
+// Seq/Seq2 collector idiom: materialize with .Slice() (etc.). Collect itself
+// is lazy and does not consume the sequence; the materializer does. Both Ok
+// and Err elements flow through as-is; encountering an Err does not stop
+// collection. Use TryCollect for the short-circuiting Ok-only variant.
+func (seq SeqResult[V]) Collect() collector[Result[V]] {
+	return collector[Result[V]]{Seq[Result[V]](seq)}
+}
 
 // TryCollect gathers the Ok values from the sequence into a Slice: the first Err
 // short-circuits — iteration stops immediately, elements after it are not
@@ -331,8 +335,12 @@ func (seq SeqResult[V]) Range(fn func(v Result[V]) bool) {
 // If an Err is encountered, it is yielded as-is without consuming the skip
 // budget (consumer-driven). Once n Ok elements have been skipped,
 // subsequent elements (Ok or Err) are yielded normally.
-func (seq SeqResult[V]) Skip(n uint) SeqResult[V] {
+func (seq SeqResult[V]) Skip(n Int) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
+		if n < 0 {
+			n = 0
+		}
+
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				return yield(v)
@@ -350,13 +358,13 @@ func (seq SeqResult[V]) Skip(n uint) SeqResult[V] {
 //
 // If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // For Ok elements, only every n-th element is yielded.
-func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
+func (seq SeqResult[V]) StepBy(n Int) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
-		if n == 0 {
+		if n <= 0 {
 			return
 		}
 
-		i := uint(0)
+		i := Int(0)
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				return yield(v)
@@ -373,9 +381,9 @@ func (seq SeqResult[V]) StepBy(n uint) SeqResult[V] {
 // Take returns a new sequence with the first n Ok elements.
 // If an Err is encountered, it is yielded downstream as-is (consumer-driven).
 // After n Ok elements are yielded, the sequence ends.
-func (seq SeqResult[V]) Take(n uint) SeqResult[V] {
+func (seq SeqResult[V]) Take(n Int) SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
-		if n == 0 {
+		if n <= 0 {
 			return
 		}
 
@@ -584,7 +592,7 @@ func (seq SeqResult[V]) Last() Result[Option[V]] {
 // Returns:
 // - Option[Result[V]]: Some(Result[V]) if an element exists, None if the iterator is exhausted.
 func (seq *SeqResult[V]) Next() Option[Result[V]] {
-	if value, remaining, ok := iter.Seq[Result[V]](*seq).Next(); ok {
+	if value, remaining, ok := Seq[Result[V]](*seq).seqNext(); ok {
 		*seq = SeqResult[V](remaining)
 		return Some(value)
 	}
@@ -612,8 +620,8 @@ func (seq SeqResult[V]) Partition() (Slice[V], Slice[error]) {
 
 // Ok returns a new sequence containing only the Ok values from the original sequence.
 // All Err values are filtered out.
-func (seq SeqResult[V]) Ok() SeqSlice[V] {
-	return SeqSlice[V](func(yield func(V) bool) {
+func (seq SeqResult[V]) Ok() Seq[V] {
+	return Seq[V](func(yield func(V) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsOk() {
 				return yield(v.v)
@@ -625,8 +633,8 @@ func (seq SeqResult[V]) Ok() SeqSlice[V] {
 
 // Err returns a new sequence containing only the error values from the original sequence.
 // All Ok values are filtered out.
-func (seq SeqResult[V]) Err() SeqSlice[error] {
-	return SeqSlice[error](func(yield func(error) bool) {
+func (seq SeqResult[V]) Err() Seq[error] {
+	return Seq[error](func(yield func(error) bool) {
 		seq(func(v Result[V]) bool {
 			if v.IsErr() {
 				return yield(v.err)
@@ -664,7 +672,8 @@ func (seq SeqResult[V]) FirstErr() Option[error] {
 //
 // Example usage with pool.Stream:
 //
-//	ch := pool.New[int]().Limit(10).Stream(func() {
+//	p := pool.New[int]().Limit(10)
+//	ch := p.Stream(func() {
 //	    for i := range 100 {
 //	        p.Go(func() Result[int] {
 //	            if i%10 == 0 {
@@ -678,7 +687,7 @@ func (seq SeqResult[V]) FirstErr() Option[error] {
 //	successful, failed := FromResultChan(ch).Partition()
 //	fmt.Printf("Successful: %d, Failed: %d\n", successful.Len(), failed.Len())
 func FromResultChan[V any](ch <-chan Result[V]) SeqResult[V] {
-	return SeqResult[V](iter.FromChan(ch))
+	return SeqResult[V](seqFromChan(ch))
 }
 
 // Fold reduces the sequence to a single value using an accumulator.
@@ -940,7 +949,7 @@ func (seq SeqResult[V]) MinBy(fn func(V, V) cmp.Ordering) Result[Option[V]] {
 
 // Flatten flattens one or more levels of nested slices/arrays inside each Ok
 // value, yielding the leaf elements as Ok. Err elements are passed downstream
-// as-is (consumer-driven). It mirrors SeqSlice.Flatten and, like it, relies on
+// as-is (consumer-driven). It mirrors Seq.Flatten and, like it, relies on
 // reflection: only leaves assignable to V are yielded.
 func (seq SeqResult[V]) Flatten() SeqResult[V] {
 	return func(yield func(Result[V]) bool) {
@@ -993,11 +1002,13 @@ func (seq SeqResult[V]) SortBy(fn func(a, b V) cmp.Ordering) SeqResult[V] {
 }
 
 // CounterBy counts how many Ok values map to each key produced by fn, returning
-// the tally as a MapOrd in first-seen key order. It is a short-circuit terminal:
-// the first Err stops the count and is returned as Err. (A lazy SeqResult of the
-// tally is impossible here — it would instantiate SeqResult with a type built
-// from V and hit an instantiation cycle.)
-func (seq SeqResult[V]) CounterBy[K comparable](fn func(V) K) Result[MapOrd[K, Int]] {
+// the tally as plain pairs in first-seen key order (convert with MapOrd[K, Int]
+// if map access is needed). It is a short-circuit terminal: the first Err stops
+// the count and is returned as Err. (A lazy SeqResult of the tally is
+// impossible here — it would instantiate SeqResult with a type built from V and
+// hit an instantiation cycle; returning MapOrd would weld SeqResult to the map
+// cluster.)
+func (seq SeqResult[V]) CounterBy[K comparable](fn func(V) K) Result[[]Pair[K, Int]] {
 	order := NewSlice[K]()
 	counts := NewMap[K, Int]()
 
@@ -1020,12 +1031,12 @@ func (seq SeqResult[V]) CounterBy[K comparable](fn func(V) K) Result[MapOrd[K, I
 	})
 
 	if err != nil {
-		return Err[MapOrd[K, Int]](err)
+		return Err[[]Pair[K, Int]](err)
 	}
 
-	result := NewMapOrd[K, Int](order.Len())
+	result := make([]Pair[K, Int], 0, order.Len())
 	for _, k := range order {
-		result.Insert(k, counts[k])
+		result = append(result, Pair[K, Int]{Key: k, Value: counts[k]})
 	}
 
 	return Ok(result)

@@ -7,12 +7,13 @@ func main() {
 	Slice[string]{"Hello", "World", "!"}.Iter().
 		Intersperse(" ").
 		Collect().
+		Slice().
 		Join().
 		Println() // Hello World !
 
 		// Example 2
 	str := String("I love ice cream. Ice cream is delicious.")
-	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect()
+	matches := Slice[String]{"Ice", "cream"}.Iter().Intersperse("").Collect().Slice()
 	matches.Push("")
 
 	str = str.ReplaceMulti(matches...)

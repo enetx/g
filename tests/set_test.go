@@ -46,10 +46,10 @@ func TestSetDifference(t *testing.T) {
 	set5 := SetOf(1, 2)
 	set6 := SetOf(2, 3, 4)
 
-	set3 := set1.Difference(set2).Collect()
-	set4 := set2.Difference(set1).Collect()
-	set7 := set5.Difference(set6).Collect()
-	set8 := set6.Difference(set5).Collect()
+	set3 := set1.Difference(set2)
+	set4 := set2.Difference(set1)
+	set7 := set5.Difference(set6)
+	set8 := set6.Difference(set5)
 
 	if set3.Len() != 2 || set3.Ne(SetOf(1, 2)) {
 		t.Errorf("Unexpected result: %v", set3)
@@ -71,7 +71,7 @@ func TestSetDifference(t *testing.T) {
 func TestSetSymmetricDifference(t *testing.T) {
 	set1 := NewSet[int](10)
 	set2 := set1.Clone()
-	result := set1.SymmetricDifference(set2).Collect()
+	result := set1.SymmetricDifference(set2)
 
 	if !result.IsEmpty() {
 		t.Errorf("SymmetricDifference between equal sets should be empty, got %v", result)
@@ -79,8 +79,8 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 	set1 = SetOf(0, 1, 2, 3, 4)
 	set2 = SetOf(5, 6, 7, 8, 9)
-	result = set1.SymmetricDifference(set2).Collect()
-	expected := set1.Union(set2).Collect()
+	result = set1.SymmetricDifference(set2)
+	expected := set1.Union(set2)
 
 	if !result.Eq(expected) {
 		t.Errorf(
@@ -92,13 +92,13 @@ func TestSetSymmetricDifference(t *testing.T) {
 
 	set1 = SetOf(0, 1, 2, 3, 4, 5)
 	set2 = SetOf(4, 5, 6, 7, 8)
-	result = set1.SymmetricDifference(set2).Collect()
+	result = set1.SymmetricDifference(set2)
 	expected2 := SetOf(0, 1, 2, 3, 6, 7, 8)
 
 	if !result.Eq(expected2) {
 		t.Errorf(
 			"SymmetricDifference between sets with common elements should be correct, expected %v but got %v",
-			expected,
+			expected2,
 			result,
 		)
 	}
@@ -248,75 +248,60 @@ func TestSetRemove(t *testing.T) {
 }
 
 func TestSetContainsAny(t *testing.T) {
-	// Test case 1: Set contains some elements from another set
+	// Variadic values: at least one present.
 	set1 := SetOf(1, 2, 3)
-	set2 := SetOf(2, 4, 6)
-	if !set1.ContainsAny(set2) {
-		t.Errorf("Expected Set to contain at least one element from the other Set")
+	if !set1.ContainsAny(2, 4, 6) {
+		t.Errorf("Expected Set to contain at least one of the values")
 	}
 
-	// Test case 2: Set doesn't contain any elements from another set
+	// None of the values present.
 	set3 := SetOf("a", "b")
-	set4 := SetOf("c", "d", "e")
-	if set3.ContainsAny(set4) {
-		t.Errorf("Expected Set not to contain any elements from the other Set")
+	if set3.ContainsAny("c", "d", "e") {
+		t.Errorf("Expected Set not to contain any of the values")
 	}
 
-	// Test case 3: Empty sets
-	set5 := Set[float64]{}
-	set6 := Set[float64]{}
-	if set5.ContainsAny(set6) {
-		t.Errorf("Expected empty sets not to contain any elements from each other")
-	}
-}
-
-func TestSetContainsAny_EdgeCases(t *testing.T) {
-	// Test case 1: First set is larger (should use the else branch - iterate over smaller set)
-	largeSet := SetOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-	smallSet := SetOf(5, 15)
-	if !largeSet.ContainsAny(smallSet) {
-		t.Errorf("Large set should contain element 5 from small set")
+	// No values at all.
+	if set1.ContainsAny() {
+		t.Errorf("ContainsAny() with no arguments must be false")
 	}
 
-	// Test case 2: First set is larger, no overlap
-	smallSetNoOverlap := SetOf(11, 12)
-	if largeSet.ContainsAny(smallSetNoOverlap) {
-		t.Errorf("Large set should not contain any elements from non-overlapping small set")
+	// Empty set never contains anything.
+	if NewSet[int]().ContainsAny(1, 2, 3) {
+		t.Errorf("Empty set should not contain any values")
 	}
 
-	// Test case 3: Empty first set with non-empty second set
-	emptySet := NewSet[int]()
-	nonEmptySet := SetOf(1, 2, 3)
-	if emptySet.ContainsAny(nonEmptySet) {
-		t.Errorf("Empty set should not contain any elements")
-	}
-
-	// Test case 4: Non-empty first set with empty second set
-	if nonEmptySet.ContainsAny(emptySet) {
-		t.Errorf("Set should not contain any elements from empty set")
+	// Set-vs-set membership is Disjoint's negation.
+	if SetOf(1, 2, 3).Disjoint(SetOf(2, 4, 6)) {
+		t.Errorf("Sets sharing 2 must not be disjoint")
 	}
 }
 
 func TestSetContainsAll(t *testing.T) {
-	// Test case 1: Set contains all elements from another set
+	// Variadic values: every value present.
 	set1 := SetOf(1, 2, 3)
-	set2 := SetOf(2, 3)
-	if !set1.ContainsAll(set2) {
-		t.Errorf("Expected Set to contain all elements from the other Set")
+	if !set1.ContainsAll(2, 3) {
+		t.Errorf("Expected Set to contain all of the values")
 	}
 
-	// Test case 2: Set doesn't contain all elements from another set
+	// One value missing.
 	set3 := SetOf("a", "b", "c")
-	set4 := SetOf("b", "d")
-	if set3.ContainsAll(set4) {
-		t.Errorf("Expected Set not to contain all elements from the other Set")
+	if set3.ContainsAll("b", "d") {
+		t.Errorf("Expected Set not to contain all of the values")
 	}
 
-	// Test case 3: Empty sets
-	set5 := SetOf[float64]()
-	set6 := SetOf(1.1, 2.2)
-	if set5.ContainsAll(set6) {
-		t.Errorf("Expected empty Set not to contain all elements from another non-empty Set")
+	// No values at all is vacuously true.
+	if !set1.ContainsAll() {
+		t.Errorf("ContainsAll() with no arguments must be true")
+	}
+
+	// Empty set contains nothing.
+	if NewSet[float64]().ContainsAll(1.1, 2.2) {
+		t.Errorf("Empty Set must not contain any values")
+	}
+
+	// Set-vs-set containment lives on Subset/Superset.
+	if !SetOf(2, 3).Subset(set1) || !set1.Superset(SetOf(2, 3)) {
+		t.Errorf("Subset/Superset must report set containment")
 	}
 }
 
@@ -324,7 +309,7 @@ func TestSetToSlice(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := SetOf(1, 2, 3)
 	expected1 := Slice[int]{1, 2, 3}
-	slice1 := set1.Slice()
+	slice1 := set1.Iter().Collect().Slice()
 	if len(slice1) != len(expected1) {
 		t.Errorf("Expected length of slice to be %d, got %d", len(expected1), len(slice1))
 	}
@@ -332,7 +317,7 @@ func TestSetToSlice(t *testing.T) {
 	// Test case 2: Empty Set
 	set2 := NewSet[string]()
 	expected2 := Slice[string]{}
-	slice2 := set2.Slice()
+	slice2 := set2.Iter().Collect().Slice()
 	if len(slice2) != len(expected2) {
 		t.Errorf("Expected length of slice to be %d, got %d", len(expected2), len(slice2))
 	}
@@ -376,7 +361,7 @@ func TestSetIntersection(t *testing.T) {
 	set1 := SetOf(1, 2, 3, 4, 5)
 	set2 := SetOf(4, 5, 6, 7, 8)
 	expected := SetOf(4, 5)
-	intersection := set1.Intersection(set2).Collect()
+	intersection := set1.Intersection(set2)
 	if len(intersection) != len(expected) {
 		t.Errorf("Expected intersection to have length %d, got %d", len(expected), len(intersection))
 	}
@@ -389,7 +374,7 @@ func TestSetIntersection(t *testing.T) {
 	// Test case 2: Empty Set
 	set3 := SetOf("a", "b")
 	set4 := NewSet[string]()
-	intersection2 := set3.Intersection(set4).Collect()
+	intersection2 := set3.Intersection(set4)
 	if len(intersection2) != 0 {
 		t.Errorf("Expected intersection of an empty set to be empty")
 	}
@@ -397,7 +382,7 @@ func TestSetIntersection(t *testing.T) {
 	// Test case 3: Both sets empty
 	set5 := NewSet[int]()
 	set6 := NewSet[int]()
-	intersection = set5.Intersection(set6).Collect()
+	intersection = set5.Intersection(set6)
 	if len(intersection) != 0 {
 		t.Errorf("Expected intersection of two empty sets to be empty")
 	}
@@ -408,7 +393,7 @@ func TestSetUnion(t *testing.T) {
 	set1 := SetOf(1, 2, 3)
 	set2 := SetOf(3, 4, 5)
 	expected := SetOf(1, 2, 3, 4, 5)
-	union := set1.Union(set2).Collect()
+	union := set1.Union(set2)
 	if len(union) != len(expected) {
 		t.Errorf("Expected union to have length %d, got %d", len(expected), len(union))
 	}
@@ -421,7 +406,7 @@ func TestSetUnion(t *testing.T) {
 	// Test case 2: Empty Set
 	set3 := SetOf("a", "b")
 	set4 := NewSet[string]()
-	union2 := set3.Union(set4).Collect()
+	union2 := set3.Union(set4)
 	if len(union2) != len(set3) {
 		t.Errorf("Expected union to be equal to the non-empty set")
 	}
@@ -429,9 +414,47 @@ func TestSetUnion(t *testing.T) {
 	// Test case 3: Both sets empty
 	set5 := NewSet[int]()
 	set6 := NewSet[int]()
-	union = set5.Union(set6).Collect()
+	union = set5.Union(set6)
 	if len(union) != 0 {
 		t.Errorf("Expected union of two empty sets to be empty")
+	}
+}
+
+func TestSetAlgebraNonMutating(t *testing.T) {
+	ops := []struct {
+		name string
+		op   func(Set[int], Set[int]) Set[int]
+	}{
+		{"Union", Set[int].Union},
+		{"Intersection", Set[int].Intersection},
+		{"Difference", Set[int].Difference},
+		{"SymmetricDifference", Set[int].SymmetricDifference},
+	}
+
+	for _, tt := range ops {
+		t.Run(tt.name, func(t *testing.T) {
+			set1 := SetOf(1, 2, 3, 4, 5)
+			set2 := SetOf(4, 5, 6, 7, 8)
+
+			result := tt.op(set1, set2)
+
+			// Test case 1: The operation itself must not mutate its inputs
+			if !set1.Eq(SetOf(1, 2, 3, 4, 5)) {
+				t.Errorf("%s mutated the receiver: %v", tt.name, set1)
+			}
+			if !set2.Eq(SetOf(4, 5, 6, 7, 8)) {
+				t.Errorf("%s mutated the argument: %v", tt.name, set2)
+			}
+
+			// Test case 2: The result must not alias the inputs
+			result.Insert(99)
+			if !set1.Eq(SetOf(1, 2, 3, 4, 5)) {
+				t.Errorf("%s result aliases the receiver: %v", tt.name, set1)
+			}
+			if !set2.Eq(SetOf(4, 5, 6, 7, 8)) {
+				t.Errorf("%s result aliases the argument: %v", tt.name, set2)
+			}
+		})
 	}
 }
 
@@ -439,7 +462,7 @@ func TestSetMap(t *testing.T) {
 	// Test case 1: Set with elements
 	set1 := SetOf(1, 2, 3)
 	expected := SetOf("1", "2", "3")
-	setMap := set1.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect()
+	setMap := set1.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect().Set[string]()
 	if len(setMap) != len(expected) {
 		t.Errorf("Expected SetMap to have length %d, got %d", len(expected), len(setMap))
 	}
@@ -451,7 +474,7 @@ func TestSetMap(t *testing.T) {
 
 	// Test case 2: Empty Set
 	set2 := NewSet[int]()
-	setMap = set2.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect()
+	setMap = set2.Iter().Map(func(val int) string { return fmt.Sprintf("%d", val) }).Collect().Set[string]()
 	if len(setMap) != 0 {
 		t.Errorf("Expected SetMap of an empty set to be empty")
 	}
@@ -510,7 +533,7 @@ func TestSetIterFilter(t *testing.T) {
 
 	even := seq.Iter().Filter(func(v int) bool {
 		return v%2 == 0
-	}).Collect()
+	}).Collect().Set[int]()
 
 	expected := SetOf(2, 4)
 	if len(even) != len(expected) {
@@ -525,7 +548,7 @@ func TestSetIterFilter(t *testing.T) {
 	// Test case 2: Filter odd numbers
 	odd := seq.Iter().Filter(func(v int) bool {
 		return v%2 != 0
-	}).Collect()
+	}).Collect().Set[int]()
 
 	oddExpected := SetOf(1, 3, 5)
 	if len(odd) != len(oddExpected) {
@@ -540,7 +563,7 @@ func TestSetIterFilter(t *testing.T) {
 	// Test case 3: Filter all elements
 	all := seq.Iter().Filter(func(v int) bool {
 		return true
-	}).Collect()
+	}).Collect().Set[int]()
 
 	if len(all) != len(seq) {
 		t.Errorf("Expected %d elements, got %d", len(seq), len(all))
@@ -551,13 +574,12 @@ func TestSetIterFilter(t *testing.T) {
 		}
 	}
 }
-
 func TestSetIterExclude(t *testing.T) {
 	// Test case 1: Exclude even numbers
 	seq := SetOf(1, 2, 3, 4, 5)
 	notEven := seq.Iter().Exclude(func(v int) bool {
 		return v%2 == 0
-	}).Collect()
+	}).Collect().Set[int]()
 
 	expected := SetOf(1, 3, 5)
 	if len(notEven) != len(expected) {
@@ -572,7 +594,7 @@ func TestSetIterExclude(t *testing.T) {
 	// Test case 2: Exclude odd numbers
 	notOdd := seq.Iter().Exclude(func(v int) bool {
 		return v%2 != 0
-	}).Collect()
+	}).Collect().Set[int]()
 
 	notOddExpected := SetOf(2, 4)
 	if len(notOdd) != len(notOddExpected) {
@@ -587,19 +609,18 @@ func TestSetIterExclude(t *testing.T) {
 	// Test case 3: Exclude all elements
 	empty := seq.Iter().Exclude(func(v int) bool {
 		return true
-	}).Collect()
+	}).Collect().Set[int]()
 
 	if len(empty) != 0 {
 		t.Errorf("Expected 0 elements, got %d", len(empty))
 	}
 }
-
 func TestSetIterMap(t *testing.T) {
 	// Test case 1: Double each element
 	set := SetOf(1, 2, 3)
 	doubled := set.Iter().Map(func(val int) int {
 		return val * 2
-	}).Collect()
+	}).Collect().Set[int]()
 
 	expected := SetOf(2, 4, 6)
 	if !reflect.DeepEqual(doubled, expected) {
@@ -610,14 +631,13 @@ func TestSetIterMap(t *testing.T) {
 	set2 := SetOf(1, 2, 3)
 	squared := set2.Iter().Map(func(val int) int {
 		return val * val
-	}).Collect()
+	}).Collect().Set[int]()
 
 	expected2 := SetOf(1, 4, 9)
 	if !reflect.DeepEqual(squared, expected2) {
 		t.Errorf("Expected set after squaring elements to be %v, got %v", expected2, squared)
 	}
 }
-
 func TestSetIterInspect(t *testing.T) {
 	// Define a set to iterate over
 	s := SetOf(1, 2, 3)
@@ -628,7 +648,7 @@ func TestSetIterInspect(t *testing.T) {
 	// Create a new iterator with Inspect and collect the elements
 	s.Iter().Inspect(func(v int) {
 		inspectedElements.Insert(v)
-	}).Collect()
+	}).Collect().Slice()
 
 	if !inspectedElements.Eq(s) {
 		t.Errorf("Expected inspected elements to be equal to the set, got %v", inspectedElements)
@@ -704,7 +724,7 @@ func BenchmarkSymmetricDifference(b *testing.B) {
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		set1.SymmetricDifference(set2).Collect()
+		set1.SymmetricDifference(set2).Iter().Collect().Slice()
 	}
 }
 
@@ -784,15 +804,15 @@ func TestSetDisjoint(t *testing.T) {
 	}
 }
 
-func TestSetFromSlice(t *testing.T) {
-	s := SetFromSlice(SliceOf(1, 2, 3, 3, 2))
+func TestSetOfSlice(t *testing.T) {
+	s := SetOf(SliceOf(1, 2, 3, 3, 2)...)
 	if s.Len() != 3 || !s.Contains(1) || !s.Contains(2) || !s.Contains(3) {
-		t.Fatalf("SetFromSlice = %v", s)
+		t.Fatalf("SetOf(slice...) = %v", s)
 	}
 
 	// usable as a method-expression collector after a fallible chain
-	res := SliceOf[String]("1", "2", "2").Iter().TryMap(String.TryInt).TryCollect().Map(SetFromSlice)
+	res := SliceOf[String]("1", "2", "2").Iter().TryMap(String.TryInt).TryCollect().Map(func(s Slice[Int]) Set[Int] { return SetOf(s...) })
 	if res.IsErr() || res.Ok().Len() != 2 {
-		t.Fatalf("Map(SetFromSlice) = %v", res)
+		t.Fatalf("SetOf collector = %v", res)
 	}
 }
